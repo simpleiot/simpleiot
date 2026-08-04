@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	yaml "github.com/goccy/go-yaml"
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
@@ -445,4 +446,144 @@ func (p *provisioner) pruneStateNodes(seen map[string]bool) error {
 	}
 
 	return nil
+}
+
+// defaultProvisionInterval is how often a pass runs when nothing has told us
+// to. The watch and the subscription do the work; this catches what they miss,
+// such as a network filesystem fsnotify says nothing about, and costs one hash
+// per source when nothing has changed.
+const defaultProvisionInterval = time.Minute
+
+// provisionDebounce is how long to wait for a directory to settle. A package
+// manager or an editor writing several files produces a burst of events, and
+// applying once at the end of it is both cheaper and less surprising than
+// applying per file.
+const provisionDebounce = time.Second
+
+// watch runs a pass at start-up and then whenever a file changes, a file node
+// changes, or the interval comes around, until cancel is closed.
+func (p *provisioner) watch(interval time.Duration, cancel chan struct{}) error {
+	if interval <= 0 {
+		interval = defaultProvisionInterval
+	}
+
+	// a file node changing is an ordinary point message, so provisioning
+	// learns about an upload the way everything else in SIOT learns about a
+	// change
+	changed := make(chan struct{}, 1)
+
+	notify := func() {
+		select {
+		case changed <- struct{}{}:
+		default:
+			// a pass is already pending
+		}
+	}
+
+	// A node point is published on p.<node>.<type>.<key>, so the subject says
+	// which point changed and there is nothing to decode.
+	//
+	// Only the points an upload writes count. A description would be the
+	// obvious one to include, but provisioning writes descriptions itself when
+	// it records state, and reacting to those would have every pass schedule
+	// another. Renaming a file node is picked up by the rescan instead.
+	for _, typ := range []string{data.PointTypeData, data.PointTypeName, data.PointTypeCreated} {
+		sub, err := p.nc.Subscribe(client.SubjectNodePoints("*")+"."+typ+".*", func(_ *nats.Msg) {
+			notify()
+		})
+
+		if err != nil {
+			return fmt.Errorf("provision: error subscribing: %w", err)
+		}
+
+		defer func() {
+			_ = sub.Unsubscribe()
+		}()
+	}
+
+	watcher, err := p.watchDir()
+	if err != nil {
+		log.Println("Provision:", err)
+	}
+
+	if watcher != nil {
+		defer watcher.Close()
+	}
+
+	if err := p.run(); err != nil {
+		log.Println("Provision:", err)
+	}
+
+	// the debounce timer is only running while events are arriving
+	settle := time.NewTimer(provisionDebounce)
+	if !settle.Stop() {
+		<-settle.C
+	}
+
+	periodic := time.NewTicker(interval)
+	defer periodic.Stop()
+
+	var events <-chan fsnotify.Event
+	var watchErrors <-chan error
+
+	if watcher != nil {
+		events = watcher.Events
+		watchErrors = watcher.Errors
+	}
+
+	for {
+		select {
+		case <-cancel:
+			return nil
+
+		case e := <-events:
+			if provisionFileName(filepath.Base(e.Name)) {
+				settle.Reset(provisionDebounce)
+			}
+
+			continue
+
+		case err := <-watchErrors:
+			log.Println("Provision: watch error:", err)
+			continue
+
+		case <-changed:
+		case <-settle.C:
+		case <-periodic.C:
+		}
+
+		if err := p.run(); err != nil {
+			log.Println("Provision:", err)
+		}
+	}
+}
+
+// watchDir watches the provisioning directory. A directory that does not exist
+// yet is not an error: the parent is watched instead, so that creating it later
+// starts provisioning without a restart.
+func (p *provisioner) watchDir() (*fsnotify.Watcher, error) {
+	if p.dir == "" {
+		return nil, nil
+	}
+
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, fmt.Errorf("error creating a watcher: %w", err)
+	}
+
+	if err := watcher.Add(p.dir); err == nil {
+		return watcher, nil
+	}
+
+	parent := filepath.Dir(p.dir)
+
+	if err := watcher.Add(parent); err != nil {
+		watcher.Close()
+		return nil, fmt.Errorf("provisioning directory %v does not exist, and neither does %v, "+
+			"so changes to it will only be seen by the periodic rescan", p.dir, parent)
+	}
+
+	log.Printf("Provision: %v does not exist yet, watching %v for it\n", p.dir, parent)
+
+	return watcher, nil
 }

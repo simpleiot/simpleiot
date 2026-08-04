@@ -13,6 +13,23 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
+// testServerNoProvisioning starts a server with provisioning turned off, for
+// the tests that drive a provisioner themselves. Two provisioners applying the
+// same sources at once would race to create the same nodes.
+func testServerNoProvisioning(t *testing.T) (*nats.Conn, data.NodeEdge, func()) {
+	t.Helper()
+
+	opts := TestServerOptions
+	opts.ProvisioningDisable = true
+
+	nc, root, stop, err := TestServerOpts(opts)
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	return nc, root, stop
+}
+
 // readFixture returns the tree fixture shared with the data and client tests.
 func readFixture(t *testing.T) []byte {
 	t.Helper()
@@ -100,10 +117,7 @@ func stateNodes(t *testing.T, nc *nats.Conn) []data.NodeEdge {
 }
 
 func TestProvisionFromDirectory(t *testing.T) {
-	nc, root, stop, err := TestServer()
-	if err != nil {
-		t.Fatal("Error starting test server: ", err)
-	}
+	nc, root, stop := testServerNoProvisioning(t)
 
 	defer stop()
 
@@ -161,10 +175,7 @@ func TestProvisionFromDirectory(t *testing.T) {
 }
 
 func TestProvisionAppliesChanges(t *testing.T) {
-	nc, root, stop, err := TestServer()
-	if err != nil {
-		t.Fatal("Error starting test server: ", err)
-	}
+	nc, root, stop := testServerNoProvisioning(t)
 
 	defer stop()
 
@@ -197,10 +208,7 @@ nodes:
 }
 
 func TestProvisionRemovedFile(t *testing.T) {
-	nc, root, stop, err := TestServer()
-	if err != nil {
-		t.Fatal("Error starting test server: ", err)
-	}
+	nc, root, stop := testServerNoProvisioning(t)
 
 	defer stop()
 
@@ -231,10 +239,7 @@ func TestProvisionRemovedFile(t *testing.T) {
 }
 
 func TestProvisionIsolatesBadFiles(t *testing.T) {
-	nc, root, stop, err := TestServer()
-	if err != nil {
-		t.Fatal("Error starting test server: ", err)
-	}
+	nc, root, stop := testServerNoProvisioning(t)
 
 	defer stop()
 
@@ -274,10 +279,7 @@ nodes:
 }
 
 func TestProvisionFromTree(t *testing.T) {
-	nc, root, stop, err := TestServer()
-	if err != nil {
-		t.Fatal("Error starting test server: ", err)
-	}
+	nc, root, stop := testServerNoProvisioning(t)
 
 	defer stop()
 
@@ -343,10 +345,7 @@ func TestProvisionFromTree(t *testing.T) {
 }
 
 func TestProvisionDirectoryBeforeTree(t *testing.T) {
-	nc, root, stop, err := TestServer()
-	if err != nil {
-		t.Fatal("Error starting test server: ", err)
-	}
+	nc, root, stop := testServerNoProvisioning(t)
 
 	defer stop()
 
@@ -399,10 +398,7 @@ nodes:
 }
 
 func TestProvisionFileNodesInCreatedOrder(t *testing.T) {
-	nc, root, stop, err := TestServer()
-	if err != nil {
-		t.Fatal("Error starting test server: ", err)
-	}
+	nc, root, stop := testServerNoProvisioning(t)
 
 	defer stop()
 
@@ -463,10 +459,7 @@ nodes:
 }
 
 func TestProvisionDuplicateNames(t *testing.T) {
-	nc, root, stop, err := TestServer()
-	if err != nil {
-		t.Fatal("Error starting test server: ", err)
-	}
+	nc, root, stop := testServerNoProvisioning(t)
 
 	defer stop()
 
@@ -525,5 +518,157 @@ nodes:
 	errText, _ := nodes[0].Points.Text(data.PointTypeError, "")
 	if !strings.Contains(errText, "shared.yaml") {
 		t.Errorf("the error should name the file, got %q", errText)
+	}
+}
+
+// waitFor polls until check passes or the deadline expires, which is how these
+// tests wait for a pass the server decided to run on its own.
+func waitFor(t *testing.T, what string, check func() bool) {
+	t.Helper()
+
+	timeout := time.After(time.Second * 10)
+
+	for {
+		if check() {
+			return
+		}
+
+		select {
+		case <-timeout:
+			t.Fatalf("timeout waiting for %v", what)
+		case <-time.After(time.Millisecond * 50):
+		}
+	}
+}
+
+// testServerProvisioning starts a server that provisions from dir. The rescan
+// interval is long on purpose: a test that passes here passed because the
+// directory watch or the tree subscription noticed, not because a timer came
+// around.
+func testServerProvisioning(t *testing.T, dir string) (*nats.Conn, data.NodeEdge, func()) {
+	t.Helper()
+
+	opts := TestServerOptions
+	opts.ProvisioningDir = dir
+	opts.ProvisioningInterval = time.Minute * 10
+
+	nc, root, stop, err := TestServerOpts(opts)
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	return nc, root, stop
+}
+
+func TestProvisionAtStartup(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "10-tree.yaml", readFixture(t))
+
+	nc, root, stop := testServerProvisioning(t, dir)
+	defer stop()
+
+	waitFor(t, "the file to be applied", func() bool {
+		return len(findAllByDesc(t, nc, root.ID, "Modbus sensors")) == 1
+	})
+}
+
+func TestProvisionWatchesTheDirectory(t *testing.T) {
+	dir := t.TempDir()
+
+	nc, root, stop := testServerProvisioning(t, dir)
+	defer stop()
+
+	// a file that appears after the server is up is picked up by the watch
+	writeFile(t, dir, "10-tree.yaml", []byte(`
+nodes:
+  - group:
+      description: Appeared later
+`))
+
+	waitFor(t, "the new file to be applied", func() bool {
+		return len(findAllByDesc(t, nc, root.ID, "Appeared later")) == 1
+	})
+
+	// as is a change to it
+	writeFile(t, dir, "10-tree.yaml", []byte(`
+nodes:
+  - group:
+      description: Appeared later
+      children:
+        - variable:
+            description: Added by an edit
+`))
+
+	waitFor(t, "the edit to be applied", func() bool {
+		return len(findAllByDesc(t, nc, root.ID, "Added by an edit")) == 1
+	})
+}
+
+func TestProvisionWatchesFileNodes(t *testing.T) {
+	nc, root, stop := testServerProvisioning(t, t.TempDir())
+	defer stop()
+
+	p := &provisioner{nc: nc}
+
+	node, err := p.provisioningNode(true)
+	if err != nil {
+		t.Fatal("Error creating provisioning node: ", err)
+	}
+
+	// uploading a file through the UI is sending a file node
+	err = client.SendNode(nc, data.NodeEdge{
+		ID:     uuid.New().String(),
+		Type:   data.NodeTypeFile,
+		Parent: node,
+		Points: data.Points{
+			data.NewPointString(data.PointTypeDescription, "", "uploaded.yaml"),
+			data.NewPointString(data.PointTypeData, "", `
+nodes:
+  - group:
+      description: Uploaded through the UI
+`),
+		},
+	}, "test")
+
+	if err != nil {
+		t.Fatal("Error sending file node: ", err)
+	}
+
+	waitFor(t, "the uploaded file to be applied", func() bool {
+		return len(findAllByDesc(t, nc, root.ID, "Uploaded through the UI")) == 1
+	})
+}
+
+func TestProvisionSurvivesRestart(t *testing.T) {
+	dir := t.TempDir()
+	writeFile(t, dir, "10-tree.yaml", readFixture(t))
+
+	nc, root, stop := testServerProvisioning(t, dir)
+
+	waitFor(t, "the file to be applied", func() bool {
+		return len(findAllByDesc(t, nc, root.ID, "Modbus sensors")) == 1
+	})
+
+	stop()
+
+	// the same store and the same directory: nothing should be created twice
+	opts := TestServerOptions
+	opts.ProvisioningDir = dir
+	opts.ProvisioningInterval = time.Minute * 10
+
+	nc2, root2, stop2, err := TestServerOptsKeepStore(opts)
+	if err != nil {
+		t.Fatal("Error restarting test server: ", err)
+	}
+
+	defer stop2()
+
+	// give the start-up pass time to do the wrong thing if it is going to
+	time.Sleep(time.Second)
+
+	for _, desc := range []string{"Sensors", "Tank farm", "Modbus sensors", "Tank level"} {
+		if got := findAllByDesc(t, nc2, root2.ID, desc); len(got) != 1 {
+			t.Errorf("expected exactly one %q after a restart, found %v", desc, len(got))
+		}
 	}
 }
