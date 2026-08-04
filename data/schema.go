@@ -280,6 +280,21 @@ const (
 	PointTypeDownload = "download"
 	PointTypeProgress = "progress"
 
+	// PointTypeCreated is when a node came into existence, written once and
+	// never rewritten, which is what orders provisioning files uploaded
+	// through the UI.
+	PointTypeCreated = "created"
+
+	// provisioning reads files from a directory and from file nodes under the
+	// provisioning node, applying each one the way siot import does
+	NodeTypeProvisioning     = "provisioning"
+	NodeTypeProvisioningFile = "provisioningFile"
+
+	// PointTypeProvisionHash is the SHA-256 of the contents provisioning last
+	// applied from a source. It is distinct from PointTypeHash, which the file
+	// client maintains to describe the contents themselves.
+	PointTypeProvisionHash = "provisionHash"
+
 	PointTypeRate   = "rate"
 	PointTypeRateHR = "rateHR"
 	NodeTypeMetrics = "metrics"

@@ -192,7 +192,8 @@ func TestExportImportNodes(t *testing.T) {
 		t.Fatal("Expected only one device node")
 	}
 
-	// the import updated the device node rather than replacing it
+	// nothing replaces the root node: a file does not describe it, so an
+	// import leaves it exactly where it was
 	if ne[0].ID != "inst1" {
 		t.Fatal("Expected the original device node, got: ", ne[0].ID)
 	}
