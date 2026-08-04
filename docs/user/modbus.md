@@ -19,8 +19,8 @@ Modbus is a prompt response protocol. With Modbus RTU (RS485), you can only have
 one client (gateway) on the bus and multiple servers (sensors). With Modbus TCP,
 you can have multiple clients and servers.
 
-Modbus is configured by adding a Modbus node to the root node, and then adding
-IO nodes to the Modbus node.
+Modbus is configured by adding a Modbus node to the root node or to any group
+below it, and then adding IO nodes to the Modbus node.
 
 ![modbus](images/modbus.png)
 
@@ -31,6 +31,14 @@ devices, but it can be increased if you are communicating with a slow device.
 Modbus IOs can be configured to support most common IO types and data formats:
 
 ![modbus io config](images/modbus-io-config.png)
+
+The `Scale` and `Offset` parameters convert between the raw register value and
+the value stored in the node: `value = raw * scale + offset`. A scale of zero is
+treated as one, so an IO with no scale entered still reads its register.
+
+Adding or removing an IO restarts the bus, which reopens the port. A Modbus
+server drops the connections it holds when this happens. This applies when a
+person edits the configuration, not during normal polling.
 
 ## Videos
 

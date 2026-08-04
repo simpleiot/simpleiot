@@ -29,8 +29,12 @@ func NewServer(id byte, transport Transport, regs *Regs, debug int) *Server {
 		id:        id,
 		transport: transport,
 		regs:      regs,
-		chDone:    make(chan bool),
-		debug:     debug,
+		// buffered so Close never blocks. A listener that has already
+		// returned -- a TCP connection dropped by the far end, for example --
+		// leaves nothing to receive the value, and Close is called with the
+		// TCPServer lock held that the listener needs to finish shutting down.
+		chDone: make(chan bool, 1),
+		debug:  debug,
 	}
 }
 
