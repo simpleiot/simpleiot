@@ -22,6 +22,8 @@ module Api.Node exposing
     , typeGps
     , typeGroup
     , typeMetrics
+    , typeProvisioning
+    , typeProvisioningFile
     , typeModbus
     , typeModbusIO
     , typeMsgService
@@ -155,6 +157,16 @@ typeSignalGenerator =
 typeFile : String
 typeFile =
     "file"
+
+
+typeProvisioning : String
+typeProvisioning =
+    "provisioning"
+
+
+typeProvisioningFile : String
+typeProvisioningFile =
+    "provisioningFile"
 
 
 typeMetrics : String

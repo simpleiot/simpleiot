@@ -144,6 +144,21 @@ func TestProvisionFromDirectory(t *testing.T) {
 		t.Error("Modbus sensors should attach under Tank farm")
 	}
 
+	// edge points come through too, which is the one part of a file that is
+	// not a point on the node itself
+	user := findByDesc(t, nc, root.ID, "admin@example.com")
+	if role, ok := user.EdgePoints.Find(data.PointTypeRole, ""); !ok || role.Txt() != "admin" {
+		t.Errorf("the user's role edge point should have been applied, got %v", role)
+	}
+
+	// a reference resolves to the node it names
+	variable := findByDesc(t, nc, root.ID, "Tank level")
+	condition := findByDesc(t, nc, root.ID, "Level below 10")
+
+	if ref, ok := condition.Points.Find(data.PointTypeNodeID, ""); !ok || ref.Txt() != variable.ID {
+		t.Errorf("nodeID should resolve to the variable: got %v, want %v", ref.Txt(), variable.ID)
+	}
+
 	// and the state node records what was applied
 	states := stateNodes(t, nc)
 	if len(states) != 1 {

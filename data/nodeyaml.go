@@ -393,6 +393,15 @@ func pointFromScalar(typ, key string, node ast.Node) (Point, error) {
 	switch n := node.(type) {
 	case *ast.StringNode:
 		p.PutString(n.Value)
+	case *ast.LiteralNode:
+		// a block scalar, written with | or >, which is how a file carries
+		// text with newlines in it
+		if n.Value == nil {
+			p.PutString("")
+			break
+		}
+
+		p.PutString(n.Value.Value)
 	case *ast.IntegerNode:
 		var v int64
 		if err := yaml.NodeToValue(node, &v); err != nil {

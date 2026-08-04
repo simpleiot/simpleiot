@@ -395,3 +395,39 @@ func TestNodeYAMLOriginIsNotWritten(t *testing.T) {
 		t.Errorf("the point should still be written in the short form:\n%v", string(out))
 	}
 }
+
+func TestNodeYAMLMultiLineText(t *testing.T) {
+	// a file node carries the contents of a file, which is the case that needs
+	// a block scalar
+	contents := "nodes:\n  - group:\n      description: From an upload\n"
+
+	f := parseFile(t, `
+nodes:
+  - file:
+      description: uploaded.yaml
+      data: |
+        nodes:
+          - group:
+              description: From an upload
+`)
+
+	got := findPoint(t, f.Nodes[0].Points, "data", "").Txt()
+	if got != contents {
+		t.Errorf("block scalar: got %q, want %q", got, contents)
+	}
+
+	// and it survives a round trip
+	out, err := yaml.Marshal(data.NodeFile{Nodes: f.Nodes})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var back data.NodeFile
+	if err := yaml.Unmarshal(out, &back); err != nil {
+		t.Fatalf("error parsing what we wrote: %v\n%v", err, string(out))
+	}
+
+	if again := findPoint(t, back.Nodes[0].Points, "data", "").Txt(); again != contents {
+		t.Errorf("round trip: got %q, want %q\n%v", again, contents, string(out))
+	}
+}

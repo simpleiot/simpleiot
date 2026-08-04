@@ -90,15 +90,25 @@ func (p *provisioner) run() error {
 
 		seen[s.Name] = true
 
-		if prev, ok := states[s.Name]; ok && prev.Hash == s.Hash && prev.Error == "" {
+		prev := states[s.Name]
+
+		// a file that applied cleanly is left alone until it changes. One that
+		// failed is retried, since what it was waiting for -- a parent another
+		// file creates, a description someone fixes -- may have arrived.
+		if prev.Hash == s.Hash && prev.Error == "" {
 			continue
 		}
 
 		state := provisionState{Hash: s.Hash, Applied: time.Now()}
 
 		if err := p.apply(s); err != nil {
-			log.Printf("Provision: %v: %v\n", s.Name, err)
 			state.Error = err.Error()
+
+			// a file that keeps failing the same way says so once rather than
+			// every time the rescan comes around
+			if state.Error != prev.Error {
+				log.Printf("Provision: %v: %v\n", s.Name, err)
+			}
 		} else {
 			log.Printf("Provision: applied %v\n", s.Name)
 		}
@@ -548,6 +558,13 @@ func (p *provisioner) watch(interval time.Duration, cancel chan struct{}) error 
 			continue
 
 		case <-changed:
+			// wait for the tree to settle rather than reading it now. Sending
+			// a node writes its points before the edge that attaches it, so a
+			// pass run the instant a point arrives can look for the file node
+			// before it is anywhere to be found.
+			settle.Reset(provisionDebounce)
+			continue
+
 		case <-settle.C:
 		case <-periodic.C:
 		}
