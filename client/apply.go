@@ -51,7 +51,7 @@ func (p ApplyPlan) Empty() bool {
 
 func (p ApplyPlan) String() string {
 	if p.Empty() && len(p.Errors) == 0 {
-		return "nothing to do"
+		return "nothing to do\n"
 	}
 
 	var b strings.Builder

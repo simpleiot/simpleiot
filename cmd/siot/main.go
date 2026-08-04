@@ -12,14 +12,18 @@ import (
 	"os/exec"
 	"os/user"
 	"path"
+	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"syscall"
 	"text/template"
 	"time"
 
+	yaml "github.com/goccy/go-yaml"
 	"github.com/oklog/run"
 	"github.com/simpleiot/simpleiot/client"
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/install"
 	"github.com/simpleiot/simpleiot/server"
 )
@@ -47,6 +51,7 @@ func main() {
 		fmt.Println("  - install (install SIOT and register service)")
 		fmt.Println("  - import (import nodes from YAML file)")
 		fmt.Println("  - export (export nodes to YAML file)")
+		fmt.Println("  - provision (check provisioning files, or print what they would do)")
 		fmt.Println("  - update (update to the latest release)")
 	}
 
@@ -85,6 +90,8 @@ func main() {
 		runImport(args[1:])
 	case "export":
 		runExport(args[1:])
+	case "provision":
+		runProvision(args[1:])
 	case "update":
 		runUpdate(args[1:], version)
 	default:
@@ -547,4 +554,153 @@ func runExport(args []string) {
 		log.Fatal("Error writing YAML to STDOUT: ", err)
 	}
 
+}
+
+func runProvision(args []string) {
+	flags := flag.NewFlagSet("provision", flag.ExitOnError)
+
+	flagDir := flags.String("dir", "", "directory of provisioning files")
+	flagCheck := flags.Bool("check", false, "only parse the files, which needs no running instance")
+	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
+	flagAuthToken := flags.String("token", "", "Auth token")
+
+	if err := flags.Parse(args); err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	dir := *flagDir
+	if dir == "" {
+		dir = os.Getenv("SIOT_PROVISIONING_DIR")
+	}
+
+	if dir == "" {
+		log.Fatal("Error: no provisioning directory given; pass -dir or set SIOT_PROVISIONING_DIR")
+	}
+
+	files, err := provisioningFiles(dir)
+	if err != nil {
+		log.Fatal("Error: ", err)
+	}
+
+	if len(files) < 1 {
+		log.Fatalf("No provisioning files found in %v", dir)
+	}
+
+	// parsing needs nothing but the files, which is what makes -check usable
+	// in CI where there is no instance to apply against
+	parsed := make([]data.NodeFile, len(files))
+	failed := 0
+
+	for i, f := range files {
+		contents, err := os.ReadFile(f)
+		if err != nil {
+			log.Printf("%v: %v\n", filepath.Base(f), err)
+			failed++
+			continue
+		}
+
+		if err := yaml.Unmarshal(contents, &parsed[i]); err != nil {
+			log.Printf("%v: %v\n", filepath.Base(f), err)
+			failed++
+			continue
+		}
+
+		if *flagCheck {
+			log.Printf("%v: ok\n", filepath.Base(f))
+		}
+	}
+
+	if failed > 0 {
+		log.Fatalf("%v of %v file(s) could not be read", failed, len(files))
+	}
+
+	if *flagCheck {
+		log.Printf("%v file(s) parsed\n", len(files))
+		return
+	}
+
+	// without -check, say what applying these files would do to the instance
+	natsServer := *flagNatsServer
+	if natsServer == defaultNatsServer {
+		if e := os.Getenv("SIOT_NATS_SERVER"); e != "" {
+			natsServer = e
+		}
+	}
+
+	authToken := *flagAuthToken
+	if authToken == "" {
+		authToken = os.Getenv("SIOT_AUTH_TOKEN")
+	}
+
+	nc, err := client.EdgeConnect(client.EdgeOptions{
+		URI:       natsServer,
+		AuthToken: authToken,
+		NoEcho:    true,
+		Disconnected: func() {
+			log.Println("NATS Disconnected")
+		},
+		Reconnected: func() {
+			log.Println("NATS Reconnected")
+		},
+		Closed: func() {
+			log.Fatal("NATS Closed")
+		},
+		Connected: func() {
+			log.Println("NATS Connected")
+		},
+	})
+
+	if err != nil {
+		log.Fatal("Error connecting to NATS server: ", err)
+	}
+
+	errors := 0
+
+	for i, f := range files {
+		fmt.Printf("--- %v ---\n", filepath.Base(f))
+
+		plan, err := client.Apply(nc, parsed[i], client.ApplyOptions{DryRun: true})
+		if err != nil {
+			log.Printf("%v: %v\n", filepath.Base(f), err)
+			errors++
+			continue
+		}
+
+		fmt.Print(plan.String())
+		errors += len(plan.Errors)
+	}
+
+	if errors > 0 {
+		log.Fatalf("Finished with %v error(s)", errors)
+	}
+
+	log.Println("Dry run, nothing was applied")
+}
+
+// provisioningFiles lists the YAML files in a directory, in the order
+// provisioning applies them.
+func provisioningFiles(dir string) ([]string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, fmt.Errorf("error reading %v: %w", dir, err)
+	}
+
+	var out []string
+
+	for _, e := range entries {
+		name := e.Name()
+
+		if e.IsDir() || strings.HasPrefix(name, ".") {
+			continue
+		}
+
+		switch filepath.Ext(name) {
+		case ".yaml", ".yml":
+			out = append(out, filepath.Join(dir, name))
+		}
+	}
+
+	sort.Strings(out)
+
+	return out, nil
 }
