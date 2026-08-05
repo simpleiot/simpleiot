@@ -226,6 +226,14 @@ func (p *provisioner) treeSources() ([]provisionSource, error) {
 			continue
 		}
 
+		// a file node exists from the moment it is added, and its contents
+		// arrive when someone uploads them. Until then there is nothing to
+		// apply, and recording a pass against an empty file would tell an
+		// operator it had been provisioned before they had chosen a file.
+		if len(contents) == 0 {
+			continue
+		}
+
 		name := f.Description
 		if name == "" {
 			name = f.Name

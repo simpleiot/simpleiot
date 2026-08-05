@@ -359,6 +359,79 @@ func TestProvisionFromTree(t *testing.T) {
 	}
 }
 
+// A file node is added first and its contents arrive when someone uploads
+// them, so provisioning waits for the upload rather than recording a pass
+// against an empty file.
+func TestProvisionWaitsForUpload(t *testing.T) {
+	nc, root, stop := testServerNoProvisioning(t)
+
+	defer stop()
+
+	p := &provisioner{nc: nc}
+
+	node, err := p.provisioningNode(true)
+	if err != nil {
+		t.Fatal("Error creating provisioning node: ", err)
+	}
+
+	fileID := uuid.New().String()
+
+	err = client.SendNode(nc, data.NodeEdge{
+		ID:     fileID,
+		Type:   data.NodeTypeFile,
+		Parent: node,
+		Points: data.Points{
+			data.NewPointFloat(data.PointTypeCreated, "", float64(time.Now().Unix())),
+		},
+	}, "test")
+
+	if err != nil {
+		t.Fatal("Error sending file node: ", err)
+	}
+
+	if err := p.run(); err != nil {
+		t.Fatal("Error provisioning: ", err)
+	}
+
+	nodes, err := client.GetNodes(nc, "all", fileID, "", false)
+	if err != nil {
+		t.Fatal("Error getting file node: ", err)
+	}
+
+	if hash, _ := nodes[0].Points.Text(data.PointTypeProvisionHash, ""); hash != "" {
+		t.Error("a file with nothing uploaded should not be recorded as provisioned")
+	}
+
+	if errText, _ := nodes[0].Points.Text(data.PointTypeError, ""); errText != "" {
+		t.Errorf("a file with nothing uploaded should not record an error, got %v", errText)
+	}
+
+	// once the contents arrive, the file applies
+	err = client.SendNodePoints(nc, fileID, data.Points{
+		data.NewPointString(data.PointTypeName, "", "sensors.yaml"),
+		data.NewPointString(data.PointTypeData, "", string(readFixture(t))),
+	}, true)
+
+	if err != nil {
+		t.Fatal("Error uploading file contents: ", err)
+	}
+
+	if err := p.run(); err != nil {
+		t.Fatal("Error provisioning after upload: ", err)
+	}
+
+	findByDesc(t, nc, root.ID, "Sensors")
+
+	nodes, err = client.GetNodes(nc, "all", fileID, "", false)
+	if err != nil {
+		t.Fatal("Error getting file node: ", err)
+	}
+
+	if hash, _ := nodes[0].Points.Text(data.PointTypeProvisionHash, ""); hash == "" {
+		t.Error("the file node should record what was applied")
+	}
+}
+
 func TestProvisionDirectoryBeforeTree(t *testing.T) {
 	nc, root, stop := testServerNoProvisioning(t)
 
