@@ -436,69 +436,208 @@ func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop fu
 		}, nil
 }
 
-// SiotExport is the format used for exporting and importing data (currently YAML)
-type SiotExport struct {
-	Nodes []data.NodeEdgeChildren
-}
-
-// ExportNodes is used to export nodes at a particular location to YAML
-// The YAML format looks like:
+// ExportNodes exports the nodes below a location as YAML. The node type is the
+// key, and each point type is a key of its own:
 //
+//	apiVersion: 1
 //	nodes:
-//	- id: inst1
-//	  type: device
-//	  parent: root
-//	  points:
-//	  - type: versionApp
-//	  children:
-//	  - id: d7f5bbe9-a300-4197-93fa-b8e5e07f683a
-//	    type: user
-//	    parent: inst1
-//	    points:
-//	    - type: firstName
-//	      text: admin
-//	    - type: lastName
-//	      text: user
-//	    - type: phone
-//	    - type: email
-//	      text: admin
-//	    - type: pass
-//	      text: admin
+//	  - group:
+//	      description: Sensors
+//	      children:
+//	        - modbus:
+//	            description: Modbus sensors
+//	            port: /dev/ttyS1
+//	            baud: 9600
 //
-// Key="0" and Tombstone points with value set to 0 are removed from the export to make
-// it easier to read.
+// A text point is written quoted and a numeric one bare, so a value keeps its
+// kind: `port: "502"` is text and `port: 502` is numeric.
+//
+// The file describes configuration and nothing else, which is what makes an
+// export usable as a provisioning file. It carries no node IDs, since nodes are
+// matched by description when a file is applied; a nodeID point is written as
+// the description of the node it points at. Points that carry no value, points
+// carrying raw bytes, tombstoned points, and point origins are all left out.
+//
+// Exporting the root node exports what is under it rather than the node
+// itself: the root is the instance rather than configuration, and a file
+// describing it would match nothing anywhere else.
 func ExportNodes(nc *nats.Conn, id string) ([]byte, error) {
+	root, err := GetRootNode(nc)
+	if err != nil {
+		return nil, fmt.Errorf("error getting root node: %w", err)
+	}
+
 	if id == "root" || id == "" {
-		root, err := GetRootNode(nc)
-		if err != nil {
-			return nil, fmt.Errorf("error getting root node: %w", err)
-		}
 		id = root.ID
 	}
 
-	rootNodes, err := GetNodes(nc, "all", id, "", false)
-	if err != nil {
-		return nil, fmt.Errorf("error getting root nodes: %w", err)
+	var necs []data.NodeEdgeChildren
+
+	if id == root.ID {
+		children, err := GetNodes(nc, id, "all", "", false)
+		if err != nil {
+			return nil, fmt.Errorf("error getting nodes: %w", err)
+		}
+
+		for _, c := range children {
+			nec := data.NodeEdgeChildren{NodeEdge: c, Children: nil}
+			if err := exportNodesHelper(nc, &nec); err != nil {
+				return nil, err
+			}
+
+			necs = append(necs, nec)
+		}
+	} else {
+		nodes, err := GetNodes(nc, "all", id, "", false)
+		if err != nil {
+			return nil, fmt.Errorf("error getting nodes: %w", err)
+		}
+
+		if len(nodes) < 1 {
+			return nil, fmt.Errorf("no nodes returned")
+		}
+
+		// we only export one node as there may be multiple mirrors of the node in the tree
+		nec := data.NodeEdgeChildren{NodeEdge: nodes[0], Children: nil}
+		if err := exportNodesHelper(nc, &nec); err != nil {
+			return nil, err
+		}
+
+		necs = append(necs, nec)
 	}
 
-	if len(rootNodes) < 1 {
-		return nil, fmt.Errorf("no root nodes returned")
+	if err := checkExportKeys(necs); err != nil {
+		return nil, err
 	}
 
-	var necNodes []data.NodeEdgeChildren
-
-	// we only export one node as there may be multiple mirrors of the node in the tree
-	nec := data.NodeEdgeChildren{NodeEdge: rootNodes[0], Children: nil}
-	err = exportNodesHelper(nc, &nec)
+	// a nodeID point holds the ID of the node it refers to, and a file names
+	// that node by description instead, so we need every node in the tree
+	// rather than only the ones being exported
+	tree, err := getTree(nc, root.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	necNodes = append(necNodes, nec)
+	descriptions := map[string]string{}
+	for _, n := range tree {
+		descriptions[n.ID] = n.Points.MatchKey()
+	}
 
-	ne := SiotExport{Nodes: necNodes}
+	nodes := make([]data.NodeYAML, len(necs))
+	for i, nec := range necs {
+		nodes[i] = exportNodeYAML(nec, descriptions)
+	}
 
-	return yaml.Marshal(ne)
+	f := data.NodeFile{
+		APIVersion: data.NodeFileAPIVersion,
+		Nodes:      nodes,
+	}
+
+	// indent sequences so that the nesting a person reads matches the nesting
+	// of the tree
+	return yaml.MarshalWithOptions(f, yaml.IndentSequence(true))
+}
+
+// checkExportKeys makes sure the tree can be described by a file. A file finds
+// each node by description among its siblings, so two siblings sharing one is a
+// tree no file can express. Rather than write a file that does the wrong thing
+// when it is applied, say so here.
+func checkExportKeys(nodes []data.NodeEdgeChildren) error {
+	if err := checkSiblingKeys("the top of the tree", nodes); err != nil {
+		return err
+	}
+
+	var check func(data.NodeEdgeChildren) error
+	check = func(n data.NodeEdgeChildren) error {
+		if err := checkSiblingKeys(describeNode(n.NodeEdge), n.Children); err != nil {
+			return err
+		}
+
+		for _, c := range n.Children {
+			if err := check(c); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	for _, n := range nodes {
+		if err := check(n); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// checkSiblingKeys reports nodes that an applied file could not tell apart.
+func checkSiblingKeys(where string, nodes []data.NodeEdgeChildren) error {
+	keys := map[string]bool{}
+	types := map[string]bool{}
+
+	for _, n := range nodes {
+		key := n.Points.MatchKey()
+
+		if key == "" {
+			// no description: this node is found by its type instead, so there
+			// can only be one of that type here
+			if types[n.Type] {
+				return fmt.Errorf("%v has more than one %v node with no description, so a file could "+
+					"not tell them apart. Give them descriptions to export this tree", where, n.Type)
+			}
+
+			types[n.Type] = true
+
+			continue
+		}
+
+		if keys[key] {
+			return fmt.Errorf("%v has more than one node described %q, so a file could not tell them "+
+				"apart. Give them unique descriptions to export this tree", where, key)
+		}
+
+		keys[key] = true
+	}
+
+	return nil
+}
+
+// describeNode names a node for an error message.
+func describeNode(n data.NodeEdge) string {
+	if key := n.Points.MatchKey(); key != "" {
+		return key
+	}
+
+	return "the " + n.Type + " node"
+}
+
+// exportNodeYAML converts a fetched subtree into the file format.
+func exportNodeYAML(nec data.NodeEdgeChildren, descriptions map[string]string) data.NodeYAML {
+	out := data.NodeYAML{Type: nec.Type}
+
+	for _, p := range nec.Points {
+		if p.DataType == data.PointDataTypeUnknown && len(p.Data) == 0 {
+			// a point with no value says nothing in a file
+			continue
+		}
+
+		if p.Type == data.PointTypeNodeID {
+			if desc, ok := descriptions[p.Txt()]; ok && desc != "" {
+				p.PutString(desc)
+			}
+		}
+
+		out.Points = append(out.Points, p)
+	}
+
+	out.EdgePoints = append(out.EdgePoints, nec.EdgePoints...)
+
+	for _, c := range nec.Children {
+		out.Children = append(out.Children, exportNodeYAML(c, descriptions))
+	}
+
+	return out
 }
 
 func exportNodesHelper(nc *nats.Conn, node *data.NodeEdgeChildren) error {
@@ -550,165 +689,22 @@ func exportNodesHelper(nc *nats.Conn, node *data.NodeEdgeChildren) error {
 	return nil
 }
 
-// ImportNodes is used to import nodes at a location in YAML format. New IDs
-// are generated for all nodes unless preserve IDs is set to true.
-// If there multiple references to the same ID,
-// then an attempt is made to replace all of these with the new ID.  This also
-// allows you to use "friendly" ID names in hand generated YAML files.
-func ImportNodes(nc *nats.Conn, parent string, yamlData []byte, origin string, preserveIDs bool) error {
-	// first make sure the parent node exists
-	var rootNode data.NodeEdge
-	if parent == "root" || parent == "" {
-		var err error
-		rootNode, err = GetRootNode(nc)
-		if err != nil {
-			return err
-		}
-	} else {
-		n, err := GetNodes(nc, "all", parent, "", false)
-		if err != nil {
-			return err
-		}
-		if len(n) < 1 {
-			return fmt.Errorf("parent node \"%v\" not found", parent)
-		}
+// ImportNodes applies a node file to the tree. Nodes are matched by
+// description, so importing a file creates what is missing, updates what has
+// drifted, and does nothing when the tree already agrees. Nodes the file does
+// not mention are left alone; a delete: list removes nodes.
+//
+// This is the same operation provisioning performs, so a file works either way.
+func ImportNodes(nc *nats.Conn, yamlData []byte, origin string, dryRun bool) (ApplyPlan, error) {
+	var f data.NodeFile
+
+	if err := yaml.Unmarshal(yamlData, &f); err != nil {
+		return ApplyPlan{}, fmt.Errorf("error parsing YAML data: %w", err)
 	}
 
-	var imp SiotExport
-
-	err := yaml.Unmarshal(yamlData, &imp)
-	if err != nil {
-		return fmt.Errorf("error parsing YAML data: %w", err)
+	if len(f.Nodes) < 1 && len(f.Delete) < 1 {
+		return ApplyPlan{}, fmt.Errorf("error: imported data did not have any nodes")
 	}
 
-	var importHelper func(data.NodeEdgeChildren) error
-	importHelper = func(node data.NodeEdgeChildren) error {
-		err := SendNode(nc, node.NodeEdge, origin)
-		if err != nil {
-			return fmt.Errorf("error sending node: %w", err)
-		}
-
-		for _, c := range node.Children {
-			err := importHelper(c)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-	if len(imp.Nodes) < 1 {
-		return fmt.Errorf("error: imported data did not have any nodes")
-	}
-
-	// Process all nodes, not just the first one
-	for i := range imp.Nodes {
-		// set parent of node
-		imp.Nodes[i].Parent = parent
-
-		// append (import) to top level node description
-		for j, p := range imp.Nodes[i].Points {
-			if p.Type == data.PointTypeDescription {
-				imp.Nodes[i].Points[j].PutString(p.Txt() + " (import)")
-			}
-		}
-
-		if preserveIDs {
-			err := checkIDs(imp.Nodes[i], parent)
-			if err != nil {
-				return err
-			}
-		} else {
-			ReplaceIDs(&imp.Nodes[i], parent)
-		}
-
-		err = importHelper(imp.Nodes[i])
-		if err != nil {
-			return err
-		}
-
-		// if we imported the root node, then we have to tombstone the old root node
-		if parent == "root" && rootNode.ID != imp.Nodes[i].ID {
-			err := DeleteNode(nc, rootNode.ID, parent, "import")
-			if err != nil {
-				return fmt.Errorf("error deleting old root node: %w", err)
-			}
-		}
-	}
-
-	return nil
-}
-
-func checkIDs(node data.NodeEdgeChildren, parent string) error {
-	if parent == "" {
-		return fmt.Errorf("parent must be specified")
-	}
-
-	if node.Parent != parent {
-		return fmt.Errorf("node parent %v does not match parent %v", node.Parent, parent)
-	}
-
-	if node.ID == "" {
-		return fmt.Errorf("ID cannot be blank")
-	}
-
-	for _, c := range node.Children {
-		err := checkIDs(c, node.ID)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// ReplaceIDs is used to replace IDs tree of nodes.
-// If there multiple references to the same ID,
-// then an attempt is made to replace all of these with the new ID.
-// This function modifies the tree that is passed in.
-// Replace IDs also updates the partent fields.
-func ReplaceIDs(nodes *data.NodeEdgeChildren, parent string) {
-	// idMap is used to translate old IDs to new
-	idMap := make(map[string]string)
-
-	var replaceHelper func(*data.NodeEdgeChildren, string)
-	replaceHelper = func(n *data.NodeEdgeChildren, parent string) {
-		n.Parent = parent
-		// update node ID
-		var newID string
-		if n.ID == "" {
-			// always assign a new ID if blank
-			newID = uuid.New().String()
-		} else {
-			var ok bool
-			newID, ok = idMap[n.ID]
-			if !ok {
-				newID = uuid.New().String()
-				idMap[n.ID] = newID
-			}
-		}
-		n.ID = newID
-
-		// check for any points that might have node hashes
-		for i, p := range n.Points {
-			if p.Type == data.PointTypeNodeID {
-				txt := p.Txt()
-				if txt == "" {
-					continue
-				}
-				newID, ok := idMap[txt]
-				if !ok {
-					newID = uuid.New().String()
-					idMap[txt] = newID
-				}
-				n.Points[i].PutString(newID)
-			}
-		}
-
-		for i := range n.Children {
-			replaceHelper(&n.Children[i], n.ID)
-		}
-	}
-
-	replaceHelper(nodes, parent)
+	return Apply(nc, f, ApplyOptions{Origin: origin, DryRun: dryRun})
 }

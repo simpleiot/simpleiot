@@ -11,6 +11,84 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-08-04
+
+- config files: one YAML format now describes a tree of nodes, and
+  `siot export`, `siot import`, and provisioning all use it. The node type is
+  the key and each point type is a key of its own, so a file reads as
+  configuration rather than as a serialized structure:
+
+  ```yaml
+  nodes:
+    - group:
+        description: Sensors
+        children:
+          - modbus:
+              description: Modbus sensors
+              port: /dev/ttyS1
+              baud: 9600
+  ```
+
+  How a value is written decides what it becomes: `9600` is numeric, `"9600"` is
+  text, `1` and `1.5` are an integer and a float, a mapping is a set of keyed
+  points, and a sequence is an array. Files in the previous format are not read;
+  re-export the tree to get one in the current format. See
+  [user/configuration](docs/user/configuration.md).
+
+- config files: a file describes configuration and nothing else. It carries no
+  node IDs, no origins, and no points without a value. A `nodeID` point names
+  the node it refers to by description, so a rule can point at a variable
+  without either of them knowing its UUID, in a file or across files.
+
+- import: applying a file is now idempotent. Nodes are matched by description
+  rather than by ID, so importing a file creates what is missing, sends only the
+  points that differ, and does nothing when the tree already agrees. Running the
+  same import twice does what running it once did. A `delete` list removes
+  nodes.
+
+  A description is how a file finds a node, so renaming one in the UI detaches
+  it from the file that describes it and the next apply creates a second node
+  beside it. Rename in two steps: delete the old description in the same file
+  that introduces the new one.
+
+- import: `-parentID` and `-preserveIDs` are gone. A file says where its nodes
+  attach with `parent`, naming a node by description, and every node a file
+  creates gets a fresh ID. `-dryRun` prints what a file would do without
+  applying it. The `(import)` suffix that was appended to descriptions is gone,
+  since it would have broken idempotence.
+
+- import: importing at the root no longer replaces the root node. A file never
+  describes the root, which is this instance rather than configuration, so the
+  restart that an import at `root` used to require is gone along with the root
+  watcher that performed it. `siot serve` still exits non-zero on error, so
+  supervisors that only restart on failure will bring it back up.
+
+- export: an export is now a provisioning file. The root node is left out, as
+  are node IDs, valueless points, and origins. An export refuses to write a tree
+  whose siblings share a description, since no file could say which node it
+  meant.
+
+- provisioning: an instance can configure itself from files. A directory given
+  by `-provisioningDir` or `SIOT_PROVISIONING_DIR`, defaulting to
+  `<SIOT_DATA>/provisioning` when it exists, is applied at start-up and whenever
+  a file changes, so a unit built from an image comes up configured with no
+  import step. `SIOT_PROVISIONING_INTERVAL` sets how often to look for changes
+  the watch might have missed.
+
+  Files can also be uploaded through the UI as `file` nodes under the
+  provisioning node, which is how a unit whose filesystem you cannot reach gets
+  configured. Files on disk apply first and uploads layer on top, oldest first.
+
+  A `provisioning` node under the root records what was applied, with a checksum
+  per file and the last error if one failed. Removing a file removes its status;
+  the nodes it created stay, since provisioning describes what should exist
+  rather than owning what it made.
+
+- provisioning: `siot provision -dir <dir>` prints what a directory of files
+  would do to a running instance without applying it, and `-check` only parses
+  them, which needs no instance and is what a build can use to fail on a bad
+  file.
+
 ## [0.21.0] - 2026-08-03
 
 - modbus: move Modbus to the client architecture. Modbus buses are now started

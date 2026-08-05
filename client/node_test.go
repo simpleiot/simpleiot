@@ -3,10 +3,14 @@ package client_test
 import (
 	"fmt"
 	"log"
+	"os"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/goccy/go-yaml"
+	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/server"
@@ -30,7 +34,7 @@ func TestExportNodes(t *testing.T) {
 	}
 
 	// convert back to nodes and check a few
-	var exp client.SiotExport
+	var exp data.NodeFile
 
 	err = yaml.Unmarshal(y, &exp)
 	if err != nil {
@@ -41,17 +45,55 @@ func TestExportNodes(t *testing.T) {
 		t.Fatal("no top level node")
 	}
 
-	if len(exp.Nodes[0].Children) < 1 {
-		t.Fatal("no child nodes")
+	// the root device node is the instance rather than configuration, so an
+	// export starts with what is under it
+	for _, n := range exp.Nodes {
+		if n.Type == data.NodeTypeDevice {
+			t.Fatal("the root device node should not be exported")
+		}
 	}
 
-	if exp.Nodes[0].Type != data.NodeTypeDevice {
-		t.Fatal("top level node should be device")
+	// and the file carries no node IDs at all
+	if strings.Contains(string(y), root.ID) {
+		t.Errorf("a file should carry no node IDs:\n%v", string(y))
 	}
 
-	if exp.Nodes[0].Children[0].Type != data.NodeTypeUser {
-		t.Fatal("child node is not user type")
+	if exp.Nodes[0].Type != data.NodeTypeUser {
+		t.Fatal("expected the admin user, got: ", exp.Nodes[0].Type)
 	}
+}
+
+func TestExportDuplicateDescriptions(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	for range 2 {
+		err = client.SendNode(nc, data.NodeEdge{
+			ID:     uuid.New().String(),
+			Type:   data.NodeTypeGroup,
+			Parent: root.ID,
+			Points: data.Points{data.NewPointString(data.PointTypeDescription, "", "Sensors")},
+		}, "test")
+
+		if err != nil {
+			t.Fatal("Error sending node: ", err)
+		}
+	}
+
+	_, err = client.ExportNodes(nc, root.ID)
+	if err == nil {
+		t.Fatal("Two nodes described the same, so an export without IDs should have failed")
+	}
+
+	if !strings.Contains(err.Error(), "Sensors") {
+		t.Error("the error should name the description: ", err)
+	}
+
 }
 
 func TestExportImportNodes(t *testing.T) {
@@ -80,20 +122,30 @@ func TestExportImportNodes(t *testing.T) {
 
 	// fmt.Println("export: ", string(y))
 
-	err = client.ImportNodes(nc, "root", y, "test", false)
+	plan, err := client.ImportNodes(nc, y, "test", false)
 
 	if err != nil {
 		t.Fatal("Error importing nodes: ", err)
 	}
 
-	// check to make sure original device node has been tombstoned
+	if len(plan.Errors) > 0 {
+		t.Fatal("Import errors: ", plan.Errors)
+	}
+
+	// importing an export of the same tree changes nothing, since every node
+	// in the file matches the node it came from
+	if !plan.Empty() {
+		t.Fatal("Importing a tree's own export should do nothing, got:\n", plan)
+	}
+
+	// the original device node is updated in place rather than replaced
 	ne, err = client.GetNodes(nc, "all", "inst1", "", false)
 	if err != nil {
 		t.Fatal("Error getting original device node: ", err)
 	}
 
-	if len(ne) > 0 {
-		t.Fatal("Original devices node was not deleted")
+	if len(ne) != 1 {
+		t.Fatal("Original device node should still be here, got: ", len(ne))
 	}
 
 	// check user auth check
@@ -140,25 +192,21 @@ func TestExportImportNodes(t *testing.T) {
 		t.Fatal("Expected only one device node")
 	}
 
-	// make sure the device node is new, and not the original
-	if ne[0].ID == "inst1" {
-		t.Fatal("ID is not the new ID, but rather the test ID of the original node")
+	// nothing replaces the root node: a file does not describe it, so an
+	// import leaves it exactly where it was
+	if ne[0].ID != "inst1" {
+		t.Fatal("Expected the original device node, got: ", ne[0].ID)
 	}
 }
 
 var testImportNodesYaml = `
 nodes:
-- type: group
-  points:
-  - type: description
-    text: "group 1"
-  children:
-  - type: variable
-    points:
-    - type: description
-      text: var 1
-    - type: value
-      value: 10
+  - group:
+      description: group 1
+      children:
+        - variable:
+            description: var 1
+            value: 10
 `
 
 func TestImportNodes(t *testing.T) {
@@ -170,15 +218,23 @@ func TestImportNodes(t *testing.T) {
 
 	defer stop()
 
-	// make sure we can't import at a bogus place
-	err = client.ImportNodes(nc, "bogusrootid", []byte(testImportNodesYaml), "test", false)
-	if err == nil {
-		t.Fatal("Should have gotten an error importing at bogus location")
-	}
-
-	err = client.ImportNodes(nc, root.ID, []byte(testImportNodesYaml), "test", false)
+	plan, err := client.ImportNodes(nc, []byte(testImportNodesYaml), "test", false)
 	if err != nil {
 		t.Fatal("Error importing: ", err)
+	}
+
+	if len(plan.Errors) > 0 {
+		t.Fatal("Import errors: ", plan.Errors)
+	}
+
+	// importing the same file again does nothing
+	plan, err = client.ImportNodes(nc, []byte(testImportNodesYaml), "test", false)
+	if err != nil {
+		t.Fatal("Error importing a second time: ", err)
+	}
+
+	if !plan.Empty() {
+		t.Fatal("A second import should do nothing, got:\n", plan)
 	}
 
 	children, err := client.GetNodes(nc, root.ID, "all", "", false)
@@ -215,23 +271,15 @@ func TestImportNodes(t *testing.T) {
 
 var testImportNodesYamlWithIDs = `
 nodes:
-- type: group
-  id: 111
-  points:
-  - type: description
-    text: "group 1"
-  children:
-  - type: variable
-    id: 222
-    parent: 111
-    points:
-    - type: description
-      text: var 1
-    - type: value
-      value: 10
+  - group:
+      description: group 1
+      children:
+        - variable:
+            description: var 1
+            value: 10
 `
 
-func TestImportNodesPreserveIDs(t *testing.T) {
+func TestImportNodesGeneratesIDs(t *testing.T) {
 	nc, root, stop, err := server.TestServer()
 
 	if err != nil {
@@ -240,9 +288,13 @@ func TestImportNodesPreserveIDs(t *testing.T) {
 
 	defer stop()
 
-	err = client.ImportNodes(nc, root.ID, []byte(testImportNodesYamlWithIDs), "test", true)
+	plan, err := client.ImportNodes(nc, []byte(testImportNodesYamlWithIDs), "test", false)
 	if err != nil {
 		t.Fatal("Error importing: ", err)
+	}
+
+	if len(plan.Errors) > 0 {
+		t.Fatal("Import errors: ", plan.Errors)
 	}
 
 	children, err := client.GetNodes(nc, root.ID, "all", "", false)
@@ -263,8 +315,12 @@ func TestImportNodesPreserveIDs(t *testing.T) {
 		t.Fatal("group node not found")
 	}
 
-	if g.ID != "111" {
-		t.Fatal("did not get expected group ID")
+	if g.ID == "" {
+		t.Fatal("the created node should have an ID")
+	}
+
+	if _, err := uuid.Parse(g.ID); err != nil {
+		t.Fatal("a created node gets a fresh UUID, got: ", g.ID)
 	}
 
 	children, err = client.GetNodes(nc, g.ID, "all", "", false)
@@ -278,59 +334,20 @@ func TestImportNodesPreserveIDs(t *testing.T) {
 
 }
 
-var testImportNodesYamlBadParent = `
-nodes:
-- type: group
-  id: 111
-  points:
-  - type: description
-    text: "group 1"
-  children:
-  - type: variable
-    id: 222
-    parent: 123
-    points:
-    - type: description
-      text: var 1
-    - type: value
-      value: 10
-`
-
-func TestImportNodesBadParent(t *testing.T) {
-	nc, root, stop, err := server.TestServer()
-
-	if err != nil {
-		t.Fatal("Error starting test server: ", err)
-	}
-
-	defer stop()
-
-	err = client.ImportNodes(nc, root.ID, []byte(testImportNodesYamlBadParent), "test", true)
-	if err == nil {
-		t.Fatal("should have caught bad parent")
-	}
-}
-
 var testImportListOfNodesYaml = `
 nodes:
-- type: variable
-  points:
-  - type: description
-    text: "temperature sensor"
-  - type: value
-    value: 23.5
-- type: variable
-  points:
-  - type: description
-    text: "humidity sensor"  
-  - type: value
-    value: 65.0
-- type: variable
-  points:
-  - type: description
-    text: "pressure sensor"
-  - type: value
-    value: 1013.25
+  - variable:
+      parent: Test sensor group
+      description: temperature sensor
+      value: 23.5
+  - variable:
+      parent: Test sensor group
+      description: humidity sensor
+      value: 65.0
+  - variable:
+      parent: Test sensor group
+      description: pressure sensor
+      value: 1013.25
 `
 
 func TestImportListOfNodes(t *testing.T) {
@@ -358,9 +375,13 @@ func TestImportListOfNodes(t *testing.T) {
 	}
 
 	// Now import 3 variable nodes under this group
-	err = client.ImportNodes(nc, groupNode.ID, []byte(testImportListOfNodesYaml), "test", false)
+	plan, err := client.ImportNodes(nc, []byte(testImportListOfNodesYaml), "test", false)
 	if err != nil {
 		t.Fatal("Error importing variable nodes: ", err)
+	}
+
+	if len(plan.Errors) > 0 {
+		t.Fatal("Import errors: ", plan.Errors)
 	}
 
 	// Verify the variables were imported
@@ -388,7 +409,7 @@ func TestImportListOfNodes(t *testing.T) {
 		}
 	}
 
-	expectedDescriptions := []string{"temperature sensor (import)", "humidity sensor (import)", "pressure sensor (import)"}
+	expectedDescriptions := []string{"temperature sensor", "humidity sensor", "pressure sensor"}
 	if len(descriptions) != 3 {
 		t.Fatalf("Expected 3 descriptions, got %d", len(descriptions))
 	}
@@ -400,88 +421,244 @@ func TestImportListOfNodes(t *testing.T) {
 	}
 }
 
-func TestReplaceIDs(t *testing.T) {
-	testNodes := data.NodeEdgeChildren{
-		NodeEdge: data.NodeEdge{
-			ID:   "123",
-			Type: "testType",
-			Points: []data.Point{
-				data.NewPointString("nodeID", "0", ""),
-			},
-		},
-		Children: []data.NodeEdgeChildren{
-			{NodeEdge: data.NodeEdge{
-				ID:   "",
-				Type: "testY",
-				Points: []data.Point{
-					data.NewPointString("description", "2", "test Y1"),
-					data.NewPointString("nodeID", "0", "123"),
-				},
-				EdgePoints: []data.Point{
-					data.NewPointString("role", "", "user"),
-				},
-			},
-				Children: []data.NodeEdgeChildren{
-					{NodeEdge: data.NodeEdge{
-						ID:   "123",
-						Type: "testY",
-						Points: []data.Point{
-							data.NewPointString("description", "", "test Y2"),
-						},
-					}, Children: nil},
-				},
-			},
-			{NodeEdge: data.NodeEdge{
-				ID:   "",
-				Type: "testY",
-				Points: []data.Point{
-					data.NewPointString("description", "2", "test Y1"),
-					data.NewPointString("nodeID", "0", "123"),
-				},
-				EdgePoints: []data.Point{
-					data.NewPointString("role", "", "user"),
-				},
-			},
-				Children: nil,
-			},
-		},
+// readFixture returns the tree fixture shared with the data and server tests.
+func readFixture(t *testing.T) []byte {
+	t.Helper()
+
+	b, err := os.ReadFile("../testdata/tree.yaml")
+	if err != nil {
+		t.Fatal("Error reading fixture: ", err)
 	}
 
-	client.ReplaceIDs(&testNodes, "parent123")
+	return b
+}
 
-	if testNodes.ID == "123" {
-		t.Fatal("ID not replaced")
+// findByDesc returns the one node below root with the given description.
+func findByDesc(t *testing.T, nc *nats.Conn, rootID, desc string) data.NodeEdge {
+	t.Helper()
+
+	var found []data.NodeEdge
+
+	var walk func(id string)
+	walk = func(id string) {
+		children, err := client.GetNodes(nc, id, "all", "", false)
+		if err != nil {
+			t.Fatal("Error getting children: ", err)
+		}
+
+		for _, c := range children {
+			if c.Points.MatchKey() == desc {
+				found = append(found, c)
+			}
+			walk(c.ID)
+		}
 	}
 
-	if testNodes.Children[0].ID == "abc" {
-		t.Fatal("child ID not replaced")
+	walk(rootID)
+
+	if len(found) != 1 {
+		t.Fatalf("expected exactly one node described %q, found %v", desc, len(found))
 	}
 
-	// make sure nodes occur in multiple places, they have the same IDs
-	if testNodes.ID != testNodes.Children[0].Children[0].ID {
-		t.Fatal("123 IDs did not get replaced with the same value")
+	return found[0]
+}
+
+func TestImportFixture(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
 	}
 
-	// mode sure any points of type nodeID get updated
-	if testNodes.Children[0].Points[1].Txt() == "123" {
-		t.Fatal("Points of type nodeID are not getting updated")
+	defer stop()
+
+	fixture := readFixture(t)
+
+	plan, err := client.ImportNodes(nc, fixture, "test", false)
+	if err != nil {
+		t.Fatal("Error importing fixture: ", err)
 	}
 
-	// make sure blank ids are handled correctly
-	if testNodes.Children[0].ID == testNodes.Children[1].ID {
-		t.Fatal("Blank node IDs not handled correctly")
+	if len(plan.Errors) > 0 {
+		t.Fatal("Import errors: ", plan.Errors)
 	}
 
-	// mode sure blank nodeID points are ignored
-	if testNodes.Points[0].Txt() != "" {
-		t.Fatal("Blank nodeID point not ignored")
+	sensors := findByDesc(t, nc, root.ID, "Sensors")
+	if sensors.Parent != root.ID {
+		t.Error("Sensors should be a child of the root node")
 	}
 
-	if testNodes.Parent != "parent123" {
-		t.Fatal("top level parent not correct")
+	tankFarm := findByDesc(t, nc, root.ID, "Tank farm")
+	if tankFarm.Parent != sensors.ID {
+		t.Error("Tank farm should be nested under Sensors")
 	}
 
-	if testNodes.ID != testNodes.Children[0].Parent {
-		t.Fatal("child parent not correct")
+	// these two entries are at the top of the file and find their parent by
+	// description rather than by nesting
+	modbus := findByDesc(t, nc, root.ID, "Modbus sensors")
+	if modbus.Parent != tankFarm.ID {
+		t.Errorf("Modbus sensors should attach under Tank farm, got parent %v", modbus.Parent)
+	}
+
+	if modbus.Type != "modbus" {
+		t.Errorf("expected a modbus node, got %v", modbus.Type)
+	}
+
+	variable := findByDesc(t, nc, root.ID, "Tank level")
+	if variable.Parent != tankFarm.ID {
+		t.Errorf("Tank level should attach under Tank farm, got parent %v", variable.Parent)
+	}
+
+	// a text point that looks like a number stays text, and a numeric one
+	// stays numeric
+	if port, ok := modbus.Points.Find("port", ""); !ok || port.Txt() != "/dev/ttyS1" {
+		t.Errorf("port point: %v", port)
+	}
+
+	if baud, ok := modbus.Points.Find("baud", ""); !ok || baud.Val() != 9600 {
+		t.Errorf("baud point: %v", baud)
+	}
+
+	// the condition refers to the variable by label, which resolves to its ID
+	condition := findByDesc(t, nc, root.ID, "Level below 10")
+	ref, ok := condition.Points.Find(data.PointTypeNodeID, "")
+	if !ok {
+		t.Fatal("condition should carry a nodeID point")
+	}
+
+	if ref.Txt() != variable.ID {
+		t.Errorf("nodeID should resolve to the variable: got %v, want %v", ref.Txt(), variable.ID)
+	}
+
+	// the user is created with its role edge point
+	user := findByDesc(t, nc, root.ID, "admin@example.com")
+	if role, ok := user.EdgePoints.Find(data.PointTypeRole, ""); !ok || role.Txt() != "admin" {
+		t.Errorf("user role edge point: %v", role)
+	}
+
+	// applying the same file again does nothing
+	plan, err = client.ImportNodes(nc, fixture, "test", false)
+	if err != nil {
+		t.Fatal("Error importing fixture a second time: ", err)
+	}
+
+	if !plan.Empty() {
+		t.Fatalf("a second import should do nothing, got:\n%v", plan)
+	}
+}
+
+func TestImportFixtureUpdatesAndDeletes(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	if _, err := client.ImportNodes(nc, readFixture(t), "test", false); err != nil {
+		t.Fatal("Error importing fixture: ", err)
+	}
+
+	// change one point
+	plan, err := client.ImportNodes(nc, []byte(`
+nodes:
+  - modbus:
+      parent: Tank farm
+      description: Modbus sensors
+      baud: 115200
+`), "test", false)
+	if err != nil {
+		t.Fatal("Error importing update: ", err)
+	}
+
+	if len(plan.Send) != 1 || len(plan.Send[0].Node.Points) != 1 {
+		t.Fatalf("expected one point to be sent, got:\n%v", plan)
+	}
+
+	modbus := findByDesc(t, nc, root.ID, "Modbus sensors")
+	if baud, ok := modbus.Points.Find("baud", ""); !ok || baud.Val() != 115200 {
+		t.Errorf("baud should have been updated, got %v", baud)
+	}
+
+	// and remove a node
+	plan, err = client.ImportNodes(nc, []byte(`
+delete:
+  - modbus:
+      parent: Tank farm
+      description: Modbus sensors
+`), "test", false)
+	if err != nil {
+		t.Fatal("Error importing delete: ", err)
+	}
+
+	if len(plan.Delete) != 1 {
+		t.Fatalf("expected one delete, got:\n%v", plan)
+	}
+
+	nodes, err := client.GetNodes(nc, "all", modbus.ID, "", false)
+	if err != nil {
+		t.Fatal("Error getting deleted node: ", err)
+	}
+
+	if len(nodes) > 0 {
+		t.Error("the modbus node should be gone")
+	}
+
+	// deleting what is already gone is a no-op
+	plan, err = client.ImportNodes(nc, []byte(`
+delete:
+  - modbus:
+      parent: Tank farm
+      description: Modbus sensors
+`), "test", false)
+	if err != nil {
+		t.Fatal("Error importing delete a second time: ", err)
+	}
+
+	if !plan.Empty() {
+		t.Errorf("deleting a node that is gone should do nothing, got:\n%v", plan)
+	}
+}
+
+func TestExportRoundTripBetweenInstances(t *testing.T) {
+	nc1, root1, stop1, err := server.TestServer()
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop1()
+
+	if _, err := client.ImportNodes(nc1, readFixture(t), "test", false); err != nil {
+		t.Fatal("Error importing fixture: ", err)
+	}
+
+	first, err := client.ExportNodes(nc1, root1.ID)
+	if err != nil {
+		t.Fatal("Error exporting: ", err)
+	}
+
+	nc2, root2, stop2, err := server.TestServer("second")
+	if err != nil {
+		t.Fatal("Error starting second test server: ", err)
+	}
+
+	defer stop2()
+
+	plan, err := client.ImportNodes(nc2, first, "test", false)
+	if err != nil {
+		t.Fatal("Error importing into the second instance: ", err)
+	}
+
+	if len(plan.Errors) > 0 {
+		t.Fatal("Import errors: ", plan.Errors)
+	}
+
+	second, err := client.ExportNodes(nc2, root2.ID)
+	if err != nil {
+		t.Fatal("Error exporting the second instance: ", err)
+	}
+
+	if string(first) != string(second) {
+		t.Errorf("an export imported elsewhere should export identically:\n--- first ---\n%v\n--- second ---\n%v",
+			string(first), string(second))
 	}
 }
