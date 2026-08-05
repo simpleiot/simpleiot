@@ -275,6 +275,10 @@ can attach to a group a shipped file created. Uploads are applied oldest first,
 by when the file was added rather than when its contents were last replaced, so
 correcting a file does not change its place in the order.
 
+A file node exists from the moment it is added and its contents arrive when you
+upload them, so provisioning waits for the upload and leaves an empty file node
+alone.
+
 A file is applied when its contents change, which is what leaves a value edited
 in the UI alone until the file describing it changes. A file that fails to parse
 or apply records its error and leaves the other files alone.
