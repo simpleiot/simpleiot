@@ -29,24 +29,13 @@ view o =
         , Border.color colors.black
         , spacing 6
         ]
-    <|
-        wrappedRow [ spacing 10 ]
+        [ wrappedRow [ spacing 10 ]
             [ Icon.list
             , text "Provisioning"
             , text <| summary (List.length sources)
             , viewFailed (List.length failed)
             ]
-            :: (if o.expDetail then
-                    [ paragraph [ paddingEach { top = 0, bottom = 0, left = 70, right = 0 } ]
-                        [ text <|
-                            "Files applied to this instance. Add a file here to configure it "
-                                ++ "the way a file in the provisioning directory does."
-                        ]
-                    ]
-
-                else
-                    []
-               )
+        ]
 
 
 {-| isSource picks out the children that describe a provisioning file, so that
