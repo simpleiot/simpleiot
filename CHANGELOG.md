@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-08-04
+
 - config files: one YAML format now describes a tree of nodes, and
   `siot export`, `siot import`, and provisioning all use it. The node type is
   the key and each point type is a key of its own, so a file reads as
