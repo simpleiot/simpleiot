@@ -14,6 +14,7 @@ import Components.NodeCondition as NodeCondition
 import Components.NodeDb as NodeDb
 import Components.NodeDevice as NodeDevice
 import Components.NodeFile as File
+import Components.NodeGps as NodeGps
 import Components.NodeGroup as NodeGroup
 import Components.NodeMessageService as NodeMessageService
 import Components.NodeMetrics as NodeMetrics
@@ -27,6 +28,8 @@ import Components.NodeOneWire as NodeOneWire
 import Components.NodeOneWireIO as NodeOneWireIO
 import Components.NodeOptions exposing (CopyMove(..))
 import Components.NodeParticle as NodeParticle
+import Components.NodeProvisioning as NodeProvisioning
+import Components.NodeProvisioningFile as NodeProvisioningFile
 import Components.NodeRaw as NodeRaw
 import Components.NodeRule as NodeRule
 import Components.NodeSerialDev as NodeSerialDev
@@ -1051,6 +1054,7 @@ nodeCustomSortRules =
         , ( Node.typeNTP, "S" )
         , ( Node.typeUpdate, "T" )
         , ( Node.typeBrowser, "U" )
+        , ( Node.typeGps, "V" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
@@ -1308,6 +1312,9 @@ viewNode model parent node children depth =
                     "signalGenerator" ->
                         SignalGenerator.view
 
+                    "gps" ->
+                        NodeGps.view
+
                     "file" ->
                         File.view
 
@@ -1346,6 +1353,12 @@ viewNode model parent node children depth =
 
                     "update" ->
                         NodeUpdate.view
+
+                    "provisioning" ->
+                        NodeProvisioning.view
+
+                    "provisioningFile" ->
+                        NodeProvisioningFile.view
 
                     _ ->
                         NodeRaw.view
@@ -1508,6 +1521,7 @@ viewNode model parent node children depth =
 nodeTypesThatHaveChildNodes : List String
 nodeTypesThatHaveChildNodes =
     [ Node.typeDevice
+    , Node.typeProvisioning
     , Node.typeGroup
     , Node.typeModbus
     , Node.typeOneWire
@@ -1667,6 +1681,11 @@ nodeDescBrowser =
     row [] [ Icon.globe, text "Browser" ]
 
 
+nodeDescGps : Element Msg
+nodeDescGps =
+    row [] [ Icon.mapPin, text "GPS" ]
+
+
 viewAddNode : String -> NodeView -> NodeToAdd -> Element Msg
 viewAddNode customNodeType parent add =
     column [ spacing 10 ]
@@ -1685,6 +1704,7 @@ viewAddNode customNodeType parent add =
                     , Input.option Node.typeModbus nodeDescModbus
                     , Input.option Node.typeSerialDev nodeDescSerialDev
                     , Input.option Node.typeCanBus nodeDescCanBus
+                    , Input.option Node.typeGps nodeDescGps
                     , Input.option Node.typeMsgService nodeDescMsgService
                     , Input.option Node.typeDb nodeDescDb
                     , Input.option Node.typeParticle nodeDescParticle
@@ -1707,6 +1727,7 @@ viewAddNode customNodeType parent add =
                             , Input.option Node.typeModbus nodeDescModbus
                             , Input.option Node.typeSerialDev nodeDescSerialDev
                             , Input.option Node.typeCanBus nodeDescCanBus
+                            , Input.option Node.typeGps nodeDescGps
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeParticle nodeDescParticle
@@ -1747,6 +1768,12 @@ viewAddNode customNodeType parent add =
                             []
                        )
                     ++ (if parent.node.typ == Node.typeSerialDev then
+                            [ Input.option Node.typeFile nodeDescFile ]
+
+                        else
+                            []
+                       )
+                    ++ (if parent.node.typ == Node.typeProvisioning then
                             [ Input.option Node.typeFile nodeDescFile ]
 
                         else

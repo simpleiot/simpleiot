@@ -48,6 +48,12 @@ func DefaultClients(nc *nats.Conn) (*RunGroup, error) {
 	metrics := NewManager(nc, NewMetricsClient, nil)
 	g.Add(metrics)
 
+	modbus := NewManager(nc, NewModbusClient, nil)
+	g.Add(modbus)
+
+	oneWire := NewManager(nc, NewOneWireClient, nil)
+	g.Add(oneWire)
+
 	particle := NewManager(nc, NewParticleClient, nil)
 	g.Add(particle)
 
@@ -60,6 +66,9 @@ func DefaultClients(nc *nats.Conn) (*RunGroup, error) {
 	ntp := NewManager(nc, NewNTPClient, nil)
 	g.Add(ntp)
 
+	gps := NewManager(nc, NewGPSClient, nil)
+	g.Add(gps)
+
 	browser := NewManager(nc, NewBrowserClient, nil)
 	g.Add(browser)
 
@@ -69,7 +78,8 @@ func DefaultClients(nc *nats.Conn) (*RunGroup, error) {
 	up := NewManager(nc, NewUpdateClient, nil)
 	g.Add(up)
 
-	fc := NewManager(nc, NewFileClient, []string{data.NodeTypeCanBus, data.NodeTypeSerialDev})
+	fc := NewManager(nc, NewFileClient,
+		[]string{data.NodeTypeCanBus, data.NodeTypeSerialDev, data.NodeTypeProvisioning})
 	g.Add(fc)
 
 	return g, nil

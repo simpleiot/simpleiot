@@ -3,7 +3,9 @@ package client
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -177,6 +179,14 @@ func (m *MetricsClient) sysStart() {
 		}
 	}
 
+	// the scale a cooling device state is measured against does not change
+	// while the system runs, so collect it here rather than every period
+	if pts := sysCoolingMax(); len(pts) > 0 {
+		err = SendNodePoints(m.nc, m.config.ID, pts, false)
+		if err != nil {
+			log.Println("Metrics: error sending points:", err)
+		}
+	}
 }
 
 func (m *MetricsClient) sysPeriodic() {
@@ -254,21 +264,329 @@ func (m *MetricsClient) sysPeriodic() {
 		pts = append(pts, data.NewPointFloat(data.PointTypeMetricSysUptime, "", float64(uptime)))
 	}
 
-	temps, err := host.SensorsTemperatures()
-	if err != nil {
-		log.Println("Error reading sensors:", err)
-	} else {
-		for _, t := range temps {
-			pts = append(pts, data.Points{
-				data.NewPointFloat(data.PointTypeTemperature, t.SensorKey, t.Temperature),
-			}...)
-		}
-	}
+	pts = append(pts, sysTemperatures()...)
+	pts = append(pts, sysFans()...)
+	pts = append(pts, sysCooling()...)
+	pts = append(pts, sysPower()...)
+	pts = append(pts, sysCPUFreqs()...)
 
 	err = SendNodePoints(m.nc, m.config.ID, pts, false)
 	if err != nil {
 		log.Println("Metrics: error sending points:", err)
 	}
+}
+
+// sysfs directories the metrics client reads directly. They are variables so
+// tests can point them at fixture directories.
+var (
+	thermalPath = "/sys/class/thermal"
+	hwmonPath   = "/sys/class/hwmon"
+	cpuPath     = "/sys/devices/system/cpu"
+)
+
+// reading is a single sensor value along with the name it is published under
+type reading struct {
+	key string
+	val float64
+}
+
+// readingPoints converts readings to points of the given type. A point is
+// identified by its type and key, so two readings that share a key would
+// overwrite each other. Sensor names are not guaranteed to be unique, so
+// repeats are numbered: tmp451, tmp451_2, tmp451_3, and so on.
+func readingPoints(typ string, readings []reading) data.Points {
+	pts := make(data.Points, 0, len(readings))
+	counts := make(map[string]int)
+
+	for _, r := range readings {
+		if r.key == "" {
+			continue
+		}
+
+		counts[r.key]++
+
+		key := r.key
+		if c := counts[r.key]; c > 1 {
+			key = key + "_" + strconv.Itoa(c)
+		}
+
+		pts = append(pts, data.NewPointFloat(typ, key, r.val))
+	}
+
+	return pts
+}
+
+// sysTemperatures collects temperature readings from the hwmon sensors gopsutil
+// finds as well as from the Linux thermal zones. The zones are read directly
+// because gopsutil only consults them when a system has no hwmon temperature
+// inputs at all. Boards that have both, such as the Jetson AGX Orin, report
+// their SoC, CPU, and junction temperatures through the zones alone, and those
+// are usually the readings worth watching.
+func sysTemperatures() data.Points {
+	var temps []reading
+
+	// gopsutil returns the sensors it did read along with an error describing
+	// the ones it could not, so use the readings that came back either way
+	sensors, err := host.SensorsTemperatures()
+	if err != nil {
+		log.Println("Metrics: some sensors were not read:", err)
+	}
+
+	for _, s := range sensors {
+		temps = append(temps, reading{key: s.SensorKey, val: s.Temperature})
+	}
+
+	temps = append(temps, thermalZones(thermalPath)...)
+
+	return readingPoints(data.PointTypeTemperature, temps)
+}
+
+// sysFans collects fan tachometer and drive levels from the hwmon interface
+func sysFans() data.Points {
+	rpm, pwm := fans(hwmonPath)
+
+	pts := readingPoints(data.PointTypeMetricSysFanSpeed, rpm)
+
+	return append(pts, readingPoints(data.PointTypeMetricSysFanPWM, pwm)...)
+}
+
+// sysPower collects the rail voltages, currents, and power the hwmon power
+// monitors report
+func sysPower() data.Points {
+	volts, amps, watts := powerRails(hwmonPath)
+
+	pts := readingPoints(data.PointTypeVoltage, volts)
+	pts = append(pts, readingPoints(data.PointTypeCurrent, amps)...)
+
+	return append(pts, readingPoints(data.PointTypePower, watts)...)
+}
+
+// sysCPUFreqs collects the current clock of each CPU
+func sysCPUFreqs() data.Points {
+	return readingPoints(data.PointTypeMetricSysCPUFreq, cpuFreqs(cpuPath))
+}
+
+// sysCooling collects the current state of each thermal cooling device
+func sysCooling() data.Points {
+	state, _ := coolingDevices(thermalPath)
+
+	return readingPoints(data.PointTypeMetricSysCoolingState, state)
+}
+
+// sysCoolingMax collects the highest state each cooling device supports. This
+// does not change while the system runs, so it is collected once at startup.
+func sysCoolingMax() data.Points {
+	_, stateMax := coolingDevices(thermalPath)
+
+	return readingPoints(data.PointTypeMetricSysCoolingStateMax, stateMax)
+}
+
+// thermalZones reads every zone under the given sysfs thermal directory. A zone
+// whose sensor is unavailable, which happens on SoCs when a rail is powered
+// down, is skipped so that it does not cost us the zones that did read. Systems
+// without the thermal interface simply return no readings.
+func thermalZones(dir string) []reading {
+	zones, err := filepath.Glob(filepath.Join(dir, "thermal_zone*"))
+	if err != nil {
+		// only happens if the pattern above is malformed
+		log.Println("Metrics: error listing thermal zones:", err)
+		return nil
+	}
+
+	ret := make([]reading, 0, len(zones))
+
+	for _, z := range zones {
+		typ, err := readSysfsString(filepath.Join(z, "type"))
+		if err != nil {
+			continue
+		}
+
+		milliC, err := readSysfsNumber(filepath.Join(z, "temp"))
+		if err != nil {
+			continue
+		}
+
+		ret = append(ret, reading{key: typ, val: milliC / 1000})
+	}
+
+	return ret
+}
+
+// coolingDevices reads the current and maximum state of every cooling device
+// under the given sysfs thermal directory. A state above zero means the thermal
+// governor is limiting the system: a cpufreq or devfreq device reports how many
+// steps the clocks have been pulled back, and a fan reports how hard it has been
+// asked to run. That is the reading that tells us whether a warm system is
+// giving up performance, which temperature alone cannot answer.
+func coolingDevices(dir string) (state, stateMax []reading) {
+	devices, err := filepath.Glob(filepath.Join(dir, "cooling_device*"))
+	if err != nil {
+		// only happens if the pattern above is malformed
+		log.Println("Metrics: error listing cooling devices:", err)
+		return nil, nil
+	}
+
+	for _, d := range devices {
+		typ, err := readSysfsString(filepath.Join(d, "type"))
+		if err != nil {
+			continue
+		}
+
+		if cur, err := readSysfsNumber(filepath.Join(d, "cur_state")); err == nil {
+			state = append(state, reading{key: typ, val: cur})
+		}
+
+		if m, err := readSysfsNumber(filepath.Join(d, "max_state")); err == nil {
+			stateMax = append(stateMax, reading{key: typ, val: m})
+		}
+	}
+
+	return state, stateMax
+}
+
+// fans reads fan tachometer and drive levels from the hwmon devices under the
+// given directory. Speed is reported in RPM through fan*_input on most drivers,
+// while some, including the Tegra tachometer, use a plain rpm file instead.
+// Drive level is the raw hwmon pwm value, which runs from 0 to 255.
+func fans(dir string) (rpm, pwm []reading) {
+	devices, err := filepath.Glob(filepath.Join(dir, "hwmon*"))
+	if err != nil {
+		// only happens if the pattern above is malformed
+		log.Println("Metrics: error listing hwmon devices:", err)
+		return nil, nil
+	}
+
+	for _, d := range devices {
+		// the name file is what the driver calls itself, such as pwmfan
+		name, err := readSysfsString(filepath.Join(d, "name"))
+		if err != nil || name == "" {
+			name = filepath.Base(d)
+		}
+
+		// fan1_input, fan2_input, ... and the nonstandard rpm
+		speeds, _ := filepath.Glob(filepath.Join(d, "fan*_input"))
+		speeds = append(speeds, filepath.Join(d, "rpm"))
+
+		for _, f := range speeds {
+			if v, err := readSysfsNumber(f); err == nil {
+				rpm = append(rpm, reading{key: name, val: v})
+			}
+		}
+
+		// pwm1, pwm2, ... but not the pwm1_enable and pwm1_mode settings
+		// that sit alongside them
+		drives, _ := filepath.Glob(filepath.Join(d, "pwm[0-9]"))
+
+		for _, f := range drives {
+			if v, err := readSysfsNumber(f); err == nil {
+				pwm = append(pwm, reading{key: name, val: v})
+			}
+		}
+	}
+
+	return rpm, pwm
+}
+
+// powerRails reads the labeled channels of the hwmon power monitors under the
+// given directory, such as the INA3221 devices on a Jetson. A channel is
+// published when its driver gives it a label, which is how a board names the
+// rail that channel measures. The unlabeled channels these devices also expose
+// carry shunt voltages, which say little on their own. Readings are converted
+// to volts, amps, and watts. Drivers that do not report power directly still
+// give us voltage and current, so the product stands in for it.
+func powerRails(dir string) (volts, amps, watts []reading) {
+	devices, err := filepath.Glob(filepath.Join(dir, "hwmon*"))
+	if err != nil {
+		// only happens if the pattern above is malformed
+		log.Println("Metrics: error listing hwmon devices:", err)
+		return nil, nil, nil
+	}
+
+	for _, d := range devices {
+		labels, _ := filepath.Glob(filepath.Join(d, "in[0-9]_label"))
+
+		for _, l := range labels {
+			name, err := readSysfsString(l)
+			if err != nil || name == "" {
+				continue
+			}
+
+			// a key with spaces in it is awkward to work with downstream
+			name = strings.Join(strings.Fields(name), "_")
+
+			// the label on in3 names channel 3, whose current is curr3
+			ch := strings.TrimPrefix(strings.TrimSuffix(filepath.Base(l), "_label"), "in")
+
+			var v, a float64
+			var haveV, haveA bool
+
+			if mV, err := readSysfsNumber(filepath.Join(d, "in"+ch+"_input")); err == nil {
+				v, haveV = mV/1000, true
+				volts = append(volts, reading{key: name, val: v})
+			}
+
+			if mA, err := readSysfsNumber(filepath.Join(d, "curr"+ch+"_input")); err == nil {
+				a, haveA = mA/1000, true
+				amps = append(amps, reading{key: name, val: a})
+			}
+
+			if uW, err := readSysfsNumber(filepath.Join(d, "power"+ch+"_input")); err == nil {
+				watts = append(watts, reading{key: name, val: uW / 1000000})
+			} else if haveV && haveA {
+				watts = append(watts, reading{key: name, val: v * a})
+			}
+		}
+	}
+
+	return volts, amps, watts
+}
+
+// cpuFreqs reads the current clock of each CPU under the given sysfs directory,
+// in MHz. Alongside the cooling device states, this shows where the clocks
+// actually settled once the thermal governor pulled them back. Cores that are
+// offline drop out on their own, as their attribute cannot be read.
+func cpuFreqs(dir string) []reading {
+	cpus, err := filepath.Glob(filepath.Join(dir, "cpu[0-9]*"))
+	if err != nil {
+		// only happens if the pattern above is malformed
+		log.Println("Metrics: error listing CPUs:", err)
+		return nil
+	}
+
+	ret := make([]reading, 0, len(cpus))
+
+	for _, c := range cpus {
+		kHz, err := readSysfsNumber(filepath.Join(c, "cpufreq", "scaling_cur_freq"))
+		if err != nil {
+			continue
+		}
+
+		ret = append(ret, reading{key: filepath.Base(c), val: kHz / 1000})
+	}
+
+	return ret
+}
+
+// readSysfsString reads a sysfs attribute and trims the trailing newline
+func readSysfsString(path string) (string, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(raw)), nil
+}
+
+// readSysfsNumber reads a numeric sysfs attribute. Attributes whose sensor is
+// unavailable return an error on read, so callers skip them individually rather
+// than losing the readings that succeeded.
+func readSysfsNumber(path string) (float64, error) {
+	s, err := readSysfsString(path)
+	if err != nil {
+		return 0, err
+	}
+
+	return strconv.ParseFloat(s, 64)
 }
 
 // if procName is "", then collect stats for this app

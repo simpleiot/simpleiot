@@ -211,7 +211,15 @@ const (
 	PointTypeMetricNatsThroughputNodeEdgePoint = "metricNatsThroughputNodeEdgePoint"
 
 	// serial MCU clients
-	NodeTypeSerialDev         = "serialDev"
+	NodeTypeSerialDev = "serialDev"
+	// PointTypeProtocol on a serialDev node selects the wire protocol.
+	// An empty value means PointValueProtocolBinary so existing nodes
+	// keep working with no migration.
+	PointValueProtocolBinary = "binary" // COBS framed binary packets
+	PointValueProtocolShell  = "shell"  // Zephyr console shell, ASCII
+	// PointTypeLogConsole mirrors the MCU console to the SIOT server log.
+	// Shell protocol only.
+	PointTypeLogConsole       = "logConsole"
 	PointTypeRx               = "rx"
 	PointTypeTx               = "tx"
 	PointTypeHrRx             = "hrRx"
@@ -272,6 +280,21 @@ const (
 	PointTypeDownload = "download"
 	PointTypeProgress = "progress"
 
+	// PointTypeCreated is when a node came into existence, written once and
+	// never rewritten, which is what orders provisioning files uploaded
+	// through the UI.
+	PointTypeCreated = "created"
+
+	// provisioning reads files from a directory and from file nodes under the
+	// provisioning node, applying each one the way siot import does
+	NodeTypeProvisioning     = "provisioning"
+	NodeTypeProvisioningFile = "provisioningFile"
+
+	// PointTypeProvisionHash is the SHA-256 of the contents provisioning last
+	// applied from a source. It is distinct from PointTypeHash, which the file
+	// client maintains to describe the contents themselves.
+	PointTypeProvisionHash = "provisionHash"
+
 	PointTypeRate   = "rate"
 	PointTypeRateHR = "rateHR"
 	NodeTypeMetrics = "metrics"
@@ -293,6 +316,19 @@ const (
 	PointTypeMetricSysNetBytesRecv    = "metricSysNetBytesRecv"
 	PointTypeMetricSysNetBytesSent    = "metricSysNetBytesSent"
 	PointTypeMetricSysUptime          = "metricSysUptime"
+	// current clock of a CPU in MHz, keyed by cpu0, cpu1, and so on
+	PointTypeMetricSysCPUFreq = "metricSysCPUFreq"
+	// fan tachometer reading in RPM
+	PointTypeMetricSysFanSpeed = "metricSysFanSpeed"
+	// fan drive level, 0-255, as reported by the hwmon pwm interface
+	PointTypeMetricSysFanPWM = "metricSysFanPWM"
+	// current state of a thermal cooling device. Anything above zero means
+	// the thermal governor is limiting the system, so a rising cpufreq or
+	// devfreq state is the system giving up performance to stay cool.
+	PointTypeMetricSysCoolingState = "metricSysCoolingState"
+	// highest state a cooling device supports, which gives the scale the
+	// current state is measured against
+	PointTypeMetricSysCoolingStateMax = "metricSysCoolingStateMax"
 
 	// App Metrics
 	PointTypeMetricAppAlloc        = "metricAppAlloc"
@@ -382,4 +418,54 @@ const (
 	PointTypeAddress  = "address"
 	PointTypeNetmask  = "netmask"
 	PointTypeGateway  = "gateway"
+
+	// GPS client
+	NodeTypeGPS = "gps"
+
+	PointTypeGPSSource        = "gpsSource"
+	PointValueGPSSourceSerial = "serial"
+	PointValueGPSSourceGpsd   = "gpsd"
+	PointValueGPSSourceSim    = "sim"
+
+	// GPS output points
+	PointTypeLatitude  = "latitude"  // degrees, +N
+	PointTypeLongitude = "longitude" // degrees, +E
+	PointTypeAltitude  = "altitude"  // meters above mean sea level
+	PointTypeSpeed     = "speed"     // meters/second over ground
+	PointTypeHeading   = "heading"   // degrees true, 0-360
+	PointTypeNumSat    = "numSat"    // satellites used in fix
+	PointTypeHDOP      = "hdop"      // horizontal dilution of precision
+	PointTypeGPSTime   = "gpsTime"   // Unix epoch seconds reported by the source
+
+	// Normalized GPS fix dimensionality, following gpsd's TPV mode encoding.
+	// Numeric rather than a string enum so it can be stored in metrics-only
+	// databases such as Victoria Metrics, which store strings as 0.
+	PointTypeFixType  = "fixType"
+	PointValueFixNone = 0 // no fix, or fix status unknown
+	PointValueFix2D   = 2
+	PointValueFix3D   = 3
+
+	// Normalized GPS fix augmentation quality, following the NMEA GGA fix
+	// quality encoding, which covers every case the three sources report.
+	PointTypeFixQuality           = "fixQuality"
+	PointValueFixQualityNone      = 0
+	PointValueFixQualityGPS       = 1
+	PointValueFixQualityDGPS      = 2
+	PointValueFixQualityPPS       = 3
+	PointValueFixQualityRTKFixed  = 4
+	PointValueFixQualityRTKFloat  = 5
+	PointValueFixQualityEstimated = 6
+	PointValueFixQualityManual    = 7
+	PointValueFixQualitySimulated = 8
+
+	// GPS gpsd source config
+	PointTypeGpsdAddress = "gpsdAddress" // host:port, default localhost:2947
+
+	// GPS simulation config
+	PointTypeSimLatitude    = "simLatitude"    // starting latitude
+	PointTypeSimLongitude   = "simLongitude"   // starting longitude
+	PointTypeSimSpeed       = "simSpeed"       // meters/second
+	PointTypeSimHeading     = "simHeading"     // starting heading, degrees true
+	PointTypeSimHeadingRate = "simHeadingRate" // max heading change, degrees/second
+	PointTypeSimReset       = "simReset"       // move the track back to the start
 )

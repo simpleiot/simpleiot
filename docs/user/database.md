@@ -47,3 +47,13 @@ Victoria Metrics
 [supports the InfluxDB version 2](https://docs.victoriametrics.com/#how-to-send-data-in-influxdb-v2-format)
 line protocol; therefore, it can be used for numerical data. Victoria Metrics
 [does not support storing strings](https://stackoverflow.com/questions/66406899/does-victoriametrics-have-some-way-to-store-string-value-instead-float64).
+
+Note what this means in practice. The database client writes each point with
+both a `value` field and a `text` field. Victoria Metrics splits those into
+separate series named `points_value` and `points_text`, and
+[converts any non-numeric field value to 0](https://docs.victoriametrics.com/victoriametrics/integrations/influxdb/).
+The line is still accepted, so numeric points are stored correctly, but the
+content of a text point is lost. If you are storing data in Victoria Metrics and
+want to filter or graph on a value, publish it as a number. The
+[GPS client](gps.md) does this for its fix status points for exactly this
+reason.

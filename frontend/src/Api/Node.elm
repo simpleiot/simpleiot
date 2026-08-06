@@ -19,8 +19,11 @@ module Api.Node exposing
     , typeDb
     , typeDevice
     , typeFile
+    , typeGps
     , typeGroup
     , typeMetrics
+    , typeProvisioning
+    , typeProvisioningFile
     , typeModbus
     , typeModbusIO
     , typeMsgService
@@ -156,6 +159,16 @@ typeFile =
     "file"
 
 
+typeProvisioning : String
+typeProvisioning =
+    "provisioning"
+
+
+typeProvisioningFile : String
+typeProvisioningFile =
+    "provisioningFile"
+
+
 typeMetrics : String
 typeMetrics =
     "metrics"
@@ -179,6 +192,11 @@ typeNetworkManagerConn =
 typeNTP : String
 typeNTP =
     "ntp"
+
+
+typeGps : String
+typeGps =
+    "gps"
 
 
 typeBrowser : String

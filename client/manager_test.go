@@ -660,3 +660,90 @@ func TestManagerLotsChildren(t *testing.T) {
 	}
 
 }
+
+// TestManagerImport verifies clients are started for nodes an import creates.
+func TestManagerImport(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	testConfig := testNode{"ID-testNode", root.ID, "fancy test node", 8118, ""}
+
+	err = client.SendNodeType(nc, testConfig, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	newClient := make(chan *testNodeClient)
+
+	var newTestNodeClientWrapper = func(nc *nats.Conn, config testNode) client.Client {
+		testClient := newTestNodeClient(nc, config)
+		newClient <- testClient
+		return testClient
+	}
+
+	m := client.NewManager(nc, newTestNodeClientWrapper, nil)
+
+	startErr := make(chan error)
+
+	go func() {
+		err := m.Run()
+		if err != nil {
+			startErr <- fmt.Errorf("manager start returned error: %v", err)
+		}
+	}()
+
+	defer m.Stop(nil)
+
+	// wait for the client for the original node to be created
+	var origClient *testNodeClient
+
+	select {
+	case origClient = <-newClient:
+	case err := <-startErr:
+		t.Fatal("Error starting client manager: ", err)
+	case <-time.After(time.Second * 5):
+		t.Fatal("Test client not created")
+	}
+
+	origID := origClient.getConfig().ID
+
+	importYaml := `
+nodes:
+  - testNode:
+      description: imported test node
+      port: 8119
+`
+
+	go func() {
+		plan, err := client.ImportNodes(nc, []byte(importYaml), "test", false)
+		if err != nil {
+			fmt.Println("Error importing nodes: ", err)
+		}
+
+		if len(plan.Errors) > 0 {
+			fmt.Println("Import errors: ", plan.Errors)
+		}
+	}()
+
+	// the manager should start a client for the imported test node
+	timeout := time.NewTimer(time.Second * 15)
+
+	for {
+		select {
+		case c := <-newClient:
+			if c.getConfig().ID != origID {
+				// client was started for the imported node
+				return
+			}
+		case err := <-startErr:
+			t.Fatal("Error starting client manager: ", err)
+		case <-timeout.C:
+			t.Fatal("Timeout waiting for client for imported node")
+		}
+	}
+}

@@ -14,5 +14,10 @@ Environment=SIOT_NATS_WS_PORT=9222
 
 ExecStart={{ .SiotPath }}
 
+# Simple IoT exits when a configuration is imported at the root of the tree so
+# that it comes back up against the new tree. Restart it when it does.
+Restart=always
+RestartSec=2
+
 [Install]
 WantedBy={{ .SystemdTarget }}

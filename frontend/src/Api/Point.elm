@@ -28,6 +28,7 @@ module Api.Point exposing
     , typeAction
     , typeActive
     , typeAddress
+    , typeAltitude
     , typeAuthToken
     , typeAutoDownload
     , typeAutoReboot
@@ -41,6 +42,7 @@ module Api.Point exposing
     , typeConditionType
     , typeConnected
     , typeControlled
+    , typeCreated
     , typeData
     , typeDataFormat
     , typeDate
@@ -74,11 +76,18 @@ module Api.Point exposing
     , typeFallbackServer
     , typeFilePath
     , typeFirstName
+    , typeFixQuality
+    , typeFixType
     , typeFrequency
     , typeFrom
     , typeFullscreen
+    , typeGpsSource
+    , typeGpsdAddress
     , typeHRDest
     , typeHash
+    , typeHdop
+    , typeProvisionHash
+    , typeHeading
     , typeHrRx
     , typeHrRxReset
     , typeID
@@ -88,8 +97,11 @@ module Api.Point exposing
     , typeInitialValue
     , typeKeyboardScale
     , typeLastName
+    , typeLatitude
     , typeLightSet
     , typeLog
+    , typeLogConsole
+    , typeLongitude
     , typeMaxIncrement
     , typeMaxMessageLength
     , typeMaxValue
@@ -104,6 +116,7 @@ module Api.Point exposing
     , typeMsgsRecvdOtherReset
     , typeName
     , typeNodeID
+    , typeNumSat
     , typeOSDownloaded
     , typeOSUpdate
     , typeOffline
@@ -138,7 +151,14 @@ module Api.Point exposing
     , typeService
     , typeSignalType
     , typeSignalsInDb
+    , typeSimHeading
+    , typeSimHeadingRate
+    , typeSimLatitude
+    , typeSimLongitude
+    , typeSimReset
+    , typeSimSpeed
     , typeSize
+    , typeSpeed
     , typeStart
     , typeSwitchSet
     , typeSyncCount
@@ -172,6 +192,9 @@ module Api.Point exposing
     , valueContains
     , valueEqual
     , valueFLOAT32
+    , valueGpsSourceGpsd
+    , valueGpsSourceSerial
+    , valueGpsSourceSim
     , valueGreaterThan
     , valueINT16
     , valueINT32
@@ -187,6 +210,8 @@ module Api.Point exposing
     , valuePlayAudio
     , valuePointValue
     , valueProcess
+    , valueProtocolBinary
+    , valueProtocolShell
     , valueRTU
     , valueRandomWalk
     , valueSchedule
@@ -496,6 +521,24 @@ valueRTU =
 valueTCP : String
 valueTCP =
     "TCP"
+
+
+{-| Serial protocol values. An empty protocol means binary, so serial nodes
+created before shell mode existed keep working with no migration.
+-}
+valueProtocolBinary : String
+valueProtocolBinary =
+    "binary"
+
+
+valueProtocolShell : String
+valueProtocolShell =
+    "shell"
+
+
+typeLogConsole : String
+typeLogConsole =
+    "logConsole"
 
 
 typeModbusIOType : String
@@ -938,6 +981,16 @@ typeHash =
     "hash"
 
 
+typeProvisionHash : String
+typeProvisionHash =
+    "provisionHash"
+
+
+typeCreated : String
+typeCreated =
+    "created"
+
+
 typeBitRate : String
 typeBitRate =
     "bitRate"
@@ -1151,6 +1204,110 @@ newText typ key text =
     }
 
 
+
+-- GPS client points
+
+
+typeGpsSource : String
+typeGpsSource =
+    "gpsSource"
+
+
+valueGpsSourceSerial : String
+valueGpsSourceSerial =
+    "serial"
+
+
+valueGpsSourceGpsd : String
+valueGpsSourceGpsd =
+    "gpsd"
+
+
+valueGpsSourceSim : String
+valueGpsSourceSim =
+    "sim"
+
+
+typeLatitude : String
+typeLatitude =
+    "latitude"
+
+
+typeLongitude : String
+typeLongitude =
+    "longitude"
+
+
+typeAltitude : String
+typeAltitude =
+    "altitude"
+
+
+typeSpeed : String
+typeSpeed =
+    "speed"
+
+
+typeHeading : String
+typeHeading =
+    "heading"
+
+
+typeFixType : String
+typeFixType =
+    "fixType"
+
+
+typeFixQuality : String
+typeFixQuality =
+    "fixQuality"
+
+
+typeNumSat : String
+typeNumSat =
+    "numSat"
+
+
+typeHdop : String
+typeHdop =
+    "hdop"
+
+
+typeGpsdAddress : String
+typeGpsdAddress =
+    "gpsdAddress"
+
+
+typeSimLatitude : String
+typeSimLatitude =
+    "simLatitude"
+
+
+typeSimLongitude : String
+typeSimLongitude =
+    "simLongitude"
+
+
+typeSimSpeed : String
+typeSimSpeed =
+    "simSpeed"
+
+
+typeSimHeading : String
+typeSimHeading =
+    "simHeading"
+
+
+typeSimHeadingRate : String
+typeSimHeadingRate =
+    "simHeadingRate"
+
+
+typeSimReset : String
+typeSimReset =
+    "simReset"
+
+
 specialPoints : List String
 specialPoints =
     [ typeDescription
@@ -1158,6 +1315,10 @@ specialPoints =
     , typeVersionOS
     , typeVersionApp
     , typeBaud
+    , typeProtocol
+    , typeTimeout
+    , typeLogConsole
+    , typeSyncParent
     , typeHRDest
     , typeMaxMessageLength
     , typeDebug
@@ -1198,6 +1359,8 @@ specialPoints =
     , typeDirectory
     , typeRefresh
     , typeBinary
+    , typeDownload
+    , typeProgress
     ]
 
 

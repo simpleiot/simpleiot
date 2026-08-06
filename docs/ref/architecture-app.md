@@ -58,6 +58,20 @@ etc.) of the system would be beneficial. If there are dependencies between
 processes, this can be managed inside the process instead of in the code that
 starts/stops the processes.
 
+## Provisioning
+
+Almost everything in Simple IoT is configured by nodes in the tree, and is
+implemented as a client. Provisioning is not, because it has to work before
+there is any configuration in the tree to read. It is a server level concern,
+set by a command line flag and an environment variable and started in
+`server.Run()` alongside the store and the client manager. This is the same
+reasoning behind Grafana configuring provisioning in `grafana.ini` rather than
+in the database it populates.
+
+Provisioning applies the same files `siot import` does, using the engine in
+`client/apply.go`, so a file works the same whichever way it is applied. See
+[user/configuration](../user/configuration.md).
+
 ## NATS Integration
 
 The [NATS API](api.md#nats) details the NATS subjects used by the system.

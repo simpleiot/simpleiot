@@ -89,6 +89,12 @@ view o =
                         log =
                             Point.getText o.node.points Point.typeLog "0"
 
+                        -- an empty protocol means binary, so nodes created
+                        -- before shell mode existed still render correctly
+                        isShell =
+                            Point.getText o.node.points Point.typeProtocol "0"
+                                == Point.valueProtocolShell
+
                         rate =
                             Point.getValue o.node.points Point.typeRate "0"
 
@@ -120,8 +126,18 @@ view o =
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typePort "Port" "/dev/ttyUSB0"
                     , textInput Point.typeBaud "Baud" "9600"
+                    , optionInput Point.typeProtocol
+                        "Protocol"
+                        [ ( Point.valueProtocolBinary, "Binary (COBS)" )
+                        , ( Point.valueProtocolShell, "Zephyr shell" )
+                        ]
                     , numberInput Point.typeMaxMessageLength "Max Msg Len"
-                    , textInput Point.typeHRDest "HR Dest Node" ""
+                    , viewIf isShell <|
+                        numberInput Point.typeTimeout "Timeout (sec)"
+                    , viewIf isShell <|
+                        checkboxInput Point.typeLogConsole "Log console output"
+                    , viewIf (not isShell) <|
+                        textInput Point.typeHRDest "HR Dest Node" ""
                     , checkboxInput Point.typeSyncParent "Sync parent node"
                     , numberInput Point.typeDebug "Debug level (0-9)"
                     , checkboxInput Point.typeDisabled "Disabled"
@@ -129,13 +145,23 @@ view o =
                     , counterWithReset Point.typeErrorCount Point.typeErrorCountReset "Error Count"
                     , counterWithReset Point.typeRx Point.typeRxReset "Rx count"
                     , counterWithReset Point.typeTx Point.typeTxReset "Tx count"
-                    , counterWithReset Point.typeErrorCountHR Point.typeErrorCountResetHR "HR err count"
-                    , counterWithReset Point.typeHrRx Point.typeHrRxReset "HR Rx count"
+
+                    -- high rate and file transfer have no shell equivalent
+                    , viewIf (not isShell) <|
+                        counterWithReset Point.typeErrorCountHR Point.typeErrorCountResetHR "HR err count"
+                    , viewIf (not isShell) <|
+                        counterWithReset Point.typeHrRx Point.typeHrRxReset "HR Rx count"
                     , text <| "  Rate (pts/sec): " ++ rateS
-                    , text <| "  Rate HR (pkts/sec): " ++ rateHRS
-                    , text <| "  Last log: " ++ log
-                    , viewIf (List.length files > 0) <| horizontalRule
-                    , viewIf (List.length files > 0 && not downloading) <|
+                    , viewIf (not isShell) <|
+                        text <|
+                            "  Rate HR (pkts/sec): "
+                                ++ rateHRS
+                    , viewIf (not isShell) <|
+                        text <|
+                            "  Last log: "
+                                ++ log
+                    , viewIf (not isShell && List.length files > 0) <| horizontalRule
+                    , viewIf (not isShell && List.length files > 0 && not downloading) <|
                         optionInput Point.typeDownload
                             "Download file"
                             (List.map

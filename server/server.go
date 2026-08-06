@@ -19,7 +19,6 @@ import (
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/frontend"
-	"github.com/simpleiot/simpleiot/node"
 	"github.com/simpleiot/simpleiot/store"
 )
 
@@ -51,6 +50,17 @@ type Options struct {
 	CustomUIDir       string
 	CustomUIFS        fs.FS
 	UIAssetsDebug     bool
+	// ProvisioningDir is a directory of YAML files applied at start-up and
+	// whenever they change. Empty disables reading files from disk; file nodes
+	// under the provisioning node are still applied.
+	ProvisioningDir string
+	// ProvisioningInterval is how often to look for changes that the directory
+	// watch and the tree subscription might have missed. Zero uses a default.
+	ProvisioningInterval time.Duration
+	// ProvisioningDisable turns provisioning off entirely, including file
+	// nodes in the tree, for an instance that should only be configured
+	// through the UI or the API.
+	ProvisioningDisable bool
 	// optional ID (must be unique) for this instance, otherwise, a UUID will be used
 	ID string
 }
@@ -269,26 +279,27 @@ func (s *Server) Run() error {
 	})
 
 	// ====================================
-	// Node manager
+	// Version reporting
 	// ====================================
 
-	nodeManager := node.NewManger(s.nc, o.AppVersion, o.OSVersionField)
-
+	cancelVersions := make(chan struct{})
 	storeWg.Add(1)
 	g.Add(func() error {
 		defer storeWg.Done()
 		err := siotStore.WaitStart(siotWaitCtx)
 		if err != nil {
-			logLS("LS: Exited: node manager timeout waiting for store")
+			logLS("LS: Exited: version reporting timeout waiting for store")
 			return err
 		}
 
-		err = nodeManager.Start()
-		logLS("LS: Exited: node manager")
-		return err
-	}, func(err error) {
-		nodeManager.Stop(err)
-		logLS("LS: Shutdown: node manager")
+		reportVersions(s.nc, o.AppVersion, o.OSVersionField)
+
+		<-cancelVersions
+		logLS("LS: Exited: version reporting")
+		return nil
+	}, func(_ error) {
+		close(cancelVersions)
+		logLS("LS: Shutdown: version reporting")
 	})
 
 	// ====================================
@@ -310,6 +321,37 @@ func (s *Server) Run() error {
 	}, func(err error) {
 		s.clients.Stop(err)
 		logLS("LS: Shutdown: clients manager")
+	})
+
+	// ====================================
+	// Provisioning
+	// ====================================
+
+	cancelProvision := make(chan struct{})
+	storeWg.Add(1)
+	g.Add(func() error {
+		defer storeWg.Done()
+
+		if o.ProvisioningDisable {
+			<-cancelProvision
+			logLS("LS: Exited: provisioning (disabled)")
+			return nil
+		}
+
+		err := siotStore.WaitStart(siotWaitCtx)
+		if err != nil {
+			logLS("LS: Exited: provisioning timeout waiting for store")
+			return err
+		}
+
+		p := &provisioner{nc: s.nc, dir: o.ProvisioningDir}
+
+		err = p.watch(o.ProvisioningInterval, cancelProvision)
+		logLS("LS: Exited: provisioning: ", err)
+		return err
+	}, func(_ error) {
+		close(cancelProvision)
+		logLS("LS: Shutdown: provisioning")
 	})
 
 	// ====================================

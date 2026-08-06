@@ -13,6 +13,7 @@
   - [CAN bus](docs/user/can.md)
   - [File](docs/user/file.md)
   - [Database](docs/user/database.md)
+  - [GPS](docs/user/gps.md)
   - [Modbus](docs/user/modbus.md)
   - [1-Wire](docs/user/onewire.md)
   - [Messaging services](docs/user/messaging.md)

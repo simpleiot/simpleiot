@@ -1,0 +1,37 @@
+# Image used to build and serve the Simple IoT documentation book.
+#
+# Build it with `siot_mdbook_image` (see envsetup.sh); `siot_mdbook_build` and
+# `siot_mdbook` build it automatically the first time they run. The build takes
+# no context, so it is invoked as `docker build - < Dockerfile.mdbook`.
+#
+# This installs the official prebuilt mdbook release binary, which is
+# statically linked against musl and needs no runtime dependencies. If the
+# linkcheck2 backend in book.toml is enabled again, mdbook-linkcheck2 will need
+# to be added here as well.
+
+FROM alpine:3.21 AS fetch
+
+ARG MDBOOK_VERSION=0.5.4
+ARG TARGETARCH=amd64
+
+RUN apk add --no-cache curl tar
+
+RUN case "$TARGETARCH" in \
+	amd64) arch=x86_64 ;; \
+	arm64) arch=aarch64 ;; \
+	*) echo "unsupported architecture: $TARGETARCH" >&2; exit 1 ;; \
+	esac && \
+	curl -fsSL -o /tmp/mdbook.tar.gz \
+	"https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VERSION}/mdbook-v${MDBOOK_VERSION}-${arch}-unknown-linux-musl.tar.gz" && \
+	tar -xzf /tmp/mdbook.tar.gz -C /usr/local/bin mdbook && \
+	/usr/local/bin/mdbook --version
+
+FROM alpine:3.21
+
+LABEL org.opencontainers.image.source=https://github.com/simpleiot/simpleiot
+
+COPY --from=fetch /usr/local/bin/mdbook /usr/local/bin/mdbook
+
+WORKDIR /book
+EXPOSE 3000
+ENTRYPOINT ["mdbook"]

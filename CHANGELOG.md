@@ -11,7 +11,263 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-## Next
+## [0.22.0] - 2026-08-04
+
+- config files: one YAML format now describes a tree of nodes, and
+  `siot export`, `siot import`, and provisioning all use it. The node type is
+  the key and each point type is a key of its own, so a file reads as
+  configuration rather than as a serialized structure:
+
+  ```yaml
+  nodes:
+    - group:
+        description: Sensors
+        children:
+          - modbus:
+              description: Modbus sensors
+              port: /dev/ttyS1
+              baud: 9600
+  ```
+
+  How a value is written decides what it becomes: `9600` is numeric, `"9600"` is
+  text, `1` and `1.5` are an integer and a float, a mapping is a set of keyed
+  points, and a sequence is an array. Files in the previous format are not read;
+  re-export the tree to get one in the current format. See
+  [user/configuration](docs/user/configuration.md).
+
+- config files: a file describes configuration and nothing else. It carries no
+  node IDs, no origins, and no points without a value. A `nodeID` point names
+  the node it refers to by description, so a rule can point at a variable
+  without either of them knowing its UUID, in a file or across files.
+
+- import: applying a file is now idempotent. Nodes are matched by description
+  rather than by ID, so importing a file creates what is missing, sends only the
+  points that differ, and does nothing when the tree already agrees. Running the
+  same import twice does what running it once did. A `delete` list removes
+  nodes.
+
+  A description is how a file finds a node, so renaming one in the UI detaches
+  it from the file that describes it and the next apply creates a second node
+  beside it. Rename in two steps: delete the old description in the same file
+  that introduces the new one.
+
+- import: `-parentID` and `-preserveIDs` are gone. A file says where its nodes
+  attach with `parent`, naming a node by description, and every node a file
+  creates gets a fresh ID. `-dryRun` prints what a file would do without
+  applying it. The `(import)` suffix that was appended to descriptions is gone,
+  since it would have broken idempotence.
+
+- import: importing at the root no longer replaces the root node. A file never
+  describes the root, which is this instance rather than configuration, so the
+  restart that an import at `root` used to require is gone along with the root
+  watcher that performed it. `siot serve` still exits non-zero on error, so
+  supervisors that only restart on failure will bring it back up.
+
+- export: an export is now a provisioning file. The root node is left out, as
+  are node IDs, valueless points, and origins. An export refuses to write a tree
+  whose siblings share a description, since no file could say which node it
+  meant.
+
+- provisioning: an instance can configure itself from files. A directory given
+  by `-provisioningDir` or `SIOT_PROVISIONING_DIR`, defaulting to
+  `<SIOT_DATA>/provisioning` when it exists, is applied at start-up and whenever
+  a file changes, so a unit built from an image comes up configured with no
+  import step. `SIOT_PROVISIONING_INTERVAL` sets how often to look for changes
+  the watch might have missed.
+
+  Files can also be uploaded through the UI as `file` nodes under the
+  provisioning node, which is how a unit whose filesystem you cannot reach gets
+  configured. Files on disk apply first and uploads layer on top, oldest first.
+
+  A `provisioning` node under the root records what was applied, with a checksum
+  per file and the last error if one failed. Removing a file removes its status;
+  the nodes it created stay, since provisioning describes what should exist
+  rather than owning what it made.
+
+- provisioning: `siot provision -dir <dir>` prints what a directory of files
+  would do to a running instance without applying it, and `-check` only parses
+  them, which needs no instance and is what a build can use to fail on a bad
+  file.
+
+## [0.21.0] - 2026-08-03
+
+- modbus: move Modbus to the client architecture. Modbus buses are now started
+  and stopped by the client manager like every other client, rather than by a
+  20-second poll of the store, so a new bus or IO starts collecting data right
+  away instead of up to 20 seconds later. Node and point types are unchanged, so
+  existing configurations keep working.
+- modbus, 1-wire: start a bus that lives inside a group. Discovery looked only
+  at the direct children of the root node, so a bus placed anywhere else never
+  ran.
+- modbus: adding or removing an IO now restarts its bus, which reopens the port.
+  A Modbus server drops the TCP connections it holds when this happens. This
+  applies when a person edits the configuration, not during normal polling.
+- modbus: read `int16` values as signed. An `int16` input or holding register
+  was decoded as an unsigned value, so a negative reading appeared as a large
+  positive number on both the client and the server.
+- modbus: write a `valueSet` to the device as soon as it arrives. The check that
+  decided whether a value could be written compared the data format against the
+  IO type, which never matched, so a write waited for the next poll.
+- modbus: treat a scale of zero as one. An IO created without a scale read every
+  register as zero; the old code declined to start such an IO at all, which was
+  just as hard to diagnose.
+- modbus: publish the corrected response timeout when a bus has none configured
+  or has a non-positive one, so what the bus uses is what the configuration
+  shows.
+- modbus: closing a Modbus TCP server no longer waits on a connection listener
+  that has already exited, which could happen when the far end dropped the
+  connection at the moment the server was being closed.
+- modbus: the first tests for the Modbus subsystem, covering every register type
+  and data format end to end through a server bus and a client bus talking over
+  a TCP socket.
+- 1-wire: **1-Wire bus nodes are no longer created automatically.** Add a 1-Wire
+  node where you want it and set its `Index` to the bus controller number, which
+  matches the `w1_bus_master<index>` directory in `/sys/bus/w1/devices`. The
+  sensors on that bus are still detected and added for you. Existing bus nodes
+  keep working unchanged; this affects new setups, and any install that relied
+  on a deleted bus node reappearing.
+- 1-wire: move 1-Wire to the client architecture. A new bus or sensor is picked
+  up as soon as it is configured rather than on the next 20-second scan. This is
+  also the first test coverage the subsystem has had.
+- 1-wire: detect sensors below the configured bus controller rather than across
+  all of them. With two controllers, every bus node claimed every sensor.
+- server: retire the `node` package. With Modbus and 1-Wire moved to clients,
+  all that remained of the node manager was writing the app and OS versions to
+  the root node, which is now a small function that runs once after the store
+  starts. The 20-second scan that drove the old bus managers is gone.
+- import: restart automatically after importing with `-parentID=root`. Such an
+  import replaces the root node, which leaves everything that resolved a node
+  relative to the old root working against a tree that no longer exists, so the
+  instance had to be restarted by hand before it resumed collecting data. The
+  server now exits once the import settles and expects the service manager to
+  start it again; the service file installed by `siot install` sets
+  `Restart=always` for this reason. If you run Simple IoT some other way, please
+  make sure the process is restarted. `siot serve` also exits non-zero on error
+  now, so supervisors that only restart on failure will bring it back up.
+- client manager: refresh the root node on every scan. The manager resolved the
+  root once at startup, so it kept scanning below a root that an import had
+  replaced and never started clients for the imported nodes. This also covers
+  instances that are not configured to restart.
+- client manager: stop clients when the last node of a type is deleted. The scan
+  returned early when it found no nodes, which skipped the step that shuts down
+  clients whose nodes are gone.
+
+## [0.20.6] - 2026-08-01
+
+- metrics client: collect fan speed and drive level from the hwmon interface,
+  reported as `metricSysFanSpeed` in RPM and `metricSysFanPWM` on the 0-255
+  scale the kernel uses. Drivers that report a plain `rpm` file rather than the
+  usual `fan1_input`, such as the Tegra tachometer, are read as well.
+- metrics client: collect the state of each thermal cooling device as
+  `metricSysCoolingState`, keyed by device type. A state above zero means the
+  thermal governor is limiting the system, so a rising `cpufreq` or `devfreq`
+  state shows performance being given up to stay cool, which temperature alone
+  does not reveal. The scale each device is measured against is published once
+  at startup as `metricSysCoolingStateMax`.
+- metrics client: collect rail voltage, current, and power from the hwmon power
+  monitors, published as the existing `voltage`, `current`, and `power` types in
+  volts, amps, and watts. A channel is published when its driver labels it,
+  which is how a board names the rail a channel measures, so a Jetson reports
+  `VDD_GPU_SOC` and friends by name. Monitors that do not report power directly,
+  including the INA3221, still give voltage and current, and the product stands
+  in for the missing reading.
+- metrics client: collect the current clock of each CPU as `metricSysCPUFreq`,
+  in MHz and keyed by `cpu0`, `cpu1`, and so on. Read alongside the cooling
+  device states, it shows where the clocks settled once the thermal governor
+  pulled them back.
+- documentation: describe the thermal, power, and clock readings the system
+  metrics collect, in [metrics](docs/user/metrics.md)
+
+## [0.20.5] - 2026-08-01
+
+- metrics client: read the Linux thermal zones directly so SoC temperatures are
+  collected. The sensor library only consults the zones on systems that have no
+  hwmon temperature inputs, so boards that expose both, such as the Jetson AGX
+  Orin, reported only their board sensors while the CPU, SoC, and junction
+  readings went uncollected. Zones whose rail is powered down are skipped
+  individually, sensors that fail to read no longer discard the ones that
+  succeeded, and repeated sensor names are numbered (`tmp451`, `tmp451_2`) so
+  two readings no longer overwrite each other.
+
+## [0.20.4] - 2026-08-01
+
+- serial node UI: keep the remaining configuration fields out of the point and
+  value table, so it shows the data the MCU reports rather than the node's own
+  settings. `protocol`, `timeout`, `logConsole`, `syncParent`, `download`, and
+  `progress` were listed there alongside MCU points. `protocol` and `timeout`
+  are Modbus settings as well, so that node is tidier too.
+
+## [0.20.3] - 2026-08-01
+
+- serial client: exit the port reader when the port is closed. It previously
+  fell through to its retry path, and because a closed port fails every read
+  immediately, the goroutine spun at full speed for the life of the process. One
+  was left behind on every close, including each disable/enable of a serial
+  node.
+- serial client: make the connected state self-correcting. It was published only
+  when it changed, so a single update that was lost or overwritten left a node
+  reported as not connected even while data kept arriving. The state is now
+  recorded locally only after a successful publish, and in shell mode the
+  watchdog republishes it on a slow cadence so the reported state converges.
+
+## [0.20.2] - 2026-08-01
+
+- update frontend assets
+
+## [0.20.1] - 2026-07-31
+
+- serial client: don't display log field in UI when in shell mode
+
+## [0.20.0] - 2026-07-31
+
+- serial: add a Zephyr shell protocol mode to the MCU serial client. Points are
+  exchanged as lines of ASCII with an MCU's console shell rather than
+  COBS-framed binary packets, so the link a developer reads is the link Simple
+  IoT uses for data. Select it with the Protocol setting on a serial node; an
+  empty value means binary, so existing nodes are unaffected. See the
+  [MCU documentation](docs/user/mcu.md) and the
+  [serial reference](docs/ref/serial.md).
+- serial: add a "Log console output" option that mirrors the MCU console to the
+  Simple IoT server log. Shell protocol only.
+
+## [0.19.0] - 2026-07-31
+
+- add GPS client that reads position data from a serial NMEA receiver, the gpsd
+  daemon, or an internal simulator, and publishes latitude, longitude, altitude,
+  speed, heading, fix status, and satellite information. See the
+  [GPS documentation](docs/user/gps.md), which includes instructions for
+  plotting a track on a Grafana geomap.
+- the simulated GPS source now continues from the node's last published
+  position, so a configuration change or an application restart picks the track
+  up where it left off. A `Reset location` button, or editing the start
+  latitude, longitude, or heading, moves the track back to the start.
+- the simulated GPS source now logs the points it generates at debug level 4,
+  matching the raw data the serial and gpsd sources log at that level. The
+  [GPS documentation](docs/user/gps.md#debug-levels) now describes what each
+  debug level covers.
+- changing the GPS debug level now takes effect right away. The level was read
+  once when a source started, so a change was ignored until something else
+  restarted the source.
+- the GPS `Rx count` and `Error count` reset checkboxes now clear after the
+  counter is zeroed. They stayed set, so a reset only took effect on every
+  second click.
+- document what storing text points in Victoria Metrics actually does; the value
+  is converted to 0 rather than the line being rejected
+- (BREAKING) remove the legacy `gps` package, which predated the client
+  architecture and is superseded by the GPS client. `data.GpsPos` is unchanged
+  and still used by the modem code.
+- add `siot update`, which updates Simple IoT to the latest release published on
+  GitHub. It downloads the release for the platform it is running on, verifies
+  it against the published checksums, and replaces the binary in place.
+  `siot update -check` reports what is available without installing it. See the
+  [installation documentation](docs/user/installation.md#updating).
+- releases now publish the `siot` executable directly instead of wrapping it in
+  a `.tar.gz` or `.zip` archive, so downloading and running it takes one less
+  step. Asset names are unchanged apart from the archive extension, and Windows
+  binaries now end in `.exe`.
+- releases are now built and published by a GitHub Actions workflow when a
+  version tag is pushed, and the release notes come from the matching
+  `CHANGELOG.md` section
 
 - replace SQLite store with JetStream per-node streams (ADR-7 Stage 2)
 - remove SQLite dependency and hash tree
@@ -854,7 +1110,8 @@ or a [demo video](https://youtu.be/ZII9pzx9akY) for more information.
   - fixed issue with backoff algorithm not adhering to max
 - backend:
   - switched data structure name from device -> node -- see
-  - [this issue](https://github.com/simpleiot/simpleiot/issues/91) for discussion
+  - [this issue](https://github.com/simpleiot/simpleiot/issues/91) for
+    discussion
   - add page to message (currently SMS only) all users
   - UI simplification and cleanup
   - sort users on users page
@@ -877,7 +1134,8 @@ old version of SIOT and them import with the new version.
 
 - backend:
   - switched data structure name from device -> node -- see
-    [this issue](https://github.com/simpleiot/simpleiot/issues/91) for discussion
+    [this issue](https://github.com/simpleiot/simpleiot/issues/91) for
+    discussion
   - add page to message (currently SMS only) all users
   - UI simplification and cleanup
   - sort users on users page

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -40,15 +41,39 @@ func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 		opts = TestServerOptions2
 	}
 
-	// Create temp directory for JetStream data
-	tmpDir, err := os.MkdirTemp("", "siot-test-*")
-	if err != nil {
-		return nil, data.NodeEdge{}, nil, fmt.Errorf("error creating temp dir: %v", err)
+	return TestServerOpts(opts)
+}
+
+// TestServerOpts starts a test server with the options given, which is how a
+// test starts one with a provisioning directory. The store is cleaned out
+// first, so the server comes up as a fresh instance.
+func TestServerOpts(opts Options) (*nats.Conn, data.NodeEdge, func(), error) {
+	return startTestServer(opts, true)
+}
+
+// TestServerOptsKeepStore starts a test server on whatever is already in the
+// store, which is how a test restarts an instance rather than replacing it.
+func TestServerOptsKeepStore(opts Options) (*nats.Conn, data.NodeEdge, func(), error) {
+	return startTestServer(opts, false)
+}
+
+func startTestServer(opts Options, clean bool) (*nats.Conn, data.NodeEdge, func(), error) {
+	// JetStream data lives in a directory named for the instance, so a
+	// restart with TestServerOptsKeepStore finds the same store.
+	if opts.DataDir == "" {
+		opts.DataDir = filepath.Join(os.TempDir(), "siot-test-"+opts.ID)
 	}
-	opts.DataDir = tmpDir
 
 	cleanup := func() {
-		_ = os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(opts.DataDir)
+	}
+
+	if clean {
+		cleanup()
+	}
+
+	if err := os.MkdirAll(opts.DataDir, 0755); err != nil {
+		return nil, data.NodeEdge{}, nil, fmt.Errorf("error creating data dir: %v", err)
 	}
 
 	s, nc, err := NewServer(opts)
@@ -70,10 +95,11 @@ func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 		close(stopped)
 	}()
 
+	// the store is left in place on stop so a test can restart the instance
+	// with TestServerOptsKeepStore; the next clean start removes it
 	stop := func() {
 		s.Stop(nil)
 		<-stopped
-		cleanup()
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)

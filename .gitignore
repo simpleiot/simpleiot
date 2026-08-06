@@ -11,6 +11,7 @@ tags
 assets.go
 node_modules
 /dist
+/.release-notes.md
 data.json
 /*.pem
 GITHUB_TOKEN
