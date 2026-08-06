@@ -41,4 +41,3 @@ type ByEdgeID []*Edge
 func (a ByEdgeID) Len() int           { return len(a) }
 func (a ByEdgeID) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByEdgeID) Less(i, j int) bool { return strings.Compare(a[i].ID, a[j].ID) < 0 }
-

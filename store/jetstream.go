@@ -305,6 +305,26 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 			pIn.Key = "0"
 		}
 
+		// an edge holds one point per type and key, so a repeat in the
+		// incoming set replaces what was written for it rather than
+		// being stored beside it
+		dup := -1
+
+		for i, pW := range writePoints {
+			if pW.Type == pIn.Type && pW.Key == pIn.Key {
+				dup = i
+				break
+			}
+		}
+
+		if dup >= 0 {
+			if !writePoints[dup].Time.After(pIn.Time) {
+				writePoints[dup] = pIn
+			}
+
+			continue
+		}
+
 		found := false
 		for _, pDb := range dbPoints {
 			if pIn.Type == pDb.Type && pIn.Key == pDb.Key {
@@ -425,29 +445,6 @@ func (db *DbJetStream) loadNodePoints(nodeID string) (data.Points, error) {
 	}
 
 	return points, nil
-}
-
-// loadEdgePoints loads edge points for a specific edge from JetStream.
-func (db *DbJetStream) loadEdgePoints(parentID, childID string) (data.Points, error) {
-	s, err := db.getStream(parentID)
-	if err != nil {
-		return nil, err
-	}
-	if s == nil {
-		return nil, nil
-	}
-
-	ctx := context.Background()
-	subject := edgePointSubject(parentID, childID)
-	msg, err := s.GetLastMsgForSubject(ctx, subject)
-	if err != nil {
-		if errors.Is(err, jetstream.ErrMsgNotFound) {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	return data.DecodePoints(msg.Data)
 }
 
 // loadEdgeCache populates the edge cache from all existing streams.
