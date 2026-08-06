@@ -33,15 +33,40 @@ view o =
 
                         textInput =
                             NodeInputs.nodeTextInput opts "0"
+
+                        optionInput =
+                            NodeInputs.nodeOptionInput opts "0"
+
+                        victoriaMetrics =
+                            Point.getText o.node.points Point.typeDbType ""
+                                == Point.valueVictoriaMetrics
+
+                        urlPlaceholder =
+                            if victoriaMetrics then
+                                "http://myserver:8428"
+
+                            else
+                                "https://myserver:8086"
                     in
-                    [ text "InfluxDb 2.0 Database"
+                    [ optionInput Point.typeDbType
+                        "Database Type"
+                        [ ( Point.valueInfluxDb, "InfluxDB 2.x" )
+                        , ( Point.valueVictoriaMetrics, "Victoria Metrics" )
+                        ]
                     , textInput Point.typeDescription "Description" ""
-                    , textInput Point.typeURI "URL" "https://myserver:8086"
-                    , textInput Point.typeOrg "Organization" "org name"
-                    , textInput Point.typeBucket "Bucket" "bucket name"
-                    , textInput Point.typeAuthToken "Auth Token" ""
-                    , NodeInputs.nodeListInput opts Point.typeTagPointType "Tag Point Types" "Add Point Type"
+                    , textInput Point.typeURI "URL" urlPlaceholder
                     ]
+                        ++ (if victoriaMetrics then
+                                []
+
+                            else
+                                [ textInput Point.typeOrg "Organization" "org name"
+                                , textInput Point.typeBucket "Bucket" "bucket name"
+                                ]
+                           )
+                        ++ [ textInput Point.typeAuthToken "Auth Token" ""
+                           , NodeInputs.nodeListInput opts Point.typeTagPointType "Tag Point Types" "Add Point Type"
+                           ]
 
                 else
                     []

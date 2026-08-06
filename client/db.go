@@ -1,8 +1,6 @@
 package client
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -21,11 +19,20 @@ type Db struct {
 	ID            string   `node:"id"`
 	Parent        string   `node:"parent"`
 	Description   string   `point:"description"`
+	DbType        string   `point:"dbType"`
 	URI           string   `point:"uri"`
 	Org           string   `point:"org"`
 	Bucket        string   `point:"bucket"`
 	AuthToken     string   `point:"authToken"`
 	TagPointTypes []string `point:"tagPointType"`
+}
+
+// victoriaMetrics returns true if this client is configured to write to a
+// Victoria Metrics database. Victoria Metrics accepts the InfluxDB line
+// protocol, but only stores numeric samples, so string points are skipped and
+// the text field is omitted.
+func (dbc *DbClient) victoriaMetrics() bool {
+	return dbc.config.DbType == data.PointValueVictoriaMetrics
 }
 
 // DbClient is a SIOT database client
@@ -38,7 +45,6 @@ type DbClient struct {
 	newDbPoints   chan NewPoints
 	upSub         *nats.Subscription
 	upSubHr       *nats.Subscription
-	historySub    *nats.Subscription
 	nodeCache     nodeCache
 	client        influxdb2.Client
 	writeAPI      api.WriteAPI
@@ -129,64 +135,6 @@ func (dbc *DbClient) Run() error {
 		return fmt.Errorf("subscribing to %v: %w", subjectHR, err)
 	}
 
-	subjectHistory := fmt.Sprintf("history.%v", dbc.config.ID)
-	dbc.historySub, err = dbc.nc.Subscribe(subjectHistory, func(msg *nats.Msg) {
-		query := new(data.HistoryQuery)
-		results := new(data.HistoryResults)
-		ctx := context.Background()
-
-		// Defer encoding and sending response
-		defer func() {
-			res, err := json.Marshal(results)
-			if err != nil {
-				err = msg.Respond([]byte(`{"error":"error encoding response"}`))
-				if err != nil {
-					log.Printf("error responding to history query: %v", err)
-				}
-			} else {
-				err = msg.Respond(res)
-				if err != nil {
-					// Try responding via NATS with the error
-					results = &data.HistoryResults{
-						ErrorMessage: err.Error(),
-					}
-					res, parseErr := json.Marshal(results)
-					if parseErr == nil {
-						retryError := msg.Respond(res)
-						if retryError == nil {
-							// clear original error
-							err = nil
-						}
-					}
-				}
-				if err != nil {
-					log.Printf("error responding to history query: %v", err)
-				}
-			}
-		}()
-
-		// Parse query
-		err = json.Unmarshal(msg.Data, query)
-		if err != nil {
-			results.ErrorMessage = "parsing query: " + err.Error()
-			return
-		}
-		log.Printf("received history query: %+v", query)
-
-		// Execute query
-		query.Execute(
-			ctx,
-			dbc.client.QueryAPI(dbc.config.Org),
-			dbc.config.Bucket,
-			InfluxMeasurement,
-			results,
-		)
-	})
-
-	if err != nil {
-		return fmt.Errorf("subscribing to %v: %w", subjectHistory, err)
-	}
-
 	setupAPI := func() {
 		log.Println("Setting up Influx API")
 		// you can set things like retries, batching, precision, etc in client options.
@@ -246,19 +194,28 @@ done:
 			if err != nil {
 				log.Printf("error updating cache: %v", err)
 			}
-			// Add points to InfluxDB
+			// Add points to the database
+			vm := dbc.victoriaMetrics()
 			for _, point := range pts.Points {
+				if vm && !point.Numeric() {
+					// Victoria Metrics only stores numeric samples, so
+					// there is nothing useful to write for this point.
+					continue
+				}
 				tags := map[string]string{
 					"type": point.Type,
 					"key":  point.Key,
 				}
 				dbc.nodeCache.CopyTags(pts.ID, tags)
+				fields := map[string]interface{}{
+					"value": point.Val(),
+				}
+				if !vm {
+					fields["text"] = point.Txt()
+				}
 				p := influxdb2.NewPoint(InfluxMeasurement,
 					tags,
-					map[string]interface{}{
-						"value": point.Val(),
-						"text":  point.Txt(),
-					},
+					fields,
 					point.Time)
 				dbc.writeAPI.WritePoint(p)
 			}
@@ -268,7 +225,6 @@ done:
 	// clean up
 	_ = dbc.upSub.Unsubscribe()
 	_ = dbc.upSubHr.Unsubscribe()
-	_ = dbc.historySub.Unsubscribe()
 	dbc.client.Close()
 	return nil
 }

@@ -128,6 +128,13 @@ const (
 	PointTypeBucket = "bucket"
 	PointTypeOrg    = "org"
 
+	// PointTypeDbType selects which time series database the db client
+	// writes to. An empty value is treated as InfluxDB for backwards
+	// compatibility.
+	PointTypeDbType           = "dbType"
+	PointValueInfluxDb        = "influxdb"
+	PointValueVictoriaMetrics = "victoriaMetrics"
+
 	// a rule node describes a rule that may run on the system
 	NodeTypeRule = "rule"
 

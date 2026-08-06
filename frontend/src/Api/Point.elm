@@ -38,6 +38,7 @@ module Api.Point exposing
     , typeBitRate
     , typeBucket
     , typeChannel
+    , typeDbType
     , typeClientServer
     , typeConditionType
     , typeConnected
@@ -195,6 +196,7 @@ module Api.Point exposing
     , valueGpsSourceSim
     , valueGreaterThan
     , valueINT16
+    , valueInfluxDb
     , valueINT32
     , valueLessThan
     , valueModbusCoil
@@ -224,6 +226,7 @@ module Api.Point exposing
     , valueTwilio
     , valueUINT16
     , valueUINT32
+    , valueVictoriaMetrics
     )
 
 import Iso8601
@@ -877,6 +880,21 @@ typeBucket =
 typeOrg : String
 typeOrg =
     "org"
+
+
+typeDbType : String
+typeDbType =
+    "dbType"
+
+
+valueInfluxDb : String
+valueInfluxDb =
+    "influxdb"
+
+
+valueVictoriaMetrics : String
+valueVictoriaMetrics =
+    "victoriaMetrics"
 
 
 typeDisabled : String
