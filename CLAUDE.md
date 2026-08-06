@@ -77,7 +77,7 @@ cd frontend && npx elm-test
 - `client/` - Client implementations (most functionality lives here)
 - `api/` - HTTP API handlers and routing
 - `data/` - Core data structures (Node, Point, etc.)
-- `store/` - SQLite storage layer
+- `store/` - JetStream storage layer (per-node streams, see ADR-7)
 - `frontend/` - Elm-based web UI
 - `modbus/` - Modbus protocol implementation
 - `network/` - Network management utilities
@@ -110,13 +110,16 @@ Implementation plans are stored in the `plans/` directory. See `plans/plans.md`
 for an index of all plans and their status.
 
 When working through a plan, commit after each phase completes. Update the
-changelog, CLAUDE.md, and any relevant documentation as part of each phase.
+changelog (`CHANGELOG.md`), `CLAUDE.md`, and any relevant documentation as part
+of each phase. The changelog uses
+[Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format — add entries
+under the `## Next` section.
 
 ## Important Notes
 
 - Always source `envsetup.sh` before running build commands
 - Frontend build generates compressed `elm.js.gz` file
-- SQLite database stores all application data
+- NATS JetStream stores all application data (per-node streams)
 - System supports TLS with certificates via `siot_mkcert` and `siot_run_tls`
 - Protocol buffers used for efficient data serialization (`siot_protobuf`)
 - Cross-platform support (Linux, macOS, Windows with ARM variants)

@@ -11,6 +11,34 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## Next
+
+- replace SQLite store with JetStream per-node streams (ADR-7 Stage 2)
+- remove SQLite dependency and hash tree
+- add in-memory point cache and edge cache for fast lookups
+- update NATS dependencies (nats.go v1.49.0, nats-server v2.12.5)
+- **breaking:** existing SQLite databases must be migrated via
+  `siot export`/`siot import`
+- replace Point `Value`/`Text` fields with unified `DataType`/`Data` encoding
+  (ADR-7 Stage 1) (#742)
+- replace protobuf point encoding with compact binary format (#742)
+- move edge point NATS subjects to `ep.` prefix and add type/key to node point
+  subjects (#742)
+- add `dataType` field to Elm frontend Point type (#742)
+- add `MarshalYAML` for human-readable point export (#742)
+- add OOM protection to `DecodePoints` (#742)
+- fix Shelly mDNS data race by creating fresh params per scan (#742)
+- fix JSON/YAML unmarshal when `dataType` is set but `data` is empty (#742)
+- update docs to reflect new point encoding and NATS subjects (#742)
+- import: a node created from a file now keeps a single `nodeType` edge point.
+  A file carries the node type, and sending a node added a second one, so an
+  export of an imported tree did not match the file it came from.
+- an edge now holds one point per type and key. The store appended a repeated
+  point in the same message rather than replacing what it had for it.
+- fix a data race between a node watcher and its caller when a node has a keyed
+  point that decodes into a map. Merging an update wrote into the map the
+  caller was already holding, so decoding now replaces the map with a copy.
+
 ## [0.22.0] - 2026-08-04
 
 - config files: one YAML format now describes a tree of nodes, and

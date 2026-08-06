@@ -158,6 +158,11 @@ func (s *Server) Run() error {
 	// ====================================
 	// Nats server
 	// ====================================
+	jsDir := o.DataDir
+	if jsDir == "" {
+		jsDir = "jetstream"
+	}
+
 	natsOptions := natsServerOptions{
 		Port:       o.NatsPort,
 		HTTPPort:   o.NatsHTTPPort,
@@ -166,6 +171,7 @@ func (s *Server) Run() error {
 		TLSCert:    o.NatsTLSCert,
 		TLSKey:     o.NatsTLSKey,
 		TLSTimeout: o.NatsTLSTimeout,
+		StoreDir:   jsDir,
 	}
 
 	if !o.NatsDisableServer {
@@ -174,8 +180,14 @@ func (s *Server) Run() error {
 			return fmt.Errorf("error setting up nats server: %v", err)
 		}
 
+		// Start NATS server immediately so JetStream is available
+		// for store initialization
+		s.natsServer.Start()
+		if !s.natsServer.ReadyForConnections(10 * time.Second) {
+			return fmt.Errorf("NATS server failed to start")
+		}
+
 		g.Add(func() error {
-			s.natsServer.Start()
 			s.natsServer.WaitForShutdown()
 			logLS("LS: Exited: nats server")
 			return fmt.Errorf("NATS server stopped")
@@ -193,7 +205,6 @@ func (s *Server) Run() error {
 	// ====================================
 
 	storeParams := store.Params{
-		File:      o.StoreFile,
 		AuthToken: o.AuthToken,
 		Server:    o.NatsServer,
 		Nc:        s.nc,

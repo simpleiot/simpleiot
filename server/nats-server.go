@@ -16,6 +16,7 @@ type natsServerOptions struct {
 	TLSCert    string
 	TLSKey     string
 	TLSTimeout float64
+	StoreDir   string
 }
 
 // newNatsServer creates a new nats server instance
@@ -25,6 +26,8 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 		HTTPPort:      o.HTTPPort,
 		Authorization: o.Auth,
 		NoSigs:        true,
+		JetStream:     true,
+		StoreDir:      o.StoreDir,
 	}
 
 	if o.TLSCert != "" && o.TLSKey != "" {
