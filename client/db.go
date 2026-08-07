@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -39,6 +40,26 @@ func (dbc *DbClient) victoriaMetrics() bool {
 	return dbc.config.DbType == data.PointValueVictoriaMetrics
 }
 
+// dbURIValid reports whether uri can be used as a database endpoint. The
+// InfluxDB write API needs an absolute HTTP URL; anything else (most often
+// an empty URI on a Database node that has not been configured yet) would
+// fail on every write, so points are discarded until this returns true.
+func dbURIValid(uri string) bool {
+	u, err := url.Parse(uri)
+	if err != nil {
+		return false
+	}
+	return (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
+}
+
+// writer returns the current write API, or nil when no valid URI is
+// configured and points should be discarded.
+func (dbc *DbClient) writer() api.WriteAPI {
+	dbc.apiMu.Lock()
+	defer dbc.apiMu.Unlock()
+	return dbc.writeAPI
+}
+
 // DbClient is a SIOT database client. It reads points from the store's
 // boundary-origin streams with durable consumers (ADR-7), so delivery
 // is resumable: points written while this client, the instance, or an
@@ -55,8 +76,14 @@ type DbClient struct {
 	upSubHr       *nats.Subscription
 	epSub         *nats.Subscription
 	nodeCache     nodeCache
-	client        influxdb2.Client
-	writeAPI      api.WriteAPI
+
+	// client and writeAPI are nil until a valid URI is configured, and
+	// are replaced when the connection settings change. The high-rate
+	// subscription reads them from its own goroutine, so apiMu guards
+	// both.
+	apiMu    sync.Mutex
+	client   influxdb2.Client
+	writeAPI api.WriteAPI
 
 	consumers map[string]jetstream.ConsumeContext
 	rootID    string
@@ -123,6 +150,12 @@ func (dbc *DbClient) Run() error {
 
 	subjectHR := fmt.Sprintf("phrup.%v.*", dbc.config.Parent)
 	dbc.upSubHr, err = dbc.nc.Subscribe(subjectHR, func(msg *nats.Msg) {
+		writeAPI := dbc.writer()
+		if writeAPI == nil {
+			// no valid URI configured; discard
+			return
+		}
+
 		// find node ID for points
 		chunks := strings.Split(msg.Subject, ".")
 		if len(chunks) != 3 {
@@ -152,7 +185,7 @@ func (dbc *DbClient) Run() error {
 					"value": pt.Val(),
 				},
 				pt.Time)
-			dbc.writeAPI.WritePoint(p)
+			writeAPI.WritePoint(p)
 		})
 
 		if err != nil {
@@ -164,7 +197,28 @@ func (dbc *DbClient) Run() error {
 		return fmt.Errorf("subscribing to %v: %w", subjectHR, err)
 	}
 
+	closeAPI := func() {
+		dbc.apiMu.Lock()
+		defer dbc.apiMu.Unlock()
+		if dbc.client != nil {
+			dbc.client.Close()
+		}
+		dbc.client = nil
+		dbc.writeAPI = nil
+	}
+
 	setupAPI := func() {
+		dbc.apiMu.Lock()
+		defer dbc.apiMu.Unlock()
+
+		if !dbURIValid(dbc.config.URI) {
+			log.Printf("Db client %v: no valid URI configured (%q), discarding points",
+				dbc.config.Description, dbc.config.URI)
+			dbc.client = nil
+			dbc.writeAPI = nil
+			return
+		}
+
 		log.Println("Setting up Influx API")
 		// you can set things like retries, batching, precision, etc in client options.
 		dbc.client = influxdb2.NewClientWithOptions(dbc.config.URI,
@@ -203,6 +257,15 @@ done:
 			dbc.scanStreams(js, false)
 
 		case sm := <-dbc.chStreamMsgs:
+			writeAPI := dbc.writer()
+			if writeAPI == nil {
+				// no valid URI configured; discard the points and
+				// advance the consumer rather than letting them
+				// accumulate for a database we cannot reach
+				_ = sm.msg.Ack()
+				continue
+			}
+
 			if !dbc.underParent(sm.nodeID) {
 				// outside this client's subtree; acknowledge so it is
 				// not redelivered
@@ -238,7 +301,7 @@ done:
 					tags,
 					fields,
 					point.Time)
-				dbc.writeAPI.WritePoint(p)
+				writeAPI.WritePoint(p)
 			}
 
 			// acknowledged once handed to the batching writer; a crash
@@ -258,7 +321,7 @@ done:
 					data.PointTypeBucket,
 					data.PointTypeAuthToken:
 					// we need to restart the influx write API
-					dbc.client.Close()
+					closeAPI()
 					setupAPI()
 				case data.PointTypeTagPointType:
 					dbc.nodeCache = newNodeCache(dbc.config.TagPointTypes)
@@ -290,7 +353,7 @@ drain:
 	}
 	_ = dbc.epSub.Unsubscribe()
 	_ = dbc.upSubHr.Unsubscribe()
-	dbc.client.Close()
+	closeAPI()
 	return nil
 }
 

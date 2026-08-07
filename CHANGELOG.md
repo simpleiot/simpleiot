@@ -34,6 +34,11 @@ For more details or to discuss releases, please visit the
   durable consumers instead of the `up.>` wire subjects, so external
   history is gap-free across sync outages, instance restarts, and the
   client's own downtime (high-rate points still arrive over `phrup.>`)
+- db: discard points until the Database node has a valid URI. An unset or
+  malformed URI produced a write API that failed on every point and filled
+  the log with errors, so the client now skips the write entirely and
+  acknowledges stream messages, then connects as soon as a usable URI is
+  set
 - db: add a database type selector to the Database node so you can choose
   between InfluxDB 2.x and Victoria Metrics. Existing nodes keep their current
   behavior, as an unset type is treated as InfluxDB.
