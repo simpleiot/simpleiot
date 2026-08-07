@@ -218,6 +218,85 @@ memory -- trivial.
 - Update CLAUDE.md if any build commands change
 - Update changelog
 
+## Post-Review Follow-Up (2026-08-06)
+
+> **Superseded:** the 2026-08-06 review also led to a revision of the stream
+> layout itself (boundary-origin streams; see ADR-7 and
+> [2026-08-06-boundary-origin-streams.md](2026-08-06-boundary-origin-streams.md)).
+> Phases 7-9 below were folded into that plan and are tracked there, not
+> here. They are retained for the record of what the review found.
+
+A review of the completed implementation found one correctness bug and several
+gaps between the plan/ADR and the code. Phases 7-9 address them. The point
+cache fix (Phase 7) is the only item considered blocking for Stage 3.
+
+### Phase 7: Correctness Fixes
+
+**Goal:** Fix the point cache coherency bug and two smaller correctness issues.
+
+- **Point cache poisoning after restart** (`store/jetstream.go`,
+  `nodePoints`): the cache is updated unconditionally on write, so after a
+  restart the first write to a node seeds the cache with only the written
+  points. `getNodes` then trusts the entry and returns the node without its
+  config points. Fix: on a cache miss in `nodePoints`, load current points
+  from JetStream via `loadNodePoints` before adding the new point (or
+  pre-populate the cache at startup). Phase 5's "optionally pre-populate" is
+  hereby a requirement — one of the two approaches must guarantee the cache
+  entry is complete before it is trusted.
+- **`edgePoints` publishes before validating** (`store/jetstream.go`): a new
+  edge without a `nodeType` point is published to JetStream, then the "node
+  type must be sent with new edges" error fires and the edge cache is not
+  updated — stream and cache diverge until restart, which then loads the edge
+  with an empty `Type`. Move the new-edge validation ahead of the publish.
+- **`handleEdgePoints` missing `return`** (`store/store.go`): on a DB write
+  failure it replies with the error but then continues to process the points
+  upstream and replies a second time. Add the `return` (matching
+  `handleNodePoints`) and fix the stale comment that says upstream processing
+  happens before the DB write.
+
+**Verify:** New test that re-opens a `DbJetStream` against existing streams,
+writes a point to a node, then reads the node back and confirms all config
+points are present. `go test -race ./...` passes.
+
+### Phase 8: Retention and Durability Configuration
+
+**Goal:** Make history retention configurable and make an explicit durability
+decision, both called out in the original plan but not implemented.
+
+- **Retention:** `ensureStream` currently sets no limits, so history grows
+  without bound — a problem for edge devices with high-frequency sensor
+  points. Add a configurable `MaxMsgsPerSubject` (server option and/or node
+  point, default: no limit) applied when streams are created or updated.
+  Decide and document whether changing the setting retroactively updates
+  existing streams via `CreateOrUpdateStream`.
+- **Durability:** JetStream's default `SyncInterval` is 2 minutes, so a power
+  loss on an edge device can drop up to 2 minutes of acknowledged writes.
+  Decide whether to expose `SyncInterval`/`SyncAlways` as a server option or
+  accept and document the default. Record the decision in ADR-7.
+
+**Verify:** Test that a stream created with a retention limit drops old
+messages per subject while preserving the tip of rarely-written subjects.
+
+### Phase 9: Tests, Documentation Cleanup, and Deferred Items
+
+**Goal:** Close the remaining test and documentation gaps.
+
+- Add tests for: the restart/reload path (`loadEdgeCache` / `loadNodePoints`
+  from a cold cache), tombstone delete and undelete, `reset()`, and edge
+  point merge where incoming points carry older timestamps.
+- Correct ADR-7: streams are named `node-<nodeID>` (stream names cannot
+  contain dots); subjects keep the dotted `node.<nodeID>.>` form. Stage 3's
+  durable-consumer design references stream names, so this matters.
+- Resolve `Meta.Version`: either persist it to the META KV bucket as the plan
+  states, or remove the field and the plan/ADR references to it.
+- **Deferred (measure first):** `nodePoints` performs a synchronous
+  `GetLastMsgForSubject` plus `Publish` per point. Once the point cache is
+  trustworthy (Phase 7), the timestamp comparison can come from the cache and
+  `PublishAsync` can pipeline batches. Revisit if the
+  `metricCycleNodePoint` metric shows this matters in practice.
+
+**Verify:** `go test -race ./...`, `golangci-lint run`, `siot_test` all pass.
+
 ## Key Files
 
 | File                    | Role                 | Change                              |
@@ -244,6 +323,9 @@ memory -- trivial.
 | f85108e4 | refactor: remove SQLite store and hash tree code | Implemented |
 | 99c28ca2 | feat: add point cache for node point lookups | Implemented |
 | 80d9d51e | docs: update ADR-7 and changelog for Stage 2 completion | Implemented |
+| -- | fix: point cache coherency, edge validation order, edge handler reply (Phase 7) | Planned |
+| -- | feat: configurable retention and durability options (Phase 8) | Planned |
+| -- | test/docs: restart-path tests, ADR corrections, Meta.Version (Phase 9) | Planned |
 
 **Note:** Hash field kept in Edge/NodeEdge structs for API/protobuf compatibility
 (always 0). CalcHash, ByHash, hash computation removed. Full Hash field removal

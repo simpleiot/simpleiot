@@ -438,6 +438,83 @@ the best approach.
   [power loss](https://www.sqlite.org/transactional.html)?
 - Are there any other features of NATS/JetStream that we should be considering?
 
+### Stream Granularity and Synchronization Model (2026-08-06 revision)
+
+The initial Stage 2 implementation used one stream per node. A design review
+before merging the store raised two structural concerns with that layout and
+with the original Stage 3 synchronization sketch, and led to a revised model.
+
+**Echo in merge-on-receive synchronization.** The original Stage 3 sketch fed
+points received from a remote instance into the local store's merge logic,
+which writes them into local streams. With bi-directional sync, each side then
+replays the other's points back to it: the hub writes leaf points into hub
+streams, and the leaf's consumer on those streams receives its own points
+again. Preventing the loop requires origin-based echo suppression on every
+message, and any defect in that suppression circulates points between
+instances indefinitely. Merge-on-receive also gives up the single-writer
+property that motivated JetStream in the first place: each stream becomes a
+mixture of local writes and republished remote writes, with arrival-order
+interleaving in the history.
+
+**Hub scaling.** Per-node streams scale with the total number of nodes in the
+fleet, not with the number of instances. A hub serving 500 devices with 30
+nodes each holds roughly 15,000 streams, each with its own file store and
+accounting, plus a durable consumer per synced stream per connected leaf.
+Node creation and deletion become stream administration operations rather
+than message publishes, and startup enumeration touches every stream.
+
+**Alternatives considered:**
+
+1. *One stream per origin instance (an oplog per writer).* Sync becomes one
+   consumer per peer and hub storage scales with instance count.
+   `MaxMsgsPerSubject` retention still works because it applies per subject,
+   not per stream. However, node IDs are UUIDs, so the subject space is flat:
+   selecting a subtree to sync requires maintaining an explicit filter list,
+   and read-side AuthZ inside a single stream depends on filter-constrained
+   consumer permissions, which have sharp edges (single-filter form only,
+   legacy API forms must be denied).
+2. *Streams at sync/AuthZ boundaries.* Authorization in SIOT naturally happens
+   at device or group boundaries (see AuthN/AuthZ above), and a device
+   subtree syncs as a unit. Making the stream the boundary aligns storage,
+   sync, and permissions, and drops hub stream count to a small multiple of
+   the device count.
+3. *Merge at read instead of on receive.* Keep every stream single-writer and
+   replicate remote streams locally (JetStream sourcing or durable
+   consumers). Current state is the merge of subject tips across the local
+   and replica streams, which is exactly the two-stream comparison described
+   in the Bi-Directional Synchronization section above. The in-memory edge
+   and point caches already perform this merge once at load time, so the
+   read-path cost is negligible. Echo is impossible by construction because
+   no instance ever writes remote data into its own streams.
+
+**Revised model (adopted): boundary-origin streams**, combining 2 and 3:
+
+- A **boundary** is a node that represents a SIOT instance: the local
+  instance's root node and any device node that corresponds to a (potentially
+  synced) remote instance. Every node is owned by the nearest boundary found
+  walking up the tree. Nodes above all device boundaries are owned by the
+  instance root boundary.
+- Each (boundary, origin instance) pair gets one stream, named
+  `node-<boundaryID>-<originID>` (stream names cannot contain dots, so names
+  use dashes). Only instance `<originID>` ever appends to that stream.
+- Storage subjects carry both routing tokens so stream subject spaces never
+  overlap: `node.<boundaryID>.<originID>.<nodeID>.p.<type>.<key>` for node
+  points and `node.<boundaryID>.<originID>.<parentID>.ep.<childID>` for edge
+  points. The stream captures `node.<boundaryID>.<originID>.>`. Core NATS
+  wire subjects (`p.>`, `ep.>`) are unchanged.
+- Current state of a node is the merge of subject tips across all
+  `node-<boundaryID>-*` streams present locally, newest timestamp wins. The
+  edge and point caches hold the merged state; merging happens at cache load
+  and as messages arrive.
+- Trade-offs accepted with this layout: retention (`MaxMsgsPerSubject`) is
+  tuned per boundary rather than per node; moving a node across boundaries
+  requires republishing its subject tips into the new stream and purging the
+  old subjects; reads consult one stream per origin that has written to the
+  boundary. Nodes mirrored under multiple parents resolve to a single owner
+  (the instance root boundary when more than one boundary can reach them);
+  mirroring across device boundaries remains an open design point for
+  Stage 3.
+
 ## Experiments
 
 Several proof-of-concept experiments have been run to prove the feasibility of
@@ -456,46 +533,88 @@ Implementation is broken down into 3 stages:
    encoding for point wire format. NATS subjects include type/key
    (`p.<nodeId>.<type>.<key>`, `ep.<nodeId>.<parentId>`). One point per NATS
    message for node points; edge points remain batched for atomicity.
-1. switch store from SQLite to JetStream — **COMPLETE**
+1. switch store from SQLite to JetStream — initial implementation **COMPLETE**
+   with per-node streams
    ([plan](../../plans/2026-03-17-implement-the-next-stage-of-adr-7.md),
-   branch `feat/js-store`).
-   - Per-node JetStream streams: each node gets stream `node.<nodeID>` capturing
-     subjects `node.<nodeID>.p.<type>.<key>` (node points) and
-     `node.<nodeID>.ep.<childID>.<type>.<key>` (edge points where this node is
-     the parent).
-   - Streams retain full history (time-series). Current state = tip of each
-     subject via `GetLastMsgForSubject`. Retention uses `MaxMsgsPerSubject`
-     (not `MaxAge` or stream-level `MaxBytes`/`MaxMsgs`) to ensure current
-     state is always preserved — including rarely-updated config points that
-     could be silently dropped by time/size-based policies.
+   branch `feat/js-store`); layout revision to boundary-origin streams
+   **IN PROGRESS**
+   ([plan](../../plans/2026-08-06-boundary-origin-streams.md)). See the
+   Stream Granularity and Synchronization Model section for the analysis
+   behind the revision.
+   - Boundary-origin streams: each (boundary, origin instance) pair gets
+     stream `node-<boundaryID>-<originID>` capturing subjects
+     `node.<boundaryID>.<originID>.<nodeID>.p.<type>.<key>` (node points) and
+     `node.<boundaryID>.<originID>.<parentID>.ep.<childID>` (edge points,
+     stored with the parent node's boundary). Only the origin instance
+     appends to a stream.
+   - Streams retain full history (time-series). Current state = merge of
+     subject tips (via `GetLastMsgForSubject`) across the streams for a
+     boundary, newest timestamp wins. Retention uses `MaxMsgsPerSubject`
+     (not `MaxAge` or stream-level `MaxBytes`/`MaxMsgs`) so current state is
+     always preserved, including rarely-updated config points that
+     time/size-based policies could silently drop.
    - `META` KV bucket for instance metadata (rootID, jwtKey).
-   - In-memory edge cache for fast tree traversal, populated on startup by
-     reading stream tips.
-   - Hash tree removed — JetStream sequence numbers replace it.
+   - In-memory edge and point caches hold the merged current state, populated
+     on startup by reading stream tips.
+   - Hash tree removed; JetStream sequence numbers replace it.
    - SQLite removed entirely; migration via `siot export`/`siot import`.
 1. Use JetStream to sync between systems
-   - Each instance runs its own NATS server with its own per-node streams.
-   - Instances connect to each other via standard NATS client connections.
-   - Each instance creates **durable consumers** on the remote instance's
-     streams for every synced node. A durable consumer tracks its last
-     acknowledged sequence number, persisted by the NATS server.
-   - On reconnect after network loss or restart, the durable consumer resumes
-     from where it left off — the remote NATS server delivers only the missed
-     messages. No full rescan or hash comparison needed.
-   - Received points are fed into the local store's merge logic (timestamp-based,
-     newer wins), ensuring consistency.
-   - Per-node streams provide natural sync boundaries: an edge instance only
-     creates consumers for the nodes in its subtree, not the entire system.
-   - Per-node streams also provide natural AuthZ boundaries: permissions can
-     restrict which nodes a device/user can access.
-   - Real-time point delivery continues via core NATS subjects (`p.>`, `ep.>`)
-     as today. The durable consumer catch-up handles only the offline/startup
-     gap.
-
-objections/concerns
+   - Each instance runs its own NATS server and owns its origin streams. The
+     single-writer invariant holds globally: instance R appends only to
+     `node-*-R` streams.
+   - Instances connect via NATS leaf/client connections. Each instance keeps
+     local **replicas** of the remote-origin streams for the boundaries it
+     participates in, using JetStream sourcing (durable consumers as a
+     fallback if sourcing proves unsuitable across leaf connections).
+     Replication is sequence-tracked, so reconnect after network loss
+     delivers only missed messages. No rescan or hash comparison.
+   - Replicated data stays in the replica streams. There is no
+     merge-on-receive: current state is merged at read in the edge and point
+     caches. Echo cannot occur because no instance writes remote data into
+     its own streams.
+   - Example: device X (root node ID X, hub root ID R) owns `node-X-X`. The
+     hub writes configuration for X's subtree to its own `node-X-R`. The hub
+     replicates `node-X-X` from the device; the device replicates `node-X-R`
+     from the hub. Multi-hop topologies chain sourcing through intermediate
+     instances.
+   - AuthZ: writes are enforced with core NATS subject permissions
+     (unchanged by stream layout); reads with per-stream JetStream API
+     permissions. Device X may replicate `node-X-*` and export only
+     `node-X-X`. Grants are issued dynamically (NATS auth callout) as the
+     tree changes.
+   - Real-time point delivery continues via core NATS subjects (`p.>`,
+     `ep.>`) as today. Replica catch-up covers only the offline/startup gap.
+   - Prerequisite spikes before implementation: verify JetStream sourcing
+     behavior across leaf connections/domains, and verify the
+     filter-carrying consumer-create permission form
+     (`$JS.API.CONSUMER.CREATE.<stream>.<consumer>.<filter>`) on the NATS
+     version SIOT pins.
 
 ## Consequences
 
-What is the impact, both negative, and positive.
+Positive:
+
+- Every stream is a single-writer, linearizable log with provenance intact.
+  Bi-directional sync cannot echo points between instances.
+- Hub storage and consumer counts scale with the number of instances, not
+  with total fleet node count. Node creation and deletion are message
+  publishes, not stream administration.
+- Stream boundaries align with sync boundaries and with the natural AuthZ
+  boundaries (devices and groups), so device-level permissions are one rule
+  per device.
+- History is retained locally per boundary and synchronizes with the same
+  mechanism as current state.
+
+Negative:
+
+- The store must resolve which boundary owns a node (an edge cache walk) on
+  every write, and boundary resolution rules must be identical on every
+  instance.
+- Moving a node across boundaries requires republishing subject tips and
+  purging old subjects; per-node streams handled moves for free.
+- Retention is tuned per boundary rather than per node.
+- Reads merge tips across one stream per origin instance that has written to
+  the boundary; the in-memory caches hide this cost but must be correct.
+- No SQLite fallback; existing users migrate via `siot export`/`siot import`.
 
 ## Additional Notes/Reference
