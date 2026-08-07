@@ -25,3 +25,4 @@ local.sh
 *.sublime-project
 *.sublime-workspace
 .aider*
+/jetstream
