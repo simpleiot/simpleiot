@@ -661,11 +661,8 @@ func TestManagerLotsChildren(t *testing.T) {
 
 }
 
-// TestManagerRootImport verifies clients are started for nodes created by an
-// import at the root of the tree. Such an import creates a new root node and
-// deletes the old one, so the manager must pick up the new root rather than
-// continuing to scan below the one it saw at startup.
-func TestManagerRootImport(t *testing.T) {
+// TestManagerImport verifies clients are started for nodes an import creates.
+func TestManagerImport(t *testing.T) {
 	nc, root, stop, err := server.TestServer()
 
 	if err != nil {
@@ -715,17 +712,21 @@ func TestManagerRootImport(t *testing.T) {
 
 	origID := origClient.getConfig().ID
 
-	y, err := client.ExportNodes(nc, root.ID)
-	if err != nil {
-		t.Fatal("Error exporting nodes: ", err)
-	}
+	importYaml := `
+nodes:
+  - testNode:
+      description: imported test node
+      port: 8119
+`
 
-	// import at the root, which creates a new root node with new IDs for all
-	// nodes below it, and tombstones the old root
 	go func() {
-		err := client.ImportNodes(nc, "root", y, "test", false)
+		plan, err := client.ImportNodes(nc, []byte(importYaml), "test", false)
 		if err != nil {
 			fmt.Println("Error importing nodes: ", err)
+		}
+
+		if len(plan.Errors) > 0 {
+			fmt.Println("Import errors: ", plan.Errors)
 		}
 	}()
 

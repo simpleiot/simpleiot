@@ -42,12 +42,31 @@ func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 		opts = TestServerOptions2
 	}
 
+	return TestServerOpts(opts)
+}
+
+// TestServerOpts starts a test server with the options given, which is how a
+// test starts one with a provisioning directory. The store is cleaned out
+// first, so the server comes up as a fresh instance.
+func TestServerOpts(opts Options) (*nats.Conn, data.NodeEdge, func(), error) {
+	return startTestServer(opts, true)
+}
+
+// TestServerOptsKeepStore starts a test server on whatever is already in the
+// store, which is how a test restarts an instance rather than replacing it.
+func TestServerOptsKeepStore(opts Options) (*nats.Conn, data.NodeEdge, func(), error) {
+	return startTestServer(opts, false)
+}
+
+func startTestServer(opts Options, clean bool) (*nats.Conn, data.NodeEdge, func(), error) {
 	cleanup := func() {
 		_ = exec.Command("sh", "-c",
 			fmt.Sprintf("rm %v*", opts.StoreFile)).Run()
 	}
 
-	cleanup()
+	if clean {
+		cleanup()
+	}
 
 	s, nc, err := NewServer(opts)
 

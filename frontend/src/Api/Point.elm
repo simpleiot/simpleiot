@@ -43,6 +43,7 @@ module Api.Point exposing
     , typeConditionType
     , typeConnected
     , typeControlled
+    , typeCreated
     , typeData
     , typeDataFormat
     , typeDate
@@ -86,6 +87,7 @@ module Api.Point exposing
     , typeHRDest
     , typeHash
     , typeHdop
+    , typeProvisionHash
     , typeHeading
     , typeHrRx
     , typeHrRxReset
@@ -995,6 +997,16 @@ typeSize =
 typeHash : String
 typeHash =
     "hash"
+
+
+typeProvisionHash : String
+typeProvisionHash =
+    "provisionHash"
+
+
+typeCreated : String
+typeCreated =
+    "created"
 
 
 typeBitRate : String

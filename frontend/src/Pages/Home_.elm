@@ -28,6 +28,8 @@ import Components.NodeOneWire as NodeOneWire
 import Components.NodeOneWireIO as NodeOneWireIO
 import Components.NodeOptions exposing (CopyMove(..))
 import Components.NodeParticle as NodeParticle
+import Components.NodeProvisioning as NodeProvisioning
+import Components.NodeProvisioningFile as NodeProvisioningFile
 import Components.NodeRaw as NodeRaw
 import Components.NodeRule as NodeRule
 import Components.NodeSerialDev as NodeSerialDev
@@ -1352,6 +1354,12 @@ viewNode model parent node children depth =
                     "update" ->
                         NodeUpdate.view
 
+                    "provisioning" ->
+                        NodeProvisioning.view
+
+                    "provisioningFile" ->
+                        NodeProvisioningFile.view
+
                     _ ->
                         NodeRaw.view
 
@@ -1513,6 +1521,7 @@ viewNode model parent node children depth =
 nodeTypesThatHaveChildNodes : List String
 nodeTypesThatHaveChildNodes =
     [ Node.typeDevice
+    , Node.typeProvisioning
     , Node.typeGroup
     , Node.typeModbus
     , Node.typeOneWire
@@ -1759,6 +1768,12 @@ viewAddNode customNodeType parent add =
                             []
                        )
                     ++ (if parent.node.typ == Node.typeSerialDev then
+                            [ Input.option Node.typeFile nodeDescFile ]
+
+                        else
+                            []
+                       )
+                    ++ (if parent.node.typ == Node.typeProvisioning then
                             [ Input.option Node.typeFile nodeDescFile ]
 
                         else

@@ -73,7 +73,9 @@ siot_setup() {
 }
 
 siot_build_frontend() {
-	(cd "frontend" && npx elm-spa build) || return 1
+	# send build output to stderr so that redirecting stdout (for example
+	# siot_run export > nodes.yaml) captures only the program output
+	(cd "frontend" && npx elm-spa build >&2) || return 1
 	gzip -f frontend/public/dist/elm.js
 	return 0
 }

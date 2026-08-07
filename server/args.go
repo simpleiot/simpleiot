@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"time"
 
 	"github.com/simpleiot/simpleiot/assets/files"
 	"github.com/simpleiot/simpleiot/system"
@@ -34,6 +35,8 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	flagDev := flags.Bool("dev", false, "run server in development mode")
 	flagCustomUIDir := flags.String("customUIDir", "", "pass custom UI directory")
 	flagUIAssetsDebug := flags.Bool("UIAssetsDebug", false, "Dump asset files for debugging")
+	flagProvisioningDir := flags.String("provisioningDir", "",
+		"directory of YAML files to apply at start-up and when they change (default <SIOT_DATA>/provisioning if it exists)")
 
 	if err := flags.Parse(args); err != nil {
 		return Options{}, err
@@ -150,6 +153,41 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	// todo -- move this to a node
 	particleAPIKey := os.Getenv("SIOT_PARTICLE_API_KEY")
 
+	// =============================================
+	// Provisioning
+	// =============================================
+
+	provisioningDir := *flagProvisioningDir
+
+	if provisioningDir == "" {
+		provisioningDir = os.Getenv("SIOT_PROVISIONING_DIR")
+	}
+
+	if provisioningDir == "" {
+		// an image that ships the directory is provisioned without having to
+		// say so; one that does not is unaffected
+		d := path.Join(dataDir, "provisioning")
+		if info, err := os.Stat(d); err == nil && info.IsDir() {
+			provisioningDir = d
+		}
+	}
+
+	if provisioningDir != "" {
+		log.Println("Provisioning from:", provisioningDir)
+	}
+
+	var provisioningInterval time.Duration
+
+	if v := os.Getenv("SIOT_PROVISIONING_INTERVAL"); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			log.Println("Error parsing SIOT_PROVISIONING_INTERVAL:", err)
+			os.Exit(-1)
+		}
+
+		provisioningInterval = d
+	}
+
 	// TODO, convert this to builder pattern
 	o := Options{
 		StoreFile:         storeFilePath,
@@ -171,6 +209,9 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 		Dev:               *flagDev,
 		CustomUIDir:       *flagCustomUIDir,
 		UIAssetsDebug:     *flagUIAssetsDebug,
+
+		ProvisioningDir:      provisioningDir,
+		ProvisioningInterval: provisioningInterval,
 	}
 
 	return o, nil

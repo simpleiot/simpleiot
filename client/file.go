@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"log"
+	"time"
 
 	"encoding/base64"
 
@@ -21,6 +22,15 @@ type File struct {
 	Size        string `point:"size"`
 	Binary      bool   `point:"binary"`
 	Hash        string `point:"hash"`
+	// Created is when the file node came into existence, in Unix seconds. It
+	// is written once and never rewritten, so that a file keeps its place in
+	// the order provisioning applies uploads in even after its contents are
+	// replaced.
+	Created float64 `point:"created"`
+	// ProvisionHash and Error are written by provisioning when a file node is
+	// used as a provisioning source, and are empty otherwise.
+	ProvisionHash string `point:"provisionHash"`
+	Error         string `point:"error"`
 }
 
 // GetContents reads the file contents and does any decoding necessary if it is a binary file
@@ -59,6 +69,16 @@ func NewFileClient(nc *nats.Conn, config File) Client {
 
 // Run the main logic for the file client
 func (f *FileClient) Run() error {
+	// stamp when this file came into existence, once and only once. Nodes
+	// that predate this point get it the first time they are seen.
+	if f.config.Created == 0 {
+		p := data.NewPointFloat(data.PointTypeCreated, "", float64(time.Now().Unix()))
+
+		err := SendNodePoints(f.nc, f.config.ID, data.Points{p}, false)
+		if err != nil {
+			log.Println("File: error sending created point: ", err)
+		}
+	}
 
 exitFileClient:
 

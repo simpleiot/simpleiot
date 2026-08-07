@@ -65,11 +65,10 @@ heading drift to `0` for a straight track.
 Positions follow a great circle, so tracks behave correctly at high latitudes
 and when crossing the antimeridian.
 
-The simulator continues from the node's last published position, so changing
-the speed, the update period, or restarting SimpleIoT picks the track up where
-it left off rather than returning to the start. Switching a node from a
-hardware source to the simulator likewise continues from the last real
-position.
+The simulator continues from the node's last published position, so changing the
+speed, the update period, or restarting SimpleIoT picks the track up where it
+left off rather than returning to the start. Switching a node from a hardware
+source to the simulator likewise continues from the last real position.
 
 Two things send the simulated receiver back to the configured start position:
 pressing `Reset location`, and editing `Start latitude`, `Start longitude`, or
@@ -244,45 +243,24 @@ the tables above.
 Below is an export of a simulated GPS node:
 
 ```yaml
-children:
-  - id: 8f2a1c4e-3b7d-4a91-b6e2-5c8d9f0a1b23
-    type: gps
-    points:
-      - type: description
-        text: Test track
-      - type: disabled
-      - type: gpsSource
-        text: sim
-      - type: simLatitude
-        value: 40.0354
-      - type: simLongitude
-        value: -75.5198
-      - type: simSpeed
-        value: 12.0
-      - type: simHeading
-        value: 90.0
-      - type: simHeadingRate
-        value: 5.0
-      - type: period
-        value: 1.0
-      - type: latitude
-        value: 40.03567
-      - type: longitude
-        value: -75.52006
-      - type: altitude
-        value: 85.3
-      - type: speed
-        value: 12.0
-      - type: heading
-        value: 92.4
-      - type: fixType
-        value: 3.0
-      - type: fixQuality
-        value: 1.0
-      - type: numSat
-        value: 11.0
-      - type: hdop
-        value: 0.92
-      - type: connected
-        value: 1.0
+nodes:
+  - gps:
+      altitude: 85.3
+      connected: 1
+      description: Test track
+      fixQuality: 1
+      fixType: 3
+      gpsSource: sim
+      hdop: 0.92
+      heading: 92.4
+      latitude: 40.03567
+      longitude: -75.52006
+      numSat: 11
+      period: 1
+      simHeading: 90
+      simHeadingRate: 5
+      simLatitude: 40.0354
+      simLongitude: -75.5198
+      simSpeed: 12
+      speed: 12
 ```
