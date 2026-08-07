@@ -23,6 +23,10 @@ For more details or to discuss releases, please visit the
   caches with the ADR-7 tip rule, and re-broadcast changed tips locally
   with a `Siot-Origin` header; remote-origin data is never written to
   local origin streams, so sync cannot echo
+- db: the InfluxDB client now reads points from the store streams with
+  durable consumers instead of the `up.>` wire subjects, so external
+  history is gap-free across sync outages, instance restarts, and the
+  client's own downtime (high-rate points still arrive over `phrup.>`)
 - store: add boundary resolution to the edge cache (`IsBoundary`,
   `OwningBoundary`) for the ADR-7 boundary-origin stream layout
 - store: reply once and stop processing when an edge point DB write fails

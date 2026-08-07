@@ -345,7 +345,11 @@ Remaining, in rough priority order:
    unlimited; the resolution point exists in `maxMsgsForStream`).
 4. AuthZ tightening: shared token today; per-stream permissions via
    auth callout.
-5. History sinks as durable stream consumers (Db client unchanged).
+5. ~~History sinks as durable stream consumers~~ — done 2026-08-07:
+   the Db client consumes the `inst-*` streams with durable consumers
+   (DeliverNew on first start, DeliverAll for streams that appear
+   later), acknowledging after handoff to the batching writer. External
+   sinks can follow the same pattern.
 6. Sync status points (lag, last-delivered); `SyncCount` currently
    counts replication sessions.
 7. Frontend sync status UI.

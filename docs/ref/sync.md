@@ -112,9 +112,12 @@ Two kinds of consumers see that backlog differently:
 - **History** needs every point. It is preserved automatically: the
   replica stream receives the full backlog in order with original
   embedded timestamps, so local history stays gap-free (up to each
-  stream's retention limit). External time-series sinks can consume the
-  streams directly with their own durable consumers for gap-free
-  delivery.
+  stream's retention limit). The Db (InfluxDB) client works this way:
+  it consumes the streams with its own durable consumers, so an
+  external time-series database receives every point — including the
+  backlog after a sync outage or the client's own downtime — rather
+  than only what happened to cross the wire while it was listening.
+  External sinks can follow the same pattern.
 
 ## Conflicts
 
