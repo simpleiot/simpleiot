@@ -17,6 +17,9 @@ For more details or to discuss releases, please visit the
   Stage 3): durable-consumer replication in both directions with resumable
   offline catch-up, adoption announcement on first connect, and no hash
   tree walks
+- sync: remove the unused Sync Period setting from the sync node config and
+  UI; Stage 3 replication is continuous, so there is no periodic sync
+  interval left to configure
 - **breaking:** deleting a device node on the upstream now detaches it —
   the device no longer re-creates itself; only the upstream can restore it
 - store: consume replica streams from other instances, merge them into the

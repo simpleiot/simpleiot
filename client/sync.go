@@ -20,7 +20,6 @@ type Sync struct {
 	Description    string `point:"description"`
 	URI            string `point:"uri"`
 	AuthToken      string `point:"authToken"`
-	Period         int    `point:"period"`
 	Disabled       bool   `point:"disabled"`
 	SyncCount      int    `point:"syncCount"`
 	SyncCountReset bool   `point:"syncCountReset"`
