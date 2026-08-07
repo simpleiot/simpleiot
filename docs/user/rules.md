@@ -204,7 +204,9 @@ carries dates or weekdays rather than both.
 
 `action` is `notify`, `setValue`, or `playAudio`. A `setValue` action names
 what to write with `nodeID`, `pointType`, and `pointKey`, and what to write
-with `valueType` and `value` or `valueText`.
+with `valueType` and `value` or `valueText`. A `playAudio` action names the WAV
+file to play with `filePath`, the ALSA device to play it on with `device`, and
+the channel with `channel`.
 
 The rule's `active` state, the time the last notification was sent, and any
 error are points the client maintains, so an export of a running rule carries

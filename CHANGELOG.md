@@ -13,6 +13,13 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- rules: a play audio action now reads the `device`, `channel`, and
+  `filePath` points the UI writes. The rule client had been reading
+  `pointDevice`, `pointChannel`, and `pointFilePath`, so an action
+  configured in the UI played nothing and tried to open an empty path
+- rules: a play audio action that cannot open its wave file, or whose file
+  has an unusable sample rate, now records the error on the action node
+  instead of exiting the application
 - docs: document the configuration schema of each client in the user
   documentation, written in the format `siot export`, `siot import`, and
   provisioning share, so the points a node is configured with can be read
