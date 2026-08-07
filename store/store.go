@@ -304,10 +304,10 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 		// TODO track error stats
 		log.Printf("Error writing edge points (%v:%v) to Db: %v", nodeID, parentID, err)
 		st.reply(msg.Reply, err)
+		return
 	}
 
-	// process point in upstream nodes. We need to do this before writing
-	// to DB, otherwise the point will not be sent upstream
+	// process point in upstream nodes
 	err = st.processEdgePointsUpstream(nodeID, nodeID, parentID, points)
 	if err != nil {
 		// TODO track error stats

@@ -13,6 +13,9 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- store: reply once and stop processing when an edge point DB write fails
+- store: validate that new edges carry a `nodeType` point before writing to
+  JetStream, so the stream and edge cache cannot diverge
 - replace SQLite store with JetStream per-node streams (ADR-7 Stage 2)
 - remove SQLite dependency and hash tree
 - add in-memory point cache and edge cache for fast lookups

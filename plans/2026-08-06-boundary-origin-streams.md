@@ -236,7 +236,7 @@ repo's production code).
 
 | Hash | Description                                                 | Status  |
 | ---- | ----------------------------------------------------------- | ------- |
-| --   | fix: edge handler reply and edge validation order (Phase 1) | Planned |
+| ✓    | fix: edge handler reply and edge validation order (Phase 1) | Done    |
 | --   | feat: boundary resolution in edge cache (Phase 2)           | Planned |
 | --   | feat: boundary-origin stream layout (Phase 3)               | Planned |
 | --   | feat: cross-boundary node moves (Phase 4)                   | Planned |

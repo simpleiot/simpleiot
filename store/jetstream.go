@@ -357,6 +357,13 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 		}
 	}
 
+	// a new edge must carry a nodeType point; check before publishing so
+	// the stream and edge cache cannot diverge
+	entry, ok := db.edgeCache.Get(parentID, nodeID)
+	if !ok && nodeType == "" {
+		return fmt.Errorf("node type must be sent with new edges")
+	}
+
 	// Publish merged edge points
 	encoded := writePoints.Encode()
 	_, err = db.js.Publish(ctx, subject, encoded)
@@ -365,11 +372,7 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 	}
 
 	// Update edge cache
-	entry, ok := db.edgeCache.Get(parentID, nodeID)
 	if !ok {
-		if nodeType == "" {
-			return fmt.Errorf("node type must be sent with new edges")
-		}
 		entry = EdgeEntry{
 			Up:   parentID,
 			Down: nodeID,
