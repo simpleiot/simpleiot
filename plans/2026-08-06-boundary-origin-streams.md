@@ -240,6 +240,6 @@ repo's production code).
 | ✓    | feat: boundary resolution in edge cache (Phase 2)           | Done    |
 | ✓    | feat: boundary-origin stream layout (Phase 3)               | Done    |
 | ✓    | feat: cross-boundary node moves (Phase 4)                   | Done    |
-| --   | feat: retention and durability options (Phase 5)            | Planned |
+| ✓    | feat: retention and durability options (Phase 5)            | Done    |
 | --   | test/docs: coverage and cleanup (Phase 6)                   | Planned |
 | --   | docs: Stage 3 spike results in ADR-7 (Phase 7)              | Planned |

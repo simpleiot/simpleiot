@@ -553,6 +553,19 @@ Implementation is broken down into 3 stages:
      (not `MaxAge` or stream-level `MaxBytes`/`MaxMsgs`) so current state is
      always preserved, including rarely-updated config points that
      time/size-based policies could silently drop.
+   - Retention is resolved per stream: the server option
+     `--storeMaxMsgsPerSubject` / `SIOT_STORE_MAX_MSGS_PER_SUBJECT` sets the
+     instance default (0 = unlimited); Stage 3 adds per-boundary and
+     per-replica overrides at the same resolution point. Changing the value
+     applies to each existing stream the first time it is ensured after a
+     restart, and JetStream trims existing subjects to the new limit.
+   - Durability: the JetStream file store fsyncs on a 2-minute interval by
+     default, which is the accepted power-loss window for typical
+     deployments (comparable exposure to the prior SQLite WAL
+     configuration). `--storeSyncInterval` / `SIOT_STORE_SYNC_INTERVAL`
+     accepts a Go duration to shorten the window, or `always` to fsync
+     every write for edge devices with unreliable power, trading write
+     throughput.
    - `META` KV bucket for instance metadata (rootID, jwtKey).
    - In-memory edge and point caches hold the merged current state, populated
      on startup by reading stream tips.

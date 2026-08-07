@@ -52,7 +52,7 @@ func newTestJsDb(t *testing.T) (*DbJetStream, func()) {
 
 	ns, nc := newTestNatsServer(t, tmpDir)
 
-	db, err := NewJetStreamDb(nc, "")
+	db, err := NewJetStreamDb(nc, "", JsConfig{})
 	if err != nil {
 		t.Fatal("Error creating JetStream db:", err)
 	}
@@ -307,7 +307,7 @@ func TestDbJetStreamRestart(t *testing.T) {
 
 	ns, nc := newTestNatsServer(t, tmpDir)
 
-	db, err := NewJetStreamDb(nc, "")
+	db, err := NewJetStreamDb(nc, "", JsConfig{})
 	if err != nil {
 		t.Fatal("Error creating JetStream db:", err)
 	}
@@ -342,7 +342,7 @@ func TestDbJetStreamRestart(t *testing.T) {
 		ns.Shutdown()
 	}()
 
-	db, err = NewJetStreamDb(nc, "")
+	db, err = NewJetStreamDb(nc, "", JsConfig{})
 	if err != nil {
 		t.Fatal("Error re-opening JetStream db:", err)
 	}
@@ -577,6 +577,84 @@ func TestDbJetStreamSubtreeMoveIntoBoundary(t *testing.T) {
 	}
 	if nodes[0].Desc() != "pump sensor" {
 		t.Fatal("sensor description lost in move:", nodes[0].Desc())
+	}
+}
+
+// TestDbJetStreamRetention verifies per-subject retention drops old
+// messages of a frequently-written subject while preserving the tips
+// of rarely-written subjects (config points).
+func TestDbJetStreamRetention(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "siot-js-test-*")
+	if err != nil {
+		t.Fatal("Error creating temp dir:", err)
+	}
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	ns, nc := newTestNatsServer(t, tmpDir)
+	defer func() {
+		nc.Close()
+		ns.Shutdown()
+	}()
+
+	db, err := NewJetStreamDb(nc, "", JsConfig{MaxMsgsPerSubject: 5})
+	if err != nil {
+		t.Fatal("Error creating JetStream db:", err)
+	}
+
+	rootID := db.rootNodeID()
+
+	// description is written once (a rarely-written config subject)
+	err = db.nodePoints(rootID, data.Points{
+		data.NewPointString(data.PointTypeDescription, "", "retention test"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// value is written many times (a fast-changing subject)
+	base := time.Now()
+	for i := range 20 {
+		p := data.NewPointFloat(data.PointTypeValue, "", float64(i))
+		p.Time = base.Add(time.Duration(i) * time.Millisecond)
+		err = db.nodePoints(rootID, data.Points{p})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	ctx := context.Background()
+	s, err := db.js.Stream(ctx, streamName(rootID, rootID))
+	if err != nil {
+		t.Fatal("Error getting stream:", err)
+	}
+
+	valueSubject := nodePointSubject(rootID, rootID, rootID, data.PointTypeValue, "0")
+	info, err := s.Info(ctx, jetstream.WithSubjectFilter(valueSubject))
+	if err != nil {
+		t.Fatal("Error getting stream info:", err)
+	}
+	if n := info.State.Subjects[valueSubject]; n > 5 {
+		t.Fatal("retention did not limit value subject, count:", n)
+	}
+
+	// tip of the fast subject is the latest write
+	msg, err := s.GetLastMsgForSubject(ctx, valueSubject)
+	if err != nil {
+		t.Fatal("Error getting value tip:", err)
+	}
+	pts, err := data.DecodePoints(msg.Data)
+	if err != nil || len(pts) < 1 {
+		t.Fatal("Error decoding value tip:", err)
+	}
+	if pts[0].Val() != 19 {
+		t.Fatal("value tip is not the latest write:", pts[0].Val())
+	}
+
+	// the rarely-written config subject is preserved
+	descSubject := nodePointSubject(rootID, rootID, rootID, data.PointTypeDescription, "0")
+	_, err = s.GetLastMsgForSubject(ctx, descSubject)
+	if err != nil {
+		t.Fatal("description tip lost under retention:", err)
 	}
 }
 

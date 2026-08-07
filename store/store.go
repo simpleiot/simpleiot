@@ -49,11 +49,13 @@ type Params struct {
 	// ID for the instance -- it is only used when initializing the store.
 	// ID must be unique. If ID is not set, then a UUID is generated.
 	ID string
+	// JsConfig holds JetStream tunables (retention, etc.)
+	JsConfig JsConfig
 }
 
 // NewStore creates a new NATS client for handling SIOT requests
 func NewStore(p Params) (*Store, error) {
-	db, err := NewJetStreamDb(p.Nc, p.ID)
+	db, err := NewJetStreamDb(p.Nc, p.ID, p.JsConfig)
 	if err != nil {
 		return nil, fmt.Errorf("error opening db: %v", err)
 	}

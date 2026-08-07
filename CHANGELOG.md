@@ -27,6 +27,11 @@ For more details or to discuss releases, please visit the
 - store: migrate a node's subjects (and its owned subtree) to the new
   boundary stream when a move or undelete changes its owning boundary,
   preserving original point timestamps
+- add `--storeMaxMsgsPerSubject` / `SIOT_STORE_MAX_MSGS_PER_SUBJECT` to bound
+  per-subject history in store streams (current state always preserved)
+- add `--storeSyncInterval` / `SIOT_STORE_SYNC_INTERVAL` to tune the
+  JetStream fsync interval (`always` fsyncs every write) for power-loss
+  durability on edge devices
 - replace SQLite store with JetStream per-node streams (ADR-7 Stage 2)
 - remove SQLite dependency and hash tree
 - add in-memory point cache and edge cache for fast lookups

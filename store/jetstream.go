@@ -24,6 +24,18 @@ type Meta struct {
 	JWTKey  []byte `json:"jwtKey"`
 }
 
+// JsConfig holds JetStream store tunables.
+type JsConfig struct {
+	// MaxMsgsPerSubject bounds per-subject history in the streams this
+	// instance creates; 0 or less means unlimited. Retention is per
+	// subject, so subject tips (current state) are always preserved,
+	// including rarely-updated config points that time- or size-based
+	// policies could silently drop. Changing the value applies to each
+	// existing stream the first time it is ensured after restart, and
+	// JetStream trims existing subjects to the new limit.
+	MaxMsgsPerSubject int64
+}
+
 // DbJetStream implements the store backend using NATS JetStream with
 // boundary-origin streams (ADR-7): each (boundary, origin instance)
 // pair gets one stream holding both node points and edge points for
@@ -36,6 +48,7 @@ type DbJetStream struct {
 	nc        *nats.Conn
 	metaKV    jetstream.KeyValue
 	meta      Meta
+	cfg       JsConfig
 	edgeCache *EdgeCache
 
 	pointMu    sync.RWMutex
@@ -93,7 +106,7 @@ func edgePointSubject(boundaryID, originID, parentID, childID string) string {
 }
 
 // NewJetStreamDb creates a new JetStream-backed store.
-func NewJetStreamDb(nc *nats.Conn, rootID string) (*DbJetStream, error) {
+func NewJetStreamDb(nc *nats.Conn, rootID string, cfg JsConfig) (*DbJetStream, error) {
 	// Wait for NATS connection to be established (server may not be up yet)
 	timeout := time.After(10 * time.Second)
 	for !nc.IsConnected() {
@@ -123,6 +136,7 @@ func NewJetStreamDb(nc *nats.Conn, rootID string) (*DbJetStream, error) {
 		js:          js,
 		nc:          nc,
 		metaKV:      metaKV,
+		cfg:         cfg,
 		edgeCache:   NewEdgeCache(),
 		pointCache:  make(map[string]data.Points),
 		pointOrigin: make(map[string]map[string]string),
@@ -219,8 +233,9 @@ func (db *DbJetStream) ensureOriginStreamFor(boundaryID, originID string) (jetst
 
 	ctx := context.Background()
 	s, err := db.js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
-		Name:     name,
-		Subjects: []string{streamCaptureSubject(boundaryID, originID)},
+		Name:              name,
+		Subjects:          []string{streamCaptureSubject(boundaryID, originID)},
+		MaxMsgsPerSubject: db.maxMsgsForStream(name),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error creating stream %v: %v", name, err)
@@ -231,6 +246,18 @@ func (db *DbJetStream) ensureOriginStreamFor(boundaryID, originID string) (jetst
 	db.streamMu.Unlock()
 
 	return s, nil
+}
+
+// maxMsgsForStream resolves the per-subject retention limit for a
+// stream by name. Every stream currently gets the instance default;
+// Stage 3 adds per-boundary and per-replica overrides here (a hub
+// keeps long history on replicas while a device keeps a short local
+// buffer).
+func (db *DbJetStream) maxMsgsForStream(_ string) int64 {
+	if db.cfg.MaxMsgsPerSubject > 0 {
+		return db.cfg.MaxMsgsPerSubject
+	}
+	return 0
 }
 
 // mergePointTip merges a single point into the point cache, applying

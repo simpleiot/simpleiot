@@ -63,6 +63,15 @@ type Options struct {
 	ProvisioningDisable bool
 	// optional ID (must be unique) for this instance, otherwise, a UUID will be used
 	ID string
+	// StoreMaxMsgsPerSubject bounds per-subject history in store
+	// streams; 0 means unlimited. Current state is always preserved.
+	StoreMaxMsgsPerSubject int64
+	// StoreSyncInterval overrides the JetStream file sync interval
+	// (power-loss durability window); zero keeps the NATS default (2m).
+	StoreSyncInterval time.Duration
+	// StoreSyncAlways fsyncs every write, for edge devices with
+	// unreliable power, at a write-throughput cost.
+	StoreSyncAlways bool
 }
 
 // Server represents a SIOT server process
@@ -164,14 +173,16 @@ func (s *Server) Run() error {
 	}
 
 	natsOptions := natsServerOptions{
-		Port:       o.NatsPort,
-		HTTPPort:   o.NatsHTTPPort,
-		WSPort:     o.NatsWSPort,
-		Auth:       o.AuthToken,
-		TLSCert:    o.NatsTLSCert,
-		TLSKey:     o.NatsTLSKey,
-		TLSTimeout: o.NatsTLSTimeout,
-		StoreDir:   jsDir,
+		Port:         o.NatsPort,
+		HTTPPort:     o.NatsHTTPPort,
+		WSPort:       o.NatsWSPort,
+		Auth:         o.AuthToken,
+		TLSCert:      o.NatsTLSCert,
+		TLSKey:       o.NatsTLSKey,
+		TLSTimeout:   o.NatsTLSTimeout,
+		StoreDir:     jsDir,
+		SyncInterval: o.StoreSyncInterval,
+		SyncAlways:   o.StoreSyncAlways,
 	}
 
 	if !o.NatsDisableServer {
@@ -209,6 +220,9 @@ func (s *Server) Run() error {
 		Server:    o.NatsServer,
 		Nc:        s.nc,
 		ID:        s.options.ID,
+		JsConfig: store.JsConfig{
+			MaxMsgsPerSubject: o.StoreMaxMsgsPerSubject,
+		},
 	}
 
 	siotStore, err := store.NewStore(storeParams)
