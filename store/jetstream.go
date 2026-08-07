@@ -66,14 +66,14 @@ type DbJetStream struct {
 // streamName returns the stream name for a (boundary, origin) pair.
 // Stream names cannot contain dots, so names use dashes.
 func streamName(boundaryID, originID string) string {
-	return "node-" + boundaryID + "-" + originID
+	return "inst-" + boundaryID + "-" + originID
 }
 
 // streamCaptureSubject returns the subject space a boundary-origin
 // stream captures. Subject spaces never overlap between streams
 // because both routing tokens are in every subject.
 func streamCaptureSubject(boundaryID, originID string) string {
-	return fmt.Sprintf("node.%v.%v.>", boundaryID, originID)
+	return fmt.Sprintf("inst.%v.%v.>", boundaryID, originID)
 }
 
 // streamBoundaryOrigin extracts the boundary and origin IDs from a
@@ -84,7 +84,7 @@ func streamBoundaryOrigin(cfg jetstream.StreamConfig) (boundary, origin string, 
 		return "", "", false
 	}
 	tok := strings.Split(cfg.Subjects[0], ".")
-	if len(tok) != 4 || tok[0] != "node" || tok[3] != ">" {
+	if len(tok) != 4 || tok[0] != "inst" || tok[3] != ">" {
 		return "", "", false
 	}
 	return tok[1], tok[2], true
@@ -95,13 +95,13 @@ func nodePointSubject(boundaryID, originID, nodeID, typ, key string) string {
 	if key == "" {
 		key = "0"
 	}
-	return fmt.Sprintf("node.%v.%v.%v.p.%v.%v", boundaryID, originID, nodeID, typ, key)
+	return fmt.Sprintf("inst.%v.%v.%v.p.%v.%v", boundaryID, originID, nodeID, typ, key)
 }
 
 // edgePointSubject returns the storage subject for edge points. Edges
 // are stored with the parent node's boundary.
 func edgePointSubject(boundaryID, originID, parentID, childID string) string {
-	return fmt.Sprintf("node.%v.%v.%v.ep.%v", boundaryID, originID, parentID, childID)
+	return fmt.Sprintf("inst.%v.%v.%v.ep.%v", boundaryID, originID, parentID, childID)
 }
 
 // NewJetStreamDb creates a new JetStream-backed store.
@@ -392,7 +392,7 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 	if parentID == "root" {
 		// an instance root edge always lives in the root node's own
 		// boundary-origin stream, so a fresh instance starts with the
-		// single stream node-<rootID>-<rootID>
+		// single stream inst-<rootID>-<rootID>
 		boundary = nodeID
 		origin = nodeID
 	} else {
@@ -623,7 +623,7 @@ func (db *DbJetStream) purgeNodeSubjectsExcept(nodeID, keepBoundary string) erro
 	ctx := context.Background()
 	self := db.meta.RootID
 
-	lister := db.js.ListStreams(ctx, jetstream.WithStreamListSubject("node.>"))
+	lister := db.js.ListStreams(ctx, jetstream.WithStreamListSubject("inst.>"))
 	for si := range lister.Info() {
 		b, o, ok := streamBoundaryOrigin(si.Config)
 		if !ok || o != self || b == keepBoundary {
@@ -636,7 +636,7 @@ func (db *DbJetStream) purgeNodeSubjectsExcept(nodeID, keepBoundary string) erro
 			continue
 		}
 
-		filter := fmt.Sprintf("node.%v.%v.%v.>", b, o, nodeID)
+		filter := fmt.Sprintf("inst.%v.%v.%v.>", b, o, nodeID)
 		err = s.Purge(ctx, jetstream.WithPurgeSubject(filter))
 		if err != nil {
 			return fmt.Errorf("error purging %v: %v", filter, err)
@@ -651,7 +651,7 @@ func (db *DbJetStream) purgeNodeSubjectsExcept(nodeID, keepBoundary string) erro
 func (db *DbJetStream) loadAllStreams() error {
 	ctx := context.Background()
 
-	lister := db.js.ListStreams(ctx, jetstream.WithStreamListSubject("node.>"))
+	lister := db.js.ListStreams(ctx, jetstream.WithStreamListSubject("inst.>"))
 	for si := range lister.Info() {
 		err := db.loadStream(si.Config)
 		if err != nil {
@@ -679,8 +679,8 @@ func (db *DbJetStream) loadStream(cfg jetstream.StreamConfig) error {
 		return err
 	}
 
-	db.loadEdgeSubjects(s, origin, fmt.Sprintf("node.%v.%v.*.ep.>", boundary, origin))
-	db.loadPointSubjects(s, origin, fmt.Sprintf("node.%v.%v.*.p.>", boundary, origin))
+	db.loadEdgeSubjects(s, origin, fmt.Sprintf("inst.%v.%v.*.ep.>", boundary, origin))
+	db.loadPointSubjects(s, origin, fmt.Sprintf("inst.%v.%v.*.p.>", boundary, origin))
 
 	return nil
 }
@@ -697,7 +697,7 @@ func (db *DbJetStream) loadPointSubjects(s jetstream.Stream, origin, filter stri
 	}
 
 	for subject := range info.State.Subjects {
-		// node.<boundary>.<origin>.<nodeID>.p.<type>.<key>
+		// inst.<boundary>.<origin>.<nodeID>.p.<type>.<key>
 		tok := strings.Split(subject, ".")
 		if len(tok) != 7 || tok[4] != "p" {
 			continue
@@ -739,7 +739,7 @@ func (db *DbJetStream) loadEdgeSubjects(s jetstream.Stream, origin, filter strin
 	}
 
 	for subject := range info.State.Subjects {
-		// node.<boundary>.<origin>.<parentID>.ep.<childID>
+		// inst.<boundary>.<origin>.<parentID>.ep.<childID>
 		tok := strings.Split(subject, ".")
 		if len(tok) != 6 || tok[4] != "ep" {
 			continue
@@ -776,7 +776,7 @@ func (db *DbJetStream) loadNodePoints(boundary, nodeID string) error {
 	ctx := context.Background()
 
 	lister := db.js.ListStreams(ctx,
-		jetstream.WithStreamListSubject(fmt.Sprintf("node.%v.>", boundary)))
+		jetstream.WithStreamListSubject(fmt.Sprintf("inst.%v.>", boundary)))
 
 	for si := range lister.Info() {
 		b, o, ok := streamBoundaryOrigin(si.Config)
@@ -790,7 +790,7 @@ func (db *DbJetStream) loadNodePoints(boundary, nodeID string) error {
 			continue
 		}
 
-		db.loadPointSubjects(s, o, fmt.Sprintf("node.%v.%v.%v.p.>", b, o, nodeID))
+		db.loadPointSubjects(s, o, fmt.Sprintf("inst.%v.%v.%v.p.>", b, o, nodeID))
 	}
 
 	return lister.Err()
@@ -1028,7 +1028,7 @@ func (db *DbJetStream) reset() error {
 	// Delete all boundary-origin streams
 	streamLister := db.js.ListStreams(ctx)
 	for si := range streamLister.Info() {
-		if strings.HasPrefix(si.Config.Name, "node-") {
+		if strings.HasPrefix(si.Config.Name, "inst-") {
 			err := db.js.DeleteStream(ctx, si.Config.Name)
 			if err != nil {
 				return fmt.Errorf("error deleting stream %v: %v", si.Config.Name, err)

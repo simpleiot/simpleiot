@@ -28,7 +28,7 @@ For more details or to discuss releases, please visit the
 - store: reply once and stop processing when an edge point DB write fails
 - store: validate that new edges carry a `nodeType` point before writing to
   JetStream, so the stream and edge cache cannot diverge
-- store: move to boundary-origin streams (`node-<boundaryID>-<originID>`):
+- store: move to boundary-origin streams (`inst-<boundaryID>-<originID>`):
   streams are created per sync/AuthZ boundary rather than per node, subjects
   carry both routing tokens, and current state is the merge of subject tips
   with a deterministic origin tie-break (ADR-7 Stage 2 revision)
@@ -923,7 +923,7 @@ or a [demo video](https://youtu.be/ZII9pzx9akY) for more information.
 
 - move HTTP API to get nodes for user to use NATS instead of direct call into
   database (#327)
-- **BREAKING API CHANGE**: the Nats `node.<id>` subject now returns an array of
+- **BREAKING API CHANGE**: the Nats `inst.<id>` subject now returns an array of
   `data.NodeEdge` structs instead of a single node. Both instances of an
   upstream connection must be upgraded.
 - don't send deleted nodes to frontend -- may fix #259

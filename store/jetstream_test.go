@@ -387,10 +387,10 @@ func TestDbJetStreamRestart(t *testing.T) {
 	}
 
 	// the fresh instance should have a single boundary-origin stream
-	// node-<rootID>-<rootID> holding everything
+	// inst-<rootID>-<rootID> holding everything
 	_, err = db.js.Stream(context.Background(), streamName(rootID, rootID))
 	if err != nil {
-		t.Fatal("expected stream node-<rootID>-<rootID> to exist:", err)
+		t.Fatal("expected stream inst-<rootID>-<rootID> to exist:", err)
 	}
 }
 
@@ -459,7 +459,7 @@ func TestDbJetStreamCrossBoundaryMove(t *testing.T) {
 	// sensor subjects live in device X's boundary stream
 	xStream := streamName(devX, rootID)
 	yStream := streamName(devY, rootID)
-	if streamSubjectCount(t, db, xStream, "node."+devX+"."+rootID+"."+sensor+".>") == 0 {
+	if streamSubjectCount(t, db, xStream, "inst."+devX+"."+rootID+"."+sensor+".>") == 0 {
 		t.Fatal("sensor subjects not in device X stream before move")
 	}
 
@@ -479,10 +479,10 @@ func TestDbJetStreamCrossBoundaryMove(t *testing.T) {
 	}
 
 	// sensor subjects now live in device Y's stream only
-	if streamSubjectCount(t, db, yStream, "node."+devY+"."+rootID+"."+sensor+".>") == 0 {
+	if streamSubjectCount(t, db, yStream, "inst."+devY+"."+rootID+"."+sensor+".>") == 0 {
 		t.Fatal("sensor subjects not in device Y stream after move")
 	}
-	if n := streamSubjectCount(t, db, xStream, "node."+devX+"."+rootID+"."+sensor+".>"); n != 0 {
+	if n := streamSubjectCount(t, db, xStream, "inst."+devX+"."+rootID+"."+sensor+".>"); n != 0 {
 		t.Fatal("sensor subjects remain in device X stream after move:", n)
 	}
 
@@ -528,7 +528,7 @@ func TestDbJetStreamSubtreeMoveIntoBoundary(t *testing.T) {
 	xStream := streamName(devX, rootID)
 
 	// group and sensor start in the root boundary stream
-	if streamSubjectCount(t, db, rootStream, "node."+rootID+"."+rootID+"."+sensor+".>") == 0 {
+	if streamSubjectCount(t, db, rootStream, "inst."+rootID+"."+rootID+"."+sensor+".>") == 0 {
 		t.Fatal("sensor subjects not in root stream before move")
 	}
 
@@ -550,9 +550,9 @@ func TestDbJetStreamSubtreeMoveIntoBoundary(t *testing.T) {
 	// the whole subtree moved: group points, group->sensor edge, and
 	// sensor points are all in device X's stream now
 	for _, filter := range []string{
-		"node." + devX + "." + rootID + "." + group + ".p.>",
-		"node." + devX + "." + rootID + "." + group + ".ep." + sensor,
-		"node." + devX + "." + rootID + "." + sensor + ".p.>",
+		"inst." + devX + "." + rootID + "." + group + ".p.>",
+		"inst." + devX + "." + rootID + "." + group + ".ep." + sensor,
+		"inst." + devX + "." + rootID + "." + sensor + ".p.>",
 	} {
 		if streamSubjectCount(t, db, xStream, filter) == 0 {
 			t.Fatal("expected subjects in device stream after move:", filter)
@@ -562,8 +562,8 @@ func TestDbJetStreamSubtreeMoveIntoBoundary(t *testing.T) {
 	// and purged from the root stream (the tombstoned root->group edge
 	// stays: it belongs to the root boundary)
 	for _, filter := range []string{
-		"node." + rootID + "." + rootID + "." + group + ".>",
-		"node." + rootID + "." + rootID + "." + sensor + ".>",
+		"inst." + rootID + "." + rootID + "." + group + ".>",
+		"inst." + rootID + "." + rootID + "." + sensor + ".>",
 	} {
 		if n := streamSubjectCount(t, db, rootStream, filter); n != 0 {
 			t.Fatal("subjects remain in root stream after move:", filter)

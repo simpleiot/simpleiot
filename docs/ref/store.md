@@ -51,22 +51,24 @@ device or group level.
 Each (boundary, origin instance) pair gets one stream:
 
 ```
-node-<boundaryID>-<originID>
+inst-<boundaryID>-<originID>
 ```
 
 where `originID` is the root node ID of the instance that writes the
-stream. **Only the origin instance ever appends to its stream** — this
-single-writer property is what makes synchronization simple and
-echo-free. A standalone instance with root `R` has a single stream,
-`node-R-R`, holding its entire tree.
+stream. The `inst` (instance) prefix keeps the word "node" reserved for
+nodes in the data tree — both stream tokens identify instances, since a
+boundary is a node that represents one. **Only the origin instance ever
+appends to its stream** — this single-writer property is what makes
+synchronization simple and echo-free. A standalone instance with root
+`R` has a single stream, `inst-R-R`, holding its entire tree.
 
 A hub `R` with a synced device `X` sees three streams:
 
 | Stream       | Written by | Contains                                     |
 | ------------ | ---------- | -------------------------------------------- |
-| `node-R-R`   | hub        | the hub's own tree, including the edge to X  |
-| `node-X-R`   | hub        | configuration the hub writes into X's subtree |
-| `node-X-X`   | device     | everything the device writes (a replica on the hub) |
+| `inst-R-R`   | hub        | the hub's own tree, including the edge to X  |
+| `inst-X-R`   | hub        | configuration the hub writes into X's subtree |
+| `inst-X-X`   | device     | everything the device writes (a replica on the hub) |
 
 ## Subjects
 
@@ -84,10 +86,10 @@ tokens so stream subject spaces never overlap:
 
 | Subject                                             | Purpose     |
 | --------------------------------------------------- | ----------- |
-| `node.<boundaryID>.<originID>.<nodeID>.p.<type>.<key>` | node point  |
-| `node.<boundaryID>.<originID>.<parentID>.ep.<childID>` | edge points |
+| `inst.<boundaryID>.<originID>.<nodeID>.p.<type>.<key>` | node point  |
+| `inst.<boundaryID>.<originID>.<parentID>.ep.<childID>` | edge points |
 
-The stream `node-<b>-<o>` captures `node.<b>.<o>.>`. Edges are stored
+The stream `inst-<b>-<o>` captures `inst.<b>.<o>.>`. Edges are stored
 with the **parent** node's boundary, so the edge attaching a device
 into a hub's tree lives in the hub's stream — the device never needs
 it.
@@ -97,7 +99,7 @@ it.
 The current value of a point is the **tip** (last message) of its
 storage subject. Because a boundary can have streams from several
 origins (the device's own data plus hub-written configuration), current
-state is the merge of tips across all `node-<boundaryID>-*` streams,
+state is the merge of tips across all `inst-<boundaryID>-*` streams,
 under one rule:
 
 1. The newest point timestamp wins (timestamps are embedded in the
@@ -116,7 +118,7 @@ backstop.
 
 ## Writes, deletes, and moves
 
-A local write routes to `node-<owningBoundary>-<self>`. Deleting a node
+A local write routes to `inst-<owningBoundary>-<self>`. Deleting a node
 writes a tombstone point on its parent edge — history is preserved and
 the delete can be undone. Moving a node (or subtree) across boundaries
 republishes its subject tips into the new boundary's stream, preserving

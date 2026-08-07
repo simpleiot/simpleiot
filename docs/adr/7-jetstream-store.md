@@ -495,15 +495,17 @@ than message publishes, and startup enumeration touches every stream.
   walking up the tree. Nodes above all device boundaries are owned by the
   instance root boundary.
 - Each (boundary, origin instance) pair gets one stream, named
-  `node-<boundaryID>-<originID>` (stream names cannot contain dots, so names
-  use dashes). Only instance `<originID>` ever appends to that stream.
+  `inst-<boundaryID>-<originID>` (stream names cannot contain dots, so names
+  use dashes). The `inst` prefix identifies both tokens as instances — a
+  boundary is a node representing an instance — and keeps "node" reserved
+  for the data tree. Only instance `<originID>` ever appends to that stream.
 - Storage subjects carry both routing tokens so stream subject spaces never
-  overlap: `node.<boundaryID>.<originID>.<nodeID>.p.<type>.<key>` for node
-  points and `node.<boundaryID>.<originID>.<parentID>.ep.<childID>` for edge
-  points. The stream captures `node.<boundaryID>.<originID>.>`. Core NATS
+  overlap: `inst.<boundaryID>.<originID>.<nodeID>.p.<type>.<key>` for node
+  points and `inst.<boundaryID>.<originID>.<parentID>.ep.<childID>` for edge
+  points. The stream captures `inst.<boundaryID>.<originID>.>`. Core NATS
   wire subjects (`p.>`, `ep.>`) are unchanged.
 - Current state of a node is the merge of subject tips across all
-  `node-<boundaryID>-*` streams present locally, newest timestamp wins. The
+  `inst-<boundaryID>-*` streams present locally, newest timestamp wins. The
   edge and point caches hold the merged state; merging happens at cache load
   and as messages arrive.
 - Trade-offs accepted with this layout: retention (`MaxMsgsPerSubject`) is
@@ -542,9 +544,9 @@ Implementation is broken down into 3 stages:
    Stream Granularity and Synchronization Model section for the analysis
    behind the revision.
    - Boundary-origin streams: each (boundary, origin instance) pair gets
-     stream `node-<boundaryID>-<originID>` capturing subjects
-     `node.<boundaryID>.<originID>.<nodeID>.p.<type>.<key>` (node points) and
-     `node.<boundaryID>.<originID>.<parentID>.ep.<childID>` (edge points,
+     stream `inst-<boundaryID>-<originID>` capturing subjects
+     `inst.<boundaryID>.<originID>.<nodeID>.p.<type>.<key>` (node points) and
+     `inst.<boundaryID>.<originID>.<parentID>.ep.<childID>` (edge points,
      stored with the parent node's boundary). Only the origin instance
      appends to a stream.
    - Streams retain full history (time-series). Current state = merge of
@@ -574,7 +576,7 @@ Implementation is broken down into 3 stages:
 1. Use JetStream to sync between systems
    - Each instance runs its own NATS server and owns its origin streams. The
      single-writer invariant holds globally: instance R appends only to
-     `node-*-R` streams.
+     `inst-*-R` streams.
    - Instances connect via NATS leaf/client connections. Each instance keeps
      local **replicas** of the remote-origin streams for the boundaries it
      participates in, using JetStream sourcing (durable consumers as a
@@ -585,15 +587,15 @@ Implementation is broken down into 3 stages:
      merge-on-receive: current state is merged at read in the edge and point
      caches. Echo cannot occur because no instance writes remote data into
      its own streams.
-   - Example: device X (root node ID X, hub root ID R) owns `node-X-X`. The
-     hub writes configuration for X's subtree to its own `node-X-R`. The hub
-     replicates `node-X-X` from the device; the device replicates `node-X-R`
+   - Example: device X (root node ID X, hub root ID R) owns `inst-X-X`. The
+     hub writes configuration for X's subtree to its own `inst-X-R`. The hub
+     replicates `inst-X-X` from the device; the device replicates `inst-X-R`
      from the hub. Multi-hop topologies chain sourcing through intermediate
      instances.
    - AuthZ: writes are enforced with core NATS subject permissions
      (unchanged by stream layout); reads with per-stream JetStream API
-     permissions. Device X may replicate `node-X-*` and export only
-     `node-X-X`. Grants are issued dynamically (NATS auth callout) as the
+     permissions. Device X may replicate `inst-X-*` and export only
+     `inst-X-X`. Grants are issued dynamically (NATS auth callout) as the
      tree changes.
    - Real-time point delivery continues via core NATS subjects (`p.>`,
      `ep.>`) as today. Replica catch-up covers only the offline/startup gap.

@@ -15,11 +15,11 @@ numbers, so nothing needs to be compared to know what is missing.
 ## The model in one paragraph
 
 Every stream has exactly one writing instance (its *origin*). A device
-with root `X` writes everything to its stream `node-X-X`; a hub with
+with root `X` writes everything to its stream `inst-X-X`; a hub with
 root `R` writes configuration for the device's subtree to its own
-stream `node-X-R`. Sync means each side keeps a copy of the other's
-stream: the hub holds a replica of `node-X-X`, the device holds a
-replica of `node-X-R`. Current state on either side is the merge of
+stream `inst-X-R`. Sync means each side keeps a copy of the other's
+stream: the hub holds a replica of `inst-X-X`, the device holds a
+replica of `inst-X-R`. Current state on either side is the merge of
 the subject tips of both streams — newest timestamp wins, with a
 deterministic origin tie-break. Because no instance ever writes remote
 data into its *own* streams, points cannot echo back and forth between
@@ -28,9 +28,9 @@ instances: there is no loop to suppress.
 ```
    device X                                hub R
   ┌───────────────────┐                  ┌───────────────────┐
-  │ node-X-X (owned)  │ ──── push ─────► │ node-X-X (replica)│
-  │ node-X-R (replica)│ ◄─── pull ────── │ node-X-R (owned)  │
-  │                   │                  │ node-R-R (owned)  │
+  │ inst-X-X (owned)  │ ──── push ─────► │ inst-X-X (replica)│
+  │ inst-X-R (replica)│ ◄─── pull ────── │ inst-X-R (owned)  │
+  │                   │                  │ inst-R-R (owned)  │
   └───────────────────┘                  └───────────────────┘
      merge tips of both                     merge tips of both
      = current state                        = current state
@@ -47,7 +47,7 @@ rules and database clients.
 
 **JetStream streams** are both the store and the unit of sync. Because
 storage subjects embed the boundary and origin
-(`node.<boundary>.<origin>.…`), a replica stream on another instance
+(`inst.<boundary>.<origin>.…`), a replica stream on another instance
 can use the same name and subjects — a copied message needs no
 translation.
 
@@ -55,10 +55,10 @@ translation.
 the downstream instance and connects to the upstream's NATS server,
 using the URI and auth token on its Sync node) runs two pumps:
 
-- *push*: a durable consumer on the local `node-X-X` delivers each
+- *push*: a durable consumer on the local `inst-X-X` delivers each
   message, and the pump publishes it — same subject, same payload — to
   the upstream, where the replica stream captures it.
-- *pull*: a durable consumer on the upstream's `node-X-R` does the
+- *pull*: a durable consumer on the upstream's `inst-X-R` does the
   same in the other direction.
 
 A message is acknowledged only after the receiving side confirms the
@@ -90,13 +90,13 @@ property intact everywhere.
    history — arrives through it, from sequence 1 on first connect.
 4. The pull pump discovers upstream-origin streams for this instance's
    boundary and copies them down; the first hub-side configuration
-   write creates `node-X-R`, and the device picks it up on its next
+   write creates `inst-X-R`, and the device picks it up on its next
    scan.
 5. Each store's replica consumers merge the arriving messages and
    re-broadcast changed tips locally.
 
 Configuration written on the hub *before* the device ever connects
-(pre-provisioning) simply waits in `node-X-R` and arrives on first
+(pre-provisioning) simply waits in `inst-X-R` and arrives on first
 connect.
 
 ## Offline catch-up

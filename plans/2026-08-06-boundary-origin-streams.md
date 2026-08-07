@@ -39,15 +39,15 @@ rebuilt, with Stage 3.
   Nodes reachable from more than one boundary are owned by the instance root
   boundary.
 - **Streams:** one per (boundary, origin instance), named
-  `node-<boundaryID>-<originID>`. Only the origin instance appends. A standalone
-  instance therefore has a single stream, `node-<rootID>-<rootID>`, plus one per
+  `inst-<boundaryID>-<originID>`. Only the origin instance appends. A standalone
+  instance therefore has a single stream, `inst-<rootID>-<rootID>`, plus one per
   device-type node.
-- **Storage subjects:** `node.<boundaryID>.<originID>.<nodeID>.p.<type>.<key>`
-  for node points, `node.<boundaryID>.<originID>.<parentID>.ep.<childID>` for
+- **Storage subjects:** `inst.<boundaryID>.<originID>.<nodeID>.p.<type>.<key>`
+  for node points, `inst.<boundaryID>.<originID>.<parentID>.ep.<childID>` for
   edge points (edges stored with the parent's boundary). Stream captures
-  `node.<boundaryID>.<originID>.>`; subject spaces never overlap between
+  `inst.<boundaryID>.<originID>.>`; subject spaces never overlap between
   streams. Core NATS wire subjects (`p.>`, `ep.>`) are unchanged.
-- **Current state:** merge of subject tips across all `node-<boundaryID>-*`
+- **Current state:** merge of subject tips across all `inst-<boundaryID>-*`
   streams, newest timestamp wins. The edge and point caches hold the merged
   state; the caches are populated fully at startup and are the read path.
 - **Retention:** `MaxMsgsPerSubject` per stream (per boundary), configurable,
@@ -108,7 +108,7 @@ stream layout.
     replicas with a `Sources` config and no direct publish), and make the
     stream-config equality check tolerant of sourcing fields.
   - `loadNodePoints` / `loadEdgeCache`: enumerate subjects across all
-    `node-<boundaryID>-*` streams, merge tips. Each must be callable for a
+    `inst-<boundaryID>-*` streams, merge tips. Each must be callable for a
     single stream and safe to run concurrently with live writes; startup
     iterates streams. Stage 3 adds replica streams at runtime and reuses the
     single-stream path.
@@ -125,9 +125,9 @@ stream layout.
     write after restart and then trusted the partial entry). As a backstop,
     `nodePoints` loads current points from JetStream on a cache miss before
     adding new points.
-  - `reset`: delete all `node-*` streams, purge META, re-init.
+  - `reset`: delete all `inst-*` streams, purge META, re-init.
   - Node deletion remains tombstone-based; add subject purge
-    (`node.<b>.<o>.<nodeID>.>`) as part of permanent removal paths.
+    (`inst.<b>.<o>.<nodeID>.>`) as part of permanent removal paths.
 - `store/jetstream_test.go`: migrate existing tests; add a restart test that
   re-opens the store against existing streams, writes a point, then reads the
   node back and confirms config points are intact.

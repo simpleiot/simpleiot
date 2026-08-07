@@ -36,7 +36,7 @@ release, or the release notes must state that upstream sync is nonfunctional.
 
 ### The Stage 3 model (from ADR-7)
 
-Every stream is single-writer: instance R appends only to `node-*-R` streams.
+Every stream is single-writer: instance R appends only to `inst-*-R` streams.
 Instances hold local **replicas** of remote-origin streams for the boundaries
 they participate in, via JetStream sourcing (durable consumers as fallback).
 Current state is merged at read in the edge/point caches. Echo is impossible
@@ -46,12 +46,12 @@ For a device X (root node ID X) synced to hub R:
 
 | Stream       | Origin | On device X   | On hub R      |
 | ------------ | ------ | ------------- | ------------- |
-| `node-X-X`   | X      | owned, writes | replica       |
-| `node-X-R`   | R      | replica       | owned, writes |
-| `node-R-R`   | R      | not present   | owned, writes |
+| `inst-X-X`   | X      | owned, writes | replica       |
+| `inst-X-R`   | R      | replica       | owned, writes |
+| `inst-R-R`   | R      | not present   | owned, writes |
 
 The edge attaching X into the hub's tree (group → X) lives in the hub's root
-boundary stream (`node-R-R`, edges belong to the parent's boundary), so the
+boundary stream (`inst-R-R`, edges belong to the parent's boundary), so the
 device never needs any hub-boundary stream.
 
 ## Design Walkthrough
@@ -59,7 +59,7 @@ device never needs any hub-boundary stream.
 ### 1. Transport: how replication crosses instances
 
 JetStream sourcing is a server-to-server feature. For the hub to source
-`node-X-X` from the device (and vice versa), each side's JetStream API must be
+`inst-X-X` from the device (and vice versa), each side's JetStream API must be
 reachable from the other, which in NATS terms means a **leaf node connection**
 (possibly with distinct JS domains) rather than the plain client connection
 sync uses today.
@@ -83,21 +83,21 @@ The decision is made after the Stage 2 Phase 7 spikes and recorded in ADR-7.
 
 ### 2. Replica lifecycle
 
-- **Which replicas exist where:** device X replicates `node-X-*` except its own
-  `node-X-X`. The hub replicates `node-X-X` for every synced device X — and in
-  multi-hop topologies, `node-X-I` for any intermediate instance I that has
+- **Which replicas exist where:** device X replicates `inst-X-*` except its own
+  `inst-X-X`. The hub replicates `inst-X-X` for every synced device X — and in
+  multi-hop topologies, `inst-X-I` for any intermediate instance I that has
   written config for X. The set is dynamic: it changes when devices are
   adopted, when a new origin first writes to a boundary, and when devices are
   removed.
-- **Discovery:** an instance must learn which `node-<boundary>-*` streams exist
+- **Discovery:** an instance must learn which `inst-<boundary>-*` streams exist
   on the remote for boundaries it participates in. Simplest: query the remote's
-  `$JS.API.STREAM.NAMES` with subject filter `node.<boundaryID>.>` on connect
+  `$JS.API.STREAM.NAMES` with subject filter `inst.<boundaryID>.>` on connect
   and periodically; re-check when a replica delivers an edge point referencing
   an origin with no known stream.
 - **Creation/teardown:** replicas are created on first discovery and removed
   (or retained, configurable) when a device is detached. Stream names are
   identical on every instance that holds a copy, which keeps the store's
-  "enumerate `node-<boundaryID>-*`" read path unchanged — a replica is just
+  "enumerate `inst-<boundaryID>-*`" read path unchanged — a replica is just
   another stream matching the pattern.
 
 ### 3. Live path (latency) vs replica path (persistence)
@@ -134,12 +134,12 @@ Clients divide into two kinds with different catch-up needs:
 - **History sinks** (Db/InfluxDB, VictoriaMetrics, or any external TSDB
   client) need every point, gap-free. They should not depend on core NATS
   wire delivery at all: each history sink owns a **durable JetStream
-  consumer** on the relevant `node-*` streams (filtered to its subtree's
+  consumer** on the relevant `inst-*` streams (filtered to its subtree's
   subjects). Sequence tracking makes delivery resumable and gap-free across
   *both* sync outages and the sink's own downtime or instance restarts — a
   guarantee the current fire-and-forget `up.>` delivery never provided.
   Replica streams participate naturally: when the hub's replica of
-  `node-X-X` catches up after a device was offline, the hub-side sink's
+  `inst-X-X` catches up after a device was offline, the hub-side sink's
   consumer receives those messages in stream order with original embedded
   timestamps, so external TSDB backfill happens automatically.
 
@@ -181,15 +181,15 @@ instance's root node ID.** Streams only line up if this holds.
 
 - Device-initiated (matches today's flow): device connects, hub sees traffic
   for an unknown boundary X, creates a device node with ID X under a configured
-  default group, writing the attachment edge into its own `node-R-R`. Policy
+  default group, writing the attachment edge into its own `inst-R-R`. Policy
   point: auto-adopt vs. a pending-approval state.
 - Hub-initiated (pre-provisioning): hub creates the device node (ID X) and
-  writes config into `node-X-R` before the device ever connects. On first
-  connect the device replicates `node-X-R` and comes up configured. This is a
+  writes config into `inst-X-R` before the device ever connects. On first
+  connect the device replicates `inst-X-R` and comes up configured. This is a
   capability the old sync did not have and pairs well with the YAML
   provisioning work.
 - The device's first connect replaces today's `sendNodesRemote` tree push: the
-  hub simply replicates `node-X-X` from sequence 1 — full history, config, and
+  hub simply replicates `inst-X-X` from sequence 1 — full history, config, and
   structure arrive by the same mechanism as steady-state sync.
 
 ### 6. Sync status
@@ -203,18 +203,18 @@ points on the Sync node so the UI and rules can use them.
 
 - In-boundary deletes (tombstone edge points) replicate like any other point.
 - Deleting the device *from the hub* tombstones the group→X edge in
-  `node-R-R`, which the device does not replicate — the device does not learn
+  `inst-R-R`, which the device does not replicate — the device does not learn
   it was detached, matching the AuthZ view (detach revokes the hub's interest;
   the device keeps operating standalone). Actual disconnect enforcement is
   AuthZ (revoking stream export/credentials), not data sync.
-- Permanent removal on the hub: delete replica `node-X-X`, purge hub subjects
-  for boundary X (`node.X.R.>`), remove the edge. Ordering and retention of
+- Permanent removal on the hub: delete replica `inst-X-X`, purge hub subjects
+  for boundary X (`inst.X.R.>`), remove the edge. Ordering and retention of
   history for departed devices is a policy decision to settle here.
 
 ### 8. Multi-hop
 
-Intermediate instance I between device X and hub R: R sources `node-X-X` and
-`node-X-I` through I (chained sourcing — I's replica is itself a source for
+Intermediate instance I between device X and hub R: R sources `inst-X-X` and
+`inst-X-I` through I (chained sourcing — I's replica is itself a source for
 R's replica). The Phase 7 spikes must confirm chained sourcing behaves over two
 leaf connections; the fallback replicator chains trivially since each hop is
 independent.
@@ -229,7 +229,7 @@ independent.
   that a message's claimed origin is entitled to the node's owning boundary
   before fan-out.
 - Reads: per-stream JetStream API permissions — device X may replicate
-  `node-X-*` and export only `node-X-X`. Dynamic grants (NATS auth callout) as
+  `inst-X-*` and export only `inst-X-X`. Dynamic grants (NATS auth callout) as
   devices are adopted/removed.
 - Initial implementation can ship with today's shared-token trust model and
   tighten with auth callout as a follow-on phase; the stream layout is what
@@ -370,7 +370,7 @@ without rework. Findings worth keeping:
 
 2. **Replicated streams contain instance-local state.** A device's
    origin stream carries its own `root` edge
-   (`node.X.X.root.ep.X`); merging that on the hub would create a
+   (`inst.X.X.root.ep.X`); merging that on the hub would create a
    second root and break tree traversal and auth path checks. Edges
    with the virtual `root` parent are instance-local by definition and
    are never merged from a replica. Lesson: reason through what is

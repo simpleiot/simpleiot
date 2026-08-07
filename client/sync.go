@@ -29,11 +29,11 @@ type Sync struct {
 // replicating boundary-origin streams (ADR-7 Stage 3):
 //
 //   - push: this instance's origin stream for its root boundary
-//     (node-<X>-<X>) is copied into a replica stream on the upstream,
+//     (inst-<X>-<X>) is copied into a replica stream on the upstream,
 //     using a durable consumer on the local stream so a reconnect
 //     resumes where it left off.
 //   - pull: upstream-origin streams for this instance's boundary
-//     (node-<X>-<o>, o != X — e.g. configuration the upstream wrote
+//     (inst-<X>-<o>, o != X — e.g. configuration the upstream wrote
 //     for this instance) are copied into local replica streams, using
 //     durable consumers on the upstream streams.
 //
@@ -336,7 +336,7 @@ func (up *SyncClient) scanPulls(ctx context.Context, jsLocal, jsRemote jetstream
 	boundary string, pulls map[string]jetstream.ConsumeContext) {
 
 	lister := jsRemote.ListStreams(ctx,
-		jetstream.WithStreamListSubject(fmt.Sprintf("node.%v.>", boundary)))
+		jetstream.WithStreamListSubject(fmt.Sprintf("inst.%v.>", boundary)))
 
 	for si := range lister.Info() {
 		b, o, ok := streamBoundaryOrigin(si.Config)
@@ -365,13 +365,13 @@ func (up *SyncClient) scanPulls(ctx context.Context, jsLocal, jsRemote jetstream
 }
 
 // streamBoundaryOrigin extracts the boundary and origin IDs from a
-// boundary-origin stream's capture subject ("node.<b>.<o>.>").
+// boundary-origin stream's capture subject ("inst.<b>.<o>.>").
 func streamBoundaryOrigin(cfg jetstream.StreamConfig) (boundary, origin string, ok bool) {
 	if len(cfg.Subjects) != 1 {
 		return "", "", false
 	}
 	tok := strings.Split(cfg.Subjects[0], ".")
-	if len(tok) != 4 || tok[0] != "node" || tok[3] != ">" {
+	if len(tok) != 4 || tok[0] != "inst" || tok[3] != ">" {
 		return "", "", false
 	}
 	return tok[1], tok[2], true
@@ -386,12 +386,12 @@ func streamBoundaryOrigin(cfg jetstream.StreamConfig) (boundary, origin string, 
 func runPump(ctx context.Context, src, dst jetstream.JetStream,
 	boundary, origin, durableFor string) (jetstream.ConsumeContext, error) {
 
-	name := fmt.Sprintf("node-%v-%v", boundary, origin)
+	name := fmt.Sprintf("inst-%v-%v", boundary, origin)
 
 	// ensure the replica stream exists on the receiving side
 	_, err := dst.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
 		Name:     name,
-		Subjects: []string{fmt.Sprintf("node.%v.%v.>", boundary, origin)},
+		Subjects: []string{fmt.Sprintf("inst.%v.%v.>", boundary, origin)},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error ensuring replica stream %v: %v", name, err)

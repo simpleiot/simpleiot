@@ -15,7 +15,7 @@ import (
 
 // This file implements the store side of ADR-7 Stage 3 synchronization:
 // consuming replica streams. A replica stream is a local copy of a
-// remote instance's origin stream (node-<boundary>-<origin> with origin
+// remote instance's origin stream (inst-<boundary>-<origin> with origin
 // != this instance), appended by the sync client's replicator (or by
 // JetStream sourcing when configured) — never by local point writes.
 //
@@ -109,7 +109,7 @@ func (rm *replicaManager) scan() {
 	ctx := context.Background()
 	self := rm.db.meta.RootID
 
-	lister := rm.db.js.ListStreams(ctx, jetstream.WithStreamListSubject("node.>"))
+	lister := rm.db.js.ListStreams(ctx, jetstream.WithStreamListSubject("inst.>"))
 	for si := range lister.Info() {
 		_, origin, ok := streamBoundaryOrigin(si.Config)
 		if !ok || origin == self {
@@ -195,8 +195,8 @@ func (rm *replicaManager) consumeReplica(name, origin string) (jetstream.Consume
 
 // mergeReplicaMsg merges one replica stream message into the caches,
 // returning true if it changed a subject tip. The storage subject is
-// node.<boundary>.<origin>.<nodeID>.p.<type>.<key> for node points or
-// node.<boundary>.<origin>.<parentID>.ep.<childID> for edge points.
+// inst.<boundary>.<origin>.<nodeID>.p.<type>.<key> for node points or
+// inst.<boundary>.<origin>.<parentID>.ep.<childID> for edge points.
 func (db *DbJetStream) mergeReplicaMsg(subject string, payload []byte, origin string) bool {
 	tok := strings.Split(subject, ".")
 
@@ -252,10 +252,10 @@ func (db *DbJetStream) broadcastReplica(subject string, payload []byte, origin s
 	var wire string
 	switch {
 	case len(tok) == 7 && tok[4] == "p":
-		// node.<b>.<o>.<nodeID>.p.<type>.<key> -> p.<nodeID>.<type>.<key>
+		// inst.<b>.<o>.<nodeID>.p.<type>.<key> -> p.<nodeID>.<type>.<key>
 		wire = client.SubjectNodePoint(tok[3], tok[5], tok[6])
 	case len(tok) == 6 && tok[4] == "ep":
-		// node.<b>.<o>.<parentID>.ep.<childID> -> ep.<childID>.<parentID>
+		// inst.<b>.<o>.<parentID>.ep.<childID> -> ep.<childID>.<parentID>
 		wire = client.SubjectEdgePoints(tok[5], tok[3])
 	default:
 		return
