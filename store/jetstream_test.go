@@ -658,6 +658,126 @@ func TestDbJetStreamRetention(t *testing.T) {
 	}
 }
 
+func TestDbJetStreamTombstoneDeleteUndelete(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
+
+	rootID := db.rootNodeID()
+	groupID := uuid.New().String()
+
+	mkTestNode(t, db, rootID, groupID, data.NodeTypeGroup, "doomed group")
+
+	// delete
+	err := db.edgePoints(groupID, rootID, data.Points{
+		data.NewPointFloat(data.PointTypeTombstone, "", 1),
+	})
+	if err != nil {
+		t.Fatal("Error tombstoning group:", err)
+	}
+
+	nodes, err := db.getNodes(nil, rootID, groupID, "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(nodes) != 0 {
+		t.Fatal("deleted node still returned without includeDel")
+	}
+
+	nodes, err = db.getNodes(nil, rootID, groupID, "", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(nodes) != 1 {
+		t.Fatal("deleted node not returned with includeDel")
+	}
+
+	// undelete
+	err = db.edgePoints(groupID, rootID, data.Points{
+		data.NewPointFloat(data.PointTypeTombstone, "", 0),
+	})
+	if err != nil {
+		t.Fatal("Error undeleting group:", err)
+	}
+
+	nodes, err = db.getNodes(nil, rootID, groupID, "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(nodes) != 1 {
+		t.Fatal("undeleted node not returned")
+	}
+	if nodes[0].Desc() != "doomed group" {
+		t.Fatal("node points lost across delete/undelete:", nodes[0].Desc())
+	}
+}
+
+func TestDbJetStreamReset(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
+
+	rootID := db.rootNodeID()
+	groupID := uuid.New().String()
+	mkTestNode(t, db, rootID, groupID, data.NodeTypeGroup, "temporary")
+
+	err := db.reset()
+	if err != nil {
+		t.Fatal("Error resetting store:", err)
+	}
+
+	if db.rootNodeID() != rootID {
+		t.Fatal("root ID not preserved across reset")
+	}
+
+	nodes, err := db.getNodes(nil, rootID, groupID, "", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(nodes) != 0 {
+		t.Fatal("group survived reset")
+	}
+
+	// admin user is re-created
+	users, err := db.userCheck("admin", "admin")
+	if err != nil || len(users) < 1 {
+		t.Fatal("admin user missing after reset:", err)
+	}
+}
+
+func TestDbJetStreamEdgeOlderTimestamp(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
+
+	rootID := db.rootNodeID()
+	groupID := uuid.New().String()
+	mkTestNode(t, db, rootID, groupID, data.NodeTypeGroup, "group")
+
+	now := time.Now()
+
+	p := data.NewPointString(data.PointTypeRole, "", "current")
+	p.Time = now
+	err := db.edgePoints(groupID, rootID, data.Points{p})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// an older incoming edge point must not replace the tip
+	old := data.NewPointString(data.PointTypeRole, "", "stale")
+	old.Time = now.Add(-time.Hour)
+	err = db.edgePoints(groupID, rootID, data.Points{old})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nodes, err := db.getNodes(nil, rootID, groupID, "", false)
+	if err != nil || len(nodes) < 1 {
+		t.Fatal("Error getting group:", err)
+	}
+	role, _ := nodes[0].EdgePoints.Text(data.PointTypeRole, "")
+	if role != "current" {
+		t.Fatal("older edge point replaced newer tip:", role)
+	}
+}
+
 func TestDbJetStreamBatchPoints(t *testing.T) {
 	db, cleanup := newTestJsDb(t)
 	defer cleanup()

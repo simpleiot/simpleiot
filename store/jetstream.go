@@ -16,12 +16,11 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-// Meta contains metadata about the store instance
+// Meta contains metadata about the store instance, persisted in the
+// META KV bucket.
 type Meta struct {
-	ID      int    `json:"id"`
-	Version int    `json:"version"`
-	RootID  string `json:"rootID"`
-	JWTKey  []byte `json:"jwtKey"`
+	RootID string `json:"rootID"`
+	JWTKey []byte `json:"jwtKey"`
 }
 
 // JsConfig holds JetStream store tunables.

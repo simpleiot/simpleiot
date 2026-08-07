@@ -537,7 +537,7 @@ Implementation is broken down into 3 stages:
    with per-node streams
    ([plan](../../plans/2026-03-17-implement-the-next-stage-of-adr-7.md),
    branch `feat/js-store`); layout revision to boundary-origin streams
-   **IN PROGRESS**
+   **COMPLETE** except the Stage 3 prerequisite spikes
    ([plan](../../plans/2026-08-06-boundary-origin-streams.md)). See the
    Stream Granularity and Synchronization Model section for the analysis
    behind the revision.

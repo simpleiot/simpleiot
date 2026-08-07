@@ -77,7 +77,7 @@ cd frontend && npx elm-test
 - `client/` - Client implementations (most functionality lives here)
 - `api/` - HTTP API handlers and routing
 - `data/` - Core data structures (Node, Point, etc.)
-- `store/` - JetStream storage layer (per-node streams, see ADR-7)
+- `store/` - JetStream storage layer (boundary-origin streams, see ADR-7)
 - `frontend/` - Elm-based web UI
 - `modbus/` - Modbus protocol implementation
 - `network/` - Network management utilities
@@ -119,7 +119,8 @@ under the `## Next` section.
 
 - Always source `envsetup.sh` before running build commands
 - Frontend build generates compressed `elm.js.gz` file
-- NATS JetStream stores all application data (per-node streams)
+- NATS JetStream stores all application data (one stream per
+  boundary/origin pair; see ADR-7)
 - System supports TLS with certificates via `siot_mkcert` and `siot_run_tls`
 - Protocol buffers used for efficient data serialization (`siot_protobuf`)
 - Cross-platform support (Linux, macOS, Windows with ARM variants)
