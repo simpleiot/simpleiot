@@ -115,10 +115,21 @@ of each phase. The changelog uses
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format — add entries
 under the `## Next` section.
 
+## Committing
+
+Leave `frontend/public/dist/elm.js.gz` out of commits. The frontend build
+regenerates it constantly, so it shows up as modified during normal work.
+It is committed only right before a release, in its own commit. When staging
+changes, stage the files you edited rather than using `git add -A` or
+`git commit -a`, and if the built artifact does get committed by mistake,
+drop it with `git restore --source=HEAD~1 --staged
+frontend/public/dist/elm.js.gz` followed by `git commit --amend`.
+
 ## Important Notes
 
 - Always source `envsetup.sh` before running build commands
-- Frontend build generates compressed `elm.js.gz` file
+- Frontend build generates compressed `elm.js.gz` file (see Committing above —
+  it is not committed with regular changes)
 - NATS JetStream stores all application data (one stream per
   boundary/origin pair; see ADR-7)
 - System supports TLS with certificates via `siot_mkcert` and `siot_run_tls`
