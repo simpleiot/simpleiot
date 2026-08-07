@@ -135,6 +135,10 @@ func (st *Store) Run() error {
 		return fmt.Errorf("subscribe dbMaint error: %w", err)
 	}
 
+	// consume replica streams (remote-origin data) into the caches and
+	// re-broadcast changed tips locally (ADR-7 Stage 3)
+	replicas := st.db.runReplicaManager()
+
 done:
 	for {
 		select {
@@ -148,6 +152,8 @@ done:
 	}
 
 	// clean up
+	replicas.Stop()
+
 	for k := range st.subscriptions {
 		err := st.subscriptions[k].Unsubscribe()
 		if err != nil {
@@ -258,15 +264,23 @@ func (st *Store) handleNodePoints(msg *nats.Msg) {
 		return
 	}
 
-	// write points to database
-	err = st.db.nodePoints(nodeID, points)
+	if origin := msg.Header.Get(client.OriginHeader); origin != "" &&
+		origin != st.db.rootNodeID() {
+		// points from another instance are merged for reads and fanned
+		// out, but never persisted here: the replica stream is the
+		// persistent copy (single-writer streams, ADR-7)
+		st.db.mergeRemoteNodePoints(nodeID, points, origin)
+	} else {
+		// write points to database
+		err = st.db.nodePoints(nodeID, points)
 
-	if err != nil {
-		// TODO track error stats
-		log.Printf("Error writing nodeID (%v) to Db: %v", nodeID, err)
-		log.Println("msg subject:", msg.Subject)
-		st.reply(msg.Reply, err)
-		return
+		if err != nil {
+			// TODO track error stats
+			log.Printf("Error writing nodeID (%v) to Db: %v", nodeID, err)
+			log.Println("msg subject:", msg.Subject)
+			st.reply(msg.Reply, err)
+			return
+		}
 	}
 
 	// process point in upstream nodes
@@ -297,16 +311,23 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 		return
 	}
 
-	// write points to database. Its important that we write to the DB
-	// before sending points upstream, or clients may do a rescan and not
-	// see the node is deleted.
-	err = st.db.edgePoints(nodeID, parentID, points)
+	if origin := msg.Header.Get(client.OriginHeader); origin != "" &&
+		origin != st.db.rootNodeID() {
+		// remote-origin edge points: merge and fan out only (see
+		// handleNodePoints)
+		st.db.mergeRemoteEdgePoints(nodeID, parentID, points, origin)
+	} else {
+		// write points to database. Its important that we write to the DB
+		// before sending points upstream, or clients may do a rescan and not
+		// see the node is deleted.
+		err = st.db.edgePoints(nodeID, parentID, points)
 
-	if err != nil {
-		// TODO track error stats
-		log.Printf("Error writing edge points (%v:%v) to Db: %v", nodeID, parentID, err)
-		st.reply(msg.Reply, err)
-		return
+		if err != nil {
+			// TODO track error stats
+			log.Printf("Error writing edge points (%v:%v) to Db: %v", nodeID, parentID, err)
+			st.reply(msg.Reply, err)
+			return
+		}
 	}
 
 	// process point in upstream nodes

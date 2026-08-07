@@ -313,6 +313,43 @@ accommodate in the Stage 2 rework than to retrofit:
 
 *(Items 1–7 were folded into the Stage 2 plan on 2026-08-06.)*
 
+## Implementation Status (2026-08-06)
+
+The initial implementation landed on `feat/js-store-boundary-stream`
+immediately after the Stage 2 rework:
+
+- **Spike:** JetStream sourcing across a leaf connection with distinct
+  domains verified, including restart catch-up
+  (`store/leafnode_spike_test.go`). Chained sourcing and the
+  consumer-create permission form remain open.
+- **Transport:** durable-consumer replication over the existing
+  upstream client connection (`client/sync.go` `runPump`); no leafnode
+  or domain configuration needed. Sourcing remains the intended
+  replacement once instance identity can drive server configuration.
+- **Store:** origin-header ingress (merge and fan out, never persist),
+  replica stream consumers with catch-up gating (tip-only broadcasts
+  after the backlog drains), wire re-broadcast (`store/replica.go`).
+  Instance-local "root" edges are never merged from replicas.
+- **SyncClient:** rewritten around push/pull replication; adoption
+  announcement on first connect; detach semantics honored (an upstream
+  delete is final until the upstream restores the edge).
+- **Tests:** two-instance flows in both directions (points, node
+  create/delete), detach, offline catch-up
+  (`client/sync_test.go`).
+
+Remaining, in rough priority order:
+
+1. Nested device boundaries (only the root boundary replicates today).
+2. Multi-hop chaining test (expected to work: each hop is independent).
+3. Per-replica retention overrides (replica streams are currently
+   unlimited; the resolution point exists in `maxMsgsForStream`).
+4. AuthZ tightening: shared token today; per-stream permissions via
+   auth callout.
+5. History sinks as durable stream consumers (Db client unchanged).
+6. Sync status points (lag, last-delivered); `SyncCount` currently
+   counts replication sessions.
+7. Frontend sync status UI.
+
 ## Phase Sketch (to be firmed up after Stage 2)
 
 1. **Transport:** leafnode server options (listen + remotes), or commit to the

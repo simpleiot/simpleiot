@@ -602,6 +602,32 @@ Implementation is broken down into 3 stages:
      filter-carrying consumer-create permission form
      (`$JS.API.CONSUMER.CREATE.<stream>.<consumer>.<filter>`) on the NATS
      version SIOT pins.
+   - Spike results (2026-08-06): JetStream sourcing across a leaf
+     connection with distinct JetStream domains works, including catch-up
+     after the sourced server restarts (only missed messages delivered);
+     see `store/leafnode_spike_test.go`. Chained (multi-hop) sourcing and
+     the consumer-create permission form remain to be verified.
+   - Initial implementation (2026-08-06,
+     [plan](../../plans/2026-08-06-stage3-jetstream-sync.md)) uses
+     durable-consumer replication over the existing upstream client
+     connection rather than sourcing: the sync client copies messages
+     between same-named streams subject-for-subject, acknowledging only
+     after the receiving side confirms the write, so reconnects resume
+     with only missed messages. This needs no leafnode listener and no
+     static JetStream domain configuration (domains are server config,
+     while instance identity is only known once the store initializes),
+     and it chains through intermediate instances naturally. Sourcing
+     over leaf connections remains the intended replacement once
+     identity/domain configuration is worked out.
+   - The receiving store consumes replica streams, merges tips into its
+     caches, and re-broadcasts changed tips on the core NATS wire
+     subjects tagged with a `Siot-Origin` header; a store never persists
+     a wire message tagged with a remote origin. After an offline gap,
+     broadcasts are held until the backlog drains and only final tips
+     are sent, so rules do not replay intermediate values.
+   - Deleting a device node on the hub now detaches it: the device does
+     not force itself back into the tree (the old hash sync re-created
+     it); only the hub can restore the edge.
 
 ## Consequences
 

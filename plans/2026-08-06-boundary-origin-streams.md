@@ -242,4 +242,4 @@ repo's production code).
 | ✓    | feat: cross-boundary node moves (Phase 4)                   | Done    |
 | ✓    | feat: retention and durability options (Phase 5)            | Done    |
 | ✓    | test/docs: coverage and cleanup (Phase 6)                   | Done    |
-| --   | docs: Stage 3 spike results in ADR-7 (Phase 7)              | Planned |
+| ✓    | docs: Stage 3 spike results in ADR-7 (Phase 7, sourcing)    | Done    |

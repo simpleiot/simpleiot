@@ -13,6 +13,16 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- sync: rewrite upstream sync on boundary-origin stream replication (ADR-7
+  Stage 3): durable-consumer replication in both directions with resumable
+  offline catch-up, adoption announcement on first connect, and no hash
+  tree walks
+- **breaking:** deleting a device node on the upstream now detaches it —
+  the device no longer re-creates itself; only the upstream can restore it
+- store: consume replica streams from other instances, merge them into the
+  caches with the ADR-7 tip rule, and re-broadcast changed tips locally
+  with a `Siot-Origin` header; remote-origin data is never written to
+  local origin streams, so sync cannot echo
 - store: add boundary resolution to the edge cache (`IsBoundary`,
   `OwningBoundary`) for the ADR-7 boundary-origin stream layout
 - store: reply once and stop processing when an edge point DB write fails

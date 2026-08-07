@@ -141,8 +141,9 @@ func (ec *EdgeCache) AllByType(nodeType string) []EdgeEntry {
 // points just written locally — into the cache, applying the ADR-7 tip
 // merge rule per point. origin is the instance that wrote the points.
 // typ may be "" when the writer did not include a nodeType point and
-// the edge is already known.
-func (ec *EdgeCache) MergeEdgePoints(up, down, typ, origin string, pts data.Points) {
+// the edge is already known. It reports whether any point became a new
+// tip.
+func (ec *EdgeCache) MergeEdgePoints(up, down, typ, origin string, pts data.Points) bool {
 	ec.mu.Lock()
 	defer ec.mu.Unlock()
 
@@ -169,6 +170,7 @@ func (ec *EdgeCache) MergeEdgePoints(up, down, typ, origin string, pts data.Poin
 	// copy-on-write so slices handed out by earlier lookups are not
 	// mutated underneath readers
 	merged := append(data.Points{}, entry.Points...)
+	changed := !found
 
 	for _, pIn := range pts {
 		if pIn.Key == "" {
@@ -193,11 +195,14 @@ func (ec *EdgeCache) MergeEdgePoints(up, down, typ, origin string, pts data.Poin
 			merged = append(merged, pIn)
 		}
 		entry.origins[k] = origin
+		changed = true
 	}
 
 	entry.Points = merged
 	ec.setByUp(entry)
 	ec.setByDown(entry)
+
+	return changed
 }
 
 // IsBoundary returns true if the node is a stream boundary: the
