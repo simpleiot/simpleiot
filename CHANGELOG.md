@@ -27,6 +27,9 @@ For more details or to discuss releases, please visit the
   durable consumers instead of the `up.>` wire subjects, so external
   history is gap-free across sync outages, instance restarts, and the
   client's own downtime (high-rate points still arrive over `phrup.>`)
+- test: the db client test starts a throwaway VictoriaMetrics instance
+  itself (skipped when the binary is not installed), replacing the
+  external-InfluxDB requirement, and verifies the point path end to end
 - store: add boundary resolution to the edge cache (`IsBoundary`,
   `OwningBoundary`) for the ADR-7 boundary-origin stream layout
 - store: reply once and stop processing when an edge point DB write fails
