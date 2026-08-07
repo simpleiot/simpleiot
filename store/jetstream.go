@@ -24,37 +24,72 @@ type Meta struct {
 	JWTKey  []byte `json:"jwtKey"`
 }
 
-// DbJetStream implements the store backend using NATS JetStream.
-// Each node gets its own stream (node-<nodeID>) containing both
-// node points and edge points. Current state is the tip of each
-// subject; full history is retained for time-series use.
+// DbJetStream implements the store backend using NATS JetStream with
+// boundary-origin streams (ADR-7): each (boundary, origin instance)
+// pair gets one stream holding both node points and edge points for
+// the nodes the boundary owns. Only the origin instance appends to a
+// stream. Current state is the merge of subject tips across the
+// streams for a boundary, held in the in-memory edge and point caches,
+// which are fully populated at startup and are the read path.
 type DbJetStream struct {
-	js         jetstream.JetStream
-	nc         *nats.Conn
-	metaKV     jetstream.KeyValue
-	meta       Meta
-	edgeCache  *EdgeCache
+	js        jetstream.JetStream
+	nc        *nats.Conn
+	metaKV    jetstream.KeyValue
+	meta      Meta
+	edgeCache *EdgeCache
+
 	pointMu    sync.RWMutex
-	pointCache map[string]data.Points // nodeID -> current points
+	pointCache map[string]data.Points // nodeID -> current point tips
+	// pointOrigin tracks which instance wrote each tip
+	// (nodeID -> "type|key" -> origin instance ID)
+	pointOrigin map[string]map[string]string
+
+	// streams caches handles for origin streams this instance has
+	// ensured, so the ensure path hits the JetStream API once per
+	// stream per process
+	streamMu sync.Mutex
+	streams  map[string]jetstream.Stream
 }
 
-// streamName converts a node ID to a JetStream stream name.
-// Stream names cannot contain dots, so we use dashes.
-func streamName(nodeID string) string {
-	return "node-" + nodeID
+// streamName returns the stream name for a (boundary, origin) pair.
+// Stream names cannot contain dots, so names use dashes.
+func streamName(boundaryID, originID string) string {
+	return "node-" + boundaryID + "-" + originID
 }
 
-// nodePointSubject returns the JetStream subject for a node point.
-func nodePointSubject(nodeID, typ, key string) string {
+// streamCaptureSubject returns the subject space a boundary-origin
+// stream captures. Subject spaces never overlap between streams
+// because both routing tokens are in every subject.
+func streamCaptureSubject(boundaryID, originID string) string {
+	return fmt.Sprintf("node.%v.%v.>", boundaryID, originID)
+}
+
+// streamBoundaryOrigin extracts the boundary and origin IDs from a
+// stream's capture subject. ok is false for streams that are not
+// boundary-origin streams (for example KV backing streams).
+func streamBoundaryOrigin(cfg jetstream.StreamConfig) (boundary, origin string, ok bool) {
+	if len(cfg.Subjects) != 1 {
+		return "", "", false
+	}
+	tok := strings.Split(cfg.Subjects[0], ".")
+	if len(tok) != 4 || tok[0] != "node" || tok[3] != ">" {
+		return "", "", false
+	}
+	return tok[1], tok[2], true
+}
+
+// nodePointSubject returns the storage subject for a node point.
+func nodePointSubject(boundaryID, originID, nodeID, typ, key string) string {
 	if key == "" {
 		key = "0"
 	}
-	return fmt.Sprintf("node.%v.p.%v.%v", nodeID, typ, key)
+	return fmt.Sprintf("node.%v.%v.%v.p.%v.%v", boundaryID, originID, nodeID, typ, key)
 }
 
-// edgePointSubject returns the JetStream subject for edge points.
-func edgePointSubject(parentID, childID string) string {
-	return fmt.Sprintf("node.%v.ep.%v", parentID, childID)
+// edgePointSubject returns the storage subject for edge points. Edges
+// are stored with the parent node's boundary.
+func edgePointSubject(boundaryID, originID, parentID, childID string) string {
+	return fmt.Sprintf("node.%v.%v.%v.ep.%v", boundaryID, originID, parentID, childID)
 }
 
 // NewJetStreamDb creates a new JetStream-backed store.
@@ -85,11 +120,13 @@ func NewJetStreamDb(nc *nats.Conn, rootID string) (*DbJetStream, error) {
 	}
 
 	db := &DbJetStream{
-		js:         js,
-		nc:         nc,
-		metaKV:     metaKV,
-		edgeCache:  NewEdgeCache(),
-		pointCache: make(map[string]data.Points),
+		js:          js,
+		nc:          nc,
+		metaKV:      metaKV,
+		edgeCache:   NewEdgeCache(),
+		pointCache:  make(map[string]data.Points),
+		pointOrigin: make(map[string]map[string]string),
+		streams:     make(map[string]jetstream.Stream),
 	}
 
 	// Load meta from KV
@@ -98,10 +135,13 @@ func NewJetStreamDb(nc *nats.Conn, rootID string) (*DbJetStream, error) {
 		return nil, fmt.Errorf("error loading meta: %v", err)
 	}
 
-	// Load edge cache from existing streams
-	err = db.loadEdgeCache()
+	// Mandatory cache pre-population: read every boundary-origin
+	// stream's subject tips into the edge and point caches before
+	// serving anything, so the caches are the read path and a partial
+	// entry can never be trusted
+	err = db.loadAllStreams()
 	if err != nil {
-		return nil, fmt.Errorf("error loading edge cache: %v", err)
+		return nil, fmt.Errorf("error loading streams: %v", err)
 	}
 
 	if db.meta.RootID == "" {
@@ -159,40 +199,115 @@ func (db *DbJetStream) initJwtKey() error {
 	return nil
 }
 
-// ensureStream creates a per-node stream if it doesn't already exist.
-func (db *DbJetStream) ensureStream(nodeID string) (jetstream.Stream, error) {
-	ctx := context.Background()
-	name := streamName(nodeID)
+// ensureOriginStream creates (or updates) this instance's origin stream
+// for a boundary. Local writes only ever go through origin streams;
+// Stage 3 adds a separate path for replica streams sourced from remote
+// origins, which are never published to directly.
+func (db *DbJetStream) ensureOriginStream(boundaryID string) (jetstream.Stream, error) {
+	return db.ensureOriginStreamFor(boundaryID, db.meta.RootID)
+}
 
+func (db *DbJetStream) ensureOriginStreamFor(boundaryID, originID string) (jetstream.Stream, error) {
+	name := streamName(boundaryID, originID)
+
+	db.streamMu.Lock()
+	s, ok := db.streams[name]
+	db.streamMu.Unlock()
+	if ok {
+		return s, nil
+	}
+
+	ctx := context.Background()
 	s, err := db.js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
 		Name:     name,
-		Subjects: []string{fmt.Sprintf("node.%v.>", nodeID)},
+		Subjects: []string{streamCaptureSubject(boundaryID, originID)},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error creating stream %v: %v", name, err)
 	}
 
+	db.streamMu.Lock()
+	db.streams[name] = s
+	db.streamMu.Unlock()
+
 	return s, nil
 }
 
-// getStream returns an existing stream for a node, or nil if it doesn't exist.
-func (db *DbJetStream) getStream(nodeID string) (jetstream.Stream, error) {
-	ctx := context.Background()
-	s, err := db.js.Stream(ctx, streamName(nodeID))
-	if err != nil {
-		if errors.Is(err, jetstream.ErrStreamNotFound) {
-			return nil, nil
-		}
-		return nil, err
+// mergePointTip merges a single point into the point cache, applying
+// the ADR-7 tip merge rule. It returns true if the point became the
+// current tip.
+func (db *DbJetStream) mergePointTip(nodeID string, pIn data.Point, origin string) bool {
+	if pIn.Key == "" {
+		pIn.Key = "0"
 	}
-	return s, nil
+	k := pIn.Type + "|" + pIn.Key
+
+	db.pointMu.Lock()
+	defer db.pointMu.Unlock()
+
+	origins := db.pointOrigin[nodeID]
+	if origins == nil {
+		origins = make(map[string]string)
+		db.pointOrigin[nodeID] = origins
+	}
+
+	pts := db.pointCache[nodeID]
+	for i, p := range pts {
+		if p.Type == pIn.Type && p.Key == pIn.Key {
+			if !tipWins(p.Time, origins[k], pIn.Time, origin) {
+				return false
+			}
+			// copy-on-write so slices handed out by getNodes are not
+			// mutated underneath readers
+			npts := append(data.Points{}, pts...)
+			npts[i] = pIn
+			db.pointCache[nodeID] = npts
+			origins[k] = origin
+			return true
+		}
+	}
+
+	db.pointCache[nodeID] = append(pts, pIn)
+	origins[k] = origin
+	return true
 }
 
-// nodePoints writes node points to JetStream, merging with existing data.
+// pointIsTip reports whether the point would become the current tip if
+// written now.
+func (db *DbJetStream) pointIsTip(nodeID string, pIn data.Point, origin string) bool {
+	if pIn.Key == "" {
+		pIn.Key = "0"
+	}
+	k := pIn.Type + "|" + pIn.Key
+
+	db.pointMu.RLock()
+	defer db.pointMu.RUnlock()
+
+	for _, p := range db.pointCache[nodeID] {
+		if p.Type == pIn.Type && p.Key == pIn.Key {
+			return tipWins(p.Time, db.pointOrigin[nodeID][k], pIn.Time, origin)
+		}
+	}
+	return true
+}
+
+// nodePoints writes node points to this instance's origin stream for
+// the node's owning boundary and updates the point cache.
 func (db *DbJetStream) nodePoints(id string, points data.Points) error {
 	points.Collapse()
 
-	s, err := db.ensureStream(id)
+	origin := db.meta.RootID
+	boundary := db.edgeCache.OwningBoundary(id, origin)
+
+	// backstop for the startup pre-population: on a cache miss, load
+	// the node's current points from JetStream before adding new ones,
+	// so the cache can never be seeded from a partial write
+	err := db.ensureNodePointsCached(boundary, id)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.ensureOriginStream(boundary)
 	if err != nil {
 		return err
 	}
@@ -207,45 +322,26 @@ func (db *DbJetStream) nodePoints(id string, points data.Points) error {
 			pIn.Key = "0"
 		}
 
-		subject := nodePointSubject(id, pIn.Type, pIn.Key)
-
-		// Check existing point
-		existing, err := s.GetLastMsgForSubject(ctx, subject)
-		if err != nil && !errors.Is(err, jetstream.ErrMsgNotFound) {
-			return fmt.Errorf("error getting last msg for %v: %v", subject, err)
+		if !db.pointIsTip(id, pIn, origin) {
+			log.Println("Ignoring node point due to timestamps:", id, pIn)
+			continue
 		}
 
-		if existing != nil {
-			// Decode existing point and compare timestamps
-			existingPts, decErr := data.DecodePoints(existing.Data)
-			if decErr == nil && len(existingPts) > 0 {
-				if existingPts[0].Time.After(pIn.Time) {
-					log.Println("Ignoring node point due to timestamps:", id, pIn)
-					continue
-				}
-			}
-		}
-
-		// Encode and publish
+		subject := nodePointSubject(boundary, origin, id, pIn.Type, pIn.Key)
 		pts := data.Points{pIn}
-		encoded := pts.Encode()
-		_, err = db.js.Publish(ctx, subject, encoded)
+		_, err = db.js.Publish(ctx, subject, pts.Encode())
 		if err != nil {
 			return fmt.Errorf("error publishing point to %v: %v", subject, err)
 		}
 
-		// Update point cache
-		db.pointMu.Lock()
-		cached := db.pointCache[id]
-		cached.Add(pIn)
-		db.pointCache[id] = cached
-		db.pointMu.Unlock()
+		db.mergePointTip(id, pIn, origin)
 	}
 
 	return nil
 }
 
-// edgePoints writes edge points to JetStream and updates the edge cache.
+// edgePoints writes edge points to JetStream and updates the edge
+// cache. Edges are stored with the parent node's boundary.
 func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) error {
 	points.Collapse()
 
@@ -265,14 +361,25 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 		parentID = "root"
 	}
 
-	// Ensure parent stream exists (edges stored under parent)
-	s, err := db.ensureStream(parentID)
+	origin := db.meta.RootID
+	var boundary string
+	if parentID == "root" {
+		// an instance root edge always lives in the root node's own
+		// boundary-origin stream, so a fresh instance starts with the
+		// single stream node-<rootID>-<rootID>
+		boundary = nodeID
+		origin = nodeID
+	} else {
+		boundary = db.edgeCache.OwningBoundary(parentID, origin)
+	}
+
+	s, err := db.ensureOriginStreamFor(boundary, origin)
 	if err != nil {
 		return err
 	}
 
 	ctx := context.Background()
-	subject := edgePointSubject(parentID, nodeID)
+	subject := edgePointSubject(boundary, origin, parentID, nodeID)
 
 	// Extract nodeType from points (kept in persisted edge points
 	// so it can be recovered on restart)
@@ -285,7 +392,7 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 		edgePoints = append(edgePoints, p)
 	}
 
-	// Load existing edge points
+	// Load existing edge points from this instance's own stream tip
 	var dbPoints data.Points
 	existing, err := s.GetLastMsgForSubject(ctx, subject)
 	if err != nil && !errors.Is(err, jetstream.ErrMsgNotFound) {
@@ -359,7 +466,7 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 
 	// a new edge must carry a nodeType point; check before publishing so
 	// the stream and edge cache cannot diverge
-	entry, ok := db.edgeCache.Get(parentID, nodeID)
+	_, ok := db.edgeCache.Get(parentID, nodeID)
 	if !ok && nodeType == "" {
 		return fmt.Errorf("node type must be sent with new edges")
 	}
@@ -371,53 +478,77 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 		return fmt.Errorf("error publishing edge points to %v: %v", subject, err)
 	}
 
-	// Update edge cache
-	if !ok {
-		entry = EdgeEntry{
-			Up:   parentID,
-			Down: nodeID,
-			Type: nodeType,
+	if !ok && parentID == "root" && nodeID != db.meta.RootID {
+		log.Println("inserting new root node, update root in meta")
+		_, err = db.metaKV.Put(ctx, "rootID", []byte(nodeID))
+		if err != nil {
+			return fmt.Errorf("error updating root id in meta: %v", err)
 		}
+		db.meta.RootID = nodeID
+	}
 
-		if parentID == "root" {
-			log.Println("inserting new root node, update root in meta")
-			_, err = db.metaKV.Put(ctx, "rootID", []byte(nodeID))
-			if err != nil {
-				return fmt.Errorf("error updating root id in meta: %v", err)
-			}
-			db.meta.RootID = nodeID
-		}
-	}
-	if nodeType != "" {
-		entry.Type = nodeType
-	}
-	entry.Points = writePoints
-	db.edgeCache.Set(entry)
+	db.edgeCache.MergeEdgePoints(parentID, nodeID, nodeType, origin, writePoints)
 
 	return nil
 }
 
-// loadNodePoints loads all current points for a node from JetStream.
-func (db *DbJetStream) loadNodePoints(nodeID string) (data.Points, error) {
-	s, err := db.getStream(nodeID)
-	if err != nil {
-		return nil, err
+// loadAllStreams populates the edge and point caches from the subject
+// tips of every boundary-origin stream.
+func (db *DbJetStream) loadAllStreams() error {
+	ctx := context.Background()
+
+	lister := db.js.ListStreams(ctx, jetstream.WithStreamListSubject("node.>"))
+	for si := range lister.Info() {
+		err := db.loadStream(si.Config)
+		if err != nil {
+			log.Printf("STORE: error loading stream %v: %v", si.Config.Name, err)
+		}
 	}
-	if s == nil {
-		return nil, nil
+
+	return lister.Err()
+}
+
+// loadStream merges one stream's subject tips into the edge and point
+// caches. It is safe to call concurrently with live writes and more
+// than once per stream (the tip merge is idempotent); Stage 3 uses this
+// same path when a replica stream appears at runtime.
+func (db *DbJetStream) loadStream(cfg jetstream.StreamConfig) error {
+	boundary, origin, ok := streamBoundaryOrigin(cfg)
+	if !ok {
+		// not a boundary-origin stream (e.g. a KV backing stream)
+		return nil
 	}
 
 	ctx := context.Background()
-
-	// Get stream info with subject filter to find all point subjects
-	filter := fmt.Sprintf("node.%v.p.>", nodeID)
-	info, err := s.Info(ctx, jetstream.WithSubjectFilter(filter))
+	s, err := db.js.Stream(ctx, cfg.Name)
 	if err != nil {
-		return nil, fmt.Errorf("error getting stream info for %v: %v", nodeID, err)
+		return err
 	}
 
-	var points data.Points
+	db.loadEdgeSubjects(s, origin, fmt.Sprintf("node.%v.%v.*.ep.>", boundary, origin))
+	db.loadPointSubjects(s, origin, fmt.Sprintf("node.%v.%v.*.p.>", boundary, origin))
+
+	return nil
+}
+
+// loadPointSubjects merges the tips of all node point subjects matching
+// filter into the point cache.
+func (db *DbJetStream) loadPointSubjects(s jetstream.Stream, origin, filter string) {
+	ctx := context.Background()
+
+	info, err := s.Info(ctx, jetstream.WithSubjectFilter(filter))
+	if err != nil {
+		log.Printf("error getting stream info for %v: %v", filter, err)
+		return
+	}
+
 	for subject := range info.State.Subjects {
+		// node.<boundary>.<origin>.<nodeID>.p.<type>.<key>
+		tok := strings.Split(subject, ".")
+		if len(tok) != 7 || tok[4] != "p" {
+			continue
+		}
+
 		msg, err := s.GetLastMsgForSubject(ctx, subject)
 		if err != nil {
 			log.Printf("error getting last msg for %v: %v", subject, err)
@@ -430,92 +561,108 @@ func (db *DbJetStream) loadNodePoints(nodeID string) (data.Points, error) {
 			continue
 		}
 
-		// Fill in type/key from subject if not set
-		// Subject format: node.<nodeID>.p.<type>.<key>
-		parts := strings.Split(subject, ".")
-		if len(parts) >= 5 {
-			for i := range pts {
-				if pts[i].Type == "" {
-					pts[i].Type = parts[3]
-				}
-				if pts[i].Key == "" {
-					pts[i].Key = parts[4]
-				}
+		for _, p := range pts {
+			if p.Type == "" {
+				p.Type = tok[5]
 			}
+			if p.Key == "" {
+				p.Key = tok[6]
+			}
+			db.mergePointTip(tok[3], p, origin)
 		}
-
-		points = append(points, pts...)
 	}
-
-	return points, nil
 }
 
-// loadEdgeCache populates the edge cache from all existing streams.
-func (db *DbJetStream) loadEdgeCache() error {
+// loadEdgeSubjects merges the tips of all edge point subjects matching
+// filter into the edge cache.
+func (db *DbJetStream) loadEdgeSubjects(s jetstream.Stream, origin, filter string) {
 	ctx := context.Background()
 
-	// List all streams with the node- prefix
-	streamLister := db.js.ListStreams(ctx)
-
-	for si := range streamLister.Info() {
-		name := si.Config.Name
-		if !strings.HasPrefix(name, "node-") {
-			continue
-		}
-
-		parentID := strings.TrimPrefix(name, "node-")
-
-		// Find edge subjects in this stream
-		filter := fmt.Sprintf("node.%v.ep.>", parentID)
-		info, err := db.js.Stream(ctx, name)
-		if err != nil {
-			log.Printf("error getting stream %v: %v", name, err)
-			continue
-		}
-
-		sInfo, err := info.Info(ctx, jetstream.WithSubjectFilter(filter))
-		if err != nil {
-			log.Printf("error getting stream info for %v: %v", name, err)
-			continue
-		}
-
-		for subject := range sInfo.State.Subjects {
-			// Subject format: node.<parentID>.ep.<childID>
-			parts := strings.Split(subject, ".")
-			if len(parts) < 4 {
-				continue
-			}
-			childID := parts[3]
-
-			msg, err := info.GetLastMsgForSubject(ctx, subject)
-			if err != nil {
-				log.Printf("error getting edge tip for %v: %v", subject, err)
-				continue
-			}
-
-			pts, err := data.DecodePoints(msg.Data)
-			if err != nil {
-				log.Printf("error decoding edge points from %v: %v", subject, err)
-				continue
-			}
-
-			// Determine node type from edge points or default
-			nodeType := ""
-			for _, p := range pts {
-				if p.Type == data.PointTypeNodeType {
-					nodeType = p.Txt()
-					break
-				}
-			}
-
-			db.edgeCache.Set(EdgeEntry{
-				Up:     parentID,
-				Down:   childID,
-				Type:   nodeType,
-				Points: pts,
-			})
-		}
+	info, err := s.Info(ctx, jetstream.WithSubjectFilter(filter))
+	if err != nil {
+		log.Printf("error getting stream info for %v: %v", filter, err)
+		return
 	}
+
+	for subject := range info.State.Subjects {
+		// node.<boundary>.<origin>.<parentID>.ep.<childID>
+		tok := strings.Split(subject, ".")
+		if len(tok) != 6 || tok[4] != "ep" {
+			continue
+		}
+		parentID, childID := tok[3], tok[5]
+
+		msg, err := s.GetLastMsgForSubject(ctx, subject)
+		if err != nil {
+			log.Printf("error getting edge tip for %v: %v", subject, err)
+			continue
+		}
+
+		pts, err := data.DecodePoints(msg.Data)
+		if err != nil {
+			log.Printf("error decoding edge points from %v: %v", subject, err)
+			continue
+		}
+
+		nodeType := ""
+		for _, p := range pts {
+			if p.Type == data.PointTypeNodeType {
+				nodeType = p.Txt()
+				break
+			}
+		}
+
+		db.edgeCache.MergeEdgePoints(parentID, childID, nodeType, origin, pts)
+	}
+}
+
+// loadNodePoints merges one node's current points, read from all
+// streams of its owning boundary, into the point cache.
+func (db *DbJetStream) loadNodePoints(boundary, nodeID string) error {
+	ctx := context.Background()
+
+	lister := db.js.ListStreams(ctx,
+		jetstream.WithStreamListSubject(fmt.Sprintf("node.%v.>", boundary)))
+
+	for si := range lister.Info() {
+		b, o, ok := streamBoundaryOrigin(si.Config)
+		if !ok {
+			continue
+		}
+
+		s, err := db.js.Stream(ctx, si.Config.Name)
+		if err != nil {
+			log.Printf("error getting stream %v: %v", si.Config.Name, err)
+			continue
+		}
+
+		db.loadPointSubjects(s, o, fmt.Sprintf("node.%v.%v.%v.p.>", b, o, nodeID))
+	}
+
+	return lister.Err()
+}
+
+// ensureNodePointsCached makes sure the point cache holds an entry for
+// the node, loading current points from JetStream on a miss. After
+// this returns, an empty entry means the node has no points.
+func (db *DbJetStream) ensureNodePointsCached(boundary, id string) error {
+	db.pointMu.RLock()
+	_, ok := db.pointCache[id]
+	db.pointMu.RUnlock()
+	if ok {
+		return nil
+	}
+
+	err := db.loadNodePoints(boundary, id)
+	if err != nil {
+		return err
+	}
+
+	db.pointMu.Lock()
+	if _, ok := db.pointCache[id]; !ok {
+		db.pointCache[id] = data.Points{}
+	}
+	db.pointMu.Unlock()
 
 	return nil
 }
@@ -587,23 +734,22 @@ func (db *DbJetStream) getNodes(_ any, parent, id, typ string, includeDel bool) 
 			}
 		}
 
-		// Load node points from cache, falling back to JetStream
+		// The cache is the read path; a miss means the node has not
+		// been seen since startup, so load it once as a backstop
 		db.pointMu.RLock()
 		points, ok := db.pointCache[edge.Down]
 		db.pointMu.RUnlock()
 		if !ok {
-			var err error
-			points, err = db.loadNodePoints(edge.Down)
+			boundary := db.edgeCache.OwningBoundary(edge.Down, db.meta.RootID)
+			err := db.ensureNodePointsCached(boundary, edge.Down)
 			if err != nil {
 				log.Printf("error loading node points for %v: %v", edge.Down, err)
 			}
-			if points != nil {
-				db.pointMu.Lock()
-				db.pointCache[edge.Down] = points
-				db.pointMu.Unlock()
-			}
+			db.pointMu.RLock()
+			points = db.pointCache[edge.Down]
+			db.pointMu.RUnlock()
 		}
-		ne.Points = points
+		ne.Points = append(data.Points{}, points...)
 
 		ret = append(ret, ne)
 	}
@@ -675,6 +821,10 @@ func (db *DbJetStream) initRoot(rootID string) (string, error) {
 		rootID = uuid.New().String()
 	}
 
+	// set the instance identity before any writes so boundary and
+	// origin routing resolve correctly during initialization
+	db.meta.RootID = rootID
+
 	// Create root node edge
 	err := db.edgePoints(rootID, "root", data.Points{
 		data.NewPointFloat(data.PointTypeTombstone, "", 0),
@@ -721,7 +871,7 @@ func (db *DbJetStream) initRoot(rootID string) (string, error) {
 func (db *DbJetStream) reset() error {
 	ctx := context.Background()
 
-	// Delete all node- streams
+	// Delete all boundary-origin streams
 	streamLister := db.js.ListStreams(ctx)
 	for si := range streamLister.Info() {
 		if strings.HasPrefix(si.Config.Name, "node-") {
@@ -742,7 +892,11 @@ func (db *DbJetStream) reset() error {
 	db.edgeCache.Reset()
 	db.pointMu.Lock()
 	db.pointCache = make(map[string]data.Points)
+	db.pointOrigin = make(map[string]map[string]string)
 	db.pointMu.Unlock()
+	db.streamMu.Lock()
+	db.streams = make(map[string]jetstream.Stream)
+	db.streamMu.Unlock()
 
 	// Preserve root ID and re-initialize
 	db.meta.RootID, err = db.initRoot(db.meta.RootID)

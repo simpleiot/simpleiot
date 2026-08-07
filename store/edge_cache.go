@@ -12,6 +12,10 @@ type EdgeEntry struct {
 	Down   string
 	Type   string
 	Points data.Points
+	// origins tracks which instance wrote the current tip of each
+	// point ("type|key" -> origin instance ID) so MergeEdgePoints can
+	// apply the ADR-7 tie-break deterministically
+	origins map[string]string
 }
 
 // IsTombstone returns true if the edge is marked as deleted
@@ -131,6 +135,69 @@ func (ec *EdgeCache) AllByType(nodeType string) []EdgeEntry {
 		}
 	}
 	return result
+}
+
+// MergeEdgePoints merges an edge point set — a stream subject tip, or
+// points just written locally — into the cache, applying the ADR-7 tip
+// merge rule per point. origin is the instance that wrote the points.
+// typ may be "" when the writer did not include a nodeType point and
+// the edge is already known.
+func (ec *EdgeCache) MergeEdgePoints(up, down, typ, origin string, pts data.Points) {
+	ec.mu.Lock()
+	defer ec.mu.Unlock()
+
+	var entry EdgeEntry
+	found := false
+	for _, e := range ec.byUp[up] {
+		if e.Down == down {
+			entry = e
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		entry = EdgeEntry{Up: up, Down: down}
+	}
+	if entry.origins == nil {
+		entry.origins = make(map[string]string)
+	}
+	if typ != "" {
+		entry.Type = typ
+	}
+
+	// copy-on-write so slices handed out by earlier lookups are not
+	// mutated underneath readers
+	merged := append(data.Points{}, entry.Points...)
+
+	for _, pIn := range pts {
+		if pIn.Key == "" {
+			pIn.Key = "0"
+		}
+		k := pIn.Type + "|" + pIn.Key
+
+		idx := -1
+		for i, p := range merged {
+			if p.Type == pIn.Type && p.Key == pIn.Key {
+				idx = i
+				break
+			}
+		}
+
+		if idx >= 0 {
+			if !tipWins(merged[idx].Time, entry.origins[k], pIn.Time, origin) {
+				continue
+			}
+			merged[idx] = pIn
+		} else {
+			merged = append(merged, pIn)
+		}
+		entry.origins[k] = origin
+	}
+
+	entry.Points = merged
+	ec.setByUp(entry)
+	ec.setByDown(entry)
 }
 
 // IsBoundary returns true if the node is a stream boundary: the

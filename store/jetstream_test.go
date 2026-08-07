@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -12,18 +13,13 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-func newTestJsDb(t *testing.T) (*DbJetStream, func()) {
+func newTestNatsServer(t *testing.T, storeDir string) (*server.Server, *nats.Conn) {
 	t.Helper()
-
-	tmpDir, err := os.MkdirTemp("", "siot-js-test-*")
-	if err != nil {
-		t.Fatal("Error creating temp dir:", err)
-	}
 
 	opts := &server.Options{
 		Port:      -1,
 		JetStream: true,
-		StoreDir:  tmpDir,
+		StoreDir:  storeDir,
 		NoSigs:    true,
 	}
 
@@ -41,6 +37,19 @@ func newTestJsDb(t *testing.T) (*DbJetStream, func()) {
 	if err != nil {
 		t.Fatal("Error connecting to NATS:", err)
 	}
+
+	return ns, nc
+}
+
+func newTestJsDb(t *testing.T) (*DbJetStream, func()) {
+	t.Helper()
+
+	tmpDir, err := os.MkdirTemp("", "siot-js-test-*")
+	if err != nil {
+		t.Fatal("Error creating temp dir:", err)
+	}
+
+	ns, nc := newTestNatsServer(t, tmpDir)
 
 	db, err := NewJetStreamDb(nc, "")
 	if err != nil {
@@ -282,6 +291,105 @@ func TestDbJetStreamUp(t *testing.T) {
 
 	if ups[0] != "root" {
 		t.Fatal("ups, wrong ID for root:", ups[0])
+	}
+}
+
+// TestDbJetStreamRestart re-opens the store against existing streams
+// after a full NATS server restart, then verifies config points are
+// intact, and that a write and read work against the reloaded caches.
+func TestDbJetStreamRestart(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "siot-js-test-*")
+	if err != nil {
+		t.Fatal("Error creating temp dir:", err)
+	}
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	ns, nc := newTestNatsServer(t, tmpDir)
+
+	db, err := NewJetStreamDb(nc, "")
+	if err != nil {
+		t.Fatal("Error creating JetStream db:", err)
+	}
+
+	rootID := db.rootNodeID()
+
+	// create a group node with a description
+	groupID := uuid.New().String()
+	err = db.edgePoints(groupID, rootID, data.Points{
+		data.NewPointFloat(data.PointTypeTombstone, "", 0),
+		data.NewPointString(data.PointTypeNodeType, "", data.NodeTypeGroup),
+	})
+	if err != nil {
+		t.Fatal("Error creating group edge:", err)
+	}
+
+	err = db.nodePoints(groupID, data.Points{
+		data.NewPointString(data.PointTypeDescription, "", "pump house"),
+	})
+	if err != nil {
+		t.Fatal("Error writing group points:", err)
+	}
+
+	// full server restart on the same store directory
+	nc.Close()
+	ns.Shutdown()
+	ns.WaitForShutdown()
+
+	ns, nc = newTestNatsServer(t, tmpDir)
+	defer func() {
+		nc.Close()
+		ns.Shutdown()
+	}()
+
+	db, err = NewJetStreamDb(nc, "")
+	if err != nil {
+		t.Fatal("Error re-opening JetStream db:", err)
+	}
+
+	if db.rootNodeID() != rootID {
+		t.Fatalf("root ID changed across restart: %v != %v",
+			db.rootNodeID(), rootID)
+	}
+
+	// config points must be intact after the restart
+	nodes, err := db.getNodes(nil, rootID, groupID, "", false)
+	if err != nil {
+		t.Fatal("Error getting group node:", err)
+	}
+	if len(nodes) < 1 {
+		t.Fatal("group node not found after restart")
+	}
+	if nodes[0].Desc() != "pump house" {
+		t.Fatal("group description lost after restart, got:", nodes[0].Desc())
+	}
+
+	// this was the cache poisoning bug: the first write after restart
+	// seeded the cache and the config points vanished until the next
+	// restart — write a point, then verify config is still there
+	err = db.nodePoints(groupID, data.Points{
+		data.NewPointFloat(data.PointTypeValue, "", 42),
+	})
+	if err != nil {
+		t.Fatal("Error writing point after restart:", err)
+	}
+
+	nodes, err = db.getNodes(nil, rootID, groupID, "", false)
+	if err != nil {
+		t.Fatal("Error getting group node after write:", err)
+	}
+	if nodes[0].Desc() != "pump house" {
+		t.Fatal("config points lost after first write, got:", nodes[0].Desc())
+	}
+	v, _ := nodes[0].Points.Value(data.PointTypeValue, "")
+	if v != 42 {
+		t.Fatal("new point not visible after write, got:", v)
+	}
+
+	// the fresh instance should have a single boundary-origin stream
+	// node-<rootID>-<rootID> holding everything
+	_, err = db.js.Stream(context.Background(), streamName(rootID, rootID))
+	if err != nil {
+		t.Fatal("expected stream node-<rootID>-<rootID> to exist:", err)
 	}
 }
 

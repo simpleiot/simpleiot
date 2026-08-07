@@ -238,7 +238,7 @@ repo's production code).
 | ---- | ----------------------------------------------------------- | ------- |
 | ✓    | fix: edge handler reply and edge validation order (Phase 1) | Done    |
 | ✓    | feat: boundary resolution in edge cache (Phase 2)           | Done    |
-| --   | feat: boundary-origin stream layout (Phase 3)               | Planned |
+| ✓    | feat: boundary-origin stream layout (Phase 3)               | Done    |
 | --   | feat: cross-boundary node moves (Phase 4)                   | Planned |
 | --   | feat: retention and durability options (Phase 5)            | Planned |
 | --   | test/docs: coverage and cleanup (Phase 6)                   | Planned |

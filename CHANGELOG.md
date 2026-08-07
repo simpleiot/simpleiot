@@ -18,6 +18,12 @@ For more details or to discuss releases, please visit the
 - store: reply once and stop processing when an edge point DB write fails
 - store: validate that new edges carry a `nodeType` point before writing to
   JetStream, so the stream and edge cache cannot diverge
+- store: move to boundary-origin streams (`node-<boundaryID>-<originID>`):
+  streams are created per sync/AuthZ boundary rather than per node, subjects
+  carry both routing tokens, and current state is the merge of subject tips
+  with a deterministic origin tie-break (ADR-7 Stage 2 revision)
+- store: pre-populate the point cache at startup and load on cache miss,
+  fixing config points being lost after the first write following a restart
 - replace SQLite store with JetStream per-node streams (ADR-7 Stage 2)
 - remove SQLite dependency and hash tree
 - add in-memory point cache and edge cache for fast lookups
