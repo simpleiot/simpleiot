@@ -232,6 +232,29 @@ repo's production code).
 4. Manual: `siot_run`, create/edit/delete/move nodes, verify persistence across
    restart
 
+## Retrospective (2026-08-07)
+
+All phases implemented in one pass, suite green after each phase. Two
+lessons worth keeping:
+
+1. **Run tests the way CI does.** Package tests share fixed NATS ports
+   and data directories, so a plain `go test ./...` runs packages in
+   parallel and they collide, producing failures that look like
+   regressions. CI serializes with `-p=1`; use that locally. The first
+   Phase 1 verification lost time to this before the baseline
+   comparison (stash, clean-tree run, repeated runs) showed the only
+   real failure was a pre-existing flaky sync test.
+
+2. **Moves finalize on the tombstone leg.** The plan scoped subject
+   migration to "new or undeleted" edges, but SIOT's standard move is
+   add-new-edge then tombstone-old-edge — and it is the tombstone write
+   that settles ownership (a node briefly under two boundaries resolves
+   to the root boundary until the old edge dies). Triggering only on
+   new/undelete would have stranded subjects in that transient
+   location. The implementation triggers on any tombstone transition
+   and skips migration for fully deleted nodes so plain deletions do
+   not churn.
+
 ## Commits
 
 | Hash | Description                                                 | Status  |

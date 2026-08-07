@@ -350,6 +350,46 @@ Remaining, in rough priority order:
    counts replication sessions.
 7. Frontend sync status UI.
 
+## Retrospective (2026-08-07)
+
+The initial implementation followed the Stage 2 rework in the same
+effort, and the seams folded into that plan were all used — the origin
+parameter, per-stream cache loading, and the merge tie-break dropped in
+without rework. Findings worth keeping:
+
+1. **The sourcing spike passed, but domains blocked v1.** JetStream
+   sourcing across a leaf connection with distinct domains works,
+   including restart catch-up (`store/leafnode_spike_test.go`). It was
+   still not used for the first implementation: JetStream domains are
+   static server configuration, while a SIOT instance only learns its
+   identity (root ID) after the store initializes. Durable-consumer
+   replication over the existing client connection avoids the ordering
+   problem entirely. Revisit sourcing once identity can drive server
+   configuration (for example, persisted before the NATS server
+   starts).
+
+2. **Replicated streams contain instance-local state.** A device's
+   origin stream carries its own `root` edge
+   (`node.X.X.root.ep.X`); merging that on the hub would create a
+   second root and break tree traversal and auth path checks. Edges
+   with the virtual `root` parent are instance-local by definition and
+   are never merged from a replica. Lesson: reason through what is
+   actually in a stream being copied — single-instance tests cannot
+   surface this class of defect.
+
+3. **The client manager filters own-node points with an empty
+   `Origin`.** A test (or any caller) changing a client's
+   configuration must set `Origin` on the point, as UI edits do;
+   otherwise the manager assumes the client wrote the point itself and
+   drops it. This cost a debugging cycle on the offline catch-up test.
+
+4. **The model deletes more than it adds.** Hash walks, tree pushes,
+   and per-node remote subscriptions were replaced by two symmetric
+   copy pumps, and echo prevention became structural (no instance
+   writes remote data into its own streams) rather than a runtime
+   discipline. The catch-up gating fell out of the ordered consumer's
+   pending count.
+
 ## Phase Sketch (to be firmed up after Stage 2)
 
 1. **Transport:** leafnode server options (listen + remotes), or commit to the
