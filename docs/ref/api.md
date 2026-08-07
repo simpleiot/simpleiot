@@ -64,9 +64,6 @@ the subject.
       should not do this.
   - `up.<upstreamId>.<nodeId>.<parentId>.<type>.<key>`
     - edge points rebroadcast at every upstream node ID.
-  - `history.<nodeId>`
-    - Request/response - payload is a JSON-encoded `HistoryQuery` struct.
-      Returns a JSON-encoded `data.HistoryResult`.
 - Legacy APIs that are being deprecated
   - `node.<id>.not`
     - used when a node sends a [notification](./notifications.md) (typically a
