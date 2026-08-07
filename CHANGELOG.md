@@ -13,6 +13,10 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- frontend: the signal generator summary line now reads the value from the
+  configured destination point type and key instead of always reading
+  `value`, so generators writing to a custom point type (for example
+  `volt`) show a live reading rather than a constant `0`
 - sync: rewrite upstream sync on boundary-origin stream replication (ADR-7
   Stage 3): durable-consumer replication in both directions with resumable
   offline catch-up, adoption announcement on first connect, and no hash

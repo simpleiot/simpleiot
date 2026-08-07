@@ -15,8 +15,21 @@ import UI.ViewIf exposing (viewIf)
 view : NodeOptions msg -> Element msg
 view o =
     let
+        -- the generated points land on the destination point type/key, which
+        -- defaults to "value" when not configured (see client/signal-generator.go)
+        destPointType =
+            case Point.getText o.node.points Point.typeDestination Point.keyPointType of
+                "" ->
+                    Point.typeValue
+
+                typ ->
+                    typ
+
+        destPointKey =
+            Point.getText o.node.points Point.typeDestination Point.keyPointKey
+
         value =
-            Point.getValue o.node.points Point.typeValue ""
+            Point.getValue o.node.points destPointType destPointKey
 
         valueText =
             String.fromFloat (Round.roundNum 2 value)
