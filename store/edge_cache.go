@@ -133,6 +133,87 @@ func (ec *EdgeCache) AllByType(nodeType string) []EdgeEntry {
 	return result
 }
 
+// IsBoundary returns true if the node is a stream boundary: the
+// instance root node, or a device-type node, which corresponds to a
+// potentially synced remote instance (see ADR-7 boundary-origin
+// streams). rootID is the local instance root node ID.
+func (ec *EdgeCache) IsBoundary(id, rootID string) bool {
+	ec.mu.RLock()
+	defer ec.mu.RUnlock()
+
+	return ec.isBoundary(id, rootID)
+}
+
+// isBoundary must be called with ec.mu held.
+func (ec *EdgeCache) isBoundary(id, rootID string) bool {
+	if id == rootID {
+		return true
+	}
+
+	// a node's type is the same on every parent edge, so any entry,
+	// tombstoned or not, answers the question
+	for _, e := range ec.byDown[id] {
+		if e.Type == data.NodeTypeDevice {
+			return true
+		}
+	}
+
+	return false
+}
+
+// OwningBoundary returns the boundary node that owns the given node:
+// the nearest boundary reachable walking up undeleted edges. A boundary
+// node is owned by itself. A node reachable from no boundary, or from
+// more than one, is owned by the instance root boundary. The walk stops
+// at the first boundary on each path, so nodes inside a nested boundary
+// belong to the inner one. rootID is the local instance root node ID.
+func (ec *EdgeCache) OwningBoundary(id, rootID string) string {
+	ec.mu.RLock()
+	defer ec.mu.RUnlock()
+
+	if ec.isBoundary(id, rootID) {
+		return id
+	}
+
+	boundaries := make(map[string]bool)
+	visited := map[string]bool{id: true}
+
+	var walk func(n string)
+	walk = func(n string) {
+		for _, e := range ec.byDown[n] {
+			if e.IsTombstone() {
+				continue
+			}
+			up := e.Up
+			if up == "root" {
+				// top of the tree; only the instance root has the
+				// virtual "root" parent, and it is a boundary itself,
+				// so normally this is unreachable — resolve to root
+				boundaries[rootID] = true
+				continue
+			}
+			if visited[up] {
+				continue
+			}
+			visited[up] = true
+			if ec.isBoundary(up, rootID) {
+				boundaries[up] = true
+				continue
+			}
+			walk(up)
+		}
+	}
+	walk(id)
+
+	if len(boundaries) == 1 {
+		for b := range boundaries {
+			return b
+		}
+	}
+
+	return rootID
+}
+
 // Reset clears all entries from the cache.
 func (ec *EdgeCache) Reset() {
 	ec.mu.Lock()

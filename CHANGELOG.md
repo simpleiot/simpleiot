@@ -13,6 +13,8 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- store: add boundary resolution to the edge cache (`IsBoundary`,
+  `OwningBoundary`) for the ADR-7 boundary-origin stream layout
 - store: reply once and stop processing when an edge point DB write fails
 - store: validate that new edges carry a `nodeType` point before writing to
   JetStream, so the stream and edge cache cannot diverge
