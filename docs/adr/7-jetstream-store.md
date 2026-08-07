@@ -1,7 +1,8 @@
 # JetStream SIOT Store
 
-- Author: Cliff Brake, last updated: 2026-03-17
-- Status: in progress (stages 1-2 complete)
+- Author: Cliff Brake, last updated: 2026-08-07
+- Status: in progress (stages 1-2 complete; stage 3 initial implementation
+  complete, follow-on work remaining)
 
 ## Problem
 
@@ -425,18 +426,26 @@ the best approach.
 
 ### Questions
 
+Still open:
+
 - How chatty is the NATS Leaf-node protocol? Is it efficient enough to use over
-  low-bandwidth Cat-M cellular connections (~20-100Kbps)?
-- Is it practical to have 2 streams for every node? A typical edge device may
-  have 30 nodes, so this is 60 streams to synchronize. Is the overhead to source
-  this many nodes over a leaf connection prohibitive?
-- Would it make sense to create streams at the device/instance boundaries rather
-  than node boundaries?
-  - This may limit our AuthZ capabilities where we want to give some users
-    access to only part of a cloud instance.
-- How robust is the JetStream store compared to SQLite in events like
-  [power loss](https://www.sqlite.org/transactional.html)?
+  low-bandwidth Cat-M cellular connections (~20-100Kbps)? Bandwidth on
+  constrained links has not been measured.
 - Are there any other features of NATS/JetStream that we should be considering?
+
+Resolved by the 2026-08-06 revision:
+
+- ~~Is it practical to have 2 streams for every node?~~ Per-node streams were
+  replaced by boundary-origin streams; stream count now scales with instance
+  count rather than fleet node count.
+- ~~Would it make sense to create streams at the device/instance boundaries
+  rather than node boundaries?~~ Yes — this is the adopted model. AuthZ within
+  an instance is preserved because boundaries fall where authorization already
+  happens (devices and groups).
+- ~~How robust is the JetStream store compared to SQLite in events like power
+  loss?~~ The file store fsyncs on a 2-minute interval by default, comparable
+  to the prior SQLite WAL exposure; `--storeSyncInterval` shortens the window
+  or forces an fsync on every write.
 
 ### Stream Granularity and Synchronization Model (2026-08-06 revision)
 
@@ -539,7 +548,7 @@ Implementation is broken down into 3 stages:
    with per-node streams
    ([plan](../../plans/2026-03-17-implement-the-next-stage-of-adr-7.md),
    branch `feat/js-store`); layout revision to boundary-origin streams
-   **COMPLETE** except the Stage 3 prerequisite spikes
+   **COMPLETE**
    ([plan](../../plans/2026-08-06-boundary-origin-streams.md)). See the
    Stream Granularity and Synchronization Model section for the analysis
    behind the revision.
@@ -573,7 +582,10 @@ Implementation is broken down into 3 stages:
      on startup by reading stream tips.
    - Hash tree removed; JetStream sequence numbers replace it.
    - SQLite removed entirely; migration via `siot export`/`siot import`.
-1. Use JetStream to sync between systems
+1. Use JetStream to sync between systems — initial implementation
+   **COMPLETE** ([plan](../../plans/2026-08-06-stage3-jetstream-sync.md),
+   branch `feat/js-store-boundary-stream`), with follow-on work remaining
+   (see the end of this section).
    - Each instance runs its own NATS server and owns its origin streams. The
      single-writer invariant holds globally: instance R appends only to
      `inst-*-R` streams.
@@ -630,6 +642,62 @@ Implementation is broken down into 3 stages:
    - Deleting a device node on the hub now detaches it: the device does
      not force itself back into the tree (the old hash sync re-created
      it); only the hub can restore the edge.
+   - Follow-on work is listed in the Remaining Work section below.
+
+## Remaining Work
+
+Stage 3 is functional end to end — two instances replicate in both
+directions, survive disconnection, and converge — but the items below are
+still outstanding. They are grouped by area and roughly ordered by priority
+within each group. The Stage 3
+[plan](../../plans/2026-08-06-stage3-jetstream-sync.md) tracks progress.
+
+**Sync coverage**
+
+1. Nested device boundaries: only the root boundary replicates today, so a
+   device beneath another device's boundary does not yet sync.
+2. Multi-hop chaining test: each hop is independent and expected to work,
+   but this is unverified.
+3. Nodes mirrored across device boundaries: a node reachable from more than
+   one boundary resolves to the instance root boundary. How mirroring
+   should behave across a sync boundary is an open design point (see the
+   Stream Granularity section).
+4. Moving a node between boundaries: requires republishing subject tips
+   into the new stream and purging the old subjects. Not implemented.
+
+**Transport**
+
+5. JetStream sourcing over leaf connections remains the intended
+   replacement for durable-consumer replication, pending a way to drive
+   server domain configuration from instance identity (identity is known
+   only after the store initializes).
+6. Chained (multi-hop) sourcing is unverified; the single-hop spike passed
+   (`store/leafnode_spike_test.go`).
+
+**Security**
+
+7. AuthZ tightening: instances share a token today. The target is
+   per-stream JetStream permissions issued dynamically via NATS auth
+   callout, so a device may replicate `inst-X-*` and export only
+   `inst-X-X`.
+8. The filter-carrying consumer-create permission form
+   (`$JS.API.CONSUMER.CREATE.<stream>.<consumer>.<filter>`) is unverified
+   on the NATS version SIOT pins. Item 7 depends on it.
+
+**Operations and observability**
+
+9. Per-replica retention overrides: replica streams are currently
+   unlimited. The resolution point exists in `maxMsgsForStream`.
+10. History sinks: the Db client consumes boundary-origin streams with a
+    durable consumer, so node points are gap-free across restarts
+    (`client/db.go`), and external sinks can follow the same pattern.
+    Remaining: edge points are excluded by the consumer filter and are not
+    stored, and sink lag is not surfaced. High-rate (`phrup`) data stays a
+    core NATS subscription by design.
+11. Sync status points: per-replica lag and last-delivered sequence.
+    `SyncCount` currently counts replication sessions.
+12. Frontend sync status UI: surface lag rather than the former hash and
+    `SyncCount` values.
 
 ## Consequences
 
