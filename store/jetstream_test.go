@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/simpleiot/simpleiot/data"
 )
 
@@ -390,6 +391,192 @@ func TestDbJetStreamRestart(t *testing.T) {
 	_, err = db.js.Stream(context.Background(), streamName(rootID, rootID))
 	if err != nil {
 		t.Fatal("expected stream node-<rootID>-<rootID> to exist:", err)
+	}
+}
+
+// streamSubjectCount returns how many subjects matching filter exist in
+// the named stream, 0 if the stream does not exist.
+func streamSubjectCount(t *testing.T, db *DbJetStream, name, filter string) int {
+	t.Helper()
+	ctx := context.Background()
+
+	s, err := db.js.Stream(ctx, name)
+	if err != nil {
+		return 0
+	}
+	info, err := s.Info(ctx, jetstream.WithSubjectFilter(filter))
+	if err != nil {
+		t.Fatal("Error getting stream info:", err)
+	}
+	return len(info.State.Subjects)
+}
+
+// mkTestNode creates a node with an edge and optional description.
+func mkTestNode(t *testing.T, db *DbJetStream, parent, id, typ, desc string) {
+	t.Helper()
+	err := db.edgePoints(id, parent, data.Points{
+		data.NewPointFloat(data.PointTypeTombstone, "", 0),
+		data.NewPointString(data.PointTypeNodeType, "", typ),
+	})
+	if err != nil {
+		t.Fatalf("Error creating %v edge: %v", id, err)
+	}
+	if desc != "" {
+		err = db.nodePoints(id, data.Points{
+			data.NewPointString(data.PointTypeDescription, "", desc),
+		})
+		if err != nil {
+			t.Fatalf("Error writing %v points: %v", id, err)
+		}
+	}
+}
+
+func TestDbJetStreamCrossBoundaryMove(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
+
+	rootID := db.rootNodeID()
+
+	devX := uuid.New().String()
+	devY := uuid.New().String()
+	sensor := uuid.New().String()
+
+	mkTestNode(t, db, rootID, devX, data.NodeTypeDevice, "device X")
+	mkTestNode(t, db, rootID, devY, data.NodeTypeDevice, "device Y")
+	mkTestNode(t, db, devX, sensor, data.NodeTypeVariable, "sensor 1")
+
+	// capture the original description timestamp; it must survive the
+	// move unchanged
+	nodes, err := db.getNodes(nil, devX, sensor, "", false)
+	if err != nil || len(nodes) < 1 {
+		t.Fatal("Error getting sensor:", err)
+	}
+	descBefore, ok := nodes[0].Points.Find(data.PointTypeDescription, "")
+	if !ok {
+		t.Fatal("description point missing")
+	}
+
+	// sensor subjects live in device X's boundary stream
+	xStream := streamName(devX, rootID)
+	yStream := streamName(devY, rootID)
+	if streamSubjectCount(t, db, xStream, "node."+devX+"."+rootID+"."+sensor+".>") == 0 {
+		t.Fatal("sensor subjects not in device X stream before move")
+	}
+
+	// move: add edge under Y, tombstone edge under X
+	err = db.edgePoints(sensor, devY, data.Points{
+		data.NewPointFloat(data.PointTypeTombstone, "", 0),
+		data.NewPointString(data.PointTypeNodeType, "", data.NodeTypeVariable),
+	})
+	if err != nil {
+		t.Fatal("Error adding new edge:", err)
+	}
+	err = db.edgePoints(sensor, devX, data.Points{
+		data.NewPointFloat(data.PointTypeTombstone, "", 1),
+	})
+	if err != nil {
+		t.Fatal("Error tombstoning old edge:", err)
+	}
+
+	// sensor subjects now live in device Y's stream only
+	if streamSubjectCount(t, db, yStream, "node."+devY+"."+rootID+"."+sensor+".>") == 0 {
+		t.Fatal("sensor subjects not in device Y stream after move")
+	}
+	if n := streamSubjectCount(t, db, xStream, "node."+devX+"."+rootID+"."+sensor+".>"); n != 0 {
+		t.Fatal("sensor subjects remain in device X stream after move:", n)
+	}
+
+	// node reads back under Y with the original point timestamp
+	nodes, err = db.getNodes(nil, devY, sensor, "", false)
+	if err != nil || len(nodes) < 1 {
+		t.Fatal("Error getting sensor under Y:", err)
+	}
+	descAfter, ok := nodes[0].Points.Find(data.PointTypeDescription, "")
+	if !ok {
+		t.Fatal("description point missing after move")
+	}
+	if !descAfter.Time.Equal(descBefore.Time) {
+		t.Fatalf("description timestamp changed in move: %v != %v",
+			descAfter.Time, descBefore.Time)
+	}
+
+	// the old edge is tombstoned, not gone
+	all, err := db.getNodes(nil, "all", sensor, "", true)
+	if err != nil {
+		t.Fatal("Error getting all sensor edges:", err)
+	}
+	if len(all) != 2 {
+		t.Fatal("expected 2 edges for moved node, got:", len(all))
+	}
+}
+
+func TestDbJetStreamSubtreeMoveIntoBoundary(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
+
+	rootID := db.rootNodeID()
+
+	devX := uuid.New().String()
+	group := uuid.New().String()
+	sensor := uuid.New().String()
+
+	mkTestNode(t, db, rootID, devX, data.NodeTypeDevice, "device X")
+	mkTestNode(t, db, rootID, group, data.NodeTypeGroup, "pump group")
+	mkTestNode(t, db, group, sensor, data.NodeTypeVariable, "pump sensor")
+
+	rootStream := streamName(rootID, rootID)
+	xStream := streamName(devX, rootID)
+
+	// group and sensor start in the root boundary stream
+	if streamSubjectCount(t, db, rootStream, "node."+rootID+"."+rootID+"."+sensor+".>") == 0 {
+		t.Fatal("sensor subjects not in root stream before move")
+	}
+
+	// move the group (and its subtree) under device X
+	err := db.edgePoints(group, devX, data.Points{
+		data.NewPointFloat(data.PointTypeTombstone, "", 0),
+		data.NewPointString(data.PointTypeNodeType, "", data.NodeTypeGroup),
+	})
+	if err != nil {
+		t.Fatal("Error adding group edge under device:", err)
+	}
+	err = db.edgePoints(group, rootID, data.Points{
+		data.NewPointFloat(data.PointTypeTombstone, "", 1),
+	})
+	if err != nil {
+		t.Fatal("Error tombstoning group root edge:", err)
+	}
+
+	// the whole subtree moved: group points, group->sensor edge, and
+	// sensor points are all in device X's stream now
+	for _, filter := range []string{
+		"node." + devX + "." + rootID + "." + group + ".p.>",
+		"node." + devX + "." + rootID + "." + group + ".ep." + sensor,
+		"node." + devX + "." + rootID + "." + sensor + ".p.>",
+	} {
+		if streamSubjectCount(t, db, xStream, filter) == 0 {
+			t.Fatal("expected subjects in device stream after move:", filter)
+		}
+	}
+
+	// and purged from the root stream (the tombstoned root->group edge
+	// stays: it belongs to the root boundary)
+	for _, filter := range []string{
+		"node." + rootID + "." + rootID + "." + group + ".>",
+		"node." + rootID + "." + rootID + "." + sensor + ".>",
+	} {
+		if n := streamSubjectCount(t, db, rootStream, filter); n != 0 {
+			t.Fatal("subjects remain in root stream after move:", filter)
+		}
+	}
+
+	// reads stay consistent through the move
+	nodes, err := db.getNodes(nil, group, sensor, "", false)
+	if err != nil || len(nodes) < 1 {
+		t.Fatal("Error getting sensor after move:", err)
+	}
+	if nodes[0].Desc() != "pump sensor" {
+		t.Fatal("sensor description lost in move:", nodes[0].Desc())
 	}
 }
 

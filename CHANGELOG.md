@@ -24,6 +24,9 @@ For more details or to discuss releases, please visit the
   with a deterministic origin tie-break (ADR-7 Stage 2 revision)
 - store: pre-populate the point cache at startup and load on cache miss,
   fixing config points being lost after the first write following a restart
+- store: migrate a node's subjects (and its owned subtree) to the new
+  boundary stream when a move or undelete changes its owning boundary,
+  preserving original point timestamps
 - replace SQLite store with JetStream per-node streams (ADR-7 Stage 2)
 - remove SQLite dependency and hash tree
 - add in-memory point cache and edge cache for fast lookups
