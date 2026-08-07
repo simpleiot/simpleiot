@@ -38,7 +38,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	flagProvisioningDir := flags.String("provisioningDir", "",
 		"directory of YAML files to apply at start-up and when they change (default <SIOT_DATA>/provisioning if it exists)")
 	flagStoreMaxMsgsPerSubject := flags.Int64("storeMaxMsgsPerSubject", 0,
-		"per-subject history retained in store streams (0 = unlimited); current state is always preserved")
+		"per-subject history retained in store streams (0 = default of 5000, -1 = unlimited); current state is always preserved")
 	flagStoreSyncInterval := flags.String("storeSyncInterval", "",
 		"JetStream file sync interval (Go duration, or 'always' to fsync every write); empty uses the NATS default of 2m")
 

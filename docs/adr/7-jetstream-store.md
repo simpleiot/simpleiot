@@ -564,12 +564,19 @@ Implementation is broken down into 3 stages:
      (not `MaxAge` or stream-level `MaxBytes`/`MaxMsgs`) so current state is
      always preserved, including rarely-updated config points that
      time/size-based policies could silently drop.
-   - Retention is resolved per stream: the server option
-     `--storeMaxMsgsPerSubject` / `SIOT_STORE_MAX_MSGS_PER_SUBJECT` sets the
-     instance default (0 = unlimited); Stage 3 adds per-boundary and
-     per-replica overrides at the same resolution point. Changing the value
-     applies to each existing stream the first time it is ensured after a
-     restart, and JetStream trims existing subjects to the new limit.
+   - Retention is resolved per stream: the default is 5000 messages per
+     subject (about a month of 10-minute data, effectively unlimited for
+     configuration subjects, bounded disk on unattended devices), and the
+     server option `--storeMaxMsgsPerSubject` /
+     `SIOT_STORE_MAX_MSGS_PER_SUBJECT` overrides it (-1 = unlimited).
+     Stage 3 adds per-boundary overrides at the same resolution point.
+     Each instance's store owns the configuration of every stream on its
+     own disk: sync pumps create replica streams bare and never update
+     existing stream configuration, and the store applies local retention
+     when it discovers a replica, so hub and device retain independently.
+     Changing the value applies to each existing stream the first time it
+     is ensured or discovered after a restart, and JetStream trims
+     existing subjects to the new limit.
    - Durability: the JetStream file store fsyncs on a 2-minute interval by
      default, which is the accepted power-loss window for typical
      deployments (comparable exposure to the prior SQLite WAL

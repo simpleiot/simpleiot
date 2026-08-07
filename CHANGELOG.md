@@ -46,6 +46,10 @@ For more details or to discuss releases, please visit the
   preserving original point timestamps
 - add `--storeMaxMsgsPerSubject` / `SIOT_STORE_MAX_MSGS_PER_SUBJECT` to bound
   per-subject history in store streams (current state always preserved)
+- store: per-subject retention now defaults to 5000 messages (about a month
+  of 10-minute data; configuration subjects are effectively unlimited);
+  pass `-1` for unlimited. Each instance applies its own retention to
+  replica streams it discovers, so hub and device retain independently
 - add `--storeSyncInterval` / `SIOT_STORE_SYNC_INTERVAL` to tune the
   JetStream fsync interval (`always` fsyncs every write) for power-loss
   durability on edge devices

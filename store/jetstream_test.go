@@ -580,6 +580,78 @@ func TestDbJetStreamSubtreeMoveIntoBoundary(t *testing.T) {
 	}
 }
 
+// TestDbJetStreamDefaultRetention verifies streams get the default
+// per-subject retention when none is configured.
+func TestDbJetStreamDefaultRetention(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
+
+	rootID := db.rootNodeID()
+
+	s, err := db.js.Stream(context.Background(), streamName(rootID, rootID))
+	if err != nil {
+		t.Fatal("Error getting stream:", err)
+	}
+	info, err := s.Info(context.Background())
+	if err != nil {
+		t.Fatal("Error getting stream info:", err)
+	}
+	if info.Config.MaxMsgsPerSubject != defaultMaxMsgsPerSubject {
+		t.Fatalf("default retention = %v, want %v",
+			info.Config.MaxMsgsPerSubject, defaultMaxMsgsPerSubject)
+	}
+}
+
+// TestDbJetStreamReplicaRetention verifies the store applies its
+// retention policy to replica streams it discovers (the sync pumps
+// create them bare).
+func TestDbJetStreamReplicaRetention(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "siot-js-test-*")
+	if err != nil {
+		t.Fatal("Error creating temp dir:", err)
+	}
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	ns, nc := newTestNatsServer(t, tmpDir)
+	defer func() {
+		nc.Close()
+		ns.Shutdown()
+	}()
+
+	db, err := NewJetStreamDb(nc, "", JsConfig{MaxMsgsPerSubject: 7})
+	if err != nil {
+		t.Fatal("Error creating JetStream db:", err)
+	}
+
+	// a bare replica stream, as a sync pump would create it
+	ctx := context.Background()
+	_, err = db.js.CreateStream(ctx, jetstream.StreamConfig{
+		Name:     streamName("boundary-b", "origin-o"),
+		Subjects: []string{"inst.boundary-b.origin-o.>"},
+	})
+	if err != nil {
+		t.Fatal("Error creating bare replica stream:", err)
+	}
+
+	rm := db.runReplicaManager()
+	defer rm.Stop()
+
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		s, err := db.js.Stream(ctx, streamName("boundary-b", "origin-o"))
+		if err == nil {
+			info, err := s.Info(ctx)
+			if err == nil && info.Config.MaxMsgsPerSubject == 7 {
+				break
+			}
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("replica stream never received local retention policy")
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
 // TestDbJetStreamRetention verifies per-subject retention drops old
 // messages of a frequently-written subject while preserving the tips
 // of rarely-written subjects (config points).

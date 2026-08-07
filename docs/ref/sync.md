@@ -67,6 +67,13 @@ a reconnect delivers exactly the messages the other side missed — no
 rescan, no comparison. This is what replaces the hash tree: the stream
 sequence *is* the synchronization state.
 
+The pumps move messages and nothing else: they create a missing
+replica stream but never change an existing stream's configuration.
+Each instance's store owns the configuration of the streams on its own
+disk and applies its retention policy to replica streams when it
+discovers them, so a hub can keep more (or less) history of a device's
+data than the device keeps itself.
+
 **Message headers** solve origin attribution. When a store consumes a
 replica stream, it merges each message into its caches and, when a tip
 changes, re-broadcasts it on the ordinary wire subjects so local

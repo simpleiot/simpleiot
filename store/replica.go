@@ -123,6 +123,11 @@ func (rm *replicaManager) scan() {
 			continue
 		}
 
+		// the local store owns stream configuration: the sync pumps
+		// create replica streams bare, and this instance's retention
+		// policy is applied when the stream is discovered
+		rm.applyRetention(si.Config)
+
 		cc, err := rm.consumeReplica(si.Config.Name, origin)
 		if err != nil {
 			log.Printf("STORE: error consuming replica %v: %v", si.Config.Name, err)
@@ -136,6 +141,22 @@ func (rm *replicaManager) scan() {
 	}
 	if err := lister.Err(); err != nil {
 		log.Println("STORE: error listing replica streams:", err)
+	}
+}
+
+// applyRetention brings a replica stream's per-subject retention in
+// line with this instance's policy, leaving the rest of its
+// configuration as is.
+func (rm *replicaManager) applyRetention(cfg jetstream.StreamConfig) {
+	want := rm.db.maxMsgsForStream(cfg.Name)
+	if cfg.MaxMsgsPerSubject == want {
+		return
+	}
+
+	cfg.MaxMsgsPerSubject = want
+	_, err := rm.db.js.UpdateStream(context.Background(), cfg)
+	if err != nil {
+		log.Printf("STORE: error applying retention to %v: %v", cfg.Name, err)
 	}
 }
 

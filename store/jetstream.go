@@ -25,15 +25,22 @@ type Meta struct {
 
 // JsConfig holds JetStream store tunables.
 type JsConfig struct {
-	// MaxMsgsPerSubject bounds per-subject history in the streams this
-	// instance creates; 0 or less means unlimited. Retention is per
-	// subject, so subject tips (current state) are always preserved,
-	// including rarely-updated config points that time- or size-based
-	// policies could silently drop. Changing the value applies to each
-	// existing stream the first time it is ensured after restart, and
-	// JetStream trims existing subjects to the new limit.
+	// MaxMsgsPerSubject bounds per-subject history in the streams on
+	// this instance; 0 uses the default (5000), -1 means unlimited.
+	// Retention is per subject, so subject tips (current state) are
+	// always preserved, including rarely-updated config points that
+	// time- or size-based policies could silently drop. Changing the
+	// value applies to each existing stream the first time it is
+	// ensured or discovered after restart, and JetStream trims
+	// existing subjects to the new limit.
 	MaxMsgsPerSubject int64
 }
+
+// defaultMaxMsgsPerSubject bounds per-subject history when no retention
+// is configured: about a month of 10-minute data, effectively unlimited
+// for rarely-written configuration subjects, and a bounded disk
+// footprint on unattended devices.
+const defaultMaxMsgsPerSubject = 5000
 
 // DbJetStream implements the store backend using NATS JetStream with
 // boundary-origin streams (ADR-7): each (boundary, origin instance)
@@ -253,10 +260,14 @@ func (db *DbJetStream) ensureOriginStreamFor(boundaryID, originID string) (jetst
 // keeps long history on replicas while a device keeps a short local
 // buffer).
 func (db *DbJetStream) maxMsgsForStream(_ string) int64 {
-	if db.cfg.MaxMsgsPerSubject > 0 {
+	switch {
+	case db.cfg.MaxMsgsPerSubject > 0:
 		return db.cfg.MaxMsgsPerSubject
+	case db.cfg.MaxMsgsPerSubject < 0:
+		// explicitly unlimited
+		return 0
 	}
-	return 0
+	return defaultMaxMsgsPerSubject
 }
 
 // mergePointTip merges a single point into the point cache, applying

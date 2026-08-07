@@ -64,7 +64,8 @@ type Options struct {
 	// optional ID (must be unique) for this instance, otherwise, a UUID will be used
 	ID string
 	// StoreMaxMsgsPerSubject bounds per-subject history in store
-	// streams; 0 means unlimited. Current state is always preserved.
+	// streams; 0 uses the default (5000), -1 means unlimited. Current
+	// state is always preserved.
 	StoreMaxMsgsPerSubject int64
 	// StoreSyncInterval overrides the JetStream file sync interval
 	// (power-loss durability window); zero keeps the NATS default (2m).

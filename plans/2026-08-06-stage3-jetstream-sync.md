@@ -341,8 +341,12 @@ Remaining, in rough priority order:
 
 1. Nested device boundaries (only the root boundary replicates today).
 2. Multi-hop chaining test (expected to work: each hop is independent).
-3. Per-replica retention overrides (replica streams are currently
-   unlimited; the resolution point exists in `maxMsgsForStream`).
+3. ~~Per-replica retention~~ — largely resolved 2026-08-07: retention
+   defaults to 5000 messages per subject, and each instance's store
+   applies its own policy to replica streams it discovers (sync pumps
+   create streams bare and never update configuration). Remaining:
+   per-boundary overrides at the `maxMsgsForStream` resolution point,
+   e.g. a hub keeping deeper history for selected devices.
 4. AuthZ tightening: shared token today; per-stream permissions via
    auth callout.
 5. ~~History sinks as durable stream consumers~~ — done 2026-08-07:

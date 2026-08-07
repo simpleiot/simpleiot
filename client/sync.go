@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -388,13 +389,21 @@ func runPump(ctx context.Context, src, dst jetstream.JetStream,
 
 	name := fmt.Sprintf("inst-%v-%v", boundary, origin)
 
-	// ensure the replica stream exists on the receiving side
-	_, err := dst.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
-		Name:     name,
-		Subjects: []string{fmt.Sprintf("inst.%v.%v.>", boundary, origin)},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error ensuring replica stream %v: %v", name, err)
+	// make sure the replica stream exists on the receiving side —
+	// create only, never update: the receiving instance's store owns
+	// stream configuration (retention etc.) and applies its policy
+	// when it discovers the stream
+	_, err := dst.Stream(ctx, name)
+	if errors.Is(err, jetstream.ErrStreamNotFound) {
+		_, err = dst.CreateStream(ctx, jetstream.StreamConfig{
+			Name:     name,
+			Subjects: []string{fmt.Sprintf("inst.%v.%v.>", boundary, origin)},
+		})
+		if err != nil && !errors.Is(err, jetstream.ErrStreamNameAlreadyInUse) {
+			return nil, fmt.Errorf("error creating replica stream %v: %v", name, err)
+		}
+	} else if err != nil {
+		return nil, fmt.Errorf("error checking replica stream %v: %v", name, err)
 	}
 
 	s, err := src.Stream(ctx, name)

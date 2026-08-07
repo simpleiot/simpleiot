@@ -127,11 +127,28 @@ follows the tree.
 
 ## Retention and durability
 
-Streams retain full history by default. `--storeMaxMsgsPerSubject` (or
-`SIOT_STORE_MAX_MSGS_PER_SUBJECT`) bounds history per subject; because
-the limit is per subject, current state — including rarely-written
-configuration points — is always preserved, which time- or size-based
-retention could not guarantee.
+Streams keep the most recent **5000 messages per subject** by default.
+Because the limit is per subject, current state — including
+rarely-written configuration points — is always preserved, which time-
+or size-based retention could not guarantee. The default is sized so
+that:
+
+- data reported every 10 minutes keeps about a month of local history,
+- configuration subjects, written a handful of times, are effectively
+  unlimited, and
+- disk use on unattended edge devices stays bounded (a 1-per-minute
+  subject would otherwise grow by ~525k messages a year).
+
+History is tiered by write rate: fast subjects wrap sooner locally,
+and long-term history for them belongs in an external time-series
+database fed by the Db client, which reads the streams gap-free.
+
+`--storeMaxMsgsPerSubject` (or `SIOT_STORE_MAX_MSGS_PER_SUBJECT`)
+overrides the default; `-1` means unlimited. Each instance applies its
+own policy to every stream on its own disk — including replica streams,
+which the sync pumps create bare and the store configures when it
+discovers them — so a hub and a device can retain different amounts of
+the same data.
 
 The JetStream file store fsyncs on a 2-minute interval by default.
 `--storeSyncInterval` (or `SIOT_STORE_SYNC_INTERVAL`) accepts a Go
