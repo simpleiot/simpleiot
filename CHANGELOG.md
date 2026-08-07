@@ -34,6 +34,22 @@ For more details or to discuss releases, please visit the
   durable consumers instead of the `up.>` wire subjects, so external
   history is gap-free across sync outages, instance restarts, and the
   client's own downtime (high-rate points still arrive over `phrup.>`)
+- db: add a database type selector to the Database node so you can choose
+  between InfluxDB 2.x and Victoria Metrics. Existing nodes keep their current
+  behavior, as an unset type is treated as InfluxDB.
+- db: when Victoria Metrics is selected, write only the numeric `value` field
+  and skip string points entirely. Victoria Metrics stores numeric samples only
+  and converts any other field value to 0, so the previous `text` field
+  produced a `points_text` series that was always 0. Grafana with a Victoria
+  Metrics data source is the way to graph this data.
+- db: remove the `history.<nodeId>` NATS API and the `data.HistoryQuery`,
+  `data.HistoryResults`, and `data.TagFilters` types that supported it. The API
+  built Flux queries, so it only ever worked with InfluxDB, and nothing used
+  it: the user interface has no graph views, and the query was never reachable
+  from the HTTP API. Grafana remains the way to graph time series data, as
+  described in the [graphing documentation](docs/user/graphing.md). If you are
+  calling this subject from an external client, query InfluxDB directly
+  instead.
 - test: the db client test starts a throwaway VictoriaMetrics instance
   itself (skipped when the binary is not installed), replacing the
   external-InfluxDB requirement, and verifies the point path end to end

@@ -42,24 +42,47 @@ backfill history already in the streams. Streams that appear after the client
 starts, such as the replica stream for a newly adopted device, are consumed
 from their beginning so the device's initial catch-up is captured.
 
+## Choosing a database type
+
+Add a Database node and choose the database type: **InfluxDB 2.x** or
+**Victoria Metrics**. Both are written using the InfluxDB version 2 line
+protocol, so the connection settings are similar, but the two differ in what
+they store and in how you graph the result. Existing Database nodes have no
+database type set and continue to behave as InfluxDB.
+
 ## Victoria Metrics
 
-To store points in VictoriaMetrics, add a Database node and set the URI to the
-VictoriaMetrics server (default port 8428, for example
-`http://localhost:8428`). The org, bucket, and auth token settings can be left
-blank unless your installation requires them.
+Set the database type to Victoria Metrics and set the URI to the write
+endpoint, typically `http://myserver:8428` for a single-node instance.
+VictoriaMetrics has no concept of an organization or a bucket, so those fields
+are hidden when this type is selected.
+
+A single-node VictoriaMetrics has no authentication on the write path, so the
+Auth Token field can be left blank. VictoriaMetrics expects authentication to
+be handled by [vmauth](https://docs.victoriametrics.com/vmauth/) or vmgateway
+in front of it. The client sends the token as an `Authorization: Token <token>`
+header, which is one of the formats vmauth accepts, so setting the Auth Token
+here works when you point the URI at vmauth.
 
 VictoriaMetrics
-[does not support storing strings](https://stackoverflow.com/questions/66406899/does-victoriametrics-have-some-way-to-store-string-value-instead-float64).
-Note what this means in practice. The database client writes each point with
-both a `value` field and a `text` field. VictoriaMetrics splits those into
-separate series named `points_value` and `points_text`, and
+[does not support storing strings](https://stackoverflow.com/questions/66406899/does-victoriametrics-have-some-way-to-store-string-value-instead-float64);
+it
 [converts any non-numeric field value to 0](https://docs.victoriametrics.com/victoriametrics/integrations/influxdb/).
-The line is still accepted, so numeric points are stored correctly, but the
-content of a text point is lost. If you are storing data in VictoriaMetrics and
+The client therefore writes only the numeric `value` field and skips string
+points, which keeps a `points_text` series of zeros out of the database. If you
 want to filter or graph on a value, publish it as a number. The
 [GPS client](gps.md) does this for its fix status points for exactly this
 reason.
+
+Each point arrives in VictoriaMetrics as the metric `points_value`, with the
+point `type` and `key` and all of the node tags described below available as
+labels.
+
+### Graphing Victoria Metrics data
+
+Use Grafana with a Victoria Metrics (Prometheus-compatible) data source and
+query `points_value` with MetricsQL. See the
+[Graphing documentation](graphing.md) for how the node tags map to graph labels.
 
 ## InfluxDB 2.x
 

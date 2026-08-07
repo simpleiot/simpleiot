@@ -426,6 +426,12 @@ func (p Point) Val() float64 {
 	}
 }
 
+// Numeric returns true if the point carries a numeric value. Points that hold
+// strings or JSON return false, as does a point with an unknown data type.
+func (p Point) Numeric() bool {
+	return p.DataType == PointDataTypeFloat || p.DataType == PointDataTypeInt
+}
+
 // Txt returns the string value of the point.
 // Returns "" for non-string types. This is a convenience method that mirrors
 // the old Point.Text field access semantics.
