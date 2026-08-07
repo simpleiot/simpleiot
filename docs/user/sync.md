@@ -31,6 +31,27 @@ the `wss` connection, which just uses standard HTTP(S) ports.
 
 ![sync](images/upstream.png)
 
+## How synchronization behaves
+
+Synchronization works by replicating the JetStream streams that store
+each instance's data — see the
+[synchronization reference](../ref/sync.md) for how this works. The
+behavior you will observe:
+
+- **First connect:** the device announces itself and appears under the
+  upstream root node; its full tree (structure, configuration, and
+  history) then arrives through replication. Configuration written on
+  the upstream for a device that has not connected yet is delivered on
+  first connect.
+- **Offline changes catch up.** Changes made on either side while the
+  connection is down are delivered when it comes back — replication
+  resumes exactly where it left off, and only missed data is sent.
+- **Both sides can edit.** Configuration can be changed on either
+  instance; the newest change wins everywhere.
+- **Deleting a device on the upstream detaches it.** The device keeps
+  running standalone and does not add itself back; undelete the device
+  node on the upstream to resume synchronization.
+
 ## Videos
 
 There are also several videos that demonstrate upstream connections:

@@ -1,34 +1,142 @@
 # Simple IoT Store
 
-We currently use SQLite to implement the persistent store for Simple IoT. Each
-instance (cloud, edge, etc.) has its own store that must be synchronized with
-replicas of the data located in other instances.
+Simple IoT stores all application data in [NATS
+JetStream](https://docs.nats.io/nats-concepts/jetstream), using the NATS
+server that is already embedded in every SIOT instance. There is no
+separate database: the same technology that moves messages between
+components also persists them, retains their history, and (see [Data
+Synchronization](sync.md)) replicates them between instances.
 
-## Reasons for using SQLite
+[ADR-7](../adr/7-jetstream-store.md) records the full analysis behind
+this design. Earlier versions of SIOT used SQLite; existing SQLite data
+can be migrated with `siot export` / `siot import`.
 
-We have evaluated BoltDB, Genji, and various other Go key/value stores in the
-past and settled on SQLite for the following reasons:
+## Why JetStream
 
-- **Reliability**: SQLite is very well tested and
-  [handles things](https://www.sqlite.org/transactional.html) like program/OS
-  crashes, power failures, etc. It is important that the configuration for a
-  system never become corrupt to the point where it won't load.
-- **Stable file format**: Dealing with file format changes is not something we
-  want to deal with when we have 100's of systems in the field. A SQLite file is
-  very portable across time and between systems.
-- **Pure Go**: There is now a
-  [pure Go version](https://pkg.go.dev/modernc.org/sqlite) of SQLite. If more
-  performance is needed or smaller binary size, the native version of SQLite can
-  still be used.
-- **The relational model**: it seems to make sense to store points and nodes in
-  separate tables. This allows us to update points more quickly as it is a
-  separate line in the DB. It also seems like flat data structures are generally
-  a good thing versus deeply nested objects.
-- **Fast**: SQLite does read caching, and other things that make it quite fast.
-- **Lots of innovation around SQLite**:
-  [LiteFS](https://github.com/superfly/litefs),
-  [Litestream](https://litestream.io/), etc.
-- **Multi-process**: SQLite
-  [supports multiple processes](https://www.sqlite.org/faq.html#q5). While we
-  don't really need this for core functionality, it is very handy for debugging,
-  and there may be instances where you need multiple applications in your stack.
+A JetStream stream is an append-only, persistent log of messages with
+sequence numbers and per-subject indexing. That shape matches IoT data
+unusually well:
+
+- **Points are already messages.** SIOT components communicate by
+  publishing points over NATS. Persisting them is a matter of capturing
+  the same messages in a stream, not translating them into a second
+  data model.
+- **History is the natural byproduct.** A stream retains every point
+  written to a subject, so time-series history is stored in the same
+  place as current state, rather than requiring a separate time-series
+  database.
+- **Sequence numbers replace the hash tree.** Streams are ordered and
+  sequence-tracked, so another instance can replicate one and know
+  exactly what it has and has not seen. This is the foundation of the
+  synchronization design.
+- **Small and embedded.** JetStream runs inside the NATS server SIOT
+  already ships, on cloud instances and small edge devices alike.
+
+## Boundaries and streams
+
+Streams are created per **boundary**, not per node. A boundary is a
+node that represents a SIOT instance:
+
+- the local instance's root node, and
+- any device-type node, which corresponds to a (potentially synced)
+  remote instance.
+
+Every node is owned by the nearest boundary found walking up the tree
+through undeleted edges. A node reachable from no boundary, or from
+more than one, is owned by the instance root boundary. Boundaries align
+with the natural units of synchronization and authorization: a device's
+subtree syncs as a unit, and permissions are typically granted at
+device or group level.
+
+Each (boundary, origin instance) pair gets one stream:
+
+```
+node-<boundaryID>-<originID>
+```
+
+where `originID` is the root node ID of the instance that writes the
+stream. **Only the origin instance ever appends to its stream** — this
+single-writer property is what makes synchronization simple and
+echo-free. A standalone instance with root `R` has a single stream,
+`node-R-R`, holding its entire tree.
+
+A hub `R` with a synced device `X` sees three streams:
+
+| Stream       | Written by | Contains                                     |
+| ------------ | ---------- | -------------------------------------------- |
+| `node-R-R`   | hub        | the hub's own tree, including the edge to X  |
+| `node-X-R`   | hub        | configuration the hub writes into X's subtree |
+| `node-X-X`   | device     | everything the device writes (a replica on the hub) |
+
+## Subjects
+
+Two subject spaces are in play. **Wire subjects** are how points move
+between components in real time — they are plain NATS, not stored:
+
+| Subject                                   | Purpose                    |
+| ----------------------------------------- | -------------------------- |
+| `p.<nodeID>.<type>.<key>`                 | node point                 |
+| `ep.<nodeID>.<parentID>`                  | edge points (batched)      |
+| `up.<upID>.<nodeID>.<type>.<key>`         | point fan-out up the tree  |
+
+**Storage subjects** are what streams capture. They carry both routing
+tokens so stream subject spaces never overlap:
+
+| Subject                                             | Purpose     |
+| --------------------------------------------------- | ----------- |
+| `node.<boundaryID>.<originID>.<nodeID>.p.<type>.<key>` | node point  |
+| `node.<boundaryID>.<originID>.<parentID>.ep.<childID>` | edge points |
+
+The stream `node-<b>-<o>` captures `node.<b>.<o>.>`. Edges are stored
+with the **parent** node's boundary, so the edge attaching a device
+into a hub's tree lives in the hub's stream — the device never needs
+it.
+
+## Current state: merge of subject tips
+
+The current value of a point is the **tip** (last message) of its
+storage subject. Because a boundary can have streams from several
+origins (the device's own data plus hub-written configuration), current
+state is the merge of tips across all `node-<boundaryID>-*` streams,
+under one rule:
+
+1. The newest point timestamp wins (timestamps are embedded in the
+   point, not taken from the stream).
+2. Equal timestamps from different origins resolve to the lexically
+   greater origin ID, so every instance converges on the same winner.
+3. An identical (timestamp, origin) delivery is a no-op, which makes
+   the merge idempotent when the same point arrives more than once.
+
+The store holds this merged state in two in-memory caches — an edge
+cache (the tree) and a point cache (current points) — populated by
+reading every stream's subject tips at startup. The caches are the read
+path; queries never touch JetStream. Writes check the cache tip first,
+append to the stream, then update the cache, with a load-on-miss
+backstop.
+
+## Writes, deletes, and moves
+
+A local write routes to `node-<owningBoundary>-<self>`. Deleting a node
+writes a tombstone point on its parent edge — history is preserved and
+the delete can be undone. Moving a node (or subtree) across boundaries
+republishes its subject tips into the new boundary's stream, preserving
+original point timestamps, then purges the old subjects; ownership
+follows the tree.
+
+## Retention and durability
+
+Streams retain full history by default. `--storeMaxMsgsPerSubject` (or
+`SIOT_STORE_MAX_MSGS_PER_SUBJECT`) bounds history per subject; because
+the limit is per subject, current state — including rarely-written
+configuration points — is always preserved, which time- or size-based
+retention could not guarantee.
+
+The JetStream file store fsyncs on a 2-minute interval by default.
+`--storeSyncInterval` (or `SIOT_STORE_SYNC_INTERVAL`) accepts a Go
+duration to shorten that window, or `always` to fsync every write, for
+edge devices with unreliable power, at a write-throughput cost.
+
+## Instance metadata
+
+A small `META` key/value bucket (also JetStream) holds the instance's
+root node ID and JWT signing key.

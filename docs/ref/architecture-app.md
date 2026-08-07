@@ -10,9 +10,9 @@ are five main parts to a Simple IoT application:
 
 1. **NATS Message Bus**: all data goes through this making it very easy to
    observe the system.
-2. **Store**: persists the data for the system, merges incoming data, maintains
-   node hash values for synchronization, rules engine, etc. (the rules engine
-   may eventually move to a client)
+2. **Store**: persists the data for the system in JetStream streams, merges
+   incoming data, and replicates streams for synchronization with other
+   instances.
 3. **Clients**: interact with other devices/systems such as Modbus, 1-wire, etc.
    This is where most of the functionality in a SIOT system lives, and where you
    add your custom functionality. Clients can exist inside the Simple IoT
