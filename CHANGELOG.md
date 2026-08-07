@@ -13,6 +13,10 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+- docs: document the configuration schema of each client in the user
+  documentation, written in the format `siot export`, `siot import`, and
+  provisioning share, so the points a node is configured with can be read
+  in one place and copied into a file
 - frontend: the signal generator summary line now reads the value from the
   configured destination point type and key instead of always reading
   `value`, so generators writing to a custom point type (for example

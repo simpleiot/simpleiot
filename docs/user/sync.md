@@ -52,6 +52,33 @@ behavior you will observe:
   running standalone and does not add itself back; undelete the device
   node on the upstream to resume synchronization.
 
+## Schema
+
+The configuration of a sync node:
+
+```yaml
+nodes:
+  - sync:
+      authToken: your-auth-token
+      description: Cloud
+      disabled: 0
+      uri: wss://myserver.com
+```
+
+`uri` is the upstream connection, written as one of the forms described above.
+`authToken` matches `SIOT_AUTH_TOKEN` on the upstream server and is left out
+when the upstream needs no token.
+
+A sync node belongs on the root node of the downstream instance, so a file that
+carries one leaves `parent` out and it attaches to the device node this
+instance runs as.
+
+An export carries `authToken` as it was entered, so treat a file that contains
+sync nodes the way you would treat the token itself.
+
+The count of synchronizations is a point the client maintains, so an export of
+a running node carries it as well.
+
 ## Videos
 
 There are also several videos that demonstrate upstream connections:

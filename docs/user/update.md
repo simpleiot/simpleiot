@@ -25,3 +25,30 @@ There are several options:
   download the latest version.
 - `Auto reboot/install`: option to auto install/reboot if a new version is
   detected and downloaded.
+
+## Schema
+
+The configuration of an update node:
+
+```yaml
+nodes:
+  - update:
+      autoDownload: 1
+      autoReboot: 0
+      description: Updates
+      directory: /data
+      pollPeriod: 60
+      prefix: myboard
+      uri: http://updates.example.com
+```
+
+`pollPeriod` is how often the server is checked, in minutes, and defaults to 30
+when it is zero or missing. `directory` defaults to `/data`.
+
+`prefix` is detected on first startup, so a file usually leaves it out and lets
+each unit fill in its own; give it only when every unit the file applies to
+expects the same one.
+
+The versions found on the server, the version downloaded, and the current OS
+version are points the client maintains, so an export of a running node carries
+them as well.

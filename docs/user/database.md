@@ -123,3 +123,37 @@ automatically map tags to graph labels.
 
 The database indexes tags, so generally there is not a huge cost to adding tags
 to samples as the long string is only stored once.
+
+## Schema
+
+Below is an export of a Victoria Metrics node and an InfluxDB node:
+
+```yaml
+nodes:
+  - db:
+      dbType: victoriaMetrics
+      description: Victoria Metrics
+      tagPointType: tag
+      uri: http://localhost:8428
+  - db:
+      authToken: T0k3n
+      bucket: siot
+      dbType: influxdb
+      description: InfluxDB
+      org: bec
+      tagPointType:
+        - machine
+        - tag
+      uri: http://localhost:8086
+```
+
+`dbType` is `victoriaMetrics` or `influxdb`; a node with no `dbType` behaves as
+InfluxDB. `org` and `bucket` apply to InfluxDB alone, and Victoria Metrics
+nodes leave them out.
+
+`tagPointType` is a list, so a single custom tag is written as one value and
+several are written as a sequence. Each entry is a point type, and the client
+adds it to every sample as `node.<point type>.<point key>`.
+
+An export carries `authToken` as it was entered, so treat a file that contains
+database nodes the way you would treat the token itself.
