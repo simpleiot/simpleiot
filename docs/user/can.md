@@ -215,6 +215,40 @@ func main() {
 
 Follow instructions from the "Test with Messages" section above.
 
+## Schema
+
+The configuration of a CAN bus node and the file node holding its database:
+
+```yaml
+nodes:
+  - canBus:
+      bitRate: "250000"
+      description: Vehicle bus
+      device: can0
+      children:
+        - file:
+            binary: 0
+            data: |
+              <NetworkDefinition xmlns="http://kayak.2codeornot2code.org/1.0">
+                <Bus name="sampledatabase">
+                  ...
+                </Bus>
+              </NetworkDefinition>
+            description: Vehicle database
+            name: vehicle.kcd
+```
+
+`device` is the SocketCAN interface name and `bitRate` is text, so it is
+quoted.
+
+The database rides along in the `data` point of the child file node, which is
+what makes an export of a CAN node enough to recreate it elsewhere. See the
+[File client](file.md) for the rest of that node.
+
+The message and signal counts and the received counts shown in the UI are
+points the client maintains, so an export of a running node carries them as
+well.
+
 ## Future Work
 
 - Scale and translate messages based on scale and offset parameters in database

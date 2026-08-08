@@ -23,7 +23,7 @@ type Store struct {
 	params        Params
 	nc            *nats.Conn
 	subscriptions map[string]*nats.Subscription
-	db            *DbSqlite
+	db            *DbJetStream
 	authorizer    api.Authorizer
 
 	// cycle metrics track how long it takes to handle a point
@@ -43,24 +43,22 @@ type Store struct {
 
 // Params are used to configure a store
 type Params struct {
-	File      string
 	AuthToken string
 	Server    string
 	Nc        *nats.Conn
 	// ID for the instance -- it is only used when initializing the store.
 	// ID must be unique. If ID is not set, then a UUID is generated.
 	ID string
+	// JsConfig holds JetStream tunables (retention, etc.)
+	JsConfig JsConfig
 }
 
 // NewStore creates a new NATS client for handling SIOT requests
 func NewStore(p Params) (*Store, error) {
-	db, err := NewSqliteDb(p.File, p.ID)
+	db, err := NewJetStreamDb(p.Nc, p.ID, p.JsConfig)
 	if err != nil {
 		return nil, fmt.Errorf("error opening db: %v", err)
 	}
-
-	// we don't have node ID yet, but need to init here so we can start
-	// collecting data
 
 	authorizer, err := api.NewKey(db.meta.JWTKey)
 	if err != nil {
@@ -137,6 +135,10 @@ func (st *Store) Run() error {
 		return fmt.Errorf("subscribe dbMaint error: %w", err)
 	}
 
+	// consume replica streams (remote-origin data) into the caches and
+	// re-broadcast changed tips locally (ADR-7 Stage 3)
+	replicas := st.db.runReplicaManager()
+
 done:
 	for {
 		select {
@@ -150,6 +152,8 @@ done:
 	}
 
 	// clean up
+	replicas.Stop()
+
 	for k := range st.subscriptions {
 		err := st.subscriptions[k].Unsubscribe()
 		if err != nil {
@@ -260,15 +264,23 @@ func (st *Store) handleNodePoints(msg *nats.Msg) {
 		return
 	}
 
-	// write points to database
-	err = st.db.nodePoints(nodeID, points)
+	if origin := msg.Header.Get(client.OriginHeader); origin != "" &&
+		origin != st.db.rootNodeID() {
+		// points from another instance are merged for reads and fanned
+		// out, but never persisted here: the replica stream is the
+		// persistent copy (single-writer streams, ADR-7)
+		st.db.mergeRemoteNodePoints(nodeID, points, origin)
+	} else {
+		// write points to database
+		err = st.db.nodePoints(nodeID, points)
 
-	if err != nil {
-		// TODO track error stats
-		log.Printf("Error writing nodeID (%v) to Db: %v", nodeID, err)
-		log.Println("msg subject:", msg.Subject)
-		st.reply(msg.Reply, err)
-		return
+		if err != nil {
+			// TODO track error stats
+			log.Printf("Error writing nodeID (%v) to Db: %v", nodeID, err)
+			log.Println("msg subject:", msg.Subject)
+			st.reply(msg.Reply, err)
+			return
+		}
 	}
 
 	// process point in upstream nodes
@@ -299,19 +311,26 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 		return
 	}
 
-	// write points to database. Its important that we write to the DB
-	// before sending points upstream, or clients may do a rescan and not
-	// see the node is deleted.
-	err = st.db.edgePoints(nodeID, parentID, points)
+	if origin := msg.Header.Get(client.OriginHeader); origin != "" &&
+		origin != st.db.rootNodeID() {
+		// remote-origin edge points: merge and fan out only (see
+		// handleNodePoints)
+		st.db.mergeRemoteEdgePoints(nodeID, parentID, points, origin)
+	} else {
+		// write points to database. Its important that we write to the DB
+		// before sending points upstream, or clients may do a rescan and not
+		// see the node is deleted.
+		err = st.db.edgePoints(nodeID, parentID, points)
 
-	if err != nil {
-		// TODO track error stats
-		log.Printf("Error writing edge points (%v:%v) to Db: %v", nodeID, parentID, err)
-		st.reply(msg.Reply, err)
+		if err != nil {
+			// TODO track error stats
+			log.Printf("Error writing edge points (%v:%v) to Db: %v", nodeID, parentID, err)
+			st.reply(msg.Reply, err)
+			return
+		}
 	}
 
-	// process point in upstream nodes. We need to do this before writing
-	// to DB, otherwise the point will not be sent upstream
+	// process point in upstream nodes
 	err = st.processEdgePointsUpstream(nodeID, nodeID, parentID, points)
 	if err != nil {
 		// TODO track error stats
@@ -485,28 +504,18 @@ func (st *Store) handleAuthGetNatsURI(msg *nats.Msg) {
 }
 
 func (st *Store) handleStoreVerify(msg *nats.Msg) {
-	var ret string
-	hashErr := st.db.verifyNodeHashes(false)
-	if hashErr != nil {
-		ret = hashErr.Error()
-	}
-
-	err := st.nc.Publish(msg.Reply, []byte(ret))
+	// Hash verification is no longer needed with JetStream store
+	err := st.nc.Publish(msg.Reply, []byte(""))
 	if err != nil {
-		log.Println("NATS: Error publishing response to node request:", err)
+		log.Println("NATS: Error publishing response to store verify:", err)
 	}
 }
 
 func (st *Store) handleStoreMaint(msg *nats.Msg) {
-	var ret string
-	hashErr := st.db.verifyNodeHashes(true)
-	if hashErr != nil {
-		ret = hashErr.Error()
-	}
-
-	err := st.nc.Publish(msg.Reply, []byte(ret))
+	// Hash maintenance is no longer needed with JetStream store
+	err := st.nc.Publish(msg.Reply, []byte(""))
 	if err != nil {
-		log.Println("NATS: Error publishing response to node request:", err)
+		log.Println("NATS: Error publishing response to store maint:", err)
 	}
 }
 

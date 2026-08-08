@@ -17,6 +17,7 @@ data.json
 GITHUB_TOKEN
 local.sh
 /badger
+/jetstream
 /book
 *.zip
 *.bkp
@@ -24,3 +25,5 @@ local.sh
 *.sublime-project
 *.sublime-workspace
 .aider*
+/jetstream
+/test-edge

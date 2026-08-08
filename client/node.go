@@ -203,9 +203,22 @@ func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 			Type: data.PointTypeTombstone, Origin: origin}}
 	}
 
-	ntPt := data.NewPointString(data.PointTypeNodeType, "", node.Type)
-	ntPt.Origin = origin
-	node.EdgePoints = append(node.EdgePoints, ntPt)
+	// a caller can supply the node type itself, as an import does when the
+	// file it applies carries one, so only add it when it is missing
+	hasNodeType := false
+
+	for _, p := range node.EdgePoints {
+		if p.Type == data.PointTypeNodeType {
+			hasNodeType = true
+			break
+		}
+	}
+
+	if !hasNodeType {
+		ntPt := data.NewPointString(data.PointTypeNodeType, "", node.Type)
+		ntPt.Origin = origin
+		node.EdgePoints = append(node.EdgePoints, ntPt)
+	}
 
 	err = SendEdgePoints(nc, node.ID, node.Parent, node.EdgePoints, true)
 	if err != nil {

@@ -40,6 +40,65 @@ Adding or removing an IO restarts the bus, which reopens the port. A Modbus
 server drops the connections it holds when this happens. This applies when a
 person edits the configuration, not during normal polling.
 
+## Schema
+
+The configuration of an RTU client bus with one IO, and of a TCP server:
+
+```yaml
+nodes:
+  - modbus:
+      baud: "9600"
+      clientServer: client
+      debug: 0
+      description: Sensor bus
+      disabled: 0
+      pollPeriod: 500
+      port: /dev/ttyUSB0
+      protocol: RTU
+      timeout: 100
+      children:
+        - modbusIo:
+            address: 3
+            dataFormat: uint16
+            description: Tank level
+            disabled: 0
+            id: 1
+            modbusIoType: modbusHoldingRegister
+            offset: 0
+            readOnly: 1
+            scale: 0.1
+            units: cm
+  - modbus:
+      clientServer: server
+      description: PLC facing
+      id: 5
+      port: "502"
+      protocol: TCP
+      timeout: 100
+```
+
+`clientServer` is `client` or `server` and `protocol` is `RTU` or `TCP`. Which
+of the remaining connection settings apply follows from those two: an RTU bus
+uses `port` and `baud`, a TCP server uses `port` as the port it listens on, and
+a TCP client uses `uri`, written as `host:port`. `port` and `baud` are text, so
+both are quoted, including a TCP port number.
+
+`id` is the Modbus device address rather than a node ID, which is why it is
+spelled like any other point. A server carries it on the bus node, and a client
+carries it on each IO, so one client bus can address several devices.
+
+`pollPeriod` applies to a client and `timeout` to both, and both are in
+milliseconds. A `timeout` of zero or less is replaced with 100.
+
+`modbusIoType` is one of `modbusDiscreteInput`, `modbusCoil`,
+`modbusInputRegister`, or `modbusHoldingRegister`. `dataFormat` is `uint16`,
+`int16`, `uint32`, `int32`, or `float32`, and it applies to the register types
+along with `scale`, `offset`, and `units`.
+
+The values read and written, the error counts, and the connection state are
+points the client maintains, so an export of a running bus carries them as
+well.
+
 ## Videos
 
 ### [Simple IoT Integration with PLC Using Modbus](https://youtu.be/-1PuBoTAzPE)

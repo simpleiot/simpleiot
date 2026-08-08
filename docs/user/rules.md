@@ -130,3 +130,84 @@ active.
 ### Disable Action
 
 A disabled action is not run.
+
+## Schema
+
+The configuration of a rule with a point value condition, a schedule
+condition, and an action for each direction:
+
+```yaml
+nodes:
+  - rule:
+      description: Tank low
+      disabled: 0
+      children:
+        - condition:
+            conditionType: pointValue
+            description: Level below 10
+            disabled: 0
+            minActive: 5
+            nodeID: Tank level
+            operator: <
+            pointKey: ""
+            pointType: value
+            value: 10
+            valueType: number
+        - condition:
+            conditionType: schedule
+            description: Working hours
+            end: "17:00"
+            start: "08:00"
+            weekday:
+              - 0
+              - 1
+              - 1
+              - 1
+              - 1
+              - 1
+              - 0
+        - action:
+            action: notify
+            description: Tell the operators
+        - actionInactive:
+            action: setValue
+            description: Clear the alarm
+            nodeID: Alarm relay
+            pointType: switchSet
+            value: 0
+            valueType: onOff
+```
+
+Conditions and actions are children of the rule, and an inactive action is a
+child of type `actionInactive`, which is what lets one rule act in both
+directions.
+
+`nodeID` names the node a condition watches or an action writes to, and it is
+written as that node's description rather than as an ID, so a rule can be moved
+between instances. Leaving it out of a condition watches every node below the
+rule's parent. See
+[referring to another node](configuration.md#referring-to-another-node) for how
+the name is resolved.
+
+`conditionType` is `pointValue` or `schedule`. A point value condition
+qualifies the points it is interested in with `pointType` and `pointKey`, and
+`valueType` decides how it compares them: a `number` condition compares `value`
+using `operator`, one of `>`, `<`, `=`, or `!=`; a `text` condition compares
+`valueText` using `=`, `!=`, or `contains`; and an `onOff` condition matches a
+`value` of `1` or `0` and needs no operator. `minActive` is how many minutes
+the condition has to hold before the rule goes active.
+
+A schedule condition uses `start` and `end`, written as text so `08:00` keeps
+its leading zero, along with `weekday` and `date`. `weekday` is seven points,
+Sunday first, each `1` or `0`. `date` is a list of dates, and a schedule
+carries dates or weekdays rather than both.
+
+`action` is `notify`, `setValue`, or `playAudio`. A `setValue` action names
+what to write with `nodeID`, `pointType`, and `pointKey`, and what to write
+with `valueType` and `value` or `valueText`. A `playAudio` action names the WAV
+file to play with `filePath`, the ALSA device to play it on with `device`, and
+the channel with `channel`.
+
+The rule's `active` state, the time the last notification was sent, and any
+error are points the client maintains, so an export of a running rule carries
+them as well.

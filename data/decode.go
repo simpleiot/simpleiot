@@ -186,12 +186,23 @@ func (g GroupedPoints) SetValue(v reflect.Value) error {
 		// 	return fmt.Errorf("points missing Key")
 		// }
 
-		// Ensure map is initialized
+		// Ensure map is initialized. An existing map is replaced with a
+		// copy rather than written in place, since a caller such as
+		// NodeWatcher hands out the struct by value and would otherwise
+		// share the map with the goroutine still merging points into it.
+		if !v.CanSet() {
+			return fmt.Errorf("cannot set value %v", v)
+		}
+
 		if v.IsNil() {
-			if !v.CanSet() {
-				return fmt.Errorf("cannot set value %v", v)
-			}
 			v.Set(reflect.MakeMapWithSize(t, len(g.Points)))
+		} else {
+			cp := reflect.MakeMapWithSize(t, v.Len()+len(g.Points))
+			for iter := v.MapRange(); iter.Next(); {
+				cp.SetMapIndex(iter.Key(), iter.Value())
+			}
+
+			v.Set(cp)
 		}
 		// Set map values
 		for _, p := range g.Points {

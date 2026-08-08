@@ -63,3 +63,32 @@ are numbered, as in `tmp451` and `tmp451_2`.
 ## Named Process Metrics
 
 ![proc-metrics](images/metrics-proc.png)
+
+## Schema
+
+The configuration of a system metrics node and a named process node:
+
+```yaml
+nodes:
+  - metrics:
+      description: System
+      period: 10
+      tag:
+        machine: press-1
+      type: system
+  - metrics:
+      description: NATS server
+      name: nats-server
+      period: 10
+      type: process
+```
+
+`type` is `system`, `app`, or `process`, and `period` is how often readings are
+taken, in seconds. `name` is the process name to watch and applies to a process
+node; values for all processes of that name are added together.
+
+`tag` is a set of keyed points, and each one becomes a label on the samples the
+[database client](database.md) writes when its point type is listed there.
+
+The readings themselves are points on the same node, so an export of a running
+instance carries them alongside the settings above.
