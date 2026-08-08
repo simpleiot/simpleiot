@@ -13,6 +13,8 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [0.23.0] - 2026-08-08
+
 ### Breaking changes
 
 - store: existing SQLite databases must be migrated via `siot export` using
@@ -126,9 +128,9 @@ For more details or to discuss releases, please visit the
   carries the node type, and sending a node added a second one, so an export of
   an imported tree did not match the file it came from
 - an export no longer writes the `nodeType` edge point. It repeated the key the
-  node is already written under, so every node in a file carried an
-  `edgePoints` block that said nothing. Import derives the type from the key,
-  and a file that still carries one is read as before
+  node is already written under, so every node in a file carried an `edgePoints`
+  block that said nothing. Import derives the type from the key, and a file that
+  still carries one is read as before
 
 ### Other fixes
 
