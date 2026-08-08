@@ -120,11 +120,15 @@ For more details or to discuss releases, please visit the
   generators writing to a custom point type (for example `volt`) show a live
   reading rather than a constant `0`
 
-### Import
+### Import and export
 
 - a node created from a file now keeps a single `nodeType` edge point. A file
   carries the node type, and sending a node added a second one, so an export of
   an imported tree did not match the file it came from
+- an export no longer writes the `nodeType` edge point. It repeated the key the
+  node is already written under, so every node in a file carried an
+  `edgePoints` block that said nothing. Import derives the type from the key,
+  and a file that still carries one is read as before
 
 ### Other fixes
 
