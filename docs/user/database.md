@@ -124,6 +124,41 @@ automatically map tags to graph labels.
 The database indexes tags, so generally there is not a huge cost to adding tags
 to samples as the long string is only stored once.
 
+### Tag inheritance
+
+Tag points are inherited from ancestor nodes, so a label can be set once on the
+node that represents the thing being described — a machine group, a device, a
+site — and every point emitted beneath it carries that tag. For example, with
+`tagPointType` set to `tag`:
+
+```
+device        tag: site=plant-a, customer=acme
+└── press-3   tag: machine=press-3, site=plant-b
+    └── temp-1    tag: sensor=inlet
+```
+
+a point emitted by `temp-1` is written with `node.tag.sensor=inlet`,
+`node.tag.machine=press-3`, `node.tag.site=plant-b`, and
+`node.tag.customer=acme`.
+
+The resolution rules are:
+
+- All tags resolve into the same flat `node.<point type>.<point key>`
+  namespace, so queries do not depend on the depth at which a tag was set.
+- When the same tag is defined at more than one level, the value closest to the
+  emitting node wins, so a local tag overrides an inherited one (`site` above).
+- Inheritance stops at the Database client's parent node, whose own tags are
+  included. Nodes above the Database client's scope do not contribute tags.
+- A node can have more than one parent. When two ancestors at the same depth
+  define the same tag, the node with the lowest ID wins, and the client logs
+  the ambiguity the first time it is seen.
+- `node.id`, `node.type`, and `node.description` always describe the emitting
+  node and are never inherited.
+
+Tag changes are not retroactive: editing a tag starts a new series in the
+database from that point forward, and queries spanning the change see both
+series. The same applies to `node.description`.
+
 ## Schema
 
 Below is an export of a Victoria Metrics node and an InfluxDB node:

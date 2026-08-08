@@ -1,7 +1,7 @@
 # Plan: Ancestor Tag Inheritance for Time-Series Tags
 
 **Branch:** `feat/ancestor-tag-inheritance` **Branched from:** `04e226eb` (v0.23.0)
-**Status:** IN PROGRESS
+**Status:** COMPLETE
 
 _Revised 2026-08-08 against the post-ADR-7 store. The original version of this
 plan targeted the `up.<Parent>.>` subscription model; the Db client now consumes

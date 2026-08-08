@@ -13,6 +13,23 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+### Changed
+
+- db: tag points are now inherited from ancestor nodes. A tag set on a group,
+  device, or site node is applied to every point written from nodes beneath
+  it, with the value nearest the emitting node winning when the same tag is
+  defined at more than one level. Resolution stops at the Database client's
+  parent node (inclusive). This changes output for existing users of
+  `tagPointType`: points now also carry tags set on ancestor nodes. See the
+  Database client documentation for the resolution rules.
+
+### Fixed
+
+- db: tag and description edits are reflected in the tags written with
+  subsequent points again. Since the boundary-origin stream rework, cached
+  tag values were not refreshed until the client restarted or its
+  `tagPointType` list was changed.
+
 ## [0.23.0] - 2026-08-08
 
 ### Breaking changes
