@@ -15,7 +15,7 @@ import (
 
 // This file implements the store side of ADR-7 Stage 3 synchronization:
 // consuming replica streams. A replica stream is a local copy of a
-// remote instance's origin stream (inst-<boundary>-<origin> with origin
+// remote instance's origin stream (inst_<boundary>_<origin> with origin
 // != this instance), appended by the sync client's replicator (or by
 // JetStream sourcing when configured) — never by local point writes.
 //

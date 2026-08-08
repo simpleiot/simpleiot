@@ -29,11 +29,11 @@ type Sync struct {
 // replicating boundary-origin streams (ADR-7 Stage 3):
 //
 //   - push: this instance's origin stream for its root boundary
-//     (inst-<X>-<X>) is copied into a replica stream on the upstream,
+//     (inst_<X>_<X>) is copied into a replica stream on the upstream,
 //     using a durable consumer on the local stream so a reconnect
 //     resumes where it left off.
 //   - pull: upstream-origin streams for this instance's boundary
-//     (inst-<X>-<o>, o != X — e.g. configuration the upstream wrote
+//     (inst_<X>_<o>, o != X — e.g. configuration the upstream wrote
 //     for this instance) are copied into local replica streams, using
 //     durable consumers on the upstream streams.
 //
@@ -386,7 +386,7 @@ func streamBoundaryOrigin(cfg jetstream.StreamConfig) (boundary, origin string, 
 func runPump(ctx context.Context, src, dst jetstream.JetStream,
 	boundary, origin, durableFor string) (jetstream.ConsumeContext, error) {
 
-	name := fmt.Sprintf("inst-%v-%v", boundary, origin)
+	name := fmt.Sprintf("inst_%v_%v", boundary, origin)
 
 	// make sure the replica stream exists on the receiving side —
 	// create only, never update: the receiving instance's store owns

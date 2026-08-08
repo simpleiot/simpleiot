@@ -82,7 +82,7 @@ func TestJetStreamSourcingOverLeafnode(t *testing.T) {
 
 	ctx := context.Background()
 
-	// device owns stream inst-X-X
+	// device owns stream inst_X_X
 	ncDev, err := nats.Connect(dev.ClientURL())
 	if err != nil {
 		t.Fatal(err)
@@ -92,7 +92,7 @@ func TestJetStreamSourcingOverLeafnode(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = jsDev.CreateStream(ctx, jetstream.StreamConfig{
-		Name:     "inst-X-X",
+		Name:     "inst_X_X",
 		Subjects: []string{"inst.X.X.>"},
 	})
 	if err != nil {
@@ -111,7 +111,7 @@ func TestJetStreamSourcingOverLeafnode(t *testing.T) {
 
 	publish(jsDev, 3)
 
-	// hub: replica of inst-X-X sourced from the device domain
+	// hub: replica of inst_X_X sourced from the device domain
 	ncHub, err := nats.Connect(hub.ClientURL())
 	if err != nil {
 		t.Fatal(err)
@@ -122,9 +122,9 @@ func TestJetStreamSourcingOverLeafnode(t *testing.T) {
 		t.Fatal(err)
 	}
 	replica, err := jsHub.CreateStream(ctx, jetstream.StreamConfig{
-		Name: "inst-X-X",
+		Name: "inst_X_X",
 		Sources: []*jetstream.StreamSource{
-			{Name: "inst-X-X", Domain: "dev"},
+			{Name: "inst_X_X", Domain: "dev"},
 		},
 	})
 	if err != nil {

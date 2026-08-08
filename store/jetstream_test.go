@@ -387,10 +387,10 @@ func TestDbJetStreamRestart(t *testing.T) {
 	}
 
 	// the fresh instance should have a single boundary-origin stream
-	// inst-<rootID>-<rootID> holding everything
+	// inst_<rootID>_<rootID> holding everything
 	_, err = db.js.Stream(context.Background(), streamName(rootID, rootID))
 	if err != nil {
-		t.Fatal("expected stream inst-<rootID>-<rootID> to exist:", err)
+		t.Fatal("expected stream inst_<rootID>_<rootID> to exist:", err)
 	}
 }
 

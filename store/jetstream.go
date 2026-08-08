@@ -71,9 +71,12 @@ type DbJetStream struct {
 }
 
 // streamName returns the stream name for a (boundary, origin) pair.
-// Stream names cannot contain dots, so names use dashes.
+// Stream names cannot contain dots, so the subject separator becomes an
+// underscore, the same substitution the NATS server makes when it derives
+// a name from a subject. Node IDs are UUIDs and carry dashes of their own,
+// so an underscore keeps the two IDs legible and separable.
 func streamName(boundaryID, originID string) string {
-	return "inst-" + boundaryID + "-" + originID
+	return "inst_" + boundaryID + "_" + originID
 }
 
 // streamCaptureSubject returns the subject space a boundary-origin
@@ -403,7 +406,7 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 	if parentID == "root" {
 		// an instance root edge always lives in the root node's own
 		// boundary-origin stream, so a fresh instance starts with the
-		// single stream inst-<rootID>-<rootID>
+		// single stream inst_<rootID>_<rootID>
 		boundary = nodeID
 		origin = nodeID
 	} else {
@@ -1039,7 +1042,7 @@ func (db *DbJetStream) reset() error {
 	// Delete all boundary-origin streams
 	streamLister := db.js.ListStreams(ctx)
 	for si := range streamLister.Info() {
-		if strings.HasPrefix(si.Config.Name, "inst-") {
+		if strings.HasPrefix(si.Config.Name, "inst_") {
 			err := db.js.DeleteStream(ctx, si.Config.Name)
 			if err != nil {
 				return fmt.Errorf("error deleting stream %v: %v", si.Config.Name, err)
