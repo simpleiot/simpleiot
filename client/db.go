@@ -257,6 +257,15 @@ done:
 			dbc.scanStreams(js, false)
 
 		case sm := <-dbc.chStreamMsgs:
+			// a tag edit on any node changes the inherited tags of every
+			// node beneath it; drop the cache and let entries re-resolve
+			// on their next point. This runs before the subtree check
+			// because a node outside the subtree can still be an
+			// ancestor of one inside it via another DAG path.
+			if dbc.nodeCache.hasTagPointType(sm.points) {
+				dbc.nodeCache.Clear()
+			}
+
 			writeAPI := dbc.writer()
 			if writeAPI == nil {
 				// no valid URI configured; discard the points and
@@ -273,8 +282,10 @@ done:
 				continue
 			}
 
-			// Update nodeCache if needed
-			err := dbc.nodeCache.Update(dbc.nc, NewPoints{ID: sm.nodeID})
+			// Update nodeCache if needed, merging the arriving points so
+			// description and tag edits refresh an existing entry
+			err := dbc.nodeCache.Update(dbc.nc,
+				NewPoints{ID: sm.nodeID, Points: sm.points})
 			if err != nil {
 				log.Printf("error updating cache: %v", err)
 			}
