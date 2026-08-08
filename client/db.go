@@ -137,12 +137,14 @@ func (dbc *DbClient) Run() error {
 		return fmt.Errorf("error creating JetStream context: %w", err)
 	}
 
-	// node moves change which nodes are under our parent; edges change
-	// rarely, so drop the whole membership cache on any edge point
+	// node moves change which nodes are under our parent and which
+	// ancestor tags they inherit; edges change rarely, so drop both the
+	// membership cache and the tag cache on any edge point
 	dbc.epSub, err = dbc.nc.Subscribe(SubjectEdgeAllPoints(), func(_ *nats.Msg) {
 		dbc.memberMu.Lock()
 		dbc.memberCache = make(map[string]bool)
 		dbc.memberMu.Unlock()
+		dbc.nodeCache.Clear()
 	})
 	if err != nil {
 		return fmt.Errorf("subscribing to edge points: %w", err)
