@@ -113,7 +113,7 @@ func NewDbClient(nc *nats.Conn, config Db) Client {
 		newPoints:     make(chan NewPoints),
 		newEdgePoints: make(chan NewPoints),
 		chStreamMsgs:  make(chan dbStreamMsg, 64),
-		nodeCache:     newNodeCache(config.TagPointTypes),
+		nodeCache:     newNodeCache(config.TagPointTypes, config.Parent),
 		consumers:     make(map[string]jetstream.ConsumeContext),
 		memberCache:   make(map[string]bool),
 	}
@@ -324,7 +324,7 @@ done:
 					closeAPI()
 					setupAPI()
 				case data.PointTypeTagPointType:
-					dbc.nodeCache = newNodeCache(dbc.config.TagPointTypes)
+					dbc.nodeCache = newNodeCache(dbc.config.TagPointTypes, dbc.config.Parent)
 				}
 			}
 

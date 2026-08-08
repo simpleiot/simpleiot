@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"log"
 	"slices"
 	"sync"
 
@@ -21,26 +22,44 @@ type nodeCacheEntry struct {
 	// Tags is a map of tags attached to this node, derived from the list of
 	// points with a Type matching one of the TagPointTypes. Keys are a
 	// concatenation of the point Type and point Key. Values are the point Text.
+	// Tags set on the node itself are merged with tags inherited from its
+	// ancestors up to the Boundary node; the value nearest the node wins.
 	Tags map[tagEntry]string
 }
 type nodeCache struct {
 	// TagPointTypes is a slice of point types that are added as Influx tags
 	TagPointTypes []string
+	// Boundary is the node ID at which the ancestor walk stops; its tags
+	// are included. This is the Db client's configured Parent node.
+	Boundary string
 	// Cache is a map of cache entries
 	Cache map[string]nodeCacheEntry
 	// Lock is the cache mutex
 	Lock *sync.RWMutex
+	// TieLogged records tag keys for which an equal-depth ancestor tie has
+	// already been logged, so each ambiguity is reported once
+	TieLogged map[tagEntry]bool
+	// fetch retrieves every living instance of a node with its Parent
+	// populated. It is a field so tests can substitute a constructed tree.
+	fetch func(nc *nats.Conn, id string) ([]data.NodeEdge, error)
 }
 
-// newNodeCache returns an initialized nodeCache
-func newNodeCache(tagPointTypes []string) nodeCache {
+// newNodeCache returns an initialized nodeCache. boundary is the node ID at
+// which ancestor tag resolution stops (inclusive), normally the Db client's
+// Parent node.
+func newNodeCache(tagPointTypes []string, boundary string) nodeCache {
 	tagPointTypes = slices.Clone(tagPointTypes)
 	slices.Sort(tagPointTypes)
 	return nodeCache{
 		// We sort the slice, so we can use BinarySearch
 		TagPointTypes: tagPointTypes,
+		Boundary:      boundary,
 		Cache:         make(map[string]nodeCacheEntry),
 		Lock:          new(sync.RWMutex),
+		TieLogged:     make(map[tagEntry]bool),
+		fetch: func(nc *nats.Conn, id string) ([]data.NodeEdge, error) {
+			return GetNodes(nc, "all", id, "", false)
+		},
 	}
 }
 
@@ -69,7 +88,8 @@ func (c nodeCache) CopyTags(nodeID string, tags map[string]string) bool {
 }
 
 // Update iterates through each Point and updates the cache. If a cache entry
-// does not exist for the node, the node is retrieved, and the cache is
+// does not exist for the node, the node is retrieved along with the tag
+// points of its ancestors up to the Boundary node, and the cache is
 // subsequently updated.
 func (c nodeCache) Update(nc *nats.Conn, pts NewPoints) error {
 	c.Lock.Lock()
@@ -78,7 +98,7 @@ func (c nodeCache) Update(nc *nats.Conn, pts NewPoints) error {
 	entry, found := c.Cache[pts.ID]
 	if !found {
 		// We need to fetch the node and populate the cache
-		ne, err := GetNodes(nc, "all", pts.ID, "", false)
+		ne, err := c.fetch(nc, pts.ID)
 		if err != nil {
 			return err
 		}
@@ -98,6 +118,10 @@ func (c nodeCache) Update(nc *nats.Conn, pts NewPoints) error {
 				key := tagEntry{Type: p.Type, Key: p.Key}
 				entry.Tags[key] = p.Txt()
 			}
+		}
+		err = c.mergeAncestorTags(nc, pts.ID, ne, entry.Tags)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -122,6 +146,108 @@ func (c nodeCache) Update(nc *nats.Conn, pts NewPoints) error {
 	c.Cache[pts.ID] = entry
 
 	return nil
+}
+
+// mergeAncestorTags walks the ancestors of the given node breadth-first and
+// merges their tag points into tags. Entries already present (from the node
+// itself or a nearer ancestor) are not overwritten, so the value nearest the
+// node wins. Within a level, nodes are applied in ascending node ID order,
+// and the first time two nodes at the same depth define the same key a
+// message is logged. The walk stops after the level containing the Boundary
+// node (its tags are included) or when no living parents remain. instances
+// is the fetch result for the node itself, used to seed the first level.
+// Must be called with the write lock held.
+func (c nodeCache) mergeAncestorTags(nc *nats.Conn, id string,
+	instances []data.NodeEdge, tags map[tagEntry]string) error {
+	if len(c.TagPointTypes) == 0 || id == c.Boundary {
+		return nil
+	}
+
+	// a node can be reached by more than one path in the DAG; nearest
+	// depth wins, so each ancestor is visited only once
+	visited := map[string]bool{id: true}
+	level := parentIDs(instances, visited)
+
+	for len(level) > 0 {
+		slices.Sort(level)
+
+		// definedBy tracks which node defined each key at this level, to
+		// detect equal-depth ties
+		definedBy := make(map[tagEntry]string)
+		var next []string
+		boundaryReached := false
+
+		for _, nid := range level {
+			ne, err := c.fetch(nc, nid)
+			if err != nil {
+				return err
+			}
+			if len(ne) == 0 {
+				continue
+			}
+			for _, p := range ne[0].Points {
+				if p.Tombstone%2 == 1 || p.Txt() == "" {
+					continue
+				}
+				if _, found := slices.BinarySearch(c.TagPointTypes, p.Type); !found {
+					continue
+				}
+				key := tagEntry{Type: p.Type, Key: p.Key}
+				if first, tie := definedBy[key]; tie {
+					if !c.TieLogged[key] {
+						c.TieLogged[key] = true
+						log.Printf("Db tag cache: nodes %v and %v define tag %v:%v at the same depth; using the value from %v",
+							first, nid, key.Type, key.Key, first)
+					}
+					continue
+				}
+				definedBy[key] = nid
+				if _, found := tags[key]; !found {
+					tags[key] = p.Txt()
+				}
+			}
+			if nid == c.Boundary {
+				boundaryReached = true
+				continue
+			}
+			next = append(next, parentIDs(ne, visited)...)
+		}
+
+		if boundaryReached {
+			break
+		}
+		level = next
+	}
+
+	return nil
+}
+
+// parentIDs returns the IDs of the living parents of the given node
+// instances, skipping the top-level "root" marker and any node already
+// visited. Returned IDs are marked visited.
+func parentIDs(instances []data.NodeEdge, visited map[string]bool) []string {
+	var ids []string
+	for _, n := range instances {
+		if n.Parent == "root" || n.Parent == "" || visited[n.Parent] {
+			continue
+		}
+		visited[n.Parent] = true
+		ids = append(ids, n.Parent)
+	}
+	return ids
+}
+
+// hasTagPointType reports whether any of the points has a type in the
+// configured tag point types. Used to decide when a cache clear is needed,
+// since a tag edit on any node can change the inherited tags of every node
+// beneath it.
+func (c nodeCache) hasTagPointType(pts data.Points) bool {
+	for _, p := range pts {
+		if _, found := slices.BinarySearch(c.TagPointTypes, p.Type); found {
+			return true
+		}
+	}
+	return false
 }
 
 // Clear deletes all cache entries
