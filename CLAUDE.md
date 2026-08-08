@@ -77,7 +77,7 @@ cd frontend && npx elm-test
 - `client/` - Client implementations (most functionality lives here)
 - `api/` - HTTP API handlers and routing
 - `data/` - Core data structures (Node, Point, etc.)
-- `store/` - SQLite storage layer
+- `store/` - JetStream storage layer (boundary-origin streams, see ADR-7)
 - `frontend/` - Elm-based web UI
 - `modbus/` - Modbus protocol implementation
 - `network/` - Network management utilities
@@ -110,13 +110,28 @@ Implementation plans are stored in the `plans/` directory. See `plans/plans.md`
 for an index of all plans and their status.
 
 When working through a plan, commit after each phase completes. Update the
-changelog, CLAUDE.md, and any relevant documentation as part of each phase.
+changelog (`CHANGELOG.md`), `CLAUDE.md`, and any relevant documentation as part
+of each phase. The changelog uses
+[Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format — add entries
+under the `## Next` section.
+
+## Committing
+
+Leave `frontend/public/dist/elm.js.gz` out of commits. The frontend build
+regenerates it constantly, so it shows up as modified during normal work.
+It is committed only right before a release, in its own commit. When staging
+changes, stage the files you edited rather than using `git add -A` or
+`git commit -a`, and if the built artifact does get committed by mistake,
+drop it with `git restore --source=HEAD~1 --staged
+frontend/public/dist/elm.js.gz` followed by `git commit --amend`.
 
 ## Important Notes
 
 - Always source `envsetup.sh` before running build commands
-- Frontend build generates compressed `elm.js.gz` file
-- SQLite database stores all application data
+- Frontend build generates compressed `elm.js.gz` file (see Committing above —
+  it is not committed with regular changes)
+- NATS JetStream stores all application data (one stream per
+  boundary/origin pair; see ADR-7)
 - System supports TLS with certificates via `siot_mkcert` and `siot_run_tls`
 - Protocol buffers used for efficient data serialization (`siot_protobuf`)
 - Cross-platform support (Linux, macOS, Windows with ARM variants)

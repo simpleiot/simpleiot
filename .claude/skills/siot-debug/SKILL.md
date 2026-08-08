@@ -1,0 +1,187 @@
+---
+name: siot-debug
+description:
+  Use when inspecting or troubleshooting a running Simple IoT instance —
+  checking what a node's current values are, whether points are flowing,
+  whether sync is replicating, or what is in the JetStream store. Triggers on
+  requests like "check the X node", "the value is not changing", "is sync
+  working", "what is in the store", "why is this node empty", or any question
+  about the live state of a local or remote SIOT process.
+---
+
+# Debugging a running SIOT instance
+
+Four ways to look at a live instance, roughly in the order to reach for them:
+
+| Tool | Answers |
+| --- | --- |
+| `siot export` | What is the current configuration and the latest value of every point |
+| `nats sub` | What is being published right now, on which subject |
+| `nats stream` | What is persisted, how much of it, and how far consumers have read |
+| HTTP API | The same node data as JSON, including point timestamps and origins |
+
+Start with `export`. It renders the whole node tree as readable YAML in one
+command and needs no authentication.
+
+## Finding the instance
+
+A machine often runs several instances at once (a device and its upstream, or
+a released binary alongside a development build). Identify them before
+connecting to anything.
+
+```bash
+ps aux | grep -i siot | grep -v grep
+ls -l /proc/<pid>/cwd                                  # which data directory
+tr '\0' '\n' < /proc/<pid>/environ | grep SIOT_        # port overrides
+ss -lntp | grep <pid>                                  # ports actually bound
+```
+
+Default ports, each overridable by the environment variable in parentheses:
+
+- `4222` NATS (`SIOT_NATS_PORT`)
+- `8118` HTTP / web UI (`SIOT_HTTP_PORT`)
+- `8222` NATS monitoring (`SIOT_NATS_HTTP_PORT`)
+- `9222` NATS websocket (`SIOT_NATS_WS_PORT`)
+
+The data directory is the process working directory, so `/proc/<pid>/cwd`
+tells you which `jetstream/` tree belongs to which instance. Confirm the port
+from `ss` rather than assuming the default — a second instance will have been
+started with overrides.
+
+## Reading state with `siot export`
+
+```bash
+./siot export -natsServer nats://127.0.0.1:4222
+```
+
+Output is the node tree in configuration YAML: node type as the key, each
+point type as a key under it, children nested. Add `-nodeID <id>` for a
+subtree and `-token` (or `SIOT_AUTH_TOKEN`) if the instance requires
+authentication.
+
+To see whether something is moving, run it twice and compare the one field
+you care about:
+
+```bash
+for i in 1 2 3; do
+  ./siot export -natsServer nats://127.0.0.1:4222 2>/dev/null | grep -E '^      value:'
+  sleep 3
+done
+```
+
+Three samples beat two: they show the shape of the signal, not just that a
+number differs. For a 0.1 Hz sine with min 0 and max 10 sampled every 3 s,
+expect `5 + 5·sin(θ)` at 108° steps — 9.76, 5.00, 0.24 is a correct sine, and
+recognizing that saves confirming the generator any other way.
+
+## Watching the wire
+
+```bash
+nats -s nats://127.0.0.1:4222 sub 'p.>'          # all node points
+nats -s nats://127.0.0.1:4222 sub 'p.<nodeID>.>' # one node
+nats -s nats://127.0.0.1:4222 sub 'ep.>'         # edge points
+nats -s nats://127.0.0.1:4222 sub 'phrup.>'      # high-rate points
+```
+
+Subject forms:
+
+- `p.<nodeID>.<pointType>.<key>` — node points
+- `ep.<nodeID>.<parentID>` — edge points
+- `phr.<nodeID>` / `phrup.<parentID>.<nodeID>` — high-rate points
+
+Payloads are the compact binary point encoding, so the body prints as noise.
+That is fine for this purpose: the subject names the point type and the
+message rate tells you whether data is flowing. Use `export` to read values.
+
+**A frozen value usually means nothing writes that point type any more.**
+Points persist as the node's last known state forever, so a point left over
+from an earlier configuration keeps its final value indefinitely and looks
+identical to a stalled client. Before concluding data is stuck, subscribe and
+see which point type is actually being published — a signal generator whose
+`destination.pointType` was changed from `volt` to the default leaves a stale
+`volt` point next to a live `value` point, and both appear in `export`.
+
+## Inspecting the store
+
+Streams are named `inst-<boundaryID>-<originID>` (see ADR-7). Each
+sync/AuthZ boundary gets a stream per origin instance, so a device that has
+adopted an upstream has both its own stream and a replica.
+
+```bash
+nats -s nats://127.0.0.1:4222 stream ls
+nats -s nats://127.0.0.1:4222 stream report          # messages, consumers, size
+nats -s nats://127.0.0.1:4222 stream subjects <name> # per-subject counts
+nats -s nats://127.0.0.1:4222 stream info <name> -j  # retention, state
+```
+
+Stream subjects mirror the wire subjects with routing tokens prepended:
+`inst.<boundary>.<origin>.<nodeID>.p.<type>.<key>` and
+`inst.<boundary>.<origin>.<parentID>.ep.<childID>`.
+
+`stream subjects` sorted by count is the fastest way to see which signals
+dominate and whether a given point is being persisted at all. Per-subject
+retention defaults to 5000 messages, so a busy signal sitting at exactly 5000
+is at the cap and working as intended, not truncated by an error.
+
+To check replication, compare the same stream on both instances, and read
+consumer positions with `nats consumer report <stream>`.
+
+## HTTP API
+
+Useful when you want point timestamps and origins, or want to script against
+JSON. Three details make the difference between a working request and an
+opaque error:
+
+```bash
+# 1. Log in. The "email" is whatever the user node's email point holds,
+#    which is often a bare name such as "admin" rather than an address.
+TOKEN=$(curl -s -X POST -d "email=admin&password=admin" \
+  http://localhost:8118/v1/auth | jq -r .token)
+
+# 2. The Authorization header needs the Bearer prefix.
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8118/v1/nodes
+
+# 3. A single-node GET takes the parent ID in the request body; "all" works.
+curl -s -X GET -H "Authorization: Bearer $TOKEN" --data "all" \
+  "http://localhost:8118/v1/nodes/<nodeID>"
+```
+
+Without the `Bearer` prefix the response is `Unauthorized`; with no header at
+all it is `invalid user`; with no parent in the body it is `parent must be set
+to valid ID, or all`.
+
+Each point carries the raw `dataType` and base64 `data` plus a decoded `value`
+or `text`, so read `value`/`text` and ignore the encoded pair.
+
+## Working across a sync pair
+
+When a device syncs to an upstream, the same node exists on both sides and the
+values move independently between replications. Export both and compare:
+
+```bash
+./siot export -natsServer nats://127.0.0.1:4222   # device
+./siot export -natsServer nats://127.0.0.1:4333   # upstream
+```
+
+If both show live, changing values, replication is working and any problem is
+downstream of the data. Confirm this before investigating the store or a
+client, because it rules out most of the system in one step.
+
+## Deciding where the problem is
+
+For a report that a displayed value is not changing:
+
+1. `export` twice. If the value moves, the data layer is healthy and the
+   problem is in the frontend or in which point the display reads.
+2. If it does not move, `nats sub` the node. If points are publishing under a
+   different type than the one you are reading, the configuration and the
+   reader disagree — this is the common case.
+3. If nothing publishes, the producing client is stopped or misconfigured.
+   Check its config in the `export` output and the instance log.
+4. If points publish but do not persist, compare `stream subjects` counts
+   against the wire.
+
+Elm components read a fixed point type, so a component that hardcodes one type
+while its client writes a configurable destination type will display a constant
+default. `Point.getValue` returns `0` when it finds nothing, which renders as a
+plausible reading rather than as an obvious absence.

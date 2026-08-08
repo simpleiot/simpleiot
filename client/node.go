@@ -203,9 +203,22 @@ func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 			Type: data.PointTypeTombstone, Origin: origin}}
 	}
 
-	ntPt := data.NewPointString(data.PointTypeNodeType, "", node.Type)
-	ntPt.Origin = origin
-	node.EdgePoints = append(node.EdgePoints, ntPt)
+	// a caller can supply the node type itself, as an import does when the
+	// file it applies carries one, so only add it when it is missing
+	hasNodeType := false
+
+	for _, p := range node.EdgePoints {
+		if p.Type == data.PointTypeNodeType {
+			hasNodeType = true
+			break
+		}
+	}
+
+	if !hasNodeType {
+		ntPt := data.NewPointString(data.PointTypeNodeType, "", node.Type)
+		ntPt.Origin = origin
+		node.EdgePoints = append(node.EdgePoints, ntPt)
+	}
 
 	err = SendEdgePoints(nc, node.ID, node.Parent, node.EdgePoints, true)
 	if err != nil {
@@ -646,7 +659,8 @@ func exportNodesHelper(nc *nats.Conn, node *data.NodeEdgeChildren) error {
 	sort.Sort(data.ByTypeKey(node.EdgePoints))
 	// reduce a little noise ...
 	// remove tombstone "0" edge points as that does not convey much information
-	// also remove and key="0" fields in points
+	// also remove nodeType edge points, as the node type is the key a node is
+	// written under, and remove key="0" fields in points
 	for i, p := range node.Points {
 		if p.Key == "0" {
 			node.Points[i].Key = ""
@@ -659,10 +673,14 @@ func exportNodesHelper(nc *nats.Conn, node *data.NodeEdgeChildren) error {
 		}
 	}
 
-	// remove tombstone 0 edge points
+	// remove tombstone 0 and nodeType edge points
 	i := 0
 	for _, p := range node.EdgePoints {
 		if p.Type == data.PointTypeTombstone && p.Val() == 0 {
+			continue
+		}
+
+		if p.Type == data.PointTypeNodeType {
 			continue
 		}
 		node.EdgePoints[i] = p

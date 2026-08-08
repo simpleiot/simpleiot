@@ -135,9 +135,9 @@ type Action struct {
 	Value     float64 `point:"value"`
 	ValueText string  `point:"valueText"`
 	// the following are used for audio playback
-	PointChannel  int    `point:"pointChannel"`
-	PointDevice   string `point:"pointDevice"`
-	PointFilePath string `point:"pointFilePath"`
+	Channel  int    `point:"channel"`
+	Device   string `point:"device"`
+	FilePath string `point:"filePath"`
 }
 
 func (a Action) String() string {
@@ -184,9 +184,9 @@ type ActionInactive struct {
 	Value     float64 `point:"value"`
 	ValueText string  `point:"valueText"`
 	// the following are used for audio playback
-	PointChannel  int    `point:"pointChannel"`
-	PointDevice   string `point:"pointDevice"`
-	PointFilePath string `point:"pointFilePath"`
+	Channel  int    `point:"channel"`
+	Device   string `point:"device"`
+	FilePath string `point:"filePath"`
 }
 
 // RuleClient is a SIOT client used to run rules
@@ -695,27 +695,31 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				return err
 			}
 		case data.PointValuePlayAudio:
-			f, err := os.Open(a.PointFilePath)
+			f, err := os.Open(a.FilePath)
 			if err != nil {
-				log.Fatal(err)
+				processError(fmt.Errorf("error opening wave file: %w", err))
+				break
 			}
-			defer f.Close()
 
 			d := wav.NewDecoder(f)
 			d.ReadInfo()
 
 			format := d.Format()
 
-			if format.SampleRate < 8000 {
-				log.Println("Rule action: invalid wave file sample rate:", format.SampleRate)
-				continue
+			if err := f.Close(); err != nil {
+				log.Println("Rule action: error closing wave file:", err)
 			}
 
-			channelNum := strconv.Itoa(a.PointChannel)
+			if format.SampleRate < 8000 {
+				processError(fmt.Errorf("invalid wave file sample rate: %v", format.SampleRate))
+				break
+			}
+
+			channelNum := strconv.Itoa(a.Channel)
 			sampleRate := strconv.Itoa(format.SampleRate)
 
 			go func() {
-				stderr, err := exec.Command("speaker-test", "-D"+a.PointDevice, "-twav", "-w"+a.PointFilePath, "-c5", "-s"+channelNum, "-r"+sampleRate).CombinedOutput()
+				stderr, err := exec.Command("speaker-test", "-D"+a.Device, "-twav", "-w"+a.FilePath, "-c5", "-s"+channelNum, "-r"+sampleRate).CombinedOutput()
 				if err != nil {
 					log.Println("Play audio error:", err)
 					log.Printf("Audio stderr: %s\n", stderr)

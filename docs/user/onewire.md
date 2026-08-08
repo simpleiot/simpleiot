@@ -56,3 +56,36 @@ including eBay - search for `DS18B20`, and look for an image like the below:
 
 Readings are in degrees Celsius by default. Set `Units` on a device node to `F`
 to report degrees Fahrenheit instead.
+
+## Schema
+
+The configuration of a 1-wire bus and one of its devices:
+
+```yaml
+nodes:
+  - oneWire:
+      debug: 0
+      description: Tank sensors
+      disabled: 0
+      index: 0
+      pollPeriod: 3000
+      children:
+        - oneWireIO:
+            description: Tank top
+            disabled: 0
+            id: 28-0000073b6f4d
+            units: F
+```
+
+`index` is the number of the bus controller, matching the
+`w1_bus_master<index>` directory in `/sys/bus/w1/devices`. `pollPeriod` is in
+milliseconds and defaults to 3000 when it is zero or missing.
+
+`id` on a device is its 1-wire address rather than a node ID, which is why it
+is spelled like any other point. Simple IoT creates a device node for each
+sensor it detects on the bus, so these usually arrive on their own; what a file
+adds is a lasting `description` and, where wanted, `units`.
+
+Leaving `units` out reports degrees Celsius. The readings and error counts are
+points the client maintains, so an export of a running bus carries them as
+well.

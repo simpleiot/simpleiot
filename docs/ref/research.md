@@ -3,6 +3,15 @@
 This document contains information that has been researched during the course of
 creating Simple IoT.
 
+> **Status:** this page is a historical record of the exploration that shaped
+> the design; it is not a description of how Simple IoT works today. The
+> hash-tree synchronization discussed below was implemented and later replaced
+> by replicating JetStream streams, which carry their own sequence numbers and
+> avoid the moving-target comparison problem entirely. See
+> [ADR-7](../adr/7-jetstream-store.md) for the analysis and decision, and the
+> [store](store.md) and [synchronization](sync.md) references for the current
+> design.
+
 ## Synchronization
 
 An IoT system is inherently distributed. At a minimum, there are three

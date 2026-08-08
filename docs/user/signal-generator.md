@@ -42,6 +42,18 @@ there's a 65% chance it becomes 0. This means that the value will be 0 roughly
 
 ## Schema
 
+`signalType` is `sine`, `square`, `triangle`, or `random walk`. `frequency`
+applies to the three waveforms and `minIncrement`, `maxIncrement`, and
+`roundTo` apply to a random walk. `sampleRate` is in Hz and `batchPeriod` is in
+milliseconds.
+
+A generator writes to itself unless it is told otherwise. A node configured to
+write elsewhere carries a `destination` mapping, whose keys are `nodeID`,
+`parent`, `highRate`, `pointType`, and `pointKey`. `nodeID` there is a key
+rather than a point type, so it is written as the ID of the node it names
+rather than as a description, which is worth knowing when moving a generator
+between instances.
+
 Below is an export of several types of signal generator nodes:
 
 ```yaml

@@ -37,6 +37,10 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	flagUIAssetsDebug := flags.Bool("UIAssetsDebug", false, "Dump asset files for debugging")
 	flagProvisioningDir := flags.String("provisioningDir", "",
 		"directory of YAML files to apply at start-up and when they change (default <SIOT_DATA>/provisioning if it exists)")
+	flagStoreMaxMsgsPerSubject := flags.Int64("storeMaxMsgsPerSubject", 0,
+		"per-subject history retained in store streams (0 = default of 5000, -1 = unlimited); current state is always preserved")
+	flagStoreSyncInterval := flags.String("storeSyncInterval", "",
+		"JetStream file sync interval (Go duration, or 'always' to fsync every write); empty uses the NATS default of 2m")
 
 	if err := flags.Parse(args); err != nil {
 		return Options{}, err
@@ -188,9 +192,46 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 		provisioningInterval = d
 	}
 
+	// =============================================
+	// Store retention and durability
+	// =============================================
+
+	storeMaxMsgsPerSubject := *flagStoreMaxMsgsPerSubject
+	if storeMaxMsgsPerSubject == 0 {
+		if v := os.Getenv("SIOT_STORE_MAX_MSGS_PER_SUBJECT"); v != "" {
+			n, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				log.Println("Error parsing SIOT_STORE_MAX_MSGS_PER_SUBJECT:", err)
+				os.Exit(-1)
+			}
+			storeMaxMsgsPerSubject = n
+		}
+	}
+
+	storeSyncIntervalS := *flagStoreSyncInterval
+	if storeSyncIntervalS == "" {
+		storeSyncIntervalS = os.Getenv("SIOT_STORE_SYNC_INTERVAL")
+	}
+
+	var storeSyncInterval time.Duration
+	storeSyncAlways := false
+
+	switch storeSyncIntervalS {
+	case "":
+	case "always":
+		storeSyncAlways = true
+	default:
+		storeSyncInterval, err = time.ParseDuration(storeSyncIntervalS)
+		if err != nil {
+			log.Println("Error parsing store sync interval:", err)
+			os.Exit(-1)
+		}
+	}
+
 	// TODO, convert this to builder pattern
 	o := Options{
 		StoreFile:         storeFilePath,
+		DataDir:           dataDir,
 		ResetStore:        *flagResetStore,
 		HTTPPort:          port,
 		DebugHTTP:         *flagDebugHTTP,
@@ -212,6 +253,10 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 
 		ProvisioningDir:      provisioningDir,
 		ProvisioningInterval: provisioningInterval,
+
+		StoreMaxMsgsPerSubject: storeMaxMsgsPerSubject,
+		StoreSyncInterval:      storeSyncInterval,
+		StoreSyncAlways:        storeSyncAlways,
 	}
 
 	return o, nil

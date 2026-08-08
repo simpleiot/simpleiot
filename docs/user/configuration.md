@@ -107,6 +107,10 @@ key:
       role: admin
 ```
 
+Points that a file does not need to carry are left out of an export. The
+`nodeType` edge point is one of them, since the node type is the key each node
+is written under, and the system fills it in when a file is applied.
+
 ### How nodes are found
 
 A file describes what the tree should look like rather than naming the nodes it

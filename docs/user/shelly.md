@@ -44,3 +44,39 @@ Simple IoT provides the following support:
 ## Plug Example
 
 ![shelly plug](images/shelly-plug.png)
+
+## Schema
+
+The configuration of a Shelly node and one of the devices it found:
+
+```yaml
+nodes:
+  - shelly:
+      description: Shelly
+      disabled: 0
+      children:
+        - shellyIo:
+            controlled: 1
+            description: Bench light
+            deviceID: shellyplusplugus-b0b21c12ad58
+            disabled: 0
+            ip: 192.168.1.42
+            type: PlugUS
+```
+
+The Shelly node itself only carries a description and whether it is disabled.
+Everything else follows from what it finds: the client scans the network and
+adds a child node for each device, filling in `deviceID`, `ip`, and `type`
+itself. `type` is the device model, such as `PlugUS`, `Plus1`, `Plus2PM`, or
+`PlusI4`.
+
+What you configure on a device is its `description`, whether it is `disabled`,
+and, for a device that can be driven, `controlled`. With `controlled` set, the
+client drives the device to the `switchSet` and `lightSet` values whenever they
+differ from what the device reports, which is what lets a rule or the UI change
+its state.
+
+The readings and states, along with whether the device is currently reachable,
+are points the client maintains, so an export of a running node carries them as
+well. A device with more than one channel carries one point per channel, keyed
+by channel number.

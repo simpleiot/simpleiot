@@ -1,167 +1,163 @@
 # Data Synchronization
 
-See [research](research.md) for information on techniques that may be applicable
-to this problem.
+Simple IoT synchronizes data between instances by **replicating the
+store's streams** rather than by comparing and copying tree state. Each
+instance appends only to its own streams (see [Store](store.md)); other
+instances hold replicas of those streams and merge them at read time.
+This page explains how the pieces of NATS — core subjects, JetStream
+streams, durable consumers, and message headers — combine to do this.
 
-Typically, configuration is modified through a user interface either in the
-cloud, or with a local UI (ex touchscreen LCD) at an edge device. Rules may also
-eventually change values that need to be synchronized. As mentioned above, the
-configuration of a `Node` will be stored as `Points`. Typically the UI for a
-node will present fields for the needed configuration based on the `Node`
-`Type`, whether it be a user, rule, group, edge device, etc.
+[ADR-7](../adr/7-jetstream-store.md) records the design analysis. The
+previous implementation, which compared Merkle-style node hashes and
+pushed subtrees, is fully replaced; streams carry their own sequence
+numbers, so nothing needs to be compared to know what is missing.
 
-In the system, the Node configuration will be relatively static, but the points
-in a node may be changing often as sensor values changes, thus we need to
-optimize for efficient synchronization of points. We can't afford the bandwidth
-to send the entire node data structure any time something changes.
+## The model in one paragraph
 
-As IoT systems are fundamentally distributed systems, the question of
-synchronization needs to be considered. Both client (edge), server (cloud), and
-UI (frontend) can be considered independent systems and can make changes to the
-same node.
+Every stream has exactly one writing instance (its *origin*). A device
+with root `X` writes everything to its stream `inst_X_X`; a hub with
+root `R` writes configuration for the device's subtree to its own
+stream `inst_X_R`. Sync means each side keeps a copy of the other's
+stream: the hub holds a replica of `inst_X_X`, the device holds a
+replica of `inst_X_R`. Current state on either side is the merge of
+the subject tips of both streams — newest timestamp wins, with a
+deterministic origin tie-break. Because no instance ever writes remote
+data into its *own* streams, points cannot echo back and forth between
+instances: there is no loop to suppress.
 
-- An edge device with an LCD/Keypad may make configuration changes.
-- Configuration changes may be made in the Web UI.
-- Sensor values will be sent by an edge device.
-- Rules running in the cloud may update nodes with calculated values.
+```
+   device X                                hub R
+  ┌───────────────────┐                  ┌───────────────────┐
+  │ inst_X_X (owned)  │ ──── push ─────► │ inst_X_X (replica)│
+  │ inst_X_R (replica)│ ◄─── pull ────── │ inst_X_R (owned)  │
+  │                   │                  │ inst_R_R (owned)  │
+  └───────────────────┘                  └───────────────────┘
+     merge tips of both                     merge tips of both
+     = current state                        = current state
+```
 
-Although multiple systems may be updating a node at the same time, it is very
-rare that multiple systems will update the same node point at the same time. The
-reason for this is that a point typically only has one source. A sensor point
-will only be updated by an edge device that has the sensor. A configuration
-parameter will only be updated by a user, and there are relatively few admin
-users, and so on. Because of this, we can assume there will rarely be collisions
-in individual point changes, and thus this issue can be ignored. The point with
-the latest timestamp is the version to use.
+## How each NATS feature is used
 
-## Real-time Point synchronization
+**Core NATS subjects (`p.>`, `ep.>`, `up.>`)** carry points between
+components *within* an instance in real time, exactly as before —
+clients, rules, and the UI are unaware of synchronization. The store
+subscribes to these wire subjects, persists local writes to its origin
+streams, and fans points out to `up.>` subjects for listeners like
+rules and database clients.
 
-Point changes are handled by sending points to a NATS topic for a node any time
-it changes. There are three primary instance types:
+**JetStream streams** are both the store and the unit of sync. Because
+storage subjects embed the boundary and origin
+(`inst.<boundary>.<origin>.…`), a replica stream on another instance
+can use the same name and subjects — a copied message needs no
+translation.
 
-1. Cloud: will subscribe to point changes on all nodes (wildcard)
-1. Edge: will subscribe to point changes only for the nodes that exist on the
-   instance - typically a handful of nodes.
-1. WebUI: will subscribe to point changes for nodes currently being viewed -
-   again, typically a small number.
+**Durable consumers** drive replication. The sync client (which runs on
+the downstream instance and connects to the upstream's NATS server,
+using the URI and auth token on its Sync node) runs two pumps:
 
-With Point Synchronization, each instance is responsible for updating the node
-data in its local store.
+- *push*: a durable consumer on the local `inst_X_X` delivers each
+  message, and the pump publishes it — same subject, same payload — to
+  the upstream, where the replica stream captures it.
+- *pull*: a durable consumer on the upstream's `inst_X_R` does the
+  same in the other direction.
 
-## Catch-up/non real-time synchronization
+A message is acknowledged only after the receiving side confirms the
+write. A durable consumer remembers its position across disconnects, so
+a reconnect delivers exactly the messages the other side missed — no
+rescan, no comparison. This is what replaces the hash tree: the stream
+sequence *is* the synchronization state.
 
-Sending points over NATS will handle 99% of data synchronization needs, but
-there are a few cases this does not cover:
+The pumps move messages and nothing else: they create a missing
+replica stream but never change an existing stream's configuration.
+Each instance's store owns the configuration of the streams on its own
+disk and applies its retention policy to replica streams when it
+discovers them, so a hub can keep more (or less) history of a device's
+data than the device keeps itself.
 
-1. One system is offline for some period of time
-1. Data is lost during transmission
-1. Other errors or unforeseen situations
+**Message headers** solve origin attribution. When a store consumes a
+replica stream, it merges each message into its caches and, when a tip
+changes, re-broadcasts it on the ordinary wire subjects so local
+clients react — tagged with a `Siot-Origin` header naming the writing
+instance. A store receiving a wire message tagged with a remote origin
+merges it and fans it out but **never persists it**; the replica stream
+is the persistent copy. This single rule keeps the single-writer
+property intact everywhere.
 
-There are two types of data:
+## Life of a connection
 
-1. **Periodic sensor readings** (we'll call sample data) that is being
-   continuously updated.
-1. **Configuration data** that is infrequently updated.
+1. The sync client connects to the upstream NATS server (plain NATS or
+   NATS over WebSocket).
+2. **Adoption:** if the upstream tree has no node with this instance's
+   root ID, the client announces itself with one edge message; the
+   upstream persists a device node under its root. (This is an ordinary
+   untagged write — from the upstream's view it is its own edge, in its
+   own boundary.)
+3. The push pump ensures the replica stream exists upstream and starts
+   copying; the device's whole tree — structure, configuration, and
+   history — arrives through it, from sequence 1 on first connect.
+4. The pull pump discovers upstream-origin streams for this instance's
+   boundary and copies them down; the first hub-side configuration
+   write creates `inst_X_R`, and the device picks it up on its next
+   scan.
+5. Each store's replica consumers merge the arriving messages and
+   re-broadcast changed tips locally.
 
-Any node that produces sample data should send values every 10m, even if the
-value is not changing. There are several reasons for this:
+Configuration written on the hub *before* the device ever connects
+(pre-provisioning) simply waits in `inst_X_R` and arrives on first
+connect.
 
-- Indicates the datasource is still alive.
-- Makes graphing easier if there is always data to plot.
-- Covers the synchronization problem for sample data. A new value will be coming
-  soon, so don't really need catch-up synchronization for sample data.
+## Offline catch-up
 
-Config data is not sent periodically. To manage synchronization of config data,
-each `edge` will have a `Hash` field that can be compared between instances.
+While disconnected, both sides keep writing to their own streams. On
+reconnect, the durable consumers resume and deliver only the backlog.
+Two kinds of consumers see that backlog differently:
 
-## Node hash
+- **State clients** (rules, protocol clients, the UI) should not see a
+  replay of stale intermediate values. The store therefore holds
+  re-broadcasts while a replica consumer has a backlog and emits one
+  message per changed subject — the final tip — once it drains.
+- **History** needs every point. It is preserved automatically: the
+  replica stream receives the full backlog in order with original
+  embedded timestamps, so local history stays gap-free (up to each
+  stream's retention limit). The Db (InfluxDB) client works this way:
+  it consumes the streams with its own durable consumers, so an
+  external time-series database receives every point — including the
+  backlog after a sync outage or the client's own downtime — rather
+  than only what happened to cross the wire while it was listening.
+  External sinks can follow the same pattern.
 
-The edge `Hash` field is a hash of:
+## Conflicts
 
-- Edge point CRCs
-- Node points CRCs (except for repetitive or high rate sample points)
-- Child edge `Hash` fields
+Concurrent writes to the same point from two instances are rare in
+practice — a sensor value has one source, a setting is usually edited
+in one place. When they happen, every instance applies the same merge
+rule to the same streams: newest embedded timestamp wins, and equal
+timestamps resolve to the lexically greater origin ID, so all instances
+converge on the same value without coordination.
 
-We store the hash in the `edge` structures because nodes (such as users) can
-exist in multiple places in the tree.
+## Deleting a device (detach)
 
-This is essentially a Merkle DAG - see [research](research.md).
+The edge that attaches a device into the hub's tree lives in the hub's
+own boundary stream, which the device does not replicate. Tombstoning
+that edge on the hub therefore *detaches* the device: the hub stops
+showing it, while the device keeps operating standalone, unaware.
+The device does not force itself back into the tree; only the hub can
+restore the edge (undelete), after which replication resumes where it
+left off.
 
-Comparing the node `Hash` field allows us to detect node differences. If a
-difference is detected, we can then compare the node points and child nodes to
-determine the actual differences.
+## Current limitations and direction
 
-Any time a node point (except for repetitive or high rate data) is modified, the
-node's `Hash` field is updated, and the `Hash` field in parents, grand-parents,
-etc. are also computed and updated. This may seem like a lot of overhead, but if
-the database is local, and the graph is reasonably constructed, then each update
-might require reading a dozen or so nodes and perhaps writing 3-5 nodes.
-Additionally, non sample-data changes are relatively infrequent.
+- Only the instance's root boundary replicates today; nested device
+  boundaries (a device that itself syncs devices) are planned.
+- Replication runs over the ordinary upstream client connection.
+  JetStream *sourcing* across NATS leaf connections — where the NATS
+  servers replicate the streams themselves — is verified to work (see
+  `store/leafnode_spike_test.go`) and is the intended replacement once
+  per-instance JetStream domain configuration is worked out.
+- Authorization currently uses the shared auth token; per-stream
+  permissions issued via NATS auth callout are the planned tightening,
+  and the stream-per-boundary layout is what makes one-rule-per-device
+  grants possible.
 
-Initially synchronization between edge and cloud nodes is supported. The edge
-device will contain an "upstream" node that defines a connection to another
-instance's NATS server - typically in the cloud. The edge node is responsible
-for synchronizing of all state using the following algorithm:
-
-1. Occasionally the edge device fetches the edge device root node hash from the
-   cloud.
-1. If the hash does not match, the edge device fetches the entire node and
-   compares/updates points. If local points need updated, this process can
-   happen all on the edge device. If upstream points need updated, these are
-   simply transmitted over NATS.
-1. If the node hash still does not match, a recursive operation is started to fetch
-   child node hashes and the same process is repeated.
-
-### Hash Algorithm
-
-We don't need cryptographic level hashes as we are not trying to protect against
-malicious actors, but rather provide a secondary check to ensure all data has
-been synchronized. Normally, all data will be sent via points as it is changes
-and if all points are received, the Hash is not needed. Therefore, we want to
-prioritize performance and efficiency over hash strength. The XOR function has
-some interesting properties:
-
-- **Commutative: A ⊕ B = B ⊕ A** (the ability to process elements in any order
-  and get the same answer)
-- **Associative: A ⊕ (B ⊕ C) = (A ⊕ B) ⊕ C** (we can group operations in any
-  order)
-- **Identity: A ⊕ 0 = A**
-- **Self-Inverse: A ⊕ A = 0** (we can back out an input value by simply applying
-  it again)
-
-See
-[hash_test.go](https://github.com/simpleiot/simpleiot/blob/master/store/hash_test.go)
-for tests of the XOR concept.
-
-### Point CRC
-
-Point CRCs are calculated using the CRC-32 of the following point fields:
-
-- `Time`
-- `Type`
-- `Key`
-- `Text`
-- `Value`
-
-### Updating the Node Hash
-
-- Edge or node points received
-  - For points updated
-    - Back out previous point CRC
-    - Add in new point CRC
-  - Update upstream hash values (stops at device node)
-    - Create cache of all upstream edges to root
-    - For each upstream edge, back out old hash, and xor in new hash
-    - Write all updated edge hash fields
-
-It should again be emphasized that repetitive or high rate points should not be
-included in the hash because they will be sent again soon - we do not need the
-hash to ensure they get synchronized. The hash should only include points that
-change at slow rates (user changes, state, etc.). Anything machine generated
-should be repeated - even if only every 10 minutes.
-
-The hash is only useful in synchronizing state between a device node tree, and a
-subset of the upstream node tree. For instances which do not have an upstream of
-peer instances, there is little value in calculating hash values back to the
-root node and could be computationally intensive for a cloud instance that had
-1000's of child nodes.
+See the [Stage 3 plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-08-06-stage3-jetstream-sync.md)
+for the full status list.

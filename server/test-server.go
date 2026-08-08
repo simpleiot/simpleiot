@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os/exec"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -14,7 +15,6 @@ import (
 
 // TestServerOptions options used for test server
 var TestServerOptions = Options{
-	StoreFile:    "test.sqlite",
 	NatsPort:     8900,
 	HTTPPort:     "8901",
 	NatsHTTPPort: 8902,
@@ -25,7 +25,6 @@ var TestServerOptions = Options{
 
 // TestServerOptions2 options used for 2nd test server
 var TestServerOptions2 = Options{
-	StoreFile:    "test2.sqlite",
 	NatsPort:     8910,
 	HTTPPort:     "8911",
 	NatsHTTPPort: 8912,
@@ -59,13 +58,22 @@ func TestServerOptsKeepStore(opts Options) (*nats.Conn, data.NodeEdge, func(), e
 }
 
 func startTestServer(opts Options, clean bool) (*nats.Conn, data.NodeEdge, func(), error) {
+	// JetStream data lives in a directory named for the instance, so a
+	// restart with TestServerOptsKeepStore finds the same store.
+	if opts.DataDir == "" {
+		opts.DataDir = filepath.Join(os.TempDir(), "siot-test-"+opts.ID)
+	}
+
 	cleanup := func() {
-		_ = exec.Command("sh", "-c",
-			fmt.Sprintf("rm %v*", opts.StoreFile)).Run()
+		_ = os.RemoveAll(opts.DataDir)
 	}
 
 	if clean {
 		cleanup()
+	}
+
+	if err := os.MkdirAll(opts.DataDir, 0755); err != nil {
+		return nil, data.NodeEdge{}, nil, fmt.Errorf("error creating data dir: %v", err)
 	}
 
 	s, nc, err := NewServer(opts)
@@ -87,10 +95,11 @@ func startTestServer(opts Options, clean bool) (*nats.Conn, data.NodeEdge, func(
 		close(stopped)
 	}()
 
+	// the store is left in place on stop so a test can restart the instance
+	// with TestServerOptsKeepStore; the next clean start removes it
 	stop := func() {
 		s.Stop(nil)
 		<-stopped
-		cleanup()
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
@@ -100,7 +109,16 @@ func startTestServer(opts Options, clean bool) (*nats.Conn, data.NodeEdge, func(
 		return nil, data.NodeEdge{}, stop, fmt.Errorf("error waiting for test server to start: %v", err)
 	}
 
-	nodes, err := client.GetNodes(nc, "root", "all", "", false)
+	// Retry getting root nodes — store subscriptions may take a moment
+	// to become active after the run group starts
+	var nodes []data.NodeEdge
+	for range 50 {
+		nodes, err = client.GetNodes(nc, "root", "all", "", false)
+		if err == nil && len(nodes) > 0 {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 
 	if err != nil {
 		return nil, data.NodeEdge{}, stop, fmt.Errorf("get root nodes error: %v", err)

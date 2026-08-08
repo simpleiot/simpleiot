@@ -16,6 +16,11 @@ type natsServerOptions struct {
 	TLSCert    string
 	TLSKey     string
 	TLSTimeout float64
+	StoreDir   string
+	// SyncInterval overrides the JetStream file sync interval; zero
+	// keeps the NATS default (2m). SyncAlways fsyncs every write.
+	SyncInterval time.Duration
+	SyncAlways   bool
 }
 
 // newNatsServer creates a new nats server instance
@@ -25,6 +30,14 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 		HTTPPort:      o.HTTPPort,
 		Authorization: o.Auth,
 		NoSigs:        true,
+		JetStream:     true,
+		StoreDir:      o.StoreDir,
+	}
+
+	if o.SyncAlways {
+		opts.SyncAlways = true
+	} else if o.SyncInterval > 0 {
+		opts.SyncInterval = o.SyncInterval
 	}
 
 	if o.TLSCert != "" && o.TLSKey != "" {

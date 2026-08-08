@@ -4,6 +4,14 @@ import "fmt"
 
 // create subject strings for various types of messages
 
+// OriginHeader is the NATS message header carrying the root node ID of
+// the instance a point originated from. The store sets it when
+// re-broadcasting points delivered by a replica stream; a store
+// receiving a message tagged with a remote origin merges it into its
+// caches and fans it out, but never persists it — the replica stream is
+// the persistent copy (single-writer streams, see ADR-7).
+const OriginHeader = "Siot-Origin"
+
 // SubjectNodePoint constructs a NATS subject for a single node point
 func SubjectNodePoint(nodeID, typ, key string) string {
 	return fmt.Sprintf("p.%v.%v.%v", nodeID, typ, key)

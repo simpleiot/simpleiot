@@ -11,22 +11,143 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-- db: add a database type selector to the Database node so you can choose
-  between InfluxDB 2.x and Victoria Metrics. Existing nodes keep their current
-  behavior, as an unset type is treated as InfluxDB.
-- db: when Victoria Metrics is selected, write only the numeric `value` field
-  and skip string points entirely. Victoria Metrics stores numeric samples only
-  and converts any other field value to 0, so the previous `text` field
-  produced a `points_text` series that was always 0. Grafana with a Victoria
-  Metrics data source is the way to graph this data.
-- db: remove the `history.<nodeId>` NATS API and the `data.HistoryQuery`,
-  `data.HistoryResults`, and `data.TagFilters` types that supported it. The API
-  built Flux queries, so it only ever worked with InfluxDB, and nothing used
-  it: the user interface has no graph views, and the query was never reachable
-  from the HTTP API. Grafana remains the way to graph time series data, as
-  described in the [graphing documentation](docs/user/graphing.md). If you are
-  calling this subject from an external client, query InfluxDB directly
-  instead.
+## Next
+
+### Breaking changes
+
+- store: existing SQLite databases must be migrated via `siot export` using
+  v0.22.0 and then `siot import`
+- sync: deleting a device node on the upstream now detaches it — the device no
+  longer re-creates itself; only the upstream can restore it
+- sync: the Sync Period setting is gone from the sync node config and UI. Stage
+  3 replication is continuous, so there is no periodic sync interval left to
+  configure
+- db: the `history.<nodeId>` NATS API and the `data.HistoryQuery`,
+  `data.HistoryResults`, and `data.TagFilters` types that supported it are
+  removed. The API built Flux queries, so it only ever worked with InfluxDB, and
+  nothing used it: the user interface has no graph views, and the query was
+  never reachable from the HTTP API. If you call this subject from an external
+  client, query InfluxDB directly instead. Grafana remains the way to graph time
+  series data, as described in the
+  [graphing documentation](docs/user/graphing.md)
+
+### Store
+
+- replace the SQLite store and hash tree with JetStream boundary-origin streams,
+  `inst_<boundaryID>_<originID>` (ADR-7 Stage 2). Streams are created per
+  sync/AuthZ boundary rather than per node, subjects carry both routing tokens,
+  and current state is the merge of subject tips with a deterministic origin
+  tie-break
+- add in-memory point and edge caches for fast lookups. The point cache is
+  pre-populated at startup and loads on a cache miss, fixing config points being
+  lost after the first write following a restart
+- add boundary resolution to the edge cache (`IsBoundary`, `OwningBoundary`)
+- migrate a node's subjects, and its owned subtree, to the new boundary stream
+  when a move or undelete changes its owning boundary, preserving original point
+  timestamps
+- consume replica streams from other instances, merge them into the caches with
+  the ADR-7 tip rule, and re-broadcast changed tips locally with a `Siot-Origin`
+  header. Remote-origin data is never written to local origin streams, so sync
+  cannot echo
+- validate that new edges carry a `nodeType` point before writing to JetStream,
+  so the stream and edge cache cannot diverge
+- an edge now holds one point per type and key. The store appended a repeated
+  point in the same message rather than replacing what it had
+- reply once and stop processing when an edge point DB write fails
+
+### Store configuration
+
+- add `--storeMaxMsgsPerSubject` / `SIOT_STORE_MAX_MSGS_PER_SUBJECT` to bound
+  per-subject history (current state is always preserved). It defaults to 5000
+  messages, about a month of 10-minute data; configuration subjects are
+  effectively unlimited, and `-1` means unlimited. Each instance applies its own
+  retention to replica streams it discovers, so hub and device retain
+  independently
+- add `--storeSyncInterval` / `SIOT_STORE_SYNC_INTERVAL` to tune the JetStream
+  fsync interval (`always` fsyncs every write) for power-loss durability on edge
+  devices
+
+### Sync
+
+- rewrite upstream sync on boundary-origin stream replication (ADR-7 Stage 3):
+  durable-consumer replication in both directions with resumable offline
+  catch-up, adoption announcement on first connect, and no hash tree walks
+
+### Database client
+
+- read points from the store streams with durable consumers instead of the
+  `up.>` wire subjects, so external history is gap-free across sync outages,
+  instance restarts, and the client's own downtime (high-rate points still
+  arrive over `phrup.>`)
+- add a database type selector to the Database node so you can choose between
+  InfluxDB 2.x and Victoria Metrics. Existing nodes keep their current behavior,
+  as an unset type is treated as InfluxDB
+- when Victoria Metrics is selected, write only the numeric `value` field and
+  skip string points entirely. Victoria Metrics stores numeric samples only and
+  converts any other field value to 0, so the previous `text` field produced a
+  `points_text` series that was always 0. Grafana with a Victoria Metrics data
+  source is the way to graph this data
+- discard points until the Database node has a valid URI. An unset or malformed
+  URI produced a write API that failed on every point and filled the log with
+  errors, so the client now skips the write entirely and acknowledges stream
+  messages, then connects as soon as a usable URI is set
+
+### Points and encoding (#742)
+
+- replace Point `Value` / `Text` with a unified `DataType` / `Data` encoding
+  (ADR-7 Stage 1), replace protobuf point encoding with a compact binary format,
+  and add the `dataType` field to the Elm frontend Point type
+- move edge point NATS subjects to the `ep.` prefix and add type and key to node
+  point subjects
+- add `MarshalYAML` for human-readable point export, and fix JSON/YAML unmarshal
+  when `dataType` is set but `data` is empty
+- add OOM protection to `DecodePoints`
+
+### Rules
+
+- a play audio action now reads the `device`, `channel`, and `filePath` points
+  the UI writes. The rule client had been reading `pointDevice`, `pointChannel`,
+  and `pointFilePath`, so an action configured in the UI played nothing and
+  tried to open an empty path
+- a play audio action that cannot open its wave file, or whose file has an
+  unusable sample rate, now records the error on the action node instead of
+  exiting the application
+
+### Frontend
+
+- the signal generator summary line now reads the value from the configured
+  destination point type and key instead of always reading `value`, so
+  generators writing to a custom point type (for example `volt`) show a live
+  reading rather than a constant `0`
+
+### Import and export
+
+- a node created from a file now keeps a single `nodeType` edge point. A file
+  carries the node type, and sending a node added a second one, so an export of
+  an imported tree did not match the file it came from
+- an export no longer writes the `nodeType` edge point. It repeated the key the
+  node is already written under, so every node in a file carried an
+  `edgePoints` block that said nothing. Import derives the type from the key,
+  and a file that still carries one is read as before
+
+### Other fixes
+
+- fix a data race between a node watcher and its caller when a node has a keyed
+  point that decodes into a map. Merging an update wrote into the map the caller
+  was already holding, so decoding now replaces the map with a copy
+- fix a Shelly mDNS data race by creating fresh params per scan (#742)
+
+### Documentation, tests, and dependencies
+
+- document the configuration schema of each client in the user documentation,
+  written in the format `siot export`, `siot import`, and provisioning share, so
+  the points a node is configured with can be read in one place and copied into
+  a file
+- update docs to reflect the new point encoding and NATS subjects (#742)
+- the db client test starts a throwaway VictoriaMetrics instance itself (skipped
+  when the binary is not installed), replacing the external-InfluxDB
+  requirement, and verifies the point path end to end
+- update NATS dependencies (nats.go v1.49.0, nats-server v2.12.5)
 
 ## [0.22.0] - 2026-08-04
 
@@ -883,7 +1004,7 @@ or a [demo video](https://youtu.be/ZII9pzx9akY) for more information.
 
 - move HTTP API to get nodes for user to use NATS instead of direct call into
   database (#327)
-- **BREAKING API CHANGE**: the Nats `node.<id>` subject now returns an array of
+- **BREAKING API CHANGE**: the Nats `inst.<id>` subject now returns an array of
   `data.NodeEdge` structs instead of a single node. Both instances of an
   upstream connection must be upgraded.
 - don't send deleted nodes to frontend -- may fix #259
