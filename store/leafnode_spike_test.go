@@ -131,9 +131,15 @@ func TestJetStreamSourcingOverLeafnode(t *testing.T) {
 		t.Fatal("Error creating hub replica stream:", err)
 	}
 
+	// waitMsgs allows a generous deadline because a source consumer that
+	// went away with its origin server is only rebuilt by the periodic
+	// source health check. nats-server bounds that at two intervals of
+	// sourceHealthCheckInterval (10s each), so catch-up after a device
+	// restart lands near 20s. Both values are internal constants, so the
+	// deadline here leaves room rather than tracking them exactly.
 	waitMsgs := func(want uint64) {
 		t.Helper()
-		deadline := time.Now().Add(10 * time.Second)
+		deadline := time.Now().Add(60 * time.Second)
 		for time.Now().Before(deadline) {
 			info, err := replica.Info(ctx)
 			if err == nil && info.State.Msgs >= want {

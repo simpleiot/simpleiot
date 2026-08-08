@@ -22,6 +22,10 @@ For more details or to discuss releases, please visit the
   parent node (inclusive). This changes output for existing users of
   `tagPointType`: points now also carry tags set on ancestor nodes. See the
   Database client documentation for the resolution rules.
+- update NATS dependencies (nats.go v1.52.0, nats-server v2.14.4). Sourcing
+  across a leaf connection now relies on the periodic source health check to
+  rebuild a source consumer after the origin server restarts, so a hub replica
+  can take roughly 20 seconds to catch up following a device restart.
 
 ### Fixed
 
