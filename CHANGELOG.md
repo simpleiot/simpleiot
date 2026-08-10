@@ -13,6 +13,13 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+### Changed
+
+- docs: the documentation site now uses the simpleiot.org palette and
+  typography — the near-black surfaces, orange accent, Inter, and JetBrains
+  Mono. The dark theme is the default; the built-in mdBook themes remain
+  available in the theme picker.
+
 ## [0.23.1] - 2026-08-10
 
 ### Changed

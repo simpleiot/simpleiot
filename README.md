@@ -4,7 +4,6 @@
 ![Go](https://github.com/simpleiot/simpleiot/workflows/Go/badge.svg?branch=master)
 [![Scc Count Badge](https://sloc.xyz/github/simpleiot/simpleiot/?category=code)](https://github.com/simpleiot/simpleiot/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/simpleiot/simpleiot)](https://goreportcard.com/report/github.com/simpleiot/simpleiot)
-[![Slack Widget](https://img.shields.io/badge/join-us%20on%20slack-gray.svg?longCache=true&logo=slack&colorB=red)](http://gophers.slack.com/messages/simpleiot)
 
 **Simple IoT enables you to add remote sensor data, telemetry, configuration,
 and device management to your project or product.**
@@ -84,8 +83,6 @@ For support or to discuss this project, use one of the following options:
 
 - [Documentation](https://docs.simpleiot.org)
 - [Simple IoT community forum](https://community.tmpdir.org/c/simple-iot/5)
-- #simpleiot Slack channel is available on
-  [gophers.slack.com](https://gophers.slack.com/messages/simpleiot/)
 - open a GitHub issue
 - [Simple IoT YouTube channel](https://www.youtube.com/@simple-iot)
 - Subscribe to our [email newsletter](https://tmpdir.ck.page/196d1fb480) for

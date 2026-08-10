@@ -11,6 +11,12 @@ title = "Simple IoT"
 [output.html]
 git-repository-url = "https://github.com/simpleiot/simpleiot"
 edit-url-template = "https://github.com/simpleiot/simpleiot/edit/master/{path}"
+# docs/theme/siot.css restyles the built-in "coal" theme to match the palette
+# and typography of simpleiot.org, so coal serves as both the default and the
+# preferred dark theme. The other built-in themes stay available in the picker.
+additional-css = ["docs/theme/siot.css"]
+default-theme = "coal"
+preferred-dark-theme = "coal"
 
 # [output.linkcheck2]
 # follow-web-links = true

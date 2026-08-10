@@ -1,0 +1,408 @@
+/*
+ * Simple IoT documentation theme.
+ *
+ * Matches the palette and typography of the main site at simpleiot.org:
+ * near-black surfaces, a single orange accent, Inter for text and
+ * JetBrains Mono for code. Loaded through `additional-css` in book.toml, so
+ * these rules land after mdBook's own stylesheets and override them at equal
+ * specificity.
+ *
+ * The dark palette is applied to mdBook's "coal" theme, which book.toml also
+ * selects as both the default and the preferred dark theme. The "light" theme
+ * keeps a light background but picks up the same orange accent. The remaining
+ * built-in themes (navy, rust, ayu) are left untouched so the theme picker
+ * still offers alternatives.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+:root {
+  --siot-orange: #f60;
+  --siot-orange-bright: #ff8c42;
+  --siot-orange-wash: rgba(255, 102, 0, 0.12);
+
+  --sans-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+    sans-serif;
+  --mono-font: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas,
+    monospace;
+  --code-font-size: 0.92em;
+  --content-max-width: 760px;
+}
+
+/* ---------------------------------------------------------------- palettes */
+
+.coal {
+  --siot-bg: #0a0a0a;
+  --siot-surface: #141414;
+  --siot-surface-raised: #1a1a1a;
+  --siot-border: #262626;
+  --siot-border-strong: #3a3a3a;
+  --siot-fg: #f0f0f0;
+  --siot-muted: #9a9a9a;
+  --siot-dim: #6a6a6a;
+  --siot-code-bg: #000;
+  --siot-accent: var(--siot-orange);
+  --siot-accent-hover: var(--siot-orange-bright);
+
+  --bg: var(--siot-bg);
+  --fg: var(--siot-fg);
+
+  --sidebar-bg: #0d0d0d;
+  --sidebar-fg: var(--siot-muted);
+  --sidebar-non-existant: var(--siot-dim);
+  --sidebar-active: var(--siot-orange);
+  --sidebar-spacer: var(--siot-border);
+  --sidebar-header-border-color: var(--siot-orange);
+
+  --scrollbar: var(--siot-border-strong);
+
+  --icons: var(--siot-dim);
+  --icons-hover: var(--siot-orange);
+
+  --links: var(--siot-orange);
+
+  --inline-code-color: var(--siot-orange-bright);
+
+  --theme-popup-bg: #141414;
+  --theme-popup-border: var(--siot-border);
+  --theme-hover: #1f1f1f;
+
+  --quote-bg: var(--siot-orange-wash);
+  --quote-border: var(--siot-orange);
+
+  --warning-border: var(--siot-orange);
+
+  --table-border-color: var(--siot-border);
+  --table-header-bg: var(--siot-surface);
+  --table-alternate-bg: #101010;
+
+  --searchbar-border-color: var(--siot-border-strong);
+  --searchbar-bg: var(--siot-surface);
+  --searchbar-fg: var(--siot-fg);
+  --searchbar-shadow-color: rgba(255, 102, 0, 0.35);
+  --searchresults-header-fg: var(--siot-dim);
+  --searchresults-border-color: var(--siot-border);
+  --searchresults-li-bg: var(--siot-surface);
+  --search-mark-bg: rgba(255, 102, 0, 0.35);
+
+  --color-scheme: dark;
+
+  /* approximates --icons */
+  --copy-button-filter: invert(41%);
+  /* approximates --icons-hover */
+  --copy-button-filter-hover: invert(48%) sepia(89%) saturate(2618%)
+    hue-rotate(1deg) brightness(103%) contrast(105%);
+
+  --footnote-highlight: var(--siot-orange);
+
+  --overlay-bg: rgba(10, 10, 10, 0.6);
+}
+
+.light,
+html:not(.js) {
+  --siot-bg: #fff;
+  --siot-surface: #f7f7f5;
+  --siot-surface-raised: #f1f1ef;
+  --siot-border: #e2e2df;
+  --siot-border-strong: #c9c9c4;
+  --siot-fg: #16161a;
+  --siot-muted: #55555c;
+  --siot-dim: #7a7a82;
+  --siot-code-bg: #f7f7f5;
+  /* darkened for contrast against a white background */
+  --siot-accent: #c24d00;
+  --siot-accent-hover: #a33f00;
+
+  --bg: var(--siot-bg);
+  --fg: var(--siot-fg);
+
+  --sidebar-bg: #fafaf8;
+  --sidebar-fg: var(--siot-fg);
+  --sidebar-non-existant: var(--siot-dim);
+  --sidebar-active: var(--siot-accent);
+  --sidebar-spacer: var(--siot-border);
+  --sidebar-header-border-color: var(--siot-accent);
+
+  --scrollbar: var(--siot-border-strong);
+
+  --icons: var(--siot-dim);
+  --icons-hover: var(--siot-accent);
+
+  --links: var(--siot-accent);
+
+  --inline-code-color: #a33f00;
+
+  --theme-popup-bg: #fff;
+  --theme-popup-border: var(--siot-border);
+  --theme-hover: var(--siot-surface-raised);
+
+  --quote-bg: rgba(255, 102, 0, 0.08);
+  --quote-border: var(--siot-accent);
+
+  --warning-border: var(--siot-accent);
+
+  --table-border-color: var(--siot-border);
+  --table-header-bg: var(--siot-surface-raised);
+  --table-alternate-bg: var(--siot-surface);
+
+  --searchbar-border-color: var(--siot-border-strong);
+  --searchbar-bg: #fff;
+  --searchbar-fg: var(--siot-fg);
+  --searchbar-shadow-color: rgba(194, 77, 0, 0.3);
+  --searchresults-header-fg: var(--siot-dim);
+  --searchresults-border-color: var(--siot-border);
+  --searchresults-li-bg: var(--siot-surface);
+  --search-mark-bg: rgba(255, 102, 0, 0.28);
+
+  --color-scheme: light;
+
+  --copy-button-filter: invert(52%);
+  --copy-button-filter-hover: invert(28%) sepia(69%) saturate(3000%)
+    hue-rotate(11deg) brightness(93%) contrast(101%);
+
+  --footnote-highlight: var(--siot-accent);
+
+  --overlay-bg: rgba(20, 20, 20, 0.25);
+}
+
+/* Without JavaScript the theme cannot be chosen, so follow the OS preference
+   and hand those readers the same dark palette as "coal". */
+@media (prefers-color-scheme: dark) {
+  html:not(.js) {
+    --siot-bg: #0a0a0a;
+    --siot-surface: #141414;
+    --siot-surface-raised: #1a1a1a;
+    --siot-border: #262626;
+    --siot-border-strong: #3a3a3a;
+    --siot-fg: #f0f0f0;
+    --siot-muted: #9a9a9a;
+    --siot-dim: #6a6a6a;
+    --siot-code-bg: #000;
+    --siot-accent: var(--siot-orange);
+    --siot-accent-hover: var(--siot-orange-bright);
+
+    --bg: var(--siot-bg);
+    --fg: var(--siot-fg);
+
+    --sidebar-bg: #0d0d0d;
+    --sidebar-fg: var(--siot-muted);
+    --sidebar-non-existant: var(--siot-dim);
+    --sidebar-active: var(--siot-orange);
+    --sidebar-spacer: var(--siot-border);
+    --sidebar-header-border-color: var(--siot-orange);
+
+    --scrollbar: var(--siot-border-strong);
+
+    --icons: var(--siot-dim);
+    --icons-hover: var(--siot-orange);
+
+    --links: var(--siot-orange);
+
+    --inline-code-color: var(--siot-orange-bright);
+
+    --theme-popup-bg: #141414;
+    --theme-popup-border: var(--siot-border);
+    --theme-hover: #1f1f1f;
+
+    --quote-bg: var(--siot-orange-wash);
+    --quote-border: var(--siot-orange);
+
+    --warning-border: var(--siot-orange);
+
+    --table-border-color: var(--siot-border);
+    --table-header-bg: var(--siot-surface);
+    --table-alternate-bg: #101010;
+
+    --searchbar-border-color: var(--siot-border-strong);
+    --searchbar-bg: var(--siot-surface);
+    --searchbar-fg: var(--siot-fg);
+    --searchresults-header-fg: var(--siot-dim);
+    --searchresults-border-color: var(--siot-border);
+    --searchresults-li-bg: var(--siot-surface);
+    --search-mark-bg: rgba(255, 102, 0, 0.35);
+
+    --color-scheme: dark;
+
+    --copy-button-filter: invert(41%);
+    --copy-button-filter-hover: invert(48%) sepia(89%) saturate(2618%)
+      hue-rotate(1deg) brightness(103%) contrast(105%);
+
+    --footnote-highlight: var(--siot-orange);
+    --overlay-bg: rgba(10, 10, 10, 0.6);
+  }
+}
+
+/* -------------------------------------------------------------- typography */
+
+html {
+  font-family: var(--sans-font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+.content h1,
+.content h2,
+.content h3,
+.content h4,
+.content h5,
+.content h6 {
+  font-family: var(--sans-font);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--siot-fg);
+}
+
+.content h1 {
+  font-size: 2.6rem;
+}
+
+.content h2 {
+  padding-block-end: 0.4rem;
+  border-block-end: 1px solid var(--siot-border);
+}
+
+.content p,
+.content li,
+.content ol,
+.content ul {
+  line-height: 1.6em;
+}
+
+.content a:link,
+.content a:visited,
+#mdbook-searchresults a {
+  color: var(--siot-accent);
+  transition: color 0.15s ease;
+}
+
+.content a:hover {
+  color: var(--siot-accent-hover);
+}
+
+::selection {
+  background: var(--siot-orange);
+  color: #000;
+}
+
+:focus-visible {
+  outline: 2px solid var(--siot-orange);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ------------------------------------------------------------------- chrome */
+
+#mdbook-menu-bar,
+#mdbook-menu-bar.sticky,
+html.sidebar-visible #mdbook-menu-bar {
+  background-color: var(--siot-bg);
+}
+
+#mdbook-menu-bar.bordered {
+  border-block-end-color: var(--siot-border);
+}
+
+.menu-title {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--siot-muted);
+}
+
+.sidebar {
+  border-inline-end: 1px solid var(--siot-border);
+}
+
+.chapter li a {
+  transition: color 0.15s ease;
+}
+
+.chapter li a:hover {
+  color: var(--siot-accent);
+}
+
+.chapter li a.active {
+  font-weight: 600;
+}
+
+.chapter li.part-title {
+  color: var(--siot-fg);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.8em;
+}
+
+.nav-chapters:hover {
+  color: var(--siot-accent);
+}
+
+/* --------------------------------------------------------------------- code */
+
+pre {
+  border-radius: 8px;
+}
+
+pre > code,
+pre code.hljs {
+  background: var(--siot-code-bg);
+  border: 1px solid var(--siot-border);
+  border-radius: 8px;
+  line-height: 1.55;
+}
+
+:not(pre):not(a) > code,
+:not(pre):not(a) > .hljs {
+  background: var(--siot-surface);
+  border: 1px solid var(--siot-border);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+}
+
+/* -------------------------------------------------------- blocks and tables */
+
+blockquote {
+  border-inline-start: 3px solid var(--quote-border);
+  border-block: none;
+  border-inline-end: none;
+  border-radius: 0 8px 8px 0;
+  color: var(--siot-muted);
+}
+
+.content table {
+  border-collapse: collapse;
+}
+
+.content table th {
+  font-weight: 600;
+  color: var(--siot-fg);
+}
+
+.content table td,
+.content table th {
+  border-color: var(--table-border-color);
+}
+
+hr {
+  border: 0;
+  height: 1px;
+  background: var(--siot-border);
+  margin-block: 3rem;
+}
+
+/* ------------------------------------------------------------------- search */
+
+#mdbook-searchbar {
+  border-radius: 4px;
+}
+
+#mdbook-searchbar:focus,
+#mdbook-searchbar.active {
+  border-color: var(--siot-orange);
+  box-shadow: 0 0 0 3px var(--siot-orange-wash);
+}
+
+mark {
+  border-radius: 3px;
+}
