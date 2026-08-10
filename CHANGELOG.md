@@ -27,6 +27,12 @@ For more details or to discuss releases, please visit the
   rebuild a source consumer after the origin server restarts, so a hub replica
   can take roughly 20 seconds to catch up following a device restart.
 
+- docs: describe the VictoriaMetrics `-search.latencyOffset` flag in the
+  [database documentation](docs/user/database.md). Its 30 second default
+  delays when freshly written points become visible to queries, and the
+  documentation covers setting it on the command line, per request, and
+  through a systemd environment file.
+
 ### Fixed
 
 - db: tag and description edits are reflected in the tags written with

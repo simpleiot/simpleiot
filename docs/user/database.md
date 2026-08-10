@@ -78,6 +78,67 @@ Each point arrives in VictoriaMetrics as the metric `points_value`, with the
 point `type` and `key` and all of the node tags described below available as
 labels.
 
+### Query latency offset
+
+New points typically reach VictoriaMetrics within a second, because the write
+client sends a batch every second (or sooner once 5000 points accumulate).
+Queries, however, do not see them for another 30 seconds by default:
+VictoriaMetrics shifts the end of every query range back by
+[`-search.latencyOffset`](https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/#list-of-command-line-flags),
+which defaults to `30s` so that slow Prometheus scrapes are still counted.
+
+To see data as soon as it is written, start VictoriaMetrics (or `vmselect` in a
+cluster) with:
+
+```sh
+victoria-metrics -search.latencyOffset=0s
+```
+
+Use a small value such as `1s` if the clocks on the writing devices and the
+database server may differ slightly. The offset can also be set per request with
+a `latency_offset=0s` URL parameter, which in Grafana can be added to the data
+source's custom query parameters when changing the server flag is not an option.
+
+#### Setting the flag under systemd
+
+Most Linux packages run VictoriaMetrics from a systemd unit that reads extra
+flags from an environment file, so the flag belongs there rather than in the
+unit itself. Check which file your unit uses:
+
+```sh
+systemctl cat victoriametrics.service
+```
+
+A packaged unit typically contains lines such as:
+
+```
+EnvironmentFile=/etc/default/victoriametrics
+ExecStart=/usr/bin/victoria-metrics -storageDataPath /var/lib/victoriametrics $ARGS
+```
+
+Add the flag to the variable that `ExecStart` expands, `ARGS` in this example,
+by editing `/etc/default/victoriametrics`:
+
+```
+ARGS="-search.latencyOffset=0s"
+```
+
+Separate additional flags with spaces inside the quotes. Then restart the
+service and confirm the setting, which appears in the list of flags that differ
+from their defaults:
+
+```sh
+sudo systemctl restart victoriametrics
+curl -s localhost:8428/flags
+```
+
+Keeping the flag in the environment file means a package upgrade can replace the
+unit without discarding the setting. Distributions vary: some use
+`/etc/sysconfig/victoriametrics` or a different variable name, and a unit with
+no `EnvironmentFile` needs a drop-in override created with
+`sudo systemctl edit victoriametrics.service` that sets `ExecStart` to the full
+command line.
+
 ### Graphing Victoria Metrics data
 
 Use Grafana with a Victoria Metrics (Prometheus-compatible) data source and
