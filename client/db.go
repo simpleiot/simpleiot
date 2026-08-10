@@ -2,8 +2,10 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"strings"
 	"sync"
@@ -11,6 +13,8 @@ import (
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
+	influxhttp "github.com/influxdata/influxdb-client-go/v2/api/http"
+	influxwrite "github.com/influxdata/influxdb-client-go/v2/api/write"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/simpleiot/simpleiot/data"
@@ -52,20 +56,34 @@ func dbURIValid(uri string) bool {
 	return (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
 }
 
-// writer returns the current write API, or nil when no valid URI is
-// configured and points should be discarded.
+// writer returns the current high-rate write API, or nil when no valid
+// URI is configured and points should be discarded.
 func (dbc *DbClient) writer() api.WriteAPI {
 	dbc.apiMu.Lock()
 	defer dbc.apiMu.Unlock()
 	return dbc.writeAPI
 }
 
+// blockingWriter returns the write API used for stream-delivered
+// points, or nil when no valid URI is configured.
+func (dbc *DbClient) blockingWriter() api.WriteAPIBlocking {
+	dbc.apiMu.Lock()
+	defer dbc.apiMu.Unlock()
+	return dbc.writeAPIBlocking
+}
+
 // DbClient is a SIOT database client. It reads points from the store's
 // boundary-origin streams with durable consumers (ADR-7), so delivery
 // is resumable: points written while this client, the instance, or an
 // upstream connection was down are delivered when things come back.
-// High-rate points are not stored in streams and still arrive over the
-// phrup wire subjects.
+//
+// Stream deliveries are written synchronously and acknowledged only
+// once the database has accepted them, so an outage in the database
+// itself is resumable in the same way: the points stay in the stream
+// and are written when it comes back, leaving no gap in the recorded
+// history. High-rate points are not stored in streams and still arrive
+// over the phrup wire subjects, where the best that can be done is a
+// buffered, best-effort write.
 type DbClient struct {
 	nc            *nats.Conn
 	config        Db
@@ -77,13 +95,24 @@ type DbClient struct {
 	epSub         *nats.Subscription
 	nodeCache     nodeCache
 
-	// client and writeAPI are nil until a valid URI is configured, and
-	// are replaced when the connection settings change. The high-rate
-	// subscription reads them from its own goroutine, so apiMu guards
-	// both.
-	apiMu    sync.Mutex
-	client   influxdb2.Client
-	writeAPI api.WriteAPI
+	// client and the write APIs are nil until a valid URI is
+	// configured, and are replaced when the connection settings change.
+	// The high-rate subscription reads them from its own goroutine, so
+	// apiMu guards all three.
+	apiMu            sync.Mutex
+	client           influxdb2.Client
+	writeAPI         api.WriteAPI
+	writeAPIBlocking api.WriteAPIBlocking
+
+	// pending holds the points and the stream messages they came from
+	// between flushes. Only the main loop touches these.
+	pendingPoints []*influxwrite.Point
+	pendingMsgs   []jetstream.Msg
+
+	// writeFailures counts consecutive failed flushes, and retryAfter
+	// is when the next attempt is worth making.
+	writeFailures int
+	retryAfter    time.Time
 
 	consumers map[string]jetstream.ConsumeContext
 	rootID    string
@@ -103,6 +132,33 @@ type dbStreamMsg struct {
 // dbStreamScanPeriod is how often the client looks for new streams to
 // consume (e.g. a replica appearing when a device is adopted).
 const dbStreamScanPeriod = 3 * time.Second
+
+const (
+	// dbBatchSize is how many points are written in one request.
+	dbBatchSize = 500
+
+	// dbFlushPeriod bounds how long a partial batch waits before being
+	// written.
+	dbFlushPeriod = time.Second
+
+	// dbWriteTimeout bounds one write request. The main loop blocks for
+	// this long at most when the database stops responding mid-request.
+	dbWriteTimeout = 20 * time.Second
+
+	// dbMaxRetryDelay caps the delay between attempts while the
+	// database is unreachable.
+	dbMaxRetryDelay = time.Minute
+
+	// dbAckWait is how long JetStream waits for an acknowledgement
+	// before redelivering. It is comfortably longer than one write so
+	// an in-flight request is not duplicated underneath us.
+	dbAckWait = 2 * time.Minute
+
+	// dbMaxAckPending bounds how many unacknowledged points the client
+	// holds. Once reached, JetStream stops delivering and the points
+	// wait in the stream, which is where they are safest.
+	dbMaxAckPending = 5000
+)
 
 // NewDbClient ...
 func NewDbClient(nc *nats.Conn, config Db) Client {
@@ -207,17 +263,22 @@ func (dbc *DbClient) Run() error {
 		}
 		dbc.client = nil
 		dbc.writeAPI = nil
+		dbc.writeAPIBlocking = nil
 	}
 
 	setupAPI := func() {
 		dbc.apiMu.Lock()
 		defer dbc.apiMu.Unlock()
 
+		dbc.writeFailures = 0
+		dbc.retryAfter = time.Time{}
+
 		if !dbURIValid(dbc.config.URI) {
 			log.Printf("Db client %v: no valid URI configured (%q), discarding points",
 				dbc.config.Description, dbc.config.URI)
 			dbc.client = nil
 			dbc.writeAPI = nil
+			dbc.writeAPIBlocking = nil
 			return
 		}
 
@@ -226,6 +287,11 @@ func (dbc *DbClient) Run() error {
 		dbc.client = influxdb2.NewClientWithOptions(dbc.config.URI,
 			dbc.config.AuthToken, influxdb2.DefaultOptions())
 		dbc.writeAPI = dbc.client.WriteAPI(dbc.config.Org, dbc.config.Bucket)
+		// stream points are batched by the main loop and written here
+		// one batch per request, so the library's own retry queue is not
+		// involved; the stream holds anything a write did not accept
+		dbc.writeAPIBlocking = dbc.client.WriteAPIBlocking(dbc.config.Org,
+			dbc.config.Bucket)
 
 		influxErrors := dbc.writeAPI.Errors()
 
@@ -248,6 +314,9 @@ func (dbc *DbClient) Run() error {
 	scanTicker := time.NewTicker(dbStreamScanPeriod)
 	defer scanTicker.Stop()
 
+	flushTicker := time.NewTicker(dbFlushPeriod)
+	defer flushTicker.Stop()
+
 done:
 	for {
 		select {
@@ -257,6 +326,9 @@ done:
 
 		case <-scanTicker.C:
 			dbc.scanStreams(js, false)
+
+		case <-flushTicker.C:
+			dbc.flushPending()
 
 		case sm := <-dbc.chStreamMsgs:
 			// a tag edit on any node changes the inherited tags of every
@@ -268,8 +340,7 @@ done:
 				dbc.nodeCache.Clear()
 			}
 
-			writeAPI := dbc.writer()
-			if writeAPI == nil {
+			if dbc.blockingWriter() == nil {
 				// no valid URI configured; discard the points and
 				// advance the consumer rather than letting them
 				// accumulate for a database we cannot reach
@@ -314,13 +385,18 @@ done:
 					tags,
 					fields,
 					point.Time)
-				writeAPI.WritePoint(p)
+				dbc.pendingPoints = append(dbc.pendingPoints, p)
 			}
 
-			// acknowledged once handed to the batching writer; a crash
-			// can lose the writer's unflushed batch, but the durable
-			// consumer position means nothing else is ever skipped
-			_ = sm.msg.Ack()
+			// the message is acknowledged by flushPending, once the
+			// database has accepted the points it carried
+			dbc.pendingMsgs = append(dbc.pendingMsgs, sm.msg)
+
+			if len(dbc.pendingPoints) >= dbBatchSize ||
+				len(dbc.pendingMsgs) >= dbBatchSize {
+				dbc.flushPending()
+			}
+
 		case pts := <-dbc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &dbc.config)
 			if err != nil {
@@ -333,7 +409,10 @@ done:
 					data.PointTypeOrg,
 					data.PointTypeBucket,
 					data.PointTypeAuthToken:
-					// we need to restart the influx write API
+					// we need to restart the influx write API; settle
+					// anything already batched against the current
+					// connection first
+					dbc.flushPending()
 					closeAPI()
 					setupAPI()
 				case data.PointTypeTagPointType:
@@ -350,16 +429,19 @@ done:
 	}
 
 	// clean up
+	dbc.flushPending()
 	for _, cc := range dbc.consumers {
 		cc.Stop()
 	}
 	// let any consumer callback blocked on the channel finish; the
-	// timeout covers a sender that was mid-handoff when Stop ran
+	// timeout covers a sender that was mid-handoff when Stop ran.
+	// These points were never written, so return them to the stream
+	// for the next run rather than acknowledging them away.
 drain:
 	for {
 		select {
 		case sm := <-dbc.chStreamMsgs:
-			_ = sm.msg.Ack()
+			_ = sm.msg.Nak()
 		case <-time.After(200 * time.Millisecond):
 			break drain
 		}
@@ -368,6 +450,100 @@ drain:
 	_ = dbc.upSubHr.Unsubscribe()
 	closeAPI()
 	return nil
+}
+
+// flushPending writes the batched points and settles the stream
+// messages they came from. Messages are acknowledged only after the
+// database has accepted the write, so a database that is down or
+// unreachable leaves its points in the stream to be redelivered rather
+// than losing them, and the recorded history has no gap once it comes
+// back.
+func (dbc *DbClient) flushPending() {
+	if len(dbc.pendingMsgs) == 0 {
+		return
+	}
+
+	msgs := dbc.pendingMsgs
+	points := dbc.pendingPoints
+	dbc.pendingMsgs = nil
+	dbc.pendingPoints = nil
+
+	ack := func() {
+		for _, m := range msgs {
+			_ = m.Ack()
+		}
+	}
+	retry := func(delay time.Duration) {
+		for _, m := range msgs {
+			_ = m.NakWithDelay(delay)
+		}
+	}
+
+	writeAPI := dbc.blockingWriter()
+	if writeAPI == nil || len(points) == 0 {
+		// nothing to write: no database is configured, or every point
+		// in this batch was filtered out
+		ack()
+		return
+	}
+
+	if now := time.Now(); now.Before(dbc.retryAfter) {
+		// the database was down on the last attempt and the backoff has
+		// not expired; return these points to the stream without
+		// another connection attempt
+		retry(dbc.retryAfter.Sub(now))
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), dbWriteTimeout)
+	err := writeAPI.WritePoint(ctx, points...)
+	cancel()
+
+	switch {
+	case err == nil:
+		if dbc.writeFailures > 0 {
+			log.Printf("Db client %v: database write succeeded after %v failed attempts",
+				dbc.config.Description, dbc.writeFailures)
+			dbc.writeFailures = 0
+			dbc.retryAfter = time.Time{}
+		}
+		ack()
+
+	case !dbWriteRetryable(err):
+		// the database understood the request and rejected it, so the
+		// same points would be rejected again; record the loss and move
+		// the consumer past them
+		log.Printf("Db client %v: dropping %v points the database rejected: %v",
+			dbc.config.Description, len(points), err)
+		ack()
+
+	default:
+		delay := ExpBackoff(dbc.writeFailures, dbMaxRetryDelay)
+		dbc.writeFailures++
+		dbc.retryAfter = time.Now().Add(delay)
+		if dbc.writeFailures == 1 {
+			log.Printf("Db client %v: database write failed, holding points in the stream until it recovers: %v",
+				dbc.config.Description, err)
+		}
+		retry(delay)
+	}
+}
+
+// dbWriteRetryable reports whether a failed write is worth retrying.
+// Connection failures, rate limiting, and server-side errors clear on
+// their own once the database is healthy again. A request the database
+// rejected outright — bad credentials, an unparsable line — would fail
+// the same way every time, so those points are dropped instead of
+// holding up everything behind them.
+func dbWriteRetryable(err error) bool {
+	var herr *influxhttp.Error
+	if !errors.As(err, &herr) || herr.StatusCode == 0 {
+		// could not reach the database at all
+		return true
+	}
+	return herr.StatusCode == http.StatusTooManyRequests ||
+		herr.StatusCode == http.StatusRequestTimeout ||
+		herr.StatusCode >= 500
 }
 
 // scanStreams looks for boundary-origin streams and starts a durable
@@ -401,6 +577,11 @@ func (dbc *DbClient) scanStreams(js jetstream.JetStream, firstScan bool) {
 			Durable:       "db-" + dbc.config.ID,
 			AckPolicy:     jetstream.AckExplicitPolicy,
 			DeliverPolicy: deliver,
+			// points are redelivered until the database accepts them,
+			// so an outage is ridden out rather than lost
+			AckWait:       dbAckWait,
+			MaxDeliver:    -1,
+			MaxAckPending: dbMaxAckPending,
 			// node points only; edge points are not stored (yet)
 			FilterSubject: "inst.*.*.*.p.>",
 		})

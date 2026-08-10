@@ -28,6 +28,14 @@ const vmAddr = "127.0.0.1:18428"
 // the binary is not installed.
 func startVictoriaMetrics(t *testing.T) func() {
 	t.Helper()
+	return startVictoriaMetricsIn(t, t.TempDir())
+}
+
+// startVictoriaMetricsIn is startVictoriaMetrics against a caller-owned
+// data directory, so an instance can be stopped and started again with
+// its data intact.
+func startVictoriaMetricsIn(t *testing.T, dataPath string) func() {
+	t.Helper()
 
 	bin, err := exec.LookPath("victoria-metrics")
 	if err != nil {
@@ -38,7 +46,7 @@ func startVictoriaMetrics(t *testing.T) func() {
 	}
 
 	cmd := exec.Command(bin,
-		"-storageDataPath", t.TempDir(),
+		"-storageDataPath", dataPath,
 		"-httpListenAddr", vmAddr,
 		// freshly written samples are visible to instant queries
 		// immediately instead of after the default 30s offset
@@ -172,5 +180,85 @@ func TestDb(t *testing.T) {
 	waitFor(t, 15*time.Second, "point in VictoriaMetrics", func() bool {
 		v, ok := vmQueryValue(query)
 		return ok && v == 42
+	})
+}
+
+// TestDbOutage covers points sent while the database is down. They stay
+// in the stream until it comes back, so the stored history has no gap.
+func TestDbOutage(t *testing.T) {
+	dataPath := t.TempDir()
+	stopVM := startVictoriaMetricsIn(t, dataPath)
+	vmRunning := true
+	defer func() {
+		if vmRunning {
+			stopVM()
+		}
+	}()
+
+	nc, root, stop, err := server.TestServer()
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+	defer stop()
+
+	dbConfig := client.Db{
+		ID:          "ID-db-outage",
+		Parent:      root.ID,
+		Description: "vm outage test db",
+		URI:         "http://" + vmAddr,
+		Org:         "siot-test",
+		Bucket:      "test",
+		AuthToken:   "not-used",
+	}
+
+	err = client.SendNodeType(nc, dbConfig, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	// let the client start and create its durable stream consumers
+	time.Sleep(time.Second)
+
+	// a point written while the database is up confirms the path works
+	// before anything is taken away
+	sendPoint := func(key string, value float64) {
+		t.Helper()
+		p := data.NewPointFloat(data.PointTypeValue, key, value)
+		p.Origin = "test"
+		if err := client.SendNodePoint(nc, dbConfig.ID, p, true); err != nil {
+			t.Fatal("Error sending point:", err)
+		}
+	}
+
+	query := func(key string) string {
+		return fmt.Sprintf(
+			`last_over_time(points_value{"node.id"=%q, type="value", key=%q}[10m])`,
+			dbConfig.ID, key)
+	}
+
+	sendPoint("before", 1)
+	waitFor(t, 15*time.Second, "point written before the outage", func() bool {
+		v, ok := vmQueryValue(query("before"))
+		return ok && v == 1
+	})
+
+	// take the database away and keep sending
+	stopVM()
+	vmRunning = false
+
+	sendPoint("during", 2)
+
+	// give the client time to attempt the write and fail
+	time.Sleep(3 * time.Second)
+
+	// bring the database back with its data intact
+	stopVM = startVictoriaMetricsIn(t, dataPath)
+	vmRunning = true
+
+	// the point sent during the outage is redelivered from the stream
+	// and written once the database answers again
+	waitFor(t, 60*time.Second, "point sent during the outage", func() bool {
+		v, ok := vmQueryValue(query("during"))
+		return ok && v == 2
 	})
 }

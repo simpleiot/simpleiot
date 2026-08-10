@@ -16,51 +16,103 @@ so InfluxDB 2.x can also be used.
 The Database client reads points from the store's JetStream streams using
 durable consumers rather than subscribing to live message traffic. A durable
 consumer is a named position in a stream that the NATS server persists to disk
-alongside the stream data. The client acknowledges each message after handing
-its points to the database writer, and the server advances the saved position
-only on acknowledgment.
+alongside the stream data. The client acknowledges each message only after the
+database has accepted the points it carried, and the server advances the saved
+position only on acknowledgment.
 
-This makes delivery resumable. If the Database client, the SIOT instance, or
-the connection to the database is down for a period of time, points continue to
-accumulate in the streams. When the client comes back, delivery resumes from
-the saved position and the missed points are written to the database. Each
-Database node keeps its own position, so multiple Database clients can consume
-the same streams independently.
+This makes delivery resumable. If the Database client, the SIOT instance, or the
+connection to the database is down for a period of time, points continue to
+accumulate in the streams. When the client comes back, delivery resumes from the
+saved position and the missed points are written to the database. Each Database
+node keeps its own position, so multiple Database clients can consume the same
+streams independently.
 
 Two limits apply:
 
-- Stream retention bounds how far behind a client can fall. By default the
-  store keeps the last 5000 points per subject (one subject is one point type
-  and key on one node). If a client is down long enough that a signal exceeds
-  this limit, the oldest points for that signal are dropped from the stream and
-  will be missing from the database.
+- Stream retention bounds how far behind a client can fall. By default the store
+  keeps the last 5000 points per subject (one subject is one point type and key
+  on one node). If a client is down long enough that a signal exceeds this
+  limit, the oldest points for that signal are dropped from the stream and will
+  be missing from the database.
 - High-rate points are not stored in streams. They are delivered live and are
-  not recovered after downtime.
+  not recovered after downtime, including downtime of the database itself.
 
 A newly added Database node starts recording from the present; it does not
 backfill history already in the streams. Streams that appear after the client
-starts, such as the replica stream for a newly adopted device, are consumed
-from their beginning so the device's initial catch-up is captured.
+starts, such as the replica stream for a newly adopted device, are consumed from
+their beginning so the device's initial catch-up is captured.
+
+### When the database is unavailable
+
+The same mechanism covers an outage in the time-series database itself. If
+VictoriaMetrics is stopped, restarted, upgraded, or simply unreachable across
+the network, points sent during that window are written once it comes back and
+the recorded history has no gap.
+
+The stream that already holds the points serves as the buffer, and the client's
+saved consumer position records how far it has gotten. There is no separate
+spool file or in-memory queue in the client to size or manage. The sequence is:
+
+1. The client collects points into batches of up to 500 and writes at least once
+   a second, so each batch travels as a single write request.
+2. It acknowledges the stream messages behind a batch only after the database
+   accepts the write. Until then the points remain in the stream.
+3. A failed batch returns to the stream with a retry delay that starts at about
+   a second and doubles up to a maximum of one minute. The client makes no
+   further connection attempts until the delay expires, so an outage lasting
+   hours costs about one attempt per minute.
+4. Meanwhile points keep arriving and accumulate. Up to 5000 may be outstanding
+   at once; beyond that, JetStream stops delivering to this client and the rest
+   wait in the stream.
+5. When the database answers again, the held points are redelivered and written.
+   Each point carries its original timestamp, so the history fills in at the
+   times the readings happened.
+
+Restarting SIOT during an outage is safe: none of the affected points were
+acknowledged, so they are still in the stream and arrive again on the next run.
+Stopping the client returns anything it had taken from the stream but had not
+yet written.
+
+Rejections work differently. Bad credentials or a line the database cannot parse
+would fail identically on every attempt, so the client logs those points and
+drops them instead of blocking everything behind them.
+
+Three log messages describe this behavior, each prefixed with the Database
+node's description:
+
+```
+Db client site db: database write failed, holding points in the stream until it recovers: ...
+Db client site db: database write succeeded after 4 failed attempts
+Db client site db: dropping 37 points the database rejected: ...
+```
+
+The first appears once when an outage starts, not on every attempt. The second
+confirms recovery and how many attempts it took, and the third reports points
+that were discarded.
+
+The limits above still apply: an outage that outlasts stream retention for a
+fast-changing signal loses that signal's oldest points, and high-rate points are
+not buffered at all.
 
 ## Choosing a database type
 
-Add a Database node and choose the database type: **InfluxDB 2.x** or
-**Victoria Metrics**. Both are written using the InfluxDB version 2 line
-protocol, so the connection settings are similar, but the two differ in what
-they store and in how you graph the result. Existing Database nodes have no
-database type set and continue to behave as InfluxDB.
+Add a Database node and choose the database type: **InfluxDB 2.x** or **Victoria
+Metrics**. Both are written using the InfluxDB version 2 line protocol, so the
+connection settings are similar, but the two differ in what they store and in
+how you graph the result. Existing Database nodes have no database type set and
+continue to behave as InfluxDB.
 
 ## Victoria Metrics
 
-Set the database type to Victoria Metrics and set the URI to the write
-endpoint, typically `http://myserver:8428` for a single-node instance.
-VictoriaMetrics has no concept of an organization or a bucket, so those fields
-are hidden when this type is selected.
+Set the database type to Victoria Metrics and set the URI to the write endpoint,
+typically `http://myserver:8428` for a single-node instance. VictoriaMetrics has
+no concept of an organization or a bucket, so those fields are hidden when this
+type is selected.
 
 A single-node VictoriaMetrics has no authentication on the write path, so the
-Auth Token field can be left blank. VictoriaMetrics expects authentication to
-be handled by [vmauth](https://docs.victoriametrics.com/vmauth/) or vmgateway
-in front of it. The client sends the token as an `Authorization: Token <token>`
+Auth Token field can be left blank. VictoriaMetrics expects authentication to be
+handled by [vmauth](https://docs.victoriametrics.com/vmauth/) or vmgateway in
+front of it. The client sends the token as an `Authorization: Token <token>`
 header, which is one of the formats vmauth accepts, so setting the Auth Token
 here works when you point the URI at vmauth.
 
@@ -81,7 +133,7 @@ labels.
 ### Query latency offset
 
 New points typically reach VictoriaMetrics within a second, because the write
-client sends a batch every second (or sooner once 5000 points accumulate).
+client sends a batch every second (or sooner once 500 points accumulate).
 Queries, however, do not see them for another 30 seconds by default:
 VictoriaMetrics shifts the end of every query range back by
 [`-search.latencyOffset`](https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/#list-of-command-line-flags),
@@ -154,43 +206,71 @@ node:
 
 ## Tags
 
-The following tags are added to every point written to the database:
+Tags are the labels you filter and group by when querying or graphing. Every
+point written to the database carries the point's own `type` and `key`, plus
+three tags describing the node that emitted it:
 
-- `node.id` (typically an UUID)
-- `node.type` (extracted from the type field in the edge data structure)
-- `node.description` (generated from the `description` point from the node)
+- `node.id`, the node's ID (typically a UUID)
+- `node.type`, the node type, such as `signalGenerator` or `modbusIo`
+- `node.description`, the node's Description field
 
-### Custom Tags
+These are always present and need no configuration. Anything beyond them (which
+machine a reading came from, which site a machine sits at) is added by turning
+node points into tags, described next.
 
-Additional tag points can be specified. The DB client will query and cache node
-points of these types for any point flowing through the system and then add
-tags in the format: `node.<point type>.<point key>`. In the below example, we
-added a machine tag to the signal generator node generating the data.
+### Adding custom tags
+
+Custom tags come from points on the node, so adding one takes two steps: put the
+point on the node that should carry the label, then tell the Database node which
+point types become tags.
+
+**Step 1: add a tag point to the node.** Most node types have a **Tags** field
+with an **Add Tag** button. Enter a name, which becomes the tag's key, then fill
+in its value. Naming a tag `machine` and setting it to `press-3` adds a `tag`
+point with key `machine` and text `press-3` to that node. The example below adds
+a machine tag to the signal generator producing the data.
 
 <img src="assets/image-20240319112828216.png" alt="image-20240319112828216" style="zoom:50%;" />
 
-When the `tag` field is specified in the database node, this `machine` tag is
-now added to the tags for every sample.
+**Step 2: list the point type on the Database node.** The client turns a point
+into a tag only when its type appears in this list. Open the Database node, find
+**Tag Point Types**, press **Add Point Type**, and enter `tag`. This is the
+point type, not the tag name, so the single entry `tag` covers every tag added
+through the Tags field, however many there are.
 
-- `value` and `type` and fields from the point
-- `node.description` and `node.type` are automatically added
-- `node.tag.machine` got added because the `tag` point was added to the list of
-  node points that get added as tags.
+**Result.** Points flowing through the client now carry the tag, named
+`node.<point type>.<point key>`. A tag named `machine` added through the Tags
+field is written as `node.tag.machine`, since the point type is `tag` and the
+point key is `machine`:
 
 ![image-20240319110846431](assets/image-20240319110846431.png)
 
-See the [Graphing documentation](graphing.md) for information on how to
-automatically map tags to graph labels.
+The naming rule also covers point types other than `tag`. If a node has a
+`machine` point and you add `machine` to Tag Point Types, its points are written
+as `node.machine.<key>`. Listing a type that a node does not have is harmless:
+it contributes no tag.
 
-The database indexes tags, so generally there is not a huge cost to adding tags
-to samples as the long string is only stored once.
+Two things to know when planning tags:
+
+- Tags apply going forward. Adding or editing a tag starts a new series in the
+  database from that moment, and a query spanning the change sees both the old
+  and the new series. The same is true of `node.description`. Settle on tag
+  names before collecting history you intend to keep.
+- Adding tags is inexpensive. The database indexes tag values and stores each
+  distinct string once, so a descriptive tag repeated across millions of samples
+  costs far less than its length suggests.
+
+See the [Graphing documentation](graphing.md) for how to map these tags to graph
+labels.
 
 ### Tag inheritance
 
-Tag points are inherited from ancestor nodes, so a label can be set once on the
-node that represents the thing being described — a machine group, a device, a
-site — and every point emitted beneath it carries that tag. For example, with
-`tagPointType` set to `tag`:
+One tag point can cover a whole subtree, so step 1 rarely needs repeating on
+every node. Tag points are inherited from ancestor nodes, so a label can be set
+once on the node that represents the thing being described (a machine group, a
+device, a site), and every point emitted beneath it carries that tag. Set `site`
+on the device node instead of on each of its sensors. For example, with `tag`
+listed in Tag Point Types:
 
 ```
 device        tag: site=plant-a, customer=acme
@@ -204,21 +284,17 @@ a point emitted by `temp-1` is written with `node.tag.sensor=inlet`,
 
 The resolution rules are:
 
-- All tags resolve into the same flat `node.<point type>.<point key>`
-  namespace, so queries do not depend on the depth at which a tag was set.
+- All tags resolve into the same flat `node.<point type>.<point key>` namespace,
+  so queries do not depend on the depth at which a tag was set.
 - When the same tag is defined at more than one level, the value closest to the
   emitting node wins, so a local tag overrides an inherited one (`site` above).
 - Inheritance stops at the Database client's parent node, whose own tags are
   included. Nodes above the Database client's scope do not contribute tags.
 - A node can have more than one parent. When two ancestors at the same depth
-  define the same tag, the node with the lowest ID wins, and the client logs
-  the ambiguity the first time it is seen.
+  define the same tag, the node with the lowest ID wins, and the client logs the
+  ambiguity the first time it is seen.
 - `node.id`, `node.type`, and `node.description` always describe the emitting
   node and are never inherited.
-
-Tag changes are not retroactive: editing a tag starts a new series in the
-database from that point forward, and queries spanning the change see both
-series. The same applies to `node.description`.
 
 ## Schema
 
@@ -244,12 +320,13 @@ nodes:
 ```
 
 `dbType` is `victoriaMetrics` or `influxdb`; a node with no `dbType` behaves as
-InfluxDB. `org` and `bucket` apply to InfluxDB alone, and Victoria Metrics
-nodes leave them out.
+InfluxDB. `org` and `bucket` apply to InfluxDB alone, and Victoria Metrics nodes
+leave them out.
 
-`tagPointType` is a list, so a single custom tag is written as one value and
-several are written as a sequence. Each entry is a point type, and the client
-adds it to every sample as `node.<point type>.<point key>`.
+`tagPointType` is the **Tag Point Types** field described above. It is a list,
+so a single point type is written as one value and several are written as a
+sequence. Each entry is a point type, and the client adds it to every sample as
+`node.<point type>.<point key>`.
 
 An export carries `authToken` as it was entered, so treat a file that contains
 database nodes the way you would treat the token itself.

@@ -33,7 +33,22 @@ For more details or to discuss releases, please visit the
   documentation covers setting it on the command line, per request, and
   through a systemd environment file.
 
+- docs: give the [database documentation](docs/user/database.md) a section on
+  what happens while the database is unavailable, and restate the custom tag
+  instructions as the two steps they take: add a tag point to the node, then
+  list its point type on the Database node.
+
 ### Fixed
+
+- db: points sent while the time-series database is down are now written when
+  it comes back instead of being lost. Stream deliveries are batched and
+  written synchronously, and are acknowledged to JetStream only after the
+  database accepts them, so an unreachable database holds its points in the
+  stream and retries with a backoff that grows to one minute. Previously the
+  points were acknowledged as soon as they were handed to the InfluxDB
+  client's background writer, whose retry buffer discards batches after three
+  minutes, which left a gap in the recorded history. High-rate points are
+  still best-effort, since they are not stored in streams.
 
 - db: tag and description edits are reflected in the tags written with
   subsequent points again. Since the boundary-origin stream rework, cached
