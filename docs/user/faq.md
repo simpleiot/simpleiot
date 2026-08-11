@@ -15,6 +15,16 @@ from device to cloud, and efficient data bandwidth usage. But, they don't
 provide a way to provide a user facing portal for a product that customers can
 use to see data and interact with the device.
 
+### Q: What happens to data collected while a device is offline?
+
+It is queued on the device and delivered when the connection returns. Every
+instance writes to its own local store first and replicates that store upstream,
+so an outage stops the transfer and not the collection. On reconnect, only the
+missed data is sent, in order and with the original timestamps. Configuration
+changed in the cloud while the device is away is delivered at the same time. See
+[Synchronization](sync.md) for details and for the retention limits that
+determine how long a device can be offline and still catch up in full.
+
 ### Q: How is SIOT different than AWS/Azure/GCP/... IoT?
 
 SIOT is designed to be simple to develop and deploy without a lot of moving

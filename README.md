@@ -20,6 +20,8 @@ inherently distributed and building on simple concepts that scale.
 - A single application with no dependencies that can be run in both cloud and
   edge instances
 - efficient synchronization of data in both directions
+- Local queuing of data at the edge while a device is offline, and automatic
+  delivery of that backlog when the connection returns
 - A flexible UI to view configuration and current values
 - A rules engine that runs on all instances that can trigger notifications or
   set data
@@ -50,6 +52,10 @@ been driven by the following requirements:
 - Data bandwidth is limited in some IoT systems — especially those connected
   with Cat-M modems (< 100Kb/sec). Additionally, connectivity is not always
   reliable, and systems need to continue operating if not connected.
+- Data collected while a device is offline still needs to reach the cloud. Every
+  instance writes to a local store first, so sensor readings, configuration
+  changes, and history are queued while the link is down and delivered in order
+  once it comes back.
 
 ## Core ideas
 
