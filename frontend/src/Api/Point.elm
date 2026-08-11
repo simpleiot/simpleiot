@@ -43,6 +43,7 @@ module Api.Point exposing
     , typeConditionType
     , typeConnected
     , typeControlled
+    , typeCounterDelta
     , typeCreated
     , typeData
     , typeDataFormat
@@ -105,6 +106,7 @@ module Api.Point exposing
     , typeLongitude
     , typeMaxIncrement
     , typeMaxMessageLength
+    , typeMaxSeries
     , typeMaxValue
     , typeMinActive
     , typeMinIncrement
@@ -212,6 +214,7 @@ module Api.Point exposing
     , valuePlayAudio
     , valuePointValue
     , valueProcess
+    , valuePrometheus
     , valueProtocolBinary
     , valueProtocolShell
     , valueRTU
@@ -637,6 +640,16 @@ typeURI =
 typePrefix : String
 typePrefix =
     "prefix"
+
+
+typeCounterDelta : String
+typeCounterDelta =
+    "counterDelta"
+
+
+typeMaxSeries : String
+typeMaxSeries =
+    "maxSeries"
 
 
 typeConditionType : String
@@ -1072,6 +1085,11 @@ valueProcess =
 valueSystem : String
 valueSystem =
     "system"
+
+
+valuePrometheus : String
+valuePrometheus =
+    "prometheus"
 
 
 switch : String
