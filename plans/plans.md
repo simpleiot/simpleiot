@@ -11,3 +11,4 @@
 | 2026-07-31-mcu-shell-mode.md | **COMPLETE** | 3e2e4023 |
 | 2026-08-01-provisioning.md | **COMPLETE** | 54169492 |
 | 2026-08-01-modbus-onewire-clients.md | **COMPLETE** | 54169492 |
+| 2026-08-11-prometheus-scrape-metrics.md | **PLANNED** | ff1e2c7d |
