@@ -1,0 +1,40 @@
+# HELP go_gc_duration_seconds A summary of the wall-time pause (in seconds) spent in GC.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 3.7134e-05
+go_gc_duration_seconds{quantile="0.25"} 0.000103
+go_gc_duration_seconds{quantile="0.5"} 0.000124
+go_gc_duration_seconds{quantile="0.75"} 0.000165
+go_gc_duration_seconds{quantile="1"} 0.001274
+go_gc_duration_seconds_sum 0.29
+go_gc_duration_seconds_count 3016
+# HELP go_goroutines Number of goroutines that currently exist.
+# TYPE go_goroutines gauge
+go_goroutines 41
+# HELP go_memstats_alloc_bytes Number of bytes allocated in heap and currently in use.
+# TYPE go_memstats_alloc_bytes gauge
+go_memstats_alloc_bytes 8.399016e+06
+# HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
+# TYPE promhttp_metric_handler_requests_total counter
+promhttp_metric_handler_requests_total{code="200"} 1441
+promhttp_metric_handler_requests_total{code="500"} 0
+# HELP myapp_queue_depth Number of jobs waiting to be processed.
+# TYPE myapp_queue_depth gauge
+myapp_queue_depth 17
+# HELP myapp_requests_total Total HTTP requests handled.
+# TYPE myapp_requests_total counter
+myapp_requests_total{method="post",code="200"} 1027
+myapp_requests_total{method="post",code="400"} 3
+myapp_requests_total{method="get",code="200"} 8621
+# HELP myapp_request_duration_seconds Request latency.
+# TYPE myapp_request_duration_seconds histogram
+myapp_request_duration_seconds_bucket{le="0.005"} 24054
+myapp_request_duration_seconds_bucket{le="0.05"} 33444
+myapp_request_duration_seconds_bucket{le="+Inf"} 144320
+myapp_request_duration_seconds_sum 53423.0
+myapp_request_duration_seconds_count 144320
+# HELP myapp_build_info Build information.
+# TYPE myapp_build_info gauge
+myapp_build_info{version="1.4.2",branch="feat/scrape"} 1
+# HELP myapp_last_reload_success_timestamp_seconds Timestamp of the last reload, NaN when never reloaded.
+# TYPE myapp_last_reload_success_timestamp_seconds gauge
+myapp_last_reload_success_timestamp_seconds NaN
