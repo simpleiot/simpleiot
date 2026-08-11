@@ -233,6 +233,30 @@ func TestReadingPointsUniqueKeys(t *testing.T) {
 	}
 }
 
+func TestReadingPointsSubjectSafeKeys(t *testing.T) {
+	// kernel device names carry characters a point key cannot hold: a point
+	// is published on a subject ending in its type and key, and the store
+	// rejects a key with a period in it
+	pts := readingPoints(data.PointTypeMetricSysCoolingState, []reading{
+		{key: "devfreq-17000000.gpu", val: 3},
+		{key: "cpufreq-cpu0", val: 0},
+	})
+
+	if len(pts) != 2 {
+		t.Fatalf("Expected 2 points, got %v: %v", len(pts), pts)
+	}
+
+	if pts[0].Key != "devfreq-17000000_gpu" {
+		t.Errorf("Expected the period to be replaced, got key %v", pts[0].Key)
+	}
+
+	for _, p := range pts {
+		if err := p.CheckSubjectTokens(); err != nil {
+			t.Error("Metrics generated a point the store will reject:", err)
+		}
+	}
+}
+
 func TestSysTemperaturesIncludesZones(t *testing.T) {
 	dir := t.TempDir()
 

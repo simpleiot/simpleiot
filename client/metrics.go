@@ -239,7 +239,8 @@ func (m *MetricsClient) sysPeriodic() {
 				continue
 			}
 			pts = append(pts, data.Points{
-				data.NewPointFloat(data.PointTypeMetricSysDiskUsedPercent, u.Path, u.UsedPercent),
+				data.NewPointFloat(data.PointTypeMetricSysDiskUsedPercent,
+					data.SubjectSafeToken(u.Path), u.UsedPercent),
 			}...)
 		}
 	}
@@ -249,9 +250,12 @@ func (m *MetricsClient) sysPeriodic() {
 		log.Println("Metrics error:", err)
 	} else {
 		for _, io := range netio {
+			// interface names can carry a period -- a VLAN is named
+			// eth0.100 -- which a point key cannot hold
+			name := data.SubjectSafeToken(io.Name)
 			pts = append(pts, data.Points{
-				data.NewPointFloat(data.PointTypeMetricSysNetBytesRecv, io.Name, float64(io.BytesRecv)),
-				data.NewPointFloat(data.PointTypeMetricSysNetBytesSent, io.Name, float64(io.BytesSent)),
+				data.NewPointFloat(data.PointTypeMetricSysNetBytesRecv, name, float64(io.BytesRecv)),
+				data.NewPointFloat(data.PointTypeMetricSysNetBytesSent, name, float64(io.BytesSent)),
 			}...)
 		}
 
@@ -294,6 +298,11 @@ type reading struct {
 // identified by its type and key, so two readings that share a key would
 // overwrite each other. Sensor names are not guaranteed to be unique, so
 // repeats are numbered: tmp451, tmp451_2, tmp451_3, and so on.
+//
+// Sensor names come from the kernel and carry characters a point key cannot
+// hold -- a cooling device is named devfreq-17000000.gpu, for instance -- so
+// they are made safe here. Uniqueness is checked after that, since two names
+// can differ only in a character that gets replaced.
 func readingPoints(typ string, readings []reading) data.Points {
 	pts := make(data.Points, 0, len(readings))
 	counts := make(map[string]int)
@@ -302,6 +311,8 @@ func readingPoints(typ string, readings []reading) data.Points {
 		if r.key == "" {
 			continue
 		}
+
+		r.key = data.SubjectSafeToken(r.key)
 
 		counts[r.key]++
 
