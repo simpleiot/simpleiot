@@ -311,6 +311,25 @@ const (
 	PointValueProcess      = "process"
 	PointValueAllProcesses = "allProcesses"
 	PointValueSystem       = "system"
+	PointValuePrometheus   = "prometheus"
+
+	// PointTypeCounterDelta enables publishing a per-period delta alongside
+	// the raw value of each counter a Prometheus endpoint reports. A counter
+	// is monotonic, so the raw value answers "how many since start" while the
+	// delta answers "how many this period", which is the reading a rule can
+	// act on.
+	PointTypeCounterDelta = "counterDelta"
+
+	// PointTypeMaxSeries bounds how many samples a single scrape publishes,
+	// so an endpoint with more series than expected cannot grow one node out
+	// of proportion to the rest of the tree.
+	PointTypeMaxSeries = "maxSeries"
+
+	// CounterDeltaSuffix is appended to a counter's metric name to form the
+	// point type its per-period delta is published under. Prometheus reserves
+	// _total, _sum, _count, and _bucket, so this cannot be mistaken for one
+	// of its conventions.
+	CounterDeltaSuffix = "_delta"
 
 	PointTypeCount = "count"
 

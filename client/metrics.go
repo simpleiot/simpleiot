@@ -28,6 +28,12 @@ type Metrics struct {
 	Type        string `point:"type"`
 	Name        string `point:"name"`
 	Period      int    `point:"period"`
+
+	// Prometheus scrape config, used when Type is prometheus
+	URI          string `point:"uri"`
+	Prefix       string `point:"prefix"`
+	CounterDelta bool   `point:"counterDelta"`
+	MaxSeries    int    `point:"maxSeries"`
 }
 
 // MetricsClient is a SIOT client used to collect system or app metrics
@@ -37,6 +43,19 @@ type MetricsClient struct {
 	stop          chan struct{}
 	newPoints     chan NewPoints
 	newEdgePoints chan NewPoints
+
+	// previous counter values, so a Prometheus scrape can publish the change
+	// since the last one. Keyed by metric name and point key.
+	promCounters map[string]float64
+
+	// metric names already reported as colliding with a node configuration
+	// point type, so the log is written once per name rather than every
+	// scrape
+	promSkipped map[string]bool
+
+	// the error last published on the node, so an unchanged error is not
+	// resent every period
+	promError string
 }
 
 // NewMetricsClient ...
@@ -47,6 +66,8 @@ func NewMetricsClient(nc *nats.Conn, config Metrics) Client {
 		stop:          make(chan struct{}),
 		newPoints:     make(chan NewPoints),
 		newEdgePoints: make(chan NewPoints),
+		promCounters:  make(map[string]float64),
+		promSkipped:   make(map[string]bool),
 	}
 }
 
@@ -72,6 +93,10 @@ func (m *MetricsClient) Run() error {
 
 	checkPeriod()
 
+	if m.config.Type == data.PointValuePrometheus {
+		m.checkPromDefaults()
+	}
+
 	sampleTicker := time.NewTicker(time.Duration(m.config.Period) * time.Second)
 
 done:
@@ -90,6 +115,8 @@ done:
 				m.appPeriodic(m.config.Name)
 			case data.PointValueAllProcesses:
 				m.allProcPeriodic()
+			case data.PointValuePrometheus:
+				m.promPeriodic()
 			default:
 				log.Println("Metrics: Must select metric type")
 			}
@@ -107,9 +134,17 @@ done:
 					sampleTicker.Reset(time.Duration(m.config.Period) *
 						time.Second)
 				case data.PointTypeType:
-					if m.config.Type == data.PointValueSystem {
+					switch m.config.Type {
+					case data.PointValueSystem:
 						m.sysStart()
+					case data.PointValuePrometheus:
+						m.checkPromDefaults()
 					}
+				case data.PointTypeURI:
+					// a different endpoint is a different set of
+					// counters, so what we remember of the old one
+					// would produce a meaningless first delta
+					m.promReset()
 				}
 			}
 

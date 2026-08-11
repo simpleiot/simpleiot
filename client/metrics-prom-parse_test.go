@@ -8,6 +8,18 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
+// mustOpen opens a fixture or fails the test
+func mustOpen(t *testing.T, name string) *os.File {
+	t.Helper()
+
+	f, err := os.Open(name)
+	if err != nil {
+		t.Fatal("Error opening fixture:", err)
+	}
+
+	return f
+}
+
 // findSample returns the sample with the given name and key
 func findSample(samples []sample, name, key string) (sample, bool) {
 	for _, s := range samples {
