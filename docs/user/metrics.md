@@ -64,6 +64,134 @@ are numbered, as in `tmp451` and `tmp451_2`.
 
 ![proc-metrics](images/metrics-proc.png)
 
+## Prometheus Metrics
+
+A metrics node can also collect from an application that exposes a `/metrics`
+endpoint in the Prometheus exposition format. Any Go service built with
+`client_golang` has one, as do `node_exporter`, cAdvisor, and a great deal of
+other infrastructure.
+
+The usual way to collect these is to run Prometheus or `vmagent` and have it
+scrape each target, which means the scraper needs network reach to every
+machine. For a small number of custom servers that is more work than it is
+worth, and exposing `/metrics` to the internet describes an application's
+internals to anyone who asks.
+
+Because SIOT is already on the machine, it can scrape `127.0.0.1`. The
+application binds its endpoint to loopback and never listens on a public
+interface, no port is opened, and the readings travel out over the connection
+SIOT already holds. From there they reach rules, sync, and the
+[database client](database.md) the same way any other point does.
+
+Set the metrics type to **prometheus** and give the node a URI. One node per
+endpoint, so several applications on a machine means several nodes.
+
+### How samples become points
+
+A metric name becomes the point type, and its labels become the point key,
+rendered as `name=value` pairs joined by commas and sorted by label name. The
+sort means a series keeps the same key from one scrape to the next no matter
+what order the endpoint lists its labels in.
+
+| Sample                                           | Point type             | Point key              |
+| ------------------------------------------------ | ---------------------- | ---------------------- |
+| `myapp_requests_total{method="post",code="200"}` | `myapp_requests_total` | `code=200,method=post` |
+| `myapp_queue_depth`                              | `myapp_queue_depth`    | _(empty)_              |
+| `myapp_seconds_bucket{le="0.005"}`               | `myapp_seconds_bucket` | `le=0_005`             |
+
+A metric name needs no adjustment, since the characters Prometheus allows in one
+are all valid in a point type. Label values are ordinary text and often carry
+characters a point key cannot hold, most commonly the period in a histogram
+bucket boundary or a summary quantile, so those are replaced with underscores.
+Two values that differ only in such a character resolve to the same key, and the
+later sample wins; a label whose values differ only in punctuation is worth
+avoiding for that reason.
+
+Histograms and summaries need no special handling. The exposition format has
+already flattened them into ordinary samples by the time SIOT reads them, so
+`_bucket`, `_sum`, and `_count` arrive as their own point types.
+
+### Counters
+
+A counter only ever climbs, which makes it awkward to read in the UI and
+unusable in a rule: "alert when errors increase" needs a rate, not a total. So a
+counter publishes a second point under its own name with `_delta` appended,
+carrying the change since the previous scrape. Nothing is published on the first
+scrape of a series, since there is no earlier value to compare against. If a
+counter decreases, the application restarted, and the delta is the current
+value.
+
+The raw counter is published as well, because that is what a time-series
+database needs to compute `rate()` over. Turn the delta off with the **Counter
+deltas** setting if the raw value is all you use.
+
+Only a metric the endpoint declares a `counter` produces a delta. The `_bucket`,
+`_sum`, and `_count` series of a histogram climb the same way but are left
+alone, since a histogram with a dozen buckets would otherwise double a large
+number of series.
+
+### Filtering and limits
+
+Two settings keep a node to a sensible size:
+
+- **Metric prefix** collects only metrics whose name starts with the given text.
+  Applications normally namespace their metrics, so `myapp_` keeps an
+  application's own readings and leaves out the `go_` and `promhttp_` series
+  that any `client_golang` registry adds. An empty prefix collects everything.
+- **Max series** bounds a single scrape, defaulting to 200. A scrape that
+  exceeds it is sorted, truncated, and reported through the node's error point,
+  so a truncated scrape is visible rather than silent.
+
+The limit matters because points live on the node, are stored, and replicate
+upstream. An application's own metrics usually number in the dozens, while
+`node_exporter` and cAdvisor run to hundreds or thousands; collect those with a
+prefix or a larger limit chosen deliberately.
+
+A scrape that fails, whether the endpoint is refusing connections, timing out,
+or answering with an error, publishes no readings and sets the node's error
+point. Stale values are worse than absent ones. The error clears on the next
+successful scrape.
+
+### Reserved names
+
+A metric whose name matches one of the node's own settings is skipped and
+logged, because publishing it would overwrite that setting. The names are
+`description`, `type`, `name`, `period`, `uri`, `prefix`, `counterDelta`,
+`maxSeries`, `tag`, `disabled`, `error`, `errorCount`, `errorCountReset`,
+`connected`, `debug`, `log`, and `nodeType`. Prometheus convention is to
+namespace and unit-suffix a metric name, so a collision means the metric is
+worth renaming at the source.
+
+### Querying scraped metrics
+
+Points reach VictoriaMetrics as the metric `points_value`, tagged with the point
+`type` and `key` along with the node tags described in the
+[database documentation](database.md). The Database client expands a key that
+was written as a label set into individual labels, so a scraped series queries
+the way the Prometheus series it came from did:
+
+```promql
+sum by (method) (points_value{type="myapp_requests_total_delta"})
+```
+
+and a histogram works with the bucket boundaries restored to numbers:
+
+```promql
+histogram_quantile(0.95,
+  sum by (le) (points_value{type="myapp_request_duration_seconds_bucket"}))
+```
+
+This expansion is the **Expand Key Labels** setting on the Database node, which
+is on by default. With it off, the labels are still reachable through the `key`
+tag, though every query then carries its own extraction:
+
+```promql
+sum by (method) (
+  label_replace(points_value{type="myapp_requests_total_delta"},
+                "method", "$1", "key", ".*method=([^,]+).*")
+)
+```
+
 ## Schema
 
 The configuration of a system metrics node and a named process node:
@@ -81,11 +209,24 @@ nodes:
       name: nats-server
       period: 10
       type: process
+  - metrics:
+      counterDelta: true
+      description: My App
+      maxSeries: 200
+      period: 30
+      prefix: myapp_
+      type: prometheus
+      uri: http://127.0.0.1:9100/metrics
 ```
 
-`type` is `system`, `app`, or `process`, and `period` is how often readings are
-taken, in seconds. `name` is the process name to watch and applies to a process
-node; values for all processes of that name are added together.
+`type` is `system`, `app`, `process`, or `prometheus`, and `period` is how often
+readings are taken, in seconds. `name` is the process name to watch and applies
+to a process node; values for all processes of that name are added together.
+
+`uri`, `prefix`, `counterDelta`, and `maxSeries` apply to a prometheus node.
+`uri` is the endpoint to scrape, `prefix` collects only metrics whose name
+starts with it, `counterDelta` publishes the change in each counter alongside
+its raw value, and `maxSeries` bounds how many readings one scrape publishes.
 
 `tag` is a set of keyed points, and each one becomes a label on the samples the
 [database client](database.md) writes when its point type is listed there.

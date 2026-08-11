@@ -13,6 +13,26 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+### Added
+
+- metrics: a `prometheus` metrics type that scrapes an application's `/metrics`
+  endpoint and publishes what it serves as points. Because SIOT is already on
+  the machine, the endpoint can bind to loopback and the readings still travel
+  upstream over the connection SIOT holds, so collecting from a handful of
+  custom servers needs no open port, no VPN, and no second agent. A metric name
+  becomes the point type and its labels become the point key. Counters publish
+  the change since the previous scrape alongside the raw value, so a rule can
+  act on them. A metric prefix and a series limit keep a node to a sensible
+  size, and a failed scrape sets the node's error point rather than leaving
+  stale readings in place. See the
+  [metrics documentation](docs/user/metrics.md).
+- db: an **Expand Key Labels** setting, on by default, that writes each label in
+  a point key that was written as a label set as its own database label. This is
+  what makes a scraped series query the way the Prometheus series it came from
+  did, including `histogram_quantile` over bucket series. The parse is strict,
+  so keys written by every other client are left alone. See the
+  [database documentation](docs/user/database.md).
+
 ### Fixed
 
 ## [0.23.2] - 2026-08-11

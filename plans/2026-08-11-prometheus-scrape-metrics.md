@@ -72,6 +72,28 @@ given series does not change from one scrape to the next regardless of the order
 the exporter emits labels in. A sample with no labels gets an empty key, which
 is what the rest of the client already does for keyless points.
 
+**The key is a label set the db client can expand.** Rendering the labels into
+one key is what SIOT's point shape allows, but it is not the shape a time series
+database wants: `label_replace` can pull a label back out of the key at query
+time, and Grafana can group on the result, though every panel then carries a
+regex and `histogram_quantile` cannot use an `le` it has to extract. Since
+`name=value,name=value` is a grammar the db client can parse as reliably as the
+metrics client wrote it, the db client splits the key back into individual
+Influx tags, which VictoriaMetrics stores as ordinary labels. The `key` tag is
+still written alongside, so a query that selects on the whole set keeps working
+and a key that does not parse as a label set loses nothing. This is Phase 4, and
+it is worth doing in the same branch because the scrape is much less useful
+without it.
+
+**Sanitized label values are restored only where the meaning is unambiguous.**
+`SubjectSafeToken` maps a period to `_`, so the db client cannot tell
+`le="0.005"` from a label value that genuinely held an underscore. Restoring
+every underscore would corrupt real data, and restoring none leaves
+`histogram_quantile` unusable, which is most of the reason to want buckets in a
+database at all. Prometheus defines exactly two numeric label names, `le` and
+`quantile`, so the db client restores periods only on those two, and only when
+the value is otherwise all digits. Everything else is written as SIOT stored it.
+
 **Scraped points may not overwrite node configuration.** This is the sharpest
 edge in the design. `Run()` feeds every point arriving on the node through
 `data.MergePoints` into the `Metrics` config struct, which matches on point
@@ -265,6 +287,65 @@ Both render to key `path=/a_b`, so the second sample overwrites the first and
 the node ends up holding a single point with value 2. This is the tradeoff the
 Risks section describes, and it is the same one the client already accepts for
 sysfs device names.
+
+## Querying the Result
+
+The db client writes every point to the `points` measurement with `type` and
+`key` as tags and the node's identity and inherited tags as `node.*` tags
+(`client/db.go`). VictoriaMetrics accepts that over the Influx line protocol and
+names the resulting series `points_value`, so the counter from the first mapping
+example arrives as:
+
+```
+points_value{type="myapp_requests_total", key="code=200,method=post",
+             node.id="…", node.description="My App"}
+```
+
+Without Phase 4 the labels are still reachable, since the key is a plain label
+and `label_replace` can extract from it:
+
+```promql
+sum by (method) (
+  label_replace(points_value{type="myapp_requests_total_delta"},
+                "method", "$1", "key", ".*method=([^,]+).*")
+)
+```
+
+Sorting the labels by name is what makes that regex stable across scrapes and
+across exporter releases. Selecting rather than grouping needs no regex function
+at all, because a label matcher is already a regex:
+`key=~".*method=post(,.*)?"`.
+
+Two things that expression cannot do are the reason Phase 4 exists. Every panel
+carries its own extraction, one `label_replace` per label it wants to group on,
+which is a lot of duplicated regex in a dashboard that would otherwise be
+ordinary PromQL. And `histogram_quantile` reads the `le` label as a float, so a
+bucket series has to arrive with `le` already split out and already numeric; no
+amount of query-time work makes `le="0_005"` acceptable to it.
+
+With Phase 4 the same sample arrives as:
+
+```
+points_value{type="myapp_requests_total", key="code=200,method=post",
+             code="200", method="post", node.id="…", node.description="My App"}
+```
+
+and the query is what a Prometheus user would have written in the first place:
+
+```promql
+sum by (method) (points_value{type="myapp_requests_total_delta"})
+```
+
+Histograms work the same way, with the period restored on `le`:
+
+```promql
+histogram_quantile(0.95,
+  sum by (le) (points_value{type="myapp_request_duration_seconds_bucket"}))
+```
+
+Note that adding labels changes series identity, so a dashboard built against
+scraped points before Phase 4 sees new series after it. Nothing else in SIOT is
+affected, since the change is confined to what the db client writes.
 
 ## Point and Node Types
 
@@ -518,38 +599,103 @@ the rest:
 **Verify:** `siot_build_frontend`,
 `cd frontend && npx elm-review && npx elm-test`
 
-### Phase 4: Documentation and Changelog
+### Phase 4: Label Expansion in the db Client
+
+**Goal:** Write each label in a scraped key as its own database label, so a
+scraped series queries like the Prometheus series it came from.
+
+1. Create `client/db-key-labels.go` with
+   `func expandKeyLabels(key string) map[string]string`, a pure function over
+   the key with no NATS and no database. It returns nil for a key that is not a
+   label set, which the caller treats as "add nothing".
+2. Parsing rules, chosen so that a key from any other client is left alone:
+   - Split on `,`. Every chunk must be `name=value` with `name` matching
+     `[a-zA-Z_][a-zA-Z0-9_]*`.
+   - If any chunk fails, return nil. The expansion is all or nothing, so a key
+     is never half interpreted. This is also what handles the `note="a,b"` case
+     from [Mapping Examples](#label-values-that-need-sanitizing): a comma inside
+     a label value makes the key unsplittable, the strict rule declines it, and
+     the `key` tag still carries the whole set.
+   - An empty value is dropped rather than written, matching Prometheus, where
+     an empty label and an absent label are the same thing.
+   - Restore periods on `le` and `quantile` when the value is otherwise only
+     digits and underscores, so `le=0_005` is written as `le="0.005"` and
+     `histogram_quantile` can read it. `le=+Inf` needs no restoration and gets
+     none. No other label name is rewritten.
+3. Skip a label named `type` or `key`, which are the tags the db client writes
+   itself, logging each skipped name once per client. A `node.*` tag cannot
+   collide, since a Prometheus label name has no period in it.
+4. Factor the tag map both write paths build (`db.go`, in the HR subscription
+   and in the point handler) into one
+   `func (dbc *DbClient) pointTags(nodeID string, pt data.Point) map[string]string`
+   so the two cannot drift, and call `expandKeyLabels` from it.
+5. Add `ExpandKeyLabels bool` with `point:"expandKeyLabels"` to the `Db` config
+   struct and `PointTypeExpandKeyLabels` to `data/schema.go`. Default it to
+   true, published back to the node the way Phase 2 publishes its defaults, so
+   the setting is visible and can be turned off. The strict parse means the
+   default costs nothing for the keys every other client writes.
+6. Frontend: `frontend/src/Components/NodeDb.elm` gets a checkbox, and
+   `frontend/src/Api/Point.elm` gets `typeExpandKeyLabels`.
+
+**Verify:** `go build ./... && go test -race ./client/`, then a scrape into a
+local VictoriaMetrics with a `histogram_quantile` query over the bucket series.
+
+**Test:** Table-driven over `expandKeyLabels`, plus the write path:
+
+- `code=200,method=post` yields both labels, and the `key` tag is still written.
+- An empty key, `eth0`, and `/dev/sda` yield no labels, which covers the keys
+  the rest of SIOT publishes.
+- `note=a,b` yields no labels rather than a partial expansion.
+- `le=0_005` yields `le="0.005"`, `quantile=0_99` yields `quantile="0.99"`, and
+  `le=+Inf` is unchanged.
+- `version=1_4_2` is unchanged, since only `le` and `quantile` are restored.
+- `type=foo,method=post` writes `method` and leaves the `type` tag as the point
+  type.
+- `expandKeyLabels` false writes only the tags the client writes today.
+- The HR path and the point path produce the same tags for the same point.
+
+### Phase 5: Documentation and Changelog
 
 1. `docs/user/metrics.md`: a "Prometheus Metrics" section covering the loopback
    argument, the name-to-point-type mapping, label sanitizing, counter deltas
    and why the raw counter is kept alongside, the series cap, and the reserved
    names. Include the YAML schema example, matching the existing schema section
-   at the end of that page.
-2. `CHANGELOG.md` under `## Next`: an `### Added` entry.
-3. `CLAUDE.md`: no change needed — the client list there is illustrative and
+   at the end of that page. Include the example queries from
+   [Querying the Result](#querying-the-result), since the mapping is only worth
+   as much as the query a reader can write from it.
+2. `docs/user/database.md`: document `expandKeyLabels`, what makes a key a label
+   set, the `le` and `quantile` restoration, and the note that turning it on
+   changes series identity for points whose keys expand.
+3. `CHANGELOG.md` under `## Next`: an `### Added` entry.
+4. `CLAUDE.md`: no change needed — the client list there is illustrative and
    already names Metrics.
-4. Update `plans/plans.md` with the final status.
+5. Update `plans/plans.md` with the final status.
 
 **Verify:** `siot_test`
 
 ## Files Touched
 
-| File                                      | Change                                                                                      |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `data/schema.go`                          | `PointValuePrometheus`, `PointTypeCounterDelta`, `PointTypeMaxSeries`, `CounterDeltaSuffix` |
-| `client/metrics.go`                       | Four config fields, `prometheus` case in the `Run()` switch, defaults                       |
-| `client/metrics-prom.go`                  | new — scrape, filter, cap, counter deltas, error points                                     |
-| `client/metrics-prom-parse.go`            | new — exposition format parser                                                              |
-| `client/metrics-prom_test.go`             | new — `httptest` and mapping tests                                                          |
-| `client/metrics-prom-parse_test.go`       | new — grammar tests                                                                         |
-| `client/testdata/prom-client-golang.txt`  | new — fixture                                                                               |
-| `client/testdata/prom-node-exporter.txt`  | new — fixture                                                                               |
-| `frontend/src/Components/NodeMetrics.elm` | prometheus type option and its inputs                                                       |
-| `frontend/src/Api/Point.elm`              | three new constants                                                                         |
-| `docs/user/metrics.md`                    | Prometheus section                                                                          |
-| `CHANGELOG.md`                            | Added entry                                                                                 |
+| File                                      | Change                                                                                                                  |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `data/schema.go`                          | `PointValuePrometheus`, `PointTypeCounterDelta`, `PointTypeMaxSeries`, `CounterDeltaSuffix`, `PointTypeExpandKeyLabels` |
+| `client/metrics.go`                       | Four config fields, `prometheus` case in the `Run()` switch, defaults                                                   |
+| `client/metrics-prom.go`                  | new — scrape, filter, cap, counter deltas, error points                                                                 |
+| `client/metrics-prom-parse.go`            | new — exposition format parser                                                                                          |
+| `client/metrics-prom_test.go`             | new — `httptest` and mapping tests                                                                                      |
+| `client/metrics-prom-parse_test.go`       | new — grammar tests                                                                                                     |
+| `client/testdata/prom-client-golang.txt`  | new — fixture                                                                                                           |
+| `client/testdata/prom-node-exporter.txt`  | new — fixture                                                                                                           |
+| `client/db.go`                            | `ExpandKeyLabels` config field, shared `pointTags` for both write paths, default                                        |
+| `client/db-key-labels.go`                 | new — key to label set expansion                                                                                        |
+| `client/db-key-labels_test.go`            | new — expansion tests                                                                                                   |
+| `frontend/src/Components/NodeMetrics.elm` | prometheus type option and its inputs                                                                                   |
+| `frontend/src/Components/NodeDb.elm`      | `expandKeyLabels` checkbox                                                                                              |
+| `frontend/src/Api/Point.elm`              | four new constants                                                                                                      |
+| `docs/user/metrics.md`                    | Prometheus section                                                                                                      |
+| `docs/user/database.md`                   | key label expansion                                                                                                     |
+| `CHANGELOG.md`                            | Added entry                                                                                                             |
 
-Roughly 200 lines of implementation and a similar amount of test. No change to
+Roughly 250 lines of implementation and a similar amount of test. No change to
 `go.mod`.
 
 ## Risks
@@ -566,6 +712,14 @@ across deploys is the obvious case — grows the node over time with series that
 no longer update. The cap bounds a single scrape, not the history. Worth
 documenting that a `version`-style label on a scraped metric is a poor idea, and
 worth watching before adding anything more clever.
+
+**Label expansion changes series identity.** A series that carried only `type`
+and `key` gains a label per label in the key, which a time series database reads
+as a different series. Anyone who built a dashboard against scraped points
+before Phase 4 sees the old series stop and a new one start. The window where
+that matters is small, since both land in the same commit range, and
+`expandKeyLabels` can be turned off on a node that has history worth keeping
+continuous.
 
 **Point types are no longer a closed set.** Every other client publishes types
 declared in `data/schema.go`; a scrape publishes whatever the endpoint names.
@@ -595,7 +749,24 @@ is fourteen series, and deltas would make it twenty-eight against a cap of 200.
 Deriving counter-ness from a `histogram` or `summary` type line is a few lines
 of code if the cap turns out to be generous enough in practice.
 
+**Should the key encode periods reversibly instead of restoring them?** `~` is
+subject-safe, so rendering `le="0.005"` as `le=0~005` would survive the store
+and decode back exactly, with no per-label-name special case in the db client
+and no ambiguity for version strings or paths. It costs readability in the UI,
+where `le=0~005` reads as neither the original nor a plain underscore, and it
+needs an escape for a label value that genuinely holds `~`. The plan restores
+`le` and `quantile` instead because those are the only two labels a query
+interprets numerically, but this is worth revisiting if a third such label turns
+up. (NO, lets keep it simple)
+
+**Should expansion be gated on the source node type rather than parsed?** The db
+client has the node type in its cache already, so it could expand keys only for
+points from a metrics node and skip the grammar check entirely. Parsing is
+proposed because it keeps `expandKeyLabels` meaningful for any client that
+adopts the same key convention later, and the strict all-or-nothing rule already
+declines every key the rest of SIOT writes.
+
 **Does anyone want the inverse?** Exposing a SIOT `/metrics` endpoint so an
 existing Prometheus can pull node points is a different, smaller feature, and
 some people asking for Prometheus support want that one. It is not in this plan
-and does not conflict with it.
+and does not conflict with it. (not is this plan)
