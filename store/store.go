@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -17,6 +18,11 @@ import (
 )
 
 var reportMetricsPeriod = time.Minute
+
+// pointErrorPeriod is how often a node is told about points that were
+// rejected. A device with a bad point type or key normally sends it at its
+// full rate, and repeating the same error on every point helps no one.
+var pointErrorPeriod = time.Minute
 
 // Store implements the SIOT NATS api
 type Store struct {
@@ -39,6 +45,12 @@ type Store struct {
 	chStop        chan struct{}
 	chStopMetrics chan struct{}
 	chWaitStart   chan struct{}
+
+	// when each node was last told about a point it sent that could not be
+	// accepted, so a device sending bad points at full rate is reported
+	// once rather than continuously
+	pointErrMu   sync.Mutex
+	pointErrLast map[string]time.Time
 }
 
 // Params are used to configure a store
@@ -72,6 +84,7 @@ func NewStore(p Params) (*Store, error) {
 		db:            db,
 		authorizer:    authorizer,
 		subscriptions: make(map[string]*nats.Subscription),
+		pointErrLast:  make(map[string]time.Time),
 		chStop:        make(chan struct{}),
 		chStopMetrics: make(chan struct{}),
 		chWaitStart:   make(chan struct{}),
@@ -246,6 +259,63 @@ func (st *Store) StopMetrics(_ error) {
 	close(st.chStopMetrics)
 }
 
+// checkPoints drops points whose type or key cannot be represented in a NATS
+// subject and returns the ones that can, along with an error describing what
+// was dropped.
+//
+// Every point the store accepts is fanned out on a subject built from its type
+// and key, and listeners read the node ID and parent ID from fixed positions in
+// that subject. A type or key carrying a period adds a token and shifts
+// everything after it, so the point reaches the wrong handler. Checking here,
+// at the one place every point enters the system, keeps every subject the store
+// publishes well formed.
+func (st *Store) checkPoints(nodeID string, points []data.Point) ([]data.Point, error) {
+	accepted := make([]data.Point, 0, len(points))
+	var rejected []string
+
+	for _, p := range points {
+		if err := p.CheckSubjectTokens(); err != nil {
+			rejected = append(rejected, err.Error())
+			continue
+		}
+
+		accepted = append(accepted, p)
+	}
+
+	if len(rejected) == 0 {
+		return points, nil
+	}
+
+	err := fmt.Errorf("node %v: %v", nodeID, strings.Join(rejected, "; "))
+
+	log.Println("Store: rejected points:", err)
+	st.reportPointError(nodeID, err)
+
+	return accepted, err
+}
+
+// reportPointError sets an error point on a node so that a device sending a
+// point the system cannot accept is visible in the UI, rather than only in the
+// server log.
+func (st *Store) reportPointError(nodeID string, err error) {
+	st.pointErrMu.Lock()
+	last, reported := st.pointErrLast[nodeID]
+	if reported && time.Since(last) < pointErrorPeriod {
+		st.pointErrMu.Unlock()
+		return
+	}
+	st.pointErrLast[nodeID] = time.Now()
+	st.pointErrMu.Unlock()
+
+	// the error point carries no type or key of its own that could be
+	// rejected, so this cannot loop
+	e := client.SendNodePoint(st.nc, nodeID,
+		data.NewPointString(data.PointTypeError, "", err.Error()), false)
+	if e != nil {
+		log.Println("Store: error reporting rejected point to node:", e)
+	}
+}
+
 func (st *Store) handleNodePoints(msg *nats.Msg) {
 	start := time.Now()
 	defer func() {
@@ -261,6 +331,12 @@ func (st *Store) handleNodePoints(msg *nats.Msg) {
 	if err != nil {
 		fmt.Printf("Error decoding nats message: %v: %v", msg.Subject, err)
 		st.reply(msg.Reply, errors.New("error decoding node points subject"))
+		return
+	}
+
+	points, errCheck := st.checkPoints(nodeID, points)
+	if len(points) == 0 {
+		st.reply(msg.Reply, errCheck)
 		return
 	}
 
@@ -290,7 +366,8 @@ func (st *Store) handleNodePoints(msg *nats.Msg) {
 		log.Println("Error processing point in upstream nodes:", err)
 	}
 
-	st.reply(msg.Reply, nil)
+	// errCheck is nil unless part of this message was rejected
+	st.reply(msg.Reply, errCheck)
 }
 
 func (st *Store) handleEdgePoints(msg *nats.Msg) {
@@ -308,6 +385,12 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 	if err != nil {
 		fmt.Printf("Error decoding nats message: %v: %v", msg.Subject, err)
 		st.reply(msg.Reply, errors.New("error decoding edge points subject"))
+		return
+	}
+
+	points, errCheck := st.checkPoints(nodeID, points)
+	if len(points) == 0 {
+		st.reply(msg.Reply, errCheck)
 		return
 	}
 
@@ -337,7 +420,8 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 		log.Println("Error processing point in upstream nodes:", err)
 	}
 
-	st.reply(msg.Reply, nil)
+	// errCheck is nil unless part of this message was rejected
+	st.reply(msg.Reply, errCheck)
 }
 
 func (st *Store) handleNodesRequest(msg *nats.Msg) {
@@ -538,6 +622,12 @@ func (st *Store) reply(subject string, err error) {
 	}
 }
 
+// processPointsUpstream fans a node point out to every node above it in the
+// tree. SendPoints appends the point type and key, so listeners see
+// up.<upID>.<nodeID>.<type>.<key>, one token shorter than the edge point
+// subject below. Listeners tell the two apart by counting tokens, so neither
+// subject may gain or lose a token, and a point type or key may not contain a
+// period -- see checkPoints, which is what keeps that true.
 func (st *Store) processPointsUpstream(upNodeID, nodeID string, points data.Points) error {
 	// at this point, the point update has already been written to the DB
 	sub := fmt.Sprintf("up.%v.%v", upNodeID, nodeID)
@@ -608,6 +698,9 @@ func (st *Store) processPointsUpstream(upNodeID, nodeID string, points data.Poin
 	return nil
 }
 
+// processEdgePointsUpstream fans an edge point up the tree. The subject carries
+// the parent ID as well, which is how listeners tell edge points from node
+// points -- see processPointsUpstream.
 func (st *Store) processEdgePointsUpstream(upNodeID, nodeID, parentID string, points data.Points) error {
 	sub := fmt.Sprintf("up.%v.%v.%v", upNodeID, nodeID, parentID)
 

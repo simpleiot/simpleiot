@@ -13,6 +13,37 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+### Fixed
+
+## [0.23.2] - 2026-08-11
+
+- store: reject points whose type or key contains a period, whitespace, or a
+  NATS wildcard. A point travels on a subject ending in its type and key, and
+  listeners read the node ID and parent ID from fixed positions in that subject,
+  so a period added a token and the point was delivered as an edge point to the
+  wrong handler. This showed up as repeated
+  `error merging new points: no matching struct with a node:"id" field matching <id>`
+  messages, and the affected points never reached the client that owned the
+  node. Rejected points are logged with their type and key, and an `error` point
+  is set on the node so the sender is visible in the UI.
+
+  **This affects existing devices.** A device sending a key such as
+  `PCIe_bridge_0.95V` will have those points rejected until the sender is
+  updated to use a name without a period. Points already stored keep their keys
+  and continue to display.
+
+### Changed
+
+- metrics: keys generated from names the client does not control -- kernel
+  device names, mount points, and network interface names -- now have characters
+  that are invalid in a point key replaced with underscores. A cooling device
+  the kernel calls `devfreq-17000000.gpu` is now reported under
+  `devfreq-17000000_gpu`, and a VLAN interface `eth0.100` under `eth0_100`.
+- docs: the documentation site now uses the simpleiot.org palette and typography
+  — the near-black surfaces, orange accent, Inter, and JetBrains Mono. The dark
+  theme is the default; the built-in mdBook themes remain available in the theme
+  picker.
+
 ## [0.23.1] - 2026-08-10
 
 ### Changed

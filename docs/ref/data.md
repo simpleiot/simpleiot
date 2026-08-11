@@ -86,6 +86,26 @@ the Key field is blank.**
 
 Clients should be written with this in mind.
 
+### The Point `Type` and `Key` character constraint
+
+A point travels on a NATS subject that ends in its type and key, so both are
+subject tokens and may not contain a period, whitespace, or the NATS wildcards
+`*` and `>`. Listeners read the node ID and parent ID from fixed positions in a
+subject, so a period would add a token, shift everything after it, and deliver
+the point to the wrong handler.
+
+The store rejects points it cannot publish rather than rewriting them, since a
+key is data the sender chose and often the name it writes back to. A rejected
+point is logged with its type and key, and an `error` point is set on the node
+so the sender is visible in the UI.
+
+A client that builds keys from names it does not control -- kernel device names,
+mount points, network interface names -- should pass them through
+[`data.SubjectSafeToken`](https://pkg.go.dev/github.com/simpleiot/simpleiot/data#SubjectSafeToken),
+which replaces the offending characters with underscores. The metrics client
+does this for sensor and interface names, which is why a cooling device the
+kernel calls `devfreq-17000000.gpu` appears as `devfreq-17000000_gpu`.
+
 ### Converting Nodes to other data structures
 
 Nodes and Points are convenient for storage and synchronization, but cumbersome

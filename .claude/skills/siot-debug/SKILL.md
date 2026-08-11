@@ -16,7 +16,7 @@ Four ways to look at a live instance, roughly in the order to reach for them:
 | Tool | Answers |
 | --- | --- |
 | `siot export` | What is the current configuration and the latest value of every point |
-| `nats sub` | What is being published right now, on which subject |
+| `siot log` | Which points are flowing right now, decoded, with node names and types |
 | `nats stream` | What is persisted, how much of it, and how far consumers have read |
 | HTTP API | The same node data as JSON, including point timestamps and origins |
 
@@ -74,13 +74,64 @@ number differs. For a 0.1 Hz sine with min 0 and max 10 sampled every 3 s,
 expect `5 + 5·sin(θ)` at 108° steps — 9.76, 5.00, 0.24 is a correct sine, and
 recognizing that saves confirming the generator any other way.
 
-## Watching the wire
+## Watching points flow with `siot log`
 
 ```bash
-nats -s nats://127.0.0.1:4222 sub 'p.>'          # all node points
-nats -s nats://127.0.0.1:4222 sub 'p.<nodeID>.>' # one node
+./siot log -natsServer nats://<ip address>:4222
+```
+
+This subscribes to `p.>` and prints every node point decoded, so you see the
+values themselves rather than binary payloads:
+
+```
+2026/08/10 09:14:22 NODE: Signal Generator (signalGenerator) (a1b2c3d4-...)
+   - POINT: T:value V:9.755 O:a1b2c3d4 2026-08-10T09:14:22-04:00
+```
+
+Each message starts with the node description, node type, and node ID,
+followed by one line per point: `T:` type, `V:` value or text, `K:` key when
+set, `O:` origin, `Tomb` for a tombstoned point, and the point timestamp.
+
+That combination answers most "is anything happening" questions in one
+command: it shows which point types are live, how fast they update, what the
+values are, and which instance originated them. Use `-token` (or
+`SIOT_AUTH_TOKEN`) when the instance requires authentication.
+
+The command resolves each node's description over NATS as messages arrive, so
+it needs the same access `export` does and runs until interrupted.
+
+The address is whatever the instance actually binds. Use `127.0.0.1` for a
+local process and the device address for a remote one:
+
+```bash
+./siot log -natsServer nats://192.168.1.50:4222
+```
+
+**`SIOT_NATS_SERVER` takes precedence whenever `-natsServer` holds the default
+`nats://127.0.0.1:4222`.** The commands consult the environment only when the
+flag is left at its default, and passing that value explicitly is
+indistinguishable from omitting it. A shell prepared by `envsetup.sh` for a
+second instance exports `SIOT_NATS_SERVER`, so `-natsServer
+nats://127.0.0.1:4222` connects to the other instance instead. The connect
+banner names the server actually used — read it before trusting the output.
+`unset SIOT_NATS_SERVER` to take control. The same applies to `export`,
+`import`, and `store`.
+
+Filter with `grep` when a busy instance produces more than you want to read:
+
+```bash
+./siot log -natsServer nats://127.0.0.1:4222 | grep -A2 'Modbus'
+```
+
+### Subscribing directly
+
+`siot log` renders node points. For edge points and high-rate points, and for
+measuring raw message rates, subscribe with `nats`:
+
+```bash
 nats -s nats://127.0.0.1:4222 sub 'ep.>'         # edge points
 nats -s nats://127.0.0.1:4222 sub 'phrup.>'      # high-rate points
+nats -s nats://127.0.0.1:4222 sub 'p.<nodeID>.>' # one node, raw
 ```
 
 Subject forms:
@@ -89,15 +140,15 @@ Subject forms:
 - `ep.<nodeID>.<parentID>` — edge points
 - `phr.<nodeID>` / `phrup.<parentID>.<nodeID>` — high-rate points
 
-Payloads are the compact binary point encoding, so the body prints as noise.
-That is fine for this purpose: the subject names the point type and the
-message rate tells you whether data is flowing. Use `export` to read values.
+Payloads are the compact binary point encoding, so the body prints as noise
+and only the subject and message rate are readable. Prefer `siot log` whenever
+you want the values.
 
 **A frozen value usually means nothing writes that point type any more.**
 Points persist as the node's last known state forever, so a point left over
 from an earlier configuration keeps its final value indefinitely and looks
-identical to a stalled client. Before concluding data is stuck, subscribe and
-see which point type is actually being published — a signal generator whose
+identical to a stalled client. Before concluding data is stuck, run `siot log`
+and see which point type is actually being published — a signal generator whose
 `destination.pointType` was changed from `volt` to the default leaves a stale
 `volt` point next to a live `value` point, and both appear in `export`.
 
@@ -173,7 +224,8 @@ For a report that a displayed value is not changing:
 
 1. `export` twice. If the value moves, the data layer is healthy and the
    problem is in the frontend or in which point the display reads.
-2. If it does not move, `nats sub` the node. If points are publishing under a
+2. If it does not move, run `siot log -natsServer nats://<ip address>:4222`
+   and watch what the node publishes. If points are publishing under a
    different type than the one you are reading, the configuration and the
    reader disagree — this is the common case.
 3. If nothing publishes, the producing client is stopped or misconfigured.

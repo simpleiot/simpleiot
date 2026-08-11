@@ -80,6 +80,12 @@ between components in real time — they are plain NATS, not stored:
 | `p.<nodeID>.<type>.<key>`                 | node point                 |
 | `ep.<nodeID>.<parentID>`                  | edge points (batched)      |
 | `up.<upID>.<nodeID>.<type>.<key>`         | point fan-out up the tree  |
+| `up.<upID>.<nodeID>.<parentID>.<type>.<key>` | edge point fan-out      |
+
+Listeners tell the two fan-out subjects apart by counting tokens, so a
+point type or key may not contain a period. The store checks this on
+every point it accepts — see `checkPoints` in `store/store.go` and
+[the data reference](./data.md).
 
 **Storage subjects** are what streams capture. They carry both routing
 tokens so stream subject spaces never overlap:

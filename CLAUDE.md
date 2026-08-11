@@ -97,6 +97,15 @@ Common client types: SerialDev, CanBus, Rule, Db, SignalGenerator, Sync, Metrics
 - **API**: Communication with backend via HTTP and WebSocket
 - **Build**: Uses elm-watch for hot reloading during development
 
+## Design Priorities
+
+Simplicity and correctness come before backwards compatibility at this stage of
+the project. The user base is still small, so prefer the clean fix over one that
+preserves an existing wire format, schema, or API shape. Changing a subject
+format, renaming a point type, or reshaping stored data is acceptable when it
+makes the system simpler or more correct. Note the change in `CHANGELOG.md` and
+in any affected documentation so users upgrading know what to expect.
+
 ## Development Workflow
 
 1. **Setup**: `source envsetup.sh && siot_setup`

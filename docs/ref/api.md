@@ -31,6 +31,16 @@ still use protobuf, defined
 node point is sent as a single NATS message with `type` and `key` encoded in
 the subject.
 
+Because the type and key become subject tokens, they may not contain a period,
+whitespace, or the NATS wildcards `*` and `>`. Listeners read the node ID and
+parent ID from fixed positions in a subject, so a type or key carrying a period
+would add a token and shift everything after it, delivering the point to the
+wrong handler. The store checks every point on the way in and rejects any that
+cannot be published, logging the offending type and key and setting an `error`
+point on the node so the sender can be found. A client that generates keys from
+names it does not control -- sysfs device names, mount points, network
+interface names -- should pass them through `data.SubjectSafeToken` first.
+
 - Nodes
   - `nodes.<parentId>.<nodeId>.<type>.<key>`
     - Request/response -- returns an array of `data.EdgeNode` structs.
