@@ -37,6 +37,9 @@ view o =
                         optionInput =
                             NodeInputs.nodeOptionInput opts "0"
 
+                        checkboxInput =
+                            NodeInputs.nodeCheckboxInput opts "0"
+
                         victoriaMetrics =
                             Point.getText o.node.points Point.typeDbType ""
                                 == Point.valueVictoriaMetrics
@@ -66,6 +69,7 @@ view o =
                            )
                         ++ [ textInput Point.typeAuthToken "Auth Token" ""
                            , NodeInputs.nodeListInput opts Point.typeTagPointType "Tag Point Types" "Add Point Type"
+                           , checkboxInput Point.typeExpandKeyLabels "Expand Key Labels"
                            ]
 
                 else

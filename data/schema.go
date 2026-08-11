@@ -128,6 +128,13 @@ const (
 	PointTypeBucket = "bucket"
 	PointTypeOrg    = "org"
 
+	// PointTypeExpandKeyLabels writes each label in a point key that was
+	// written as a label set -- name=value pairs joined by commas, which is
+	// what a Prometheus scrape produces -- as its own database label, so a
+	// scraped series queries the way the Prometheus series it came from did.
+	// The parse is strict, so keys from every other client are left alone.
+	PointTypeExpandKeyLabels = "expandKeyLabels"
+
 	// PointTypeDbType selects which time series database the db client
 	// writes to. An empty value is treated as InfluxDB for backwards
 	// compatibility.

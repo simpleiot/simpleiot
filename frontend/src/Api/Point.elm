@@ -75,6 +75,7 @@ module Api.Point exposing
     , typeErrorCountReset
     , typeErrorCountResetHR
     , typeExceptionURL
+    , typeExpandKeyLabels
     , typeFallbackServer
     , typeFilePath
     , typeFirstName
@@ -650,6 +651,11 @@ typeCounterDelta =
 typeMaxSeries : String
 typeMaxSeries =
     "maxSeries"
+
+
+typeExpandKeyLabels : String
+typeExpandKeyLabels =
+    "expandKeyLabels"
 
 
 typeConditionType : String
