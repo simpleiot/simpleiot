@@ -15,47 +15,28 @@ For more details or to discuss releases, please visit the
 
 ### Added
 
-- metrics: a `prometheus` metrics type that scrapes an application's `/metrics`
-  endpoint and publishes what it serves as points. Because SIOT is already on
-  the machine, the endpoint can bind to loopback and the readings still travel
-  upstream over the connection SIOT holds, so collecting from a handful of
-  custom servers needs no open port, no VPN, and no second agent. A metric name
-  becomes the point type and its labels become the point key. Counters publish
-  the change since the previous scrape alongside the raw value, so a rule can
-  act on them. A list of metric prefixes and a series limit keep a node to a
-  sensible size, and a failed scrape sets the node's error point rather than
-  leaving stale readings in place. The series limit defaults to 200 and is
-  capped at 3000: a node request encodes a node and all of its points into one
-  NATS message, and a node large enough to exceed the 1 MB payload limit cannot
-  be answered at all, which fails every tree fetch covering it rather than just
-  that node. An endpoint too large for one node is better split across several,
-  each with its own prefix. A metric whose name matches one of the node's own
-  settings has an underscore appended -- `period` is published as `period_` --
-  since publishing it under its own name would overwrite the setting. See the
+- **Prometheus scrape in the metrics client.** A `prometheus` metrics type
+  scrapes an application's `/metrics` endpoint and publishes the samples as
+  points, so a service can keep its endpoint on loopback and still report
+  upstream — no open port, VPN, or second agent. Metric names become point types
+  and labels become point keys, and counters also publish the change since the
+  previous scrape so a rule can act on them. See the
   [metrics documentation](docs/user/metrics.md).
-- metrics: leave the node's own configuration points out of the readings table
-  in the UI. The settings are already shown as inputs above it, so listing them
-  among the readings only made the readings harder to find.
-- db: an **Expand Key Labels** setting, on by default, that writes each label in
-  a point key that was written as a label set as its own database label. This is
-  what makes a scraped series query the way the Prometheus series it came from
-  did, including `histogram_quantile` over bucket series. The parse is strict,
-  so keys written by every other client are left alone. See the
+- **Key label expansion in the db client.** On by default, each label in a point
+  key written as a label set becomes its own database label, so a scraped series
+  queries the way the Prometheus series it came from did, `histogram_quantile`
+  included. Keys written by other clients are left alone. See the
   [database documentation](docs/user/database.md).
-- store: compress JetStream streams with S2, on by default. Point data
-  compresses well, since the same point type repeats in every message and keys
-  come from a small set. A store of 100,000 scraped points went from 33.4 MB to
-  11.7 MB in testing. JetStream compresses a block when it seals it, so a store
-  still inside its first block is unchanged and the saving appears as it grows.
+- **JetStream streams are compressed with S2, on by default.** A store of
+  100,000 scraped points went from 33.4 MB to 11.7 MB in testing.
   `--storeCompression` (or `SIOT_STORE_COMPRESSION`) accepts `s2` or `none`.
-  Existing instances pick this up on the next start; messages already written
-  stay readable. See the [store reference](docs/ref/store.md).
-- store: log the effective retention policy at startup, as in
-  `STORE: retention: 5000 points per subject (default); current state is always preserved`.
-  The policy is resolved from a flag, an environment variable, and a default,
-  and none of them was visible once an instance was running -- least of all a
-  value set through the environment, which does not appear on the command line
-  the operator typed.
+  Existing instances pick this up on the next start and their messages stay
+  readable. See the [store reference](docs/ref/store.md).
+- **The store logs its effective retention and compression at startup.** Both
+  are resolved from a flag, an environment variable, and a default, and neither
+  was visible once an instance was running.
+- **The metrics UI lists readings only.** The node's own configuration points
+  are shown as inputs above the table and no longer repeated inside it.
 
 ### Fixed
 
