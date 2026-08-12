@@ -32,6 +32,12 @@ For more details or to discuss releases, please visit the
   did, including `histogram_quantile` over bucket series. The parse is strict,
   so keys written by every other client are left alone. See the
   [database documentation](docs/user/database.md).
+- store: log the effective retention policy at startup, as in
+  `STORE: retention: 5000 points per subject (default); current state is always preserved`.
+  The policy is resolved from a flag, an environment variable, and a default,
+  and none of them was visible once an instance was running -- least of all a
+  value set through the environment, which does not appear on the command line
+  the operator typed.
 
 ### Fixed
 

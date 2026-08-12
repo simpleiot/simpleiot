@@ -602,6 +602,56 @@ func TestDbJetStreamDefaultRetention(t *testing.T) {
 	}
 }
 
+// TestRetentionDescription verifies the startup log describes the policy the
+// store actually applies, for each of the three ways it resolves.
+func TestRetentionDescription(t *testing.T) {
+	tests := []struct {
+		desc   string
+		config int64
+		exp    string
+	}{
+		{
+			desc:   "unconfigured reports the default",
+			config: 0,
+			exp: "5000 points per subject (default); current state is " +
+				"always preserved",
+		},
+		{
+			desc:   "a configured limit is reported",
+			config: 20000,
+			exp:    "20000 points per subject; current state is always preserved",
+		},
+		{
+			desc:   "unlimited is reported as such",
+			config: -1,
+			exp:    "unlimited points per subject",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			db := &DbJetStream{cfg: JsConfig{MaxMsgsPerSubject: test.config}}
+
+			if got := db.retentionDescription(); got != test.exp {
+				t.Errorf("description = %q, want %q", got, test.exp)
+			}
+
+			// the description has to agree with what streams are given, or
+			// the log tells the operator something that is not true
+			want := test.config
+			if want == 0 {
+				want = defaultMaxMsgsPerSubject
+			} else if want < 0 {
+				want = 0 // JetStream spells unlimited as zero
+			}
+
+			if got := db.maxMsgsForStream(""); got != want {
+				t.Errorf("stream limit = %v, want %v", got, want)
+			}
+		})
+	}
+}
+
 // TestDbJetStreamReplicaRetention verifies the store applies its
 // retention policy to replica streams it discovers (the sync pumps
 // create them bare).

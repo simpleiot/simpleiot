@@ -152,6 +152,8 @@ func NewJetStreamDb(nc *nats.Conn, rootID string, cfg JsConfig) (*DbJetStream, e
 		streams:     make(map[string]jetstream.Stream),
 	}
 
+	log.Println("STORE: retention:", db.retentionDescription())
+
 	// Load meta from KV
 	err = db.loadMeta()
 	if err != nil {
@@ -255,6 +257,29 @@ func (db *DbJetStream) ensureOriginStreamFor(boundaryID, originID string) (jetst
 	db.streamMu.Unlock()
 
 	return s, nil
+}
+
+// retentionDescription describes the effective retention policy for the log
+// written at startup.
+//
+// The policy is resolved from a flag, an environment variable, and a default,
+// and none of those is otherwise visible once the instance is running. A
+// value set through the environment is the least visible of the three, since
+// it does not appear on the command line the operator typed.
+func (db *DbJetStream) retentionDescription() string {
+	switch {
+	case db.cfg.MaxMsgsPerSubject > 0:
+		return fmt.Sprintf(
+			"%v points per subject; current state is always preserved",
+			db.cfg.MaxMsgsPerSubject)
+
+	case db.cfg.MaxMsgsPerSubject < 0:
+		return "unlimited points per subject"
+	}
+
+	return fmt.Sprintf(
+		"%v points per subject (default); current state is always preserved",
+		defaultMaxMsgsPerSubject)
 }
 
 // maxMsgsForStream resolves the per-subject retention limit for a
