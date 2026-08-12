@@ -124,9 +124,9 @@ func (rm *replicaManager) scan() {
 		}
 
 		// the local store owns stream configuration: the sync pumps
-		// create replica streams bare, and this instance's retention
+		// create replica streams bare, and this instance's storage
 		// policy is applied when the stream is discovered
-		rm.applyRetention(si.Config)
+		rm.applyPolicy(si.Config)
 
 		cc, err := rm.consumeReplica(si.Config.Name, origin)
 		if err != nil {
@@ -144,19 +144,26 @@ func (rm *replicaManager) scan() {
 	}
 }
 
-// applyRetention brings a replica stream's per-subject retention in
-// line with this instance's policy, leaving the rest of its
-// configuration as is.
-func (rm *replicaManager) applyRetention(cfg jetstream.StreamConfig) {
-	want := rm.db.maxMsgsForStream(cfg.Name)
-	if cfg.MaxMsgsPerSubject == want {
+// applyPolicy brings a replica stream's per-subject retention and file
+// store compression in line with this instance's policy, leaving the
+// rest of its configuration as is. Both are settings about how this
+// instance stores data on its own disk, so a replica follows the local
+// policy rather than the originating instance's.
+func (rm *replicaManager) applyPolicy(cfg jetstream.StreamConfig) {
+	wantMsgs := rm.db.maxMsgsForStream(cfg.Name)
+	wantCompression := rm.db.compressionForStream(cfg.Name)
+
+	if cfg.MaxMsgsPerSubject == wantMsgs && cfg.Compression == wantCompression {
 		return
 	}
 
-	cfg.MaxMsgsPerSubject = want
+	cfg.MaxMsgsPerSubject = wantMsgs
+	cfg.Compression = wantCompression
+
 	_, err := rm.db.js.UpdateStream(context.Background(), cfg)
 	if err != nil {
-		log.Printf("STORE: error applying retention to %v: %v", cfg.Name, err)
+		log.Printf("STORE: error applying storage policy to %v: %v",
+			cfg.Name, err)
 	}
 }
 

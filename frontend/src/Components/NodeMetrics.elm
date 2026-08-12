@@ -45,6 +45,9 @@ view o =
                         numberInput =
                             NodeInputs.nodeNumberInput opts "0"
 
+                        checkboxInput =
+                            NodeInputs.nodeCheckboxInput opts "0"
+
                         metricsType =
                             Point.getText o.node.points Point.typeType ""
                     in
@@ -54,6 +57,7 @@ view o =
                         [ ( Point.valueSystem, "system" )
                         , ( Point.valueApp, "this application" )
                         , ( Point.valueProcess, "named process" )
+                        , ( Point.valuePrometheus, "prometheus" )
 
                         -- modern systems have so many processes (1000's)
                         -- and we need to better be able to handle this point
@@ -62,14 +66,49 @@ view o =
                         ]
                     , viewIf (metricsType == Point.valueProcess) <|
                         textInput Point.typeName "proc name" ""
+                    , viewIf (metricsType == Point.valuePrometheus) <|
+                        textInput Point.typeURI "URI" "http://127.0.0.1:9100/metrics"
+                    , viewIf (metricsType == Point.valuePrometheus) <|
+                        NodeInputs.nodeListInput opts Point.typePrefix "Metric Prefixes" "Add Prefix"
+                    , viewIf (metricsType == Point.valuePrometheus) <|
+                        numberInput Point.typeMaxSeries "Max series (<= 3000)"
+                    , viewIf (metricsType == Point.valuePrometheus) <|
+                        checkboxInput Point.typeCounterDelta "Counter deltas"
                     , numberInput Point.typePeriod "Period (s)"
                     , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
-                    , viewMetrics o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
+                    , viewMetrics o.zone <|
+                        filterConfigPoints <|
+                            Point.filterSpecialPoints <|
+                                List.sortWith Point.sort o.node.points
                     ]
 
                 else
                     []
                )
+
+
+{-| Point types this component renders as configuration inputs above the
+readings table. They are settings rather than readings, so listing them
+alongside the readings only makes the readings harder to find. This is the
+node's own configuration; `Point.filterSpecialPoints` covers the point types
+every node carries.
+-}
+configPoints : List String
+configPoints =
+    [ Point.typeType
+    , Point.typeName
+    , Point.typePeriod
+    , Point.typeURI
+    , Point.typePrefix
+    , Point.typeMaxSeries
+    , Point.typeCounterDelta
+    , Point.typeTag
+    ]
+
+
+filterConfigPoints : List Point.Point -> List Point.Point
+filterConfigPoints points =
+    List.filter (\p -> not <| List.member p.typ configPoints) points
 
 
 viewMetrics : Time.Zone -> List Point.Point -> Element msg

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/simpleiot/simpleiot/assets/files"
+	"github.com/simpleiot/simpleiot/store"
 	"github.com/simpleiot/simpleiot/system"
 )
 
@@ -38,7 +39,9 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	flagProvisioningDir := flags.String("provisioningDir", "",
 		"directory of YAML files to apply at start-up and when they change (default <SIOT_DATA>/provisioning if it exists)")
 	flagStoreMaxMsgsPerSubject := flags.Int64("storeMaxMsgsPerSubject", 0,
-		"per-subject history retained in store streams (0 = default of 5000, -1 = unlimited); current state is always preserved")
+		"per-subject history retained in store streams (0 = default of 20000, -1 = unlimited); current state is always preserved")
+	flagStoreCompression := flags.String("storeCompression", "",
+		"store file compression ('s2' or 'none'); empty uses the default of s2")
 	flagStoreSyncInterval := flags.String("storeSyncInterval", "",
 		"JetStream file sync interval (Go duration, or 'always' to fsync every write); empty uses the NATS default of 2m")
 
@@ -208,6 +211,19 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 		}
 	}
 
+	storeCompression := *flagStoreCompression
+	if storeCompression == "" {
+		storeCompression = os.Getenv("SIOT_STORE_COMPRESSION")
+	}
+
+	switch storeCompression {
+	case "", store.CompressionS2, store.CompressionNone:
+	default:
+		log.Printf("Error parsing store compression %q: expected %q or %q",
+			storeCompression, store.CompressionS2, store.CompressionNone)
+		os.Exit(-1)
+	}
+
 	storeSyncIntervalS := *flagStoreSyncInterval
 	if storeSyncIntervalS == "" {
 		storeSyncIntervalS = os.Getenv("SIOT_STORE_SYNC_INTERVAL")
@@ -255,6 +271,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 		ProvisioningInterval: provisioningInterval,
 
 		StoreMaxMsgsPerSubject: storeMaxMsgsPerSubject,
+		StoreCompression:       storeCompression,
 		StoreSyncInterval:      storeSyncInterval,
 		StoreSyncAlways:        storeSyncAlways,
 	}

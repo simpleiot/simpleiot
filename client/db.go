@@ -34,6 +34,89 @@ type Db struct {
 	Bucket        string   `point:"bucket"`
 	AuthToken     string   `point:"authToken"`
 	TagPointTypes []string `point:"tagPointType"`
+
+	// ExpandKeyLabels writes each label in a point key that was written as a
+	// label set as its own database label, which is what the Prometheus
+	// scrape in the metrics client produces. The parse is strict, so keys
+	// from every other client are left alone.
+	ExpandKeyLabels bool `point:"expandKeyLabels"`
+}
+
+// pointTags builds the database tags for a point. Both write paths use this,
+// so the tags a point carries cannot drift between the high rate subscription
+// and the ordinary point stream.
+func (dbc *DbClient) pointTags(nodeID string, pt data.Point) map[string]string {
+	tags := map[string]string{
+		"type": pt.Type,
+		"key":  pt.Key,
+	}
+
+	if dbc.config.ExpandKeyLabels {
+		for name, val := range expandKeyLabels(pt.Key) {
+			if name == "type" || name == "key" {
+				// the tags this client writes itself. A node.* tag cannot
+				// collide, since a Prometheus label name holds no period.
+				dbc.logKeyLabelSkip(name)
+				continue
+			}
+
+			tags[name] = val
+		}
+	}
+
+	dbc.nodeCache.CopyTags(nodeID, tags)
+
+	return tags
+}
+
+// checkExpandKeyLabels turns key label expansion on for a node that has never
+// been asked about it, publishing the value so the setting is visible and can
+// be turned off.
+//
+// A bool point that is absent reads back as false, which is how the rest of
+// SIOT treats an unset flag, so the node is read once at startup to tell an
+// unset flag from one deliberately turned off. Everything after that comes
+// through the point stream in the usual way.
+func (dbc *DbClient) checkExpandKeyLabels() {
+	nodes, err := GetNodes(dbc.nc, dbc.config.Parent, dbc.config.ID, "", false)
+	if err != nil || len(nodes) < 1 {
+		if err != nil {
+			log.Println("DB: error reading node for defaults:", err)
+		}
+
+		return
+	}
+
+	for _, p := range nodes[0].Points {
+		if p.Type == data.PointTypeExpandKeyLabels {
+			return
+		}
+	}
+
+	dbc.config.ExpandKeyLabels = true
+
+	err = SendNodePoint(dbc.nc, dbc.config.ID,
+		data.NewPointFloat(data.PointTypeExpandKeyLabels, "",
+			data.BoolToFloat(true)), false)
+	if err != nil {
+		log.Println("DB: error sending expandKeyLabels default:", err)
+	}
+}
+
+// logKeyLabelSkip reports a label that cannot be written because it would
+// overwrite a tag this client sets, once per name rather than once per point
+func (dbc *DbClient) logKeyLabelSkip(name string) {
+	dbc.keyLabelMu.Lock()
+	defer dbc.keyLabelMu.Unlock()
+
+	if dbc.keyLabelSkips[name] {
+		return
+	}
+
+	dbc.keyLabelSkips[name] = true
+
+	log.Printf("DB: not expanding key label %q, which collides with a tag "+
+		"this client writes", name)
 }
 
 // victoriaMetrics returns true if this client is configured to write to a
@@ -94,6 +177,13 @@ type DbClient struct {
 	upSubHr       *nats.Subscription
 	epSub         *nats.Subscription
 	nodeCache     nodeCache
+
+	// key labels already reported as colliding with a tag this client
+	// writes, so the log is written once per name rather than once per point.
+	// The high-rate subscription and the main loop both build tags, so
+	// keyLabelMu guards this.
+	keyLabelMu    sync.Mutex
+	keyLabelSkips map[string]bool
 
 	// client and the write APIs are nil until a valid URI is
 	// configured, and are replaced when the connection settings change.
@@ -172,6 +262,7 @@ func NewDbClient(nc *nats.Conn, config Db) Client {
 		nodeCache:     newNodeCache(config.TagPointTypes, config.Parent),
 		consumers:     make(map[string]jetstream.ConsumeContext),
 		memberCache:   make(map[string]bool),
+		keyLabelSkips: make(map[string]bool),
 	}
 }
 
@@ -187,6 +278,8 @@ func (dbc *DbClient) Run() error {
 		return fmt.Errorf("error getting root node: %w", err)
 	}
 	dbc.rootID = rootNode.ID
+
+	dbc.checkExpandKeyLabels()
 
 	js, err := jetstream.New(dbc.nc)
 	if err != nil {
@@ -232,13 +325,8 @@ func (dbc *DbClient) Run() error {
 		}
 
 		err = data.DecodeSerialHrPayload(msg.Data, func(pt data.Point) {
-			tags := map[string]string{
-				"type": pt.Type,
-				"key":  pt.Key,
-			}
-			dbc.nodeCache.CopyTags(nodeID, tags)
 			p := influxdb2.NewPoint(InfluxMeasurement,
-				tags,
+				dbc.pointTags(nodeID, pt),
 				map[string]interface{}{
 					"value": pt.Val(),
 				},
@@ -370,11 +458,6 @@ done:
 					// there is nothing useful to write for this point.
 					continue
 				}
-				tags := map[string]string{
-					"type": point.Type,
-					"key":  point.Key,
-				}
-				dbc.nodeCache.CopyTags(sm.nodeID, tags)
 				fields := map[string]interface{}{
 					"value": point.Val(),
 				}
@@ -382,7 +465,7 @@ done:
 					fields["text"] = point.Txt()
 				}
 				p := influxdb2.NewPoint(InfluxMeasurement,
-					tags,
+					dbc.pointTags(sm.nodeID, point),
 					fields,
 					point.Time)
 				dbc.pendingPoints = append(dbc.pendingPoints, p)

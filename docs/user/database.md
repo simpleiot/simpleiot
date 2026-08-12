@@ -5,8 +5,8 @@ bounded history of points for each node. For long-term storage, dashboards, and
 ad-hoc queries, a Database client can forward points to an external time-series
 database.
 
-[VictoriaMetrics](https://victoriametrics.com/) is the primary time-series
-store for SIOT. The Database client speaks the InfluxDB v2 write API, which
+[VictoriaMetrics](https://victoriametrics.com/) is the primary time-series store
+for SIOT. The Database client speaks the InfluxDB v2 write API, which
 VictoriaMetrics
 [supports](https://docs.victoriametrics.com/#how-to-send-data-in-influxdb-v2-format),
 so InfluxDB 2.x can also be used.
@@ -30,8 +30,8 @@ streams independently.
 Two limits apply:
 
 - Stream retention bounds how far behind a client can fall. By default the store
-  keeps the last 5000 points per subject (one subject is one point type and key
-  on one node). If a client is down long enough that a signal exceeds this
+  keeps the last 20,000 points per subject (one subject is one point type and
+  key on one node). If a client is down long enough that a signal exceeds this
   limit, the oldest points for that signal are dropped from the stream and will
   be missing from the database.
 - High-rate points are not stored in streams. They are delivered live and are
@@ -296,6 +296,48 @@ The resolution rules are:
 - `node.id`, `node.type`, and `node.description` always describe the emitting
   node and are never inherited.
 
+### Expanding key labels
+
+Some clients write a point key that is itself a set of labels, `name=value`
+pairs joined by commas. The [Prometheus scrape](metrics.md) in the metrics
+client does this, because a Prometheus sample carries a label set and a SIOT
+point carries a single key.
+
+With **Expand Key Labels** on, which is the default, the Database client reads
+such a key and writes each label as its own database label. A point of type
+`myapp_requests_total` with key `code=200,method=post` arrives with `code` and
+`method` labels alongside the tags it would otherwise carry, so it can be
+grouped and filtered the way the Prometheus series it came from was:
+
+```promql
+sum by (method) (points_value{type="myapp_requests_total"})
+```
+
+The whole key is still written as the `key` tag, so a query that selects on the
+complete set keeps working either way.
+
+Three things are worth knowing:
+
+- **Only a key that is a label set is expanded.** The parse is strict and all or
+  nothing: every comma-separated piece must be `name=value` with a valid label
+  name, or the key is left alone entirely. Keys such as `eth0`, `/dev/sda`, and
+  `cpu0` are unaffected, which is why the setting is safe to leave on for a
+  database receiving points from every kind of node. A key whose label value
+  contained a comma cannot be split reliably and is declined for the same
+  reason.
+- **Bucket boundaries are restored to numbers.** A point key cannot hold a
+  period, so the metrics client writes `le="0.005"` as `le=0_005`. The Database
+  client puts the period back on `le` and `quantile`, the two labels a query
+  reads as numbers, so `histogram_quantile` works. No other label is rewritten,
+  since an underscore elsewhere may well have been an underscore to begin with.
+- **Expansion changes series identity.** Adding labels to a series makes it a
+  new series as far as the database is concerned, the same way adding a tag
+  does. A dashboard built against scraped points before expansion was enabled
+  sees the old series stop and a new one start.
+
+A label named `type` or `key` is skipped, since those are the tags the client
+writes itself, and the collision is logged once.
+
 ## Schema
 
 Below is an export of a Victoria Metrics node and an InfluxDB node:
@@ -305,6 +347,7 @@ nodes:
   - db:
       dbType: victoriaMetrics
       description: Victoria Metrics
+      expandKeyLabels: true
       tagPointType: tag
       uri: http://localhost:8428
   - db:
@@ -327,6 +370,10 @@ leave them out.
 so a single point type is written as one value and several are written as a
 sequence. Each entry is a point type, and the client adds it to every sample as
 `node.<point type>.<point key>`.
+
+`expandKeyLabels` is the **Expand Key Labels** field described above. A node
+created before this setting existed has it turned on the first time the client
+runs, and the value is written to the node so it can be turned off.
 
 An export carries `authToken` as it was entered, so treat a file that contains
 database nodes the way you would treat the token itself.

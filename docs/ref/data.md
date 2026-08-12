@@ -106,6 +106,22 @@ which replaces the offending characters with underscores. The metrics client
 does this for sensor and interface names, which is why a cooling device the
 kernel calls `devfreq-17000000.gpu` appears as `devfreq-17000000_gpu`.
 
+### The number of points on a node
+
+A node and all of its points are encoded into a single NATS message when the
+node is requested, so a node cannot hold an unbounded number of points. A
+typical point encodes to about 34 bytes and one with a long type and a
+multi-label key to about 100, against a 1 MB message limit, so a node reaches it
+somewhere around 10,000 points.
+
+A client that can generate points in bulk — one reading per device, per process,
+or per scraped metric — should bound how many it publishes to a single node, and
+should split a large source across several nodes rather than growing one. The
+failure is worse than it sounds: a reply carries a subtree, so a node too large
+to encode fails every tree fetch that covers it, not only itself. See
+[Message and payload limits](store.md#message-and-payload-limits) for the
+symptoms and for how to recover a node that has already grown too large.
+
 ### Converting Nodes to other data structures
 
 Nodes and Points are convenient for storage and synchronization, but cumbersome

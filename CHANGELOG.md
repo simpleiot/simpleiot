@@ -13,6 +13,38 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+### Added
+
+## [0.23.3] - 2026-08-12
+
+- **Prometheus scrape in the metrics client.** A `prometheus` metrics type
+  scrapes an application's `/metrics` endpoint and publishes the samples as
+  points, so a service can keep its endpoint on loopback and still report
+  upstream — no open port, VPN, or second agent. Metric names become point types
+  and labels become point keys, and counters also publish the change since the
+  previous scrape so a rule can act on them. See the
+  [metrics documentation](docs/user/metrics.md).
+- **Key label expansion in the db client.** On by default, each label in a point
+  key written as a label set becomes its own database label, so a scraped series
+  queries the way the Prometheus series it came from did, `histogram_quantile`
+  included. Keys written by other clients are left alone. See the
+  [database documentation](docs/user/database.md).
+- **JetStream streams are compressed with S2, on by default.** A store of
+  100,000 scraped points went from 33.4 MB to 11.7 MB in testing.
+  `--storeCompression` (or `SIOT_STORE_COMPRESSION`) accepts `s2` or `none`.
+  Existing instances pick this up on the next start and their messages stay
+  readable. See the [store reference](docs/ref/store.md).
+- **Default store retention raised from 5000 to 20,000 points per subject.**
+  About four months of 10-minute data, or two weeks of per-minute data.
+  Compression absorbs most of the extra disk. Existing instances pick this up on
+  the next start; `--storeMaxMsgsPerSubject` (or
+  `SIOT_STORE_MAX_MSGS_PER_SUBJECT`) lowers it on a device with little flash.
+- **The store logs its effective retention and compression at startup.** Both
+  are resolved from a flag, an environment variable, and a default, and neither
+  was visible once an instance was running.
+- **The metrics UI lists readings only.** The node's own configuration points
+  are shown as inputs above the table and no longer repeated inside it.
+
 ### Fixed
 
 ## [0.23.2] - 2026-08-11

@@ -1,0 +1,22 @@
+# HELP node_filesystem_avail_bytes Filesystem space available to non-root users in bytes.
+# TYPE node_filesystem_avail_bytes gauge
+node_filesystem_avail_bytes{device="/dev/nvme0n1p2",fstype="ext4",mountpoint="/"} 1.2412416e+11
+node_filesystem_avail_bytes{device="/dev/nvme0n1p1",fstype="vfat",mountpoint="/boot/efi"} 5.2113408e+08
+# HELP node_network_receive_bytes_total Network device statistic receive_bytes.
+# TYPE node_network_receive_bytes_total counter
+node_network_receive_bytes_total{device="eth0.100"} 8.4172483e+08
+node_network_receive_bytes_total{device="lo"} 1.2334e+06
+# HELP node_hwmon_temp_celsius Hardware monitor for temperature.
+# TYPE node_hwmon_temp_celsius gauge
+node_hwmon_temp_celsius{chip="platform_coretemp_0",sensor="temp1"} 42.5
+# HELP node_scrape_collector_success node_exporter: whether a collector succeeded.
+# TYPE node_scrape_collector_success gauge
+node_scrape_collector_success{collector="cpu"} 1
+# a free-form comment, which carries no metadata
+# HELP node_uname_info Labeled system information as provided by the uname system call.
+# TYPE node_uname_info gauge
+node_uname_info{release="6.1.0-18-amd64",sysname="Linux",version="#1 SMP PREEMPT_DYNAMIC Debian 6.1.76-1"} 1
+# HELP node_textfile_mtime_seconds Unixtime mtime of textfile.
+# TYPE node_textfile_mtime_seconds gauge
+node_textfile_mtime_seconds{file="a,b.prom"} 1.7e+09
+node_textfile_mtime_seconds{file="say \"hi\".prom"} 1.7e+09

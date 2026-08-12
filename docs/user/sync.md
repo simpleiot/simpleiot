@@ -77,7 +77,7 @@ Configuration written upstream while a device is offline, or before it has ever
 connected, waits and is delivered on the next connect.
 
 How long a device can be offline and still catch up in full depends on how much
-history the store keeps. The default is 5000 points per value, which is
+history the store keeps. The default is 20,000 points per value, which is
 adjustable per instance. See [Store](../ref/store.md#retention-and-durability)
 for the setting, and the [synchronization reference](../ref/sync.md) for how the
 queuing works.
