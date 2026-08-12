@@ -193,10 +193,73 @@ log:
 STORE: compression: s2 (default)
 ```
 
+### Durability
+
 The JetStream file store fsyncs on a 2-minute interval by default.
 `--storeSyncInterval` (or `SIOT_STORE_SYNC_INTERVAL`) accepts a Go duration to
 shorten that window, or `always` to fsync every write, for edge devices with
 unreliable power, at a write-throughput cost.
+
+## Message and payload limits
+
+Retention bounds how much history a subject keeps. A separate limit bounds how
+many points a single node can hold, and it is worth knowing because exceeding it
+fails in a way that looks unrelated to the node that caused it.
+
+When a node is requested, the store encodes the node, its points, and — for a
+subtree request — its children into **one** NATS message and publishes it as the
+reply (`getNodes` in `store/store.go`). SIOT runs the NATS default `max_payload`
+of 1 MB and does not raise it, so that reply has to fit in 1 MB.
+
+Point sizes measured with `cmd/point-size` and against real data:
+
+| Point                                                             | Encoded size |
+| ----------------------------------------------------------------- | ------------ |
+| Typical reading (short type, no key)                              | ~34 bytes    |
+| Long type with a multi-label key, as a Prometheus scrape produces | ~100 bytes   |
+
+A node holding 10,000 scraped points therefore encodes to about 1 MB on its own.
+`data.DecodePoints` independently refuses an array of more than 10,000 points.
+
+### What exceeding it looks like
+
+The publish is rejected, nothing is sent, and the requester waits out its
+timeout:
+
+```
+NATS: Error publishing response to node request: nats: maximum payload exceeded
+Error getting nodes for user: error getting children: nats: timeout
+```
+
+Because a reply carries a subtree rather than a single node, **every tree fetch
+covering the node fails**, so the UI stops loading for that user entirely rather
+than showing one broken node. The messages name neither the node nor the point
+count, which is what makes this worth documenting.
+
+Lowering whatever setting produced the points does not fix it. Points are
+current state and persist until removed, so recovery means deleting the node —
+or, if the UI cannot load, stopping SIOT, purging that node's subjects, and
+restarting so the caches repopulate from the tips:
+
+```sh
+nats stream ls
+nats stream purge <stream> --subject "inst.*.*.<nodeID>.p.>"
+```
+
+### Keeping nodes within it
+
+A node with points in the hundreds is comfortable; one in the thousands deserves
+thought. Clients that can generate points in bulk bound themselves:
+
+- The [metrics client](../user/metrics.md) caps a Prometheus scrape at 3000
+  series, about 350 KB, and reports a larger configured limit on the node rather
+  than honoring it.
+- The same client's `allProcesses` type is disabled in the UI, since a modern
+  system has thousands of processes.
+
+A source too large for one node is better split across several. Nodes are
+inexpensive, and a limit or a failure then affects only the part of the source
+it belongs to.
 
 ## Instance metadata
 

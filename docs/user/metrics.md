@@ -160,7 +160,9 @@ come to about 350 KB, which leaves room for the rest of the reply.
 
 An endpoint too large for one node is better split across several, each with its
 own prefix. Nodes are inexpensive, and a failed scrape or a truncation then
-affects only the part of the endpoint it belongs to.
+affects only the part of the endpoint it belongs to. The limit is a property of
+the store rather than of scraping; see
+[Message and payload limits](../ref/store.md#message-and-payload-limits).
 
 A scrape that fails, whether the endpoint is refusing connections, timing out,
 or answering with an error, publishes no readings and sets the node's error
