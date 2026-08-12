@@ -24,7 +24,12 @@ For more details or to discuss releases, please visit the
   the change since the previous scrape alongside the raw value, so a rule can
   act on them. A list of metric prefixes and a series limit keep a node to a
   sensible size, and a failed scrape sets the node's error point rather than
-  leaving stale readings in place. See the
+  leaving stale readings in place. The series limit defaults to 200 and is
+  capped at 3000: a node request encodes a node and all of its points into one
+  NATS message, and a node large enough to exceed the 1 MB payload limit cannot
+  be answered at all, which fails every tree fetch covering it rather than just
+  that node. An endpoint too large for one node is better split across several,
+  each with its own prefix. See the
   [metrics documentation](docs/user/metrics.md).
 - db: an **Expand Key Labels** setting, on by default, that writes each label in
   a point key that was written as a label set as its own database label. This is

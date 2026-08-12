@@ -141,14 +141,26 @@ Two settings keep a node to a sensible size:
   one you want; a metric is collected when it matches any of them, so a couple
   of subsystems from a larger exporter can be collected on one node. An empty
   list collects everything.
-- **Max series** bounds a single scrape, defaulting to 200. A scrape that
-  exceeds it is sorted, truncated, and reported through the node's error point,
-  so a truncated scrape is visible rather than silent.
+- **Max series** bounds a single scrape, defaulting to 200 and capped at 3000. A
+  scrape that exceeds the limit is sorted, truncated, and reported through the
+  node's error point, so a truncated scrape is visible rather than silent.
 
 The limit matters because points live on the node, are stored, and replicate
 upstream. An application's own metrics usually number in the dozens, while
 `node_exporter` and cAdvisor run to hundreds or thousands; collect those with a
 prefix or a larger limit chosen deliberately.
+
+The 3000 ceiling is a hard one, and a larger value is reported on the node
+rather than honored. A node request encodes a node and all of its points into a
+single NATS message, and a scraped point takes roughly 100 bytes, so 10,000 of
+them reach the 1 MB payload limit. Past that the store cannot answer the request
+at all, and because a reply carries a subtree rather than one node, every tree
+fetch covering the node fails and the UI stops loading. Three thousand points
+come to about 350 KB, which leaves room for the rest of the reply.
+
+An endpoint too large for one node is better split across several, each with its
+own prefix. Nodes are inexpensive, and a failed scrape or a truncation then
+affects only the part of the endpoint it belongs to.
 
 A scrape that fails, whether the endpoint is refusing connections, timing out,
 or answering with an error, publishes no readings and sets the node's error
@@ -231,7 +243,7 @@ to a process node; values for all processes of that name are added together.
 `uri`, `prefix`, `counterDelta`, and `maxSeries` apply to a prometheus node.
 `uri` is the endpoint to scrape, `counterDelta` publishes the change in each
 counter alongside its raw value, and `maxSeries` bounds how many readings one
-scrape publishes.
+scrape publishes, defaulting to 200 and capped at 3000.
 
 `prefix` collects only metrics whose name starts with one of its entries. It is
 a list, so a single prefix is written as one value and several are written as a

@@ -20,6 +20,22 @@ const (
 	// to serve while bounding an endpoint that turns out to expose far more.
 	promDefaultMaxSeries = 200
 
+	// promMaxSeriesLimit is the largest series limit a node may configure.
+	//
+	// Points are current state on the node, and a node request encodes the
+	// node and all of its points into a single NATS message. A scraped point
+	// encodes to roughly 100 bytes, so 10000 of them reach about 1 MB, which
+	// is the NATS max_payload SIOT runs with. Past that the store cannot
+	// publish a reply at all: the request times out, and because the reply
+	// carries a subtree rather than one node, every tree fetch that includes
+	// the node fails rather than just the node itself. data.DecodePoints
+	// refuses an array over 10000 for the same reason.
+	//
+	// This ceiling keeps a node's points near 300 KB, well clear of both
+	// limits and leaving room for the rest of the subtree in the same reply.
+	// A configured value above it is not honored, and the node reports it.
+	promMaxSeriesLimit = 3000
+
 	// promMaxBody bounds how much of a response is read. An endpoint that
 	// serves more than this is not one this client can usefully collect.
 	promMaxBody = 8 * 1024 * 1024
@@ -177,6 +193,37 @@ func parseExpositionLimited(r io.Reader) ([]sample, int, error) {
 	return parseExposition(io.LimitReader(r, promMaxBody))
 }
 
+// resolveMaxSeries returns the series limit to apply, along with a message
+// describing a configured limit that could not be honored.
+//
+// A value above promMaxSeriesLimit is clamped rather than accepted, because
+// accepting it breaks more than this node: once the node's points no longer
+// fit in one NATS message, the store cannot answer any node request covering
+// the subtree, and the UI stops loading. Keeping the failure inside the node
+// is the whole point of having a limit.
+func (m *MetricsClient) resolveMaxSeries() (int, string) {
+	switch {
+	case m.config.MaxSeries < 1:
+		return promDefaultMaxSeries, ""
+
+	case m.config.MaxSeries > promMaxSeriesLimit:
+		msg := fmt.Sprintf(
+			"maxSeries %v exceeds the limit of %v and is being ignored; "+
+				"collecting %v series. Narrow the scrape with a metric "+
+				"prefix, or split it across several nodes.",
+			m.config.MaxSeries, promMaxSeriesLimit, promMaxSeriesLimit)
+
+		if !m.promClampLogged {
+			m.promClampLogged = true
+			log.Println("Metrics:", msg)
+		}
+
+		return promMaxSeriesLimit, msg
+	}
+
+	return m.config.MaxSeries, ""
+}
+
 // promPrefixMatch reports whether a metric name passes the prefix filter. A
 // sample is kept when it matches any configured prefix, so an application that
 // namespaces its metrics under more than one name, or a node collecting a
@@ -240,17 +287,18 @@ func (m *MetricsClient) promPoints(samples []sample) (data.Points, string) {
 		return keep[a].key < keep[b].key
 	})
 
-	var errMsg string
-
-	limit := m.config.MaxSeries
-	if limit < 1 {
-		limit = promDefaultMaxSeries
-	}
+	limit, errMsg := m.resolveMaxSeries()
 
 	if len(keep) > limit {
-		errMsg = fmt.Sprintf("scrape truncated: %v series exceeds maxSeries %v",
-			len(keep), limit)
-		log.Println("Metrics:", errMsg)
+		truncated := fmt.Sprintf(
+			"scrape truncated: %v series exceeds maxSeries %v", len(keep), limit)
+		log.Println("Metrics:", truncated)
+
+		if errMsg != "" {
+			errMsg += "; " + truncated
+		} else {
+			errMsg = truncated
+		}
 
 		keep = keep[:limit]
 	}

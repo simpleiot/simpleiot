@@ -71,7 +71,7 @@ view o =
                     , viewIf (metricsType == Point.valuePrometheus) <|
                         NodeInputs.nodeListInput opts Point.typePrefix "Metric Prefixes" "Add Prefix"
                     , viewIf (metricsType == Point.valuePrometheus) <|
-                        numberInput Point.typeMaxSeries "Max series"
+                        numberInput Point.typeMaxSeries "Max series (<= 3000)"
                     , viewIf (metricsType == Point.valuePrometheus) <|
                         checkboxInput Point.typeCounterDelta "Counter deltas"
                     , numberInput Point.typePeriod "Period (s)"

@@ -523,6 +523,131 @@ func TestPromPointsMaxSeries(t *testing.T) {
 	}
 }
 
+// A node's points are encoded into one NATS message when the node is
+// requested, so a limit large enough to exceed max_payload breaks every tree
+// fetch covering that node, not just the node. The ceiling has to hold no
+// matter what is configured.
+func TestPromMaxSeriesCeiling(t *testing.T) {
+	var b strings.Builder
+
+	for n := 0; n < promMaxSeriesLimit+500; n++ {
+		fmt.Fprintf(&b, "myapp_hits{n=\"%05d\"} %v\n", n, n)
+	}
+
+	samples, _, err := parseExposition(strings.NewReader(b.String()))
+	if err != nil {
+		t.Fatal("Error parsing:", err)
+	}
+
+	tests := []struct {
+		desc      string
+		maxSeries int
+		exp       int
+		clamped   bool
+	}{
+		{
+			desc:      "unset uses the default",
+			maxSeries: 0,
+			exp:       promDefaultMaxSeries,
+		},
+		{
+			desc:      "a value under the ceiling is honored",
+			maxSeries: 1000,
+			exp:       1000,
+		},
+		{
+			desc:      "the ceiling itself is honored",
+			maxSeries: promMaxSeriesLimit,
+			exp:       promMaxSeriesLimit,
+		},
+		{
+			desc:      "a value over the ceiling is clamped",
+			maxSeries: 10000,
+			exp:       promMaxSeriesLimit,
+			clamped:   true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			m := newPromTestClient(Metrics{MaxSeries: test.maxSeries})
+
+			pts, errMsg := m.promPoints(samples)
+
+			if len(pts) != test.exp {
+				t.Errorf("Expected %v points, got %v", test.exp, len(pts))
+			}
+
+			if test.clamped &&
+				!strings.Contains(errMsg, "exceeds the limit") {
+				t.Errorf("Expected the clamp to be reported, got %q", errMsg)
+			}
+
+			// whatever was configured, the result has to stay clear of the
+			// payload limit that makes the node unreadable
+			if len(pts) > promMaxSeriesLimit {
+				t.Errorf("Expected no more than %v points, got %v",
+					promMaxSeriesLimit, len(pts))
+			}
+		})
+	}
+}
+
+// A clamped limit and a truncated scrape are separate facts, and an operator
+// needs both: the setting is not being honored, and readings are being dropped.
+func TestPromMaxSeriesCeilingReportsBoth(t *testing.T) {
+	var b strings.Builder
+
+	for n := 0; n < promMaxSeriesLimit+500; n++ {
+		fmt.Fprintf(&b, "myapp_hits{n=\"%05d\"} %v\n", n, n)
+	}
+
+	samples, _, err := parseExposition(strings.NewReader(b.String()))
+	if err != nil {
+		t.Fatal("Error parsing:", err)
+	}
+
+	m := newPromTestClient(Metrics{MaxSeries: 10000})
+
+	_, errMsg := m.promPoints(samples)
+
+	for _, want := range []string{"exceeds the limit", "scrape truncated"} {
+		if !strings.Contains(errMsg, want) {
+			t.Errorf("Expected %q in the error message, got %q", want, errMsg)
+		}
+	}
+}
+
+// The encoded size of a full node is what actually matters, so the ceiling is
+// checked against it rather than against a point count alone.
+func TestPromMaxSeriesFitsPayload(t *testing.T) {
+	// the NATS default max_payload, which SIOT does not override
+	const maxPayload = 1024 * 1024
+
+	pts := make(data.Points, promMaxSeriesLimit)
+
+	for i := range pts {
+		// a long metric name and a multi-label key, which is the largest a
+		// scraped point realistically gets
+		pts[i] = data.NewPointFloat(
+			"myapp_request_duration_seconds_bucket",
+			fmt.Sprintf("code=200,le=0_005,method=post,instance=worker_%05d", i),
+			24054)
+	}
+
+	size := len(pts.Encode())
+
+	if size > maxPayload/2 {
+		t.Errorf("A full node encodes to %v bytes, more than half of the %v "+
+			"max payload; the ceiling of %v leaves too little room for the "+
+			"rest of a node request",
+			size, maxPayload, promMaxSeriesLimit)
+	}
+
+	t.Logf("%v points encode to %v bytes, %.0f%% of max payload",
+		promMaxSeriesLimit, size, 100*float64(size)/maxPayload)
+}
+
 func TestPromResetForgetsCounters(t *testing.T) {
 	m := newPromTestClient(Metrics{CounterDelta: true})
 

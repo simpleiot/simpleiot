@@ -53,6 +53,11 @@ type MetricsClient struct {
 	// scrape
 	promSkipped map[string]bool
 
+	// whether a configured series limit above the ceiling has been logged, so
+	// it is reported once rather than every scrape. The error point on the
+	// node carries it for as long as the setting stands.
+	promClampLogged bool
+
 	// the error last published on the node, so an unchanged error is not
 	// resent every period
 	promError string
