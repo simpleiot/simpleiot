@@ -15,6 +15,8 @@ For more details or to discuss releases, please visit the
 
 ### Added
 
+## [0.23.3] - 2026-08-12
+
 - **Prometheus scrape in the metrics client.** A `prometheus` metrics type
   scrapes an application's `/metrics` endpoint and publishes the samples as
   points, so a service can keep its endpoint on loopback and still report
