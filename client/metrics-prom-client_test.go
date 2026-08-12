@@ -86,7 +86,7 @@ go_goroutines 41
 		Type:        data.PointValuePrometheus,
 		URI:         srv.URL,
 		Period:      1,
-		Prefix:      "myapp_",
+		Prefixes:    []string{"myapp_"},
 	}
 
 	if err := client.SendNodeType(nc, m, "test"); err != nil {

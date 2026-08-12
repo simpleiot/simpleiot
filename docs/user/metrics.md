@@ -134,10 +134,13 @@ number of series.
 
 Two settings keep a node to a sensible size:
 
-- **Metric prefix** collects only metrics whose name starts with the given text.
-  Applications normally namespace their metrics, so `myapp_` keeps an
-  application's own readings and leaves out the `go_` and `promhttp_` series
-  that any `client_golang` registry adds. An empty prefix collects everything.
+- **Metric Prefixes** collects only metrics whose name starts with one of the
+  entries listed. Applications normally namespace their metrics, so `myapp_`
+  keeps an application's own readings and leaves out the `go_` and `promhttp_`
+  series that any `client_golang` registry adds. Press **Add Prefix** for each
+  one you want; a metric is collected when it matches any of them, so a couple
+  of subsystems from a larger exporter can be collected on one node. An empty
+  list collects everything.
 - **Max series** bounds a single scrape, defaulting to 200. A scrape that
   exceeds it is sorted, truncated, and reported through the node's error point,
   so a truncated scrape is visible rather than silent.
@@ -214,7 +217,9 @@ nodes:
       description: My App
       maxSeries: 200
       period: 30
-      prefix: myapp_
+      prefix:
+        - myapp_
+        - worker_
       type: prometheus
       uri: http://127.0.0.1:9100/metrics
 ```
@@ -224,9 +229,14 @@ readings are taken, in seconds. `name` is the process name to watch and applies
 to a process node; values for all processes of that name are added together.
 
 `uri`, `prefix`, `counterDelta`, and `maxSeries` apply to a prometheus node.
-`uri` is the endpoint to scrape, `prefix` collects only metrics whose name
-starts with it, `counterDelta` publishes the change in each counter alongside
-its raw value, and `maxSeries` bounds how many readings one scrape publishes.
+`uri` is the endpoint to scrape, `counterDelta` publishes the change in each
+counter alongside its raw value, and `maxSeries` bounds how many readings one
+scrape publishes.
+
+`prefix` collects only metrics whose name starts with one of its entries. It is
+a list, so a single prefix is written as one value and several are written as a
+sequence, as above. A metric is collected when it matches any entry, and a
+`prefix` left out collects everything.
 
 `tag` is a set of keyed points, and each one becomes a label on the samples the
 [database client](database.md) writes when its point type is listed there.

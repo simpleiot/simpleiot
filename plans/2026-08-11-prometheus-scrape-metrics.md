@@ -124,11 +124,15 @@ sorted before the cap is applied, so the same series survive each scrape rather
 than flapping, and the truncation is logged and reported as an `error` point
 rather than passing silently.
 
-**An optional metric name prefix filter.** Applications namespace their metrics,
-so a prefix covers the real filtering cases — `myapp_` keeps an application's
-own metrics and drops the `go_*` and `promhttp_*` series the default registry
-adds — without a regex engine or an allowlist to maintain. Empty means take
-everything, up to the cap.
+**An optional list of metric name prefixes.** Applications namespace their
+metrics, so a prefix covers the real filtering cases — `myapp_` keeps an
+application's own metrics and drops the `go_*` and `promhttp_*` series the
+default registry adds — without a regex engine or an allowlist to maintain. A
+sample is kept when it matches any entry, which covers an application
+namespacing under more than one name and a node collecting a couple of
+subsystems from a larger exporter, so neither needs a second node. This is a
+list point of type `prefix`, the same shape the db client's `tagPointType`
+already uses. An empty list takes everything, up to the cap.
 
 **No auth or TLS configuration in the first pass.** The target is loopback.
 Adding a bearer token or a CA path later is additive, and leaving them out now
@@ -399,10 +403,10 @@ type Metrics struct {
 	Period      int    `point:"period"`
 
 	// Prometheus scrape config, used when Type is prometheus
-	URI          string `point:"uri"`
-	Prefix       string `point:"prefix"`
-	CounterDelta bool   `point:"counterDelta"`
-	MaxSeries    int    `point:"maxSeries"`
+	URI          string   `point:"uri"`
+	Prefixes     []string `point:"prefix"`
+	CounterDelta bool     `point:"counterDelta"`
+	MaxSeries    int      `point:"maxSeries"`
 }
 ```
 
@@ -415,7 +419,9 @@ nodes:
       type: prometheus
       uri: http://127.0.0.1:9100/metrics
       period: 30
-      prefix: myapp_
+      prefix:
+        - myapp_
+        - worker_
       tag:
         machine: press-1
 ```
@@ -529,8 +535,10 @@ cases for the grammar:
    protobuf or OpenMetrics when asked, and asking for the text format keeps the
    input shape stable. Leave `Accept-Encoding` alone; `http.Transport` adds gzip
    and decompresses transparently. Wrap the body in an `io.LimitReader` at 8 MB.
-4. Filter: drop samples whose name does not carry `Prefix`, then drop samples
-   whose name is in the reserved set, logging each reserved name once.
+4. Filter: drop samples whose name carries none of the configured prefixes,
+   ignoring empty entries so a prefix added in the UI but not yet filled in does
+   not quietly widen the filter. Then drop samples whose name is in the reserved
+   set, logging each reserved name once.
 5. Sort the remaining samples by name then key and truncate at `MaxSeries`.
 6. Counter deltas: hold `map[string]float64` on the client keyed by
    `name + "\x00" + key`. For a counter, publish the raw value, and when a
@@ -565,7 +573,8 @@ the rest:
 
 - A served fixture publishes the expected point types and keys.
 - Every published point passes `CheckSubjectTokens`.
-- A `prefix` keeps the matching metrics and drops `go_*` and `promhttp_*`.
+- A `prefix` keeps the matching metrics and drops `go_*` and `promhttp_*`, and a
+  second prefix keeps what it matches as well.
 - A metric named `period` is skipped and does not alter the configured period.
   Same for `description` and `disabled`. This is the reserved-set test.
 - Two scrapes of a counter produce a delta equal to the difference, and none on
@@ -586,9 +595,9 @@ the rest:
 
 1. `frontend/src/Components/NodeMetrics.elm`: add
    `( Point.valuePrometheus, "prometheus" )` to the type option list, and gate
-   `uri`, `prefix`, `counterDelta`, and `maxSeries` inputs behind
-   `viewIf (metricsType == Point.valuePrometheus)`, the way `name` is already
-   gated behind `valueProcess`.
+   `uri`, `counterDelta`, and `maxSeries` inputs, and a `prefix` list input,
+   behind `viewIf (metricsType == Point.valuePrometheus)`, the way `name` is
+   already gated behind `valueProcess`.
 2. `frontend/src/Api/Point.elm`: add `valuePrometheus`, `typeCounterDelta`, and
    `typeMaxSeries`. `typeURI` and `typePrefix` already exist.
 3. No additions to `metricFormaters` — scraped point types are not known ahead

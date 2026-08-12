@@ -22,9 +22,9 @@ For more details or to discuss releases, please visit the
   custom servers needs no open port, no VPN, and no second agent. A metric name
   becomes the point type and its labels become the point key. Counters publish
   the change since the previous scrape alongside the raw value, so a rule can
-  act on them. A metric prefix and a series limit keep a node to a sensible
-  size, and a failed scrape sets the node's error point rather than leaving
-  stale readings in place. See the
+  act on them. A list of metric prefixes and a series limit keep a node to a
+  sensible size, and a failed scrape sets the node's error point rather than
+  leaving stale readings in place. See the
   [metrics documentation](docs/user/metrics.md).
 - db: an **Expand Key Labels** setting, on by default, that writes each label in
   a point key that was written as a label set as its own database label. This is

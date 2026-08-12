@@ -69,7 +69,7 @@ view o =
                     , viewIf (metricsType == Point.valuePrometheus) <|
                         textInput Point.typeURI "URI" "http://127.0.0.1:9100/metrics"
                     , viewIf (metricsType == Point.valuePrometheus) <|
-                        textInput Point.typePrefix "metric prefix" ""
+                        NodeInputs.nodeListInput opts Point.typePrefix "Metric Prefixes" "Add Prefix"
                     , viewIf (metricsType == Point.valuePrometheus) <|
                         numberInput Point.typeMaxSeries "Max series"
                     , viewIf (metricsType == Point.valuePrometheus) <|

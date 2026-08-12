@@ -30,10 +30,10 @@ type Metrics struct {
 	Period      int    `point:"period"`
 
 	// Prometheus scrape config, used when Type is prometheus
-	URI          string `point:"uri"`
-	Prefix       string `point:"prefix"`
-	CounterDelta bool   `point:"counterDelta"`
-	MaxSeries    int    `point:"maxSeries"`
+	URI          string   `point:"uri"`
+	Prefixes     []string `point:"prefix"`
+	CounterDelta bool     `point:"counterDelta"`
+	MaxSeries    int      `point:"maxSeries"`
 }
 
 // MetricsClient is a SIOT client used to collect system or app metrics

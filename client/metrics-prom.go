@@ -177,6 +177,34 @@ func parseExpositionLimited(r io.Reader) ([]sample, int, error) {
 	return parseExposition(io.LimitReader(r, promMaxBody))
 }
 
+// promPrefixMatch reports whether a metric name passes the prefix filter. A
+// sample is kept when it matches any configured prefix, so an application that
+// namespaces its metrics under more than one name, or a node collecting a
+// couple of subsystems from a larger exporter, needs one node rather than
+// several.
+//
+// A filter with no entries collects everything. So does one whose entries are
+// all empty, which is what a prefix added in the UI but not yet filled in looks
+// like -- a half-typed entry should not quietly widen the filter to everything
+// while the other entries are ignored.
+func (m *MetricsClient) promPrefixMatch(name string) bool {
+	var configured bool
+
+	for _, p := range m.config.Prefixes {
+		if p == "" {
+			continue
+		}
+
+		configured = true
+
+		if strings.HasPrefix(name, p) {
+			return true
+		}
+	}
+
+	return !configured
+}
+
 // promPoints turns samples into points, applying the prefix filter, the
 // reserved names, the series cap, and the counter deltas. It returns the points
 // to publish along with a message describing anything the operator should know
@@ -185,7 +213,7 @@ func (m *MetricsClient) promPoints(samples []sample) (data.Points, string) {
 	keep := make([]sample, 0, len(samples))
 
 	for _, s := range samples {
-		if m.config.Prefix != "" && !strings.HasPrefix(s.name, m.config.Prefix) {
+		if !m.promPrefixMatch(s.name) {
 			continue
 		}
 

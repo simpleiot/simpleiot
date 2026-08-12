@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -211,7 +212,7 @@ func TestPromPointsArePublishable(t *testing.T) {
 }
 
 func TestPromPointsPrefix(t *testing.T) {
-	m := newPromTestClient(Metrics{Prefix: "myapp_"})
+	m := newPromTestClient(Metrics{Prefixes: []string{"myapp_"}})
 
 	f := mustOpen(t, "testdata/prom-client-golang.txt")
 	defer f.Close()
@@ -235,6 +236,84 @@ func TestPromPointsPrefix(t *testing.T) {
 
 	if _, ok := findPoint(pts, "myapp_queue_depth", ""); !ok {
 		t.Error("Expected the prefix to keep myapp_queue_depth")
+	}
+}
+
+func TestPromPointsPrefixList(t *testing.T) {
+	in := `myapp_hits 1
+other_hits 2
+go_goroutines 3
+promhttp_requests 4
+`
+
+	tests := []struct {
+		desc     string
+		prefixes []string
+		exp      []string
+	}{
+		{
+			desc:     "no filter collects everything",
+			prefixes: nil,
+			exp: []string{"go_goroutines", "myapp_hits", "other_hits",
+				"promhttp_requests"},
+		},
+		{
+			desc:     "one prefix",
+			prefixes: []string{"myapp_"},
+			exp:      []string{"myapp_hits"},
+		},
+		{
+			desc:     "a sample matching any prefix is kept",
+			prefixes: []string{"myapp_", "other_"},
+			exp:      []string{"myapp_hits", "other_hits"},
+		},
+		{
+			desc:     "three prefixes",
+			prefixes: []string{"myapp_", "other_", "go_"},
+			exp:      []string{"go_goroutines", "myapp_hits", "other_hits"},
+		},
+		{
+			desc:     "a prefix matching nothing collects nothing",
+			prefixes: []string{"nomatch_"},
+			exp:      nil,
+		},
+		{
+			// what an entry added in the UI but not yet filled in looks like
+			desc:     "an empty entry alongside a real one is ignored",
+			prefixes: []string{"myapp_", ""},
+			exp:      []string{"myapp_hits"},
+		},
+		{
+			desc:     "entries that are all empty collect everything",
+			prefixes: []string{"", ""},
+			exp: []string{"go_goroutines", "myapp_hits", "other_hits",
+				"promhttp_requests"},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			samples, _, err := parseExposition(strings.NewReader(in))
+			if err != nil {
+				t.Fatal("Error parsing:", err)
+			}
+
+			m := newPromTestClient(Metrics{Prefixes: test.prefixes})
+
+			pts, _ := m.promPoints(samples)
+
+			// left nil when nothing is collected, so it compares equal to
+			// the nil expectation of the case that collects nothing
+			var got []string
+
+			for _, p := range pts {
+				got = append(got, p.Type)
+			}
+
+			if !reflect.DeepEqual(got, test.exp) {
+				t.Errorf("Expected %v, got %v", test.exp, got)
+			}
+		})
 	}
 }
 
