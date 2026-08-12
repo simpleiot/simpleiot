@@ -22,7 +22,7 @@ func newPromTestClient(config Metrics) *MetricsClient {
 	return &MetricsClient{
 		config:       config,
 		promCounters: make(map[string]float64),
-		promSkipped:  make(map[string]bool),
+		promRenamed:  make(map[string]bool),
 	}
 }
 
@@ -318,7 +318,8 @@ promhttp_requests 4
 }
 
 // A metric whose name matches a node configuration point type would be merged
-// into the client config by Run, rewriting the node's own settings.
+// into the client config by Run, rewriting the node's own settings. The
+// reading is kept under a renamed point type rather than dropped.
 func TestPromPointsReservedNames(t *testing.T) {
 	m := newPromTestClient(Metrics{})
 
@@ -335,13 +336,112 @@ myapp_hits 7
 
 	pts, _ := m.promPoints(samples)
 
-	if len(pts) != 1 || pts[0].Type != "myapp_hits" {
-		t.Fatalf("Expected only myapp_hits to be published, got %+v", pts)
+	for _, exp := range []struct {
+		typ string
+		val float64
+	}{
+		{"period_", 42},
+		{"description_", 1},
+		{"disabled_", 1},
+		{"uri_", 3},
+		{"myapp_hits", 7},
+	} {
+		p, ok := findPoint(pts, exp.typ, "")
+		if !ok {
+			t.Errorf("Expected a point %q, got %+v", exp.typ, pts)
+			continue
+		}
+
+		if p.Val() != exp.val {
+			t.Errorf("Expected %q value %v, got %v", exp.typ, exp.val, p.Val())
+		}
 	}
 
-	// the skip is logged once per name, not once per scrape
-	if !m.promSkipped["period"] {
-		t.Error("Expected the skipped name to be recorded")
+	// nothing may be published under the reserved name itself, or the client
+	// would rewrite its own configuration
+	for name := range promReservedTypes {
+		if _, ok := findPoint(pts, name, ""); ok {
+			t.Errorf("Expected nothing published as %q", name)
+		}
+	}
+
+	// the rename is logged once per name, not once per scrape
+	if !m.promRenamed["period"] {
+		t.Error("Expected the renamed name to be recorded")
+	}
+}
+
+// An endpoint that serves both a reserved name and the name it would be
+// renamed to must not have the two land on one point.
+func TestPromPointsReservedNameAlreadyTaken(t *testing.T) {
+	m := newPromTestClient(Metrics{})
+
+	samples, _, err := parseExposition(strings.NewReader(
+		`period 42
+period_ 43
+period__ 44
+`))
+	if err != nil {
+		t.Fatal("Error parsing:", err)
+	}
+
+	pts, _ := m.promPoints(samples)
+
+	if len(pts) != 3 {
+		t.Fatalf("Expected 3 points, got %+v", pts)
+	}
+
+	// the served names keep their own values, and the reserved one lands past
+	// both of them
+	for _, exp := range []struct {
+		typ string
+		val float64
+	}{
+		{"period_", 43},
+		{"period__", 44},
+		{"period___", 42},
+	} {
+		p, ok := findPoint(pts, exp.typ, "")
+		if !ok {
+			t.Errorf("Expected a point %q, got %+v", exp.typ, pts)
+			continue
+		}
+
+		if p.Val() != exp.val {
+			t.Errorf("Expected %q value %v, got %v", exp.typ, exp.val, p.Val())
+		}
+	}
+}
+
+// A renamed counter still gets its delta, under the renamed type
+func TestPromPointsReservedNameCounterDelta(t *testing.T) {
+	m := newPromTestClient(Metrics{CounterDelta: true})
+
+	scrape := func(val float64) data.Points {
+		t.Helper()
+
+		samples, _, err := parseExposition(strings.NewReader(fmt.Sprintf(
+			"# TYPE period counter\nperiod %v\n", val)))
+		if err != nil {
+			t.Fatal("Error parsing:", err)
+		}
+
+		pts, _ := m.promPoints(samples)
+
+		return pts
+	}
+
+	scrape(10)
+
+	pts := scrape(25)
+
+	p, ok := findPoint(pts, "period_"+data.CounterDeltaSuffix, "")
+	if !ok {
+		t.Fatalf("Expected a delta on the renamed counter, got %+v", pts)
+	}
+
+	if p.Val() != 15 {
+		t.Errorf("Expected delta 15, got %v", p.Val())
 	}
 }
 

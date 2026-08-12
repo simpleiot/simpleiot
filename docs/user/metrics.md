@@ -169,13 +169,21 @@ successful scrape.
 
 ### Reserved names
 
-A metric whose name matches one of the node's own settings is skipped and
-logged, because publishing it would overwrite that setting. The names are
-`description`, `type`, `name`, `period`, `uri`, `prefix`, `counterDelta`,
-`maxSeries`, `tag`, `disabled`, `error`, `errorCount`, `errorCountReset`,
-`connected`, `debug`, `log`, and `nodeType`. Prometheus convention is to
-namespace and unit-suffix a metric name, so a collision means the metric is
-worth renaming at the source.
+A metric whose name matches one of the node's own settings cannot be published
+under that name, because doing so would overwrite the setting. Such a metric
+gets an underscore appended instead, so `period` is published as `period_` and
+the reading is kept. The rename is logged once per name. If the endpoint already
+serves the renamed name, another underscore is added, so two metrics never land
+on the same point.
+
+The names that are renamed are `description`, `type`, `name`, `period`, `uri`,
+`prefix`, `counterDelta`, `maxSeries`, `tag`, `disabled`, `error`, `errorCount`,
+`errorCountReset`, `connected`, `debug`, `log`, and `nodeType`.
+
+Prometheus convention is to namespace and unit-suffix a metric name, so a
+collision means the metric is worth renaming at the source. Doing that is better
+than relying on the underscore, since a query then names the metric the way the
+application does.
 
 ### Querying scraped metrics
 

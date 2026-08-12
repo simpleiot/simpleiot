@@ -156,7 +156,8 @@ go_goroutines 41
 }
 
 // A metric named after a node configuration point type would be merged into the
-// client config, rewriting the node's own settings.
+// client config, rewriting the node's own settings. It is published under a
+// renamed point type instead, so the reading is kept.
 func TestPrometheusMetricsReservedNames(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
@@ -208,5 +209,25 @@ myapp_hits 7
 
 	if d := get().Description; d != "reserved names" {
 		t.Errorf("Expected the description to be unchanged, got %q", d)
+	}
+
+	// the readings themselves are kept, under a name that cannot merge into
+	// the configuration
+	for _, exp := range []struct {
+		typ string
+		val float64
+	}{
+		{"period_", 42},
+		{"description_", 1},
+	} {
+		p, ok := nodePoint(t, nc, root.ID, m.ID, exp.typ, "")
+		if !ok {
+			t.Errorf("Expected a point %q on the node", exp.typ)
+			continue
+		}
+
+		if p.Val() != exp.val {
+			t.Errorf("Expected %q value %v, got %v", exp.typ, exp.val, p.Val())
+		}
 	}
 }

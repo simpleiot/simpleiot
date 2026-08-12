@@ -48,10 +48,10 @@ type MetricsClient struct {
 	// since the last one. Keyed by metric name and point key.
 	promCounters map[string]float64
 
-	// metric names already reported as colliding with a node configuration
-	// point type, so the log is written once per name rather than every
-	// scrape
-	promSkipped map[string]bool
+	// metric names already reported as renamed because they collide with a
+	// node configuration point type, so the log is written once per name
+	// rather than every scrape
+	promRenamed map[string]bool
 
 	// whether a configured series limit above the ceiling has been logged, so
 	// it is reported once rather than every scrape. The error point on the
@@ -72,7 +72,7 @@ func NewMetricsClient(nc *nats.Conn, config Metrics) Client {
 		newPoints:     make(chan NewPoints),
 		newEdgePoints: make(chan NewPoints),
 		promCounters:  make(map[string]float64),
-		promSkipped:   make(map[string]bool),
+		promRenamed:   make(map[string]bool),
 	}
 }
 

@@ -51,7 +51,8 @@ const (
 	promAccept = "text/plain;version=0.0.4;q=1,*/*;q=0.1"
 )
 
-// promReservedTypes are point types a scrape may not publish.
+// promReservedTypes are point types a scrape may not publish under their own
+// name.
 //
 // Run feeds every point arriving on the node through data.MergePoints into the
 // Metrics config struct, which matches on point type, so a metric named period
@@ -59,6 +60,8 @@ const (
 // client off. Prometheus naming convention makes a collision unlikely -- a real
 // metric is namespaced and unit suffixed, as in myapp_requests_total -- but the
 // failure is quiet enough to be worth closing rather than documenting.
+//
+// A collision renames rather than drops the sample; see promRename.
 var promReservedTypes = map[string]bool{
 	// Metrics config fields
 	data.PointTypeDescription:  true,
@@ -114,7 +117,7 @@ func (m *MetricsClient) checkPromDefaults() {
 // are only meaningful relative to the endpoint they came from.
 func (m *MetricsClient) promReset() {
 	m.promCounters = make(map[string]float64)
-	m.promSkipped = make(map[string]bool)
+	m.promRenamed = make(map[string]bool)
 }
 
 // promClient is shared across metrics nodes. Its timeout is set per request,
@@ -193,6 +196,35 @@ func parseExpositionLimited(r io.Reader) ([]sample, int, error) {
 	return parseExposition(io.LimitReader(r, promMaxBody))
 }
 
+// promRename returns the point type to publish a reserved metric name under.
+//
+// Publishing the name as-is would merge into the node's own configuration and
+// rewrite a setting, so the name has to change. An underscore is appended
+// until it is free, which keeps the reading rather than dropping it, keeps the
+// metric recognizable, and sorts it next to where it would otherwise be. One
+// underscore is always enough to clear the reserved set, since no reserved
+// name ends in one; the loop is for the case where the endpoint also serves
+// the renamed name itself, so that two metrics never land on one point.
+//
+// The rename is logged once per name, since a metric colliding with a node
+// setting is worth renaming at the source.
+func (m *MetricsClient) promRename(name string, served map[string]bool) string {
+	renamed := name + "_"
+
+	for promReservedTypes[renamed] || served[renamed] {
+		renamed += "_"
+	}
+
+	if !m.promRenamed[name] {
+		m.promRenamed[name] = true
+		log.Printf("Metrics: prometheus scrape publishing metric %q as %q, "+
+			"since its name collides with a node configuration point type",
+			name, renamed)
+	}
+
+	return renamed
+}
+
 // resolveMaxSeries returns the series limit to apply, along with a message
 // describing a configured limit that could not be honored.
 //
@@ -259,19 +291,20 @@ func (m *MetricsClient) promPrefixMatch(name string) bool {
 func (m *MetricsClient) promPoints(samples []sample) (data.Points, string) {
 	keep := make([]sample, 0, len(samples))
 
+	// every name the endpoint served, so a rename cannot land on a metric the
+	// endpoint is already reporting
+	served := make(map[string]bool, len(samples))
+	for _, s := range samples {
+		served[s.name] = true
+	}
+
 	for _, s := range samples {
 		if !m.promPrefixMatch(s.name) {
 			continue
 		}
 
 		if promReservedTypes[s.name] {
-			if !m.promSkipped[s.name] {
-				m.promSkipped[s.name] = true
-				log.Printf("Metrics: prometheus scrape skipping metric %q, "+
-					"which collides with a node configuration point type", s.name)
-			}
-
-			continue
+			s.name = m.promRename(s.name, served)
 		}
 
 		keep = append(keep, s)

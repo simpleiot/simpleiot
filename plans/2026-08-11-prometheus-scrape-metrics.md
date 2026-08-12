@@ -102,8 +102,11 @@ named `description` would rename the node in the UI, and one named `disabled`
 would switch the client off. Prometheus naming convention makes these unlikely —
 real metrics are namespaced and unit-suffixed, as in `myapp_requests_total` —
 but the failure is bad enough to close rather than document. The client holds a
-reserved set of point types and skips any sample whose name is in it, logging
-once per name so the operator can see what was dropped and rename it.
+reserved set of point types and appends an underscore to any sample whose name
+is in it, so `period` is published as `period_` and the reading is kept rather
+than dropped. Another underscore is added if the endpoint already serves the
+renamed name, so two metrics never land on one point. The rename is logged once
+per name, since a collision means the metric is worth renaming at the source.
 
 **Counters publish a per-period delta alongside the raw value.** The metrics
 worth watching on a custom server are mostly counters, and a monotonic counter
@@ -383,7 +386,7 @@ reason the reserved set below exists.
 ### Reserved point types
 
 Defined in `client/metrics-prom.go`. A sample whose metric name matches one of
-these is skipped:
+these is published with an underscore appended:
 
 - The `Metrics` config fields: `description`, `type`, `name`, `period`, `uri`,
   `prefix`, `counterDelta`, `maxSeries`
@@ -575,8 +578,10 @@ the rest:
 - Every published point passes `CheckSubjectTokens`.
 - A `prefix` keeps the matching metrics and drops `go_*` and `promhttp_*`, and a
   second prefix keeps what it matches as well.
-- A metric named `period` is skipped and does not alter the configured period.
-  Same for `description` and `disabled`. This is the reserved-set test.
+- A metric named `period` is published as `period_`, keeping its value, and does
+  not alter the configured period. Same for `description` and `disabled`. An
+  endpoint serving both `period` and `period_` puts the reserved one at
+  `period__`, so the two do not collide. This is the reserved-set test.
 - Two scrapes of a counter produce a delta equal to the difference, and none on
   the first scrape.
 - A counter that decreases between scrapes yields a delta equal to the new
@@ -737,11 +742,15 @@ assumes point types are enumerable should know this node type exists.
 
 ## Open Questions
 
-**Should the reserved set be a rename rather than a skip?** Prefixing a
-colliding name — `period` becoming `prom_period` — keeps the data instead of
-dropping it. Skipping is proposed because a collision means the metric is badly
-named, and a log line the operator acts on beats a silent rewrite. Easy to
-revisit if it proves annoying in practice.
+**Should the reserved set be a rename rather than a skip?** _Resolved: rename._
+A colliding name has an underscore appended, so `period` is published as
+`period_`, and another is added if the endpoint already serves that name. The
+argument for skipping was that a collision means the metric is badly named and a
+log line beats a silent rewrite, but the rewrite is not silent — it is logged
+the same way the skip was — and dropping a reading the operator may not be able
+to rename at the source costs more than an adjusted name. A suffix was chosen
+over the `prom_` prefix first proposed because it keeps the metric sorted next
+to where it would otherwise be and leaves the name recognizable.
 
 **Is `_delta` the right suffix?** It reads well in a Grafana query
 (`points{type="http_requests_total_delta"}`) and cannot be confused with a

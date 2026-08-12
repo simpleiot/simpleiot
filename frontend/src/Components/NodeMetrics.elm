@@ -76,12 +76,39 @@ view o =
                         checkboxInput Point.typeCounterDelta "Counter deltas"
                     , numberInput Point.typePeriod "Period (s)"
                     , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
-                    , viewMetrics o.zone <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
+                    , viewMetrics o.zone <|
+                        filterConfigPoints <|
+                            Point.filterSpecialPoints <|
+                                List.sortWith Point.sort o.node.points
                     ]
 
                 else
                     []
                )
+
+
+{-| Point types this component renders as configuration inputs above the
+readings table. They are settings rather than readings, so listing them
+alongside the readings only makes the readings harder to find. This is the
+node's own configuration; `Point.filterSpecialPoints` covers the point types
+every node carries.
+-}
+configPoints : List String
+configPoints =
+    [ Point.typeType
+    , Point.typeName
+    , Point.typePeriod
+    , Point.typeURI
+    , Point.typePrefix
+    , Point.typeMaxSeries
+    , Point.typeCounterDelta
+    , Point.typeTag
+    ]
+
+
+filterConfigPoints : List Point.Point -> List Point.Point
+filterConfigPoints points =
+    List.filter (\p -> not <| List.member p.typ configPoints) points
 
 
 viewMetrics : Time.Zone -> List Point.Point -> Element msg

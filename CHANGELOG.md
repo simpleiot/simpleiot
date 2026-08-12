@@ -29,8 +29,13 @@ For more details or to discuss releases, please visit the
   NATS message, and a node large enough to exceed the 1 MB payload limit cannot
   be answered at all, which fails every tree fetch covering it rather than just
   that node. An endpoint too large for one node is better split across several,
-  each with its own prefix. See the
+  each with its own prefix. A metric whose name matches one of the node's own
+  settings has an underscore appended -- `period` is published as `period_` --
+  since publishing it under its own name would overwrite the setting. See the
   [metrics documentation](docs/user/metrics.md).
+- metrics: leave the node's own configuration points out of the readings table
+  in the UI. The settings are already shown as inputs above it, so listing them
+  among the readings only made the readings harder to find.
 - db: an **Expand Key Labels** setting, on by default, that writes each label in
   a point key that was written as a label set as its own database label. This is
   what makes a scraped series query the way the Prometheus series it came from
