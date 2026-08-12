@@ -652,10 +652,11 @@ func TestRetentionDescription(t *testing.T) {
 	}
 }
 
-// TestDbJetStreamReplicaRetention verifies the store applies its
-// retention policy to replica streams it discovers (the sync pumps
-// create them bare).
-func TestDbJetStreamReplicaRetention(t *testing.T) {
+// TestDbJetStreamReplicaPolicy verifies the store applies its storage
+// policy -- retention and compression -- to replica streams it discovers
+// (the sync pumps create them bare). Both describe how this instance uses
+// its own disk, so a replica follows the local policy.
+func TestDbJetStreamReplicaPolicy(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "siot-js-test-*")
 	if err != nil {
 		t.Fatal("Error creating temp dir:", err)
@@ -691,15 +692,216 @@ func TestDbJetStreamReplicaRetention(t *testing.T) {
 		s, err := db.js.Stream(ctx, streamName("boundary-b", "origin-o"))
 		if err == nil {
 			info, err := s.Info(ctx)
-			if err == nil && info.Config.MaxMsgsPerSubject == 7 {
+			if err == nil && info.Config.MaxMsgsPerSubject == 7 &&
+				info.Config.Compression == jetstream.S2Compression {
 				break
 			}
 		}
 		if time.Now().After(deadline) {
-			t.Fatal("replica stream never received local retention policy")
+			t.Fatal("replica stream never received the local storage policy")
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
+}
+
+// TestCompressionResolution verifies the setting resolves to what streams are
+// given, and that the startup log describes the same thing.
+func TestCompressionResolution(t *testing.T) {
+	tests := []struct {
+		desc    string
+		config  string
+		exp     jetstream.StoreCompression
+		expDesc string
+	}{
+		{
+			desc:    "unconfigured compresses",
+			config:  "",
+			exp:     jetstream.S2Compression,
+			expDesc: "s2 (default)",
+		},
+		{
+			desc:    "s2 is explicit",
+			config:  CompressionS2,
+			exp:     jetstream.S2Compression,
+			expDesc: "s2",
+		},
+		{
+			desc:    "none turns it off",
+			config:  CompressionNone,
+			exp:     jetstream.NoCompression,
+			expDesc: "none",
+		},
+		{
+			// args rejects this, but SIOT is also used as a library, and
+			// failing to start over a compression setting would be worse
+			// than compressing
+			desc:    "an unrecognized setting falls back and says so",
+			config:  "gzip",
+			exp:     jetstream.S2Compression,
+			expDesc: `s2 (default; "gzip" is not a compression setting)`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			db := &DbJetStream{cfg: JsConfig{Compression: test.config}}
+
+			if got := db.compressionForStream(""); got != test.exp {
+				t.Errorf("compression = %v, want %v", got, test.exp)
+			}
+
+			if got := db.compressionDescription(); got != test.expDesc {
+				t.Errorf("description = %q, want %q", got, test.expDesc)
+			}
+		})
+	}
+}
+
+// TestDbJetStreamCompression verifies streams are created compressed, and
+// that turning it off is honored.
+func TestDbJetStreamCompression(t *testing.T) {
+	tests := []struct {
+		desc   string
+		config string
+		exp    jetstream.StoreCompression
+	}{
+		{"on by default", "", jetstream.S2Compression},
+		{"off when asked", CompressionNone, jetstream.NoCompression},
+	}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			tmpDir, err := os.MkdirTemp("", "siot-js-test-*")
+			if err != nil {
+				t.Fatal("Error creating temp dir:", err)
+			}
+
+			defer func() { _ = os.RemoveAll(tmpDir) }()
+
+			ns, nc := newTestNatsServer(t, tmpDir)
+			defer func() {
+				nc.Close()
+				ns.Shutdown()
+			}()
+
+			db, err := NewJetStreamDb(nc, "", JsConfig{Compression: test.config})
+			if err != nil {
+				t.Fatal("Error creating JetStream db:", err)
+			}
+
+			rootID := db.rootNodeID()
+
+			s, err := db.js.Stream(context.Background(),
+				streamName(rootID, rootID))
+			if err != nil {
+				t.Fatal("Error getting stream:", err)
+			}
+
+			info, err := s.Info(context.Background())
+			if err != nil {
+				t.Fatal("Error getting stream info:", err)
+			}
+
+			if info.Config.Compression != test.exp {
+				t.Errorf("compression = %v, want %v",
+					info.Config.Compression, test.exp)
+			}
+		})
+	}
+}
+
+// A stream that already holds data has to accept compression being turned on,
+// and its existing messages have to stay readable afterward. This is what
+// happens to every stream on an instance that upgrades into this default.
+func TestDbJetStreamCompressionOnExistingStream(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "siot-js-test-*")
+	if err != nil {
+		t.Fatal("Error creating temp dir:", err)
+	}
+
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	ns, nc := newTestNatsServer(t, tmpDir)
+	defer func() {
+		nc.Close()
+		ns.Shutdown()
+	}()
+
+	ctx := context.Background()
+
+	js, err := jetstream.New(nc)
+	if err != nil {
+		t.Fatal("Error creating JetStream context:", err)
+	}
+
+	const name = "inst_existing_existing"
+
+	// a stream as an instance from before this default would have it
+	_, err = js.CreateStream(ctx, jetstream.StreamConfig{
+		Name:              name,
+		Subjects:          []string{"inst.existing.existing.>"},
+		MaxMsgsPerSubject: 5000,
+		Compression:       jetstream.NoCompression,
+	})
+	if err != nil {
+		t.Fatal("Error creating stream:", err)
+	}
+
+	const count = 500
+
+	for i := 0; i < count; i++ {
+		subject := fmt.Sprintf("inst.existing.existing.node%v.p.value.0", i%10)
+		if _, err := js.Publish(ctx, subject,
+			[]byte(fmt.Sprintf("point %v", i))); err != nil {
+			t.Fatal("Error publishing:", err)
+		}
+	}
+
+	// turning compression on is what the store does the first time it
+	// ensures or discovers the stream after an upgrade
+	cfg := jetstream.StreamConfig{
+		Name:              name,
+		Subjects:          []string{"inst.existing.existing.>"},
+		MaxMsgsPerSubject: 5000,
+		Compression:       jetstream.S2Compression,
+	}
+
+	if _, err := js.UpdateStream(ctx, cfg); err != nil {
+		t.Fatal("Error enabling compression on an existing stream:", err)
+	}
+
+	s, err := js.Stream(ctx, name)
+	if err != nil {
+		t.Fatal("Error getting stream:", err)
+	}
+
+	info, err := s.Info(ctx)
+	if err != nil {
+		t.Fatal("Error getting stream info:", err)
+	}
+
+	if info.Config.Compression != jetstream.S2Compression {
+		t.Fatalf("compression = %v, want S2", info.Config.Compression)
+	}
+
+	if info.State.Msgs != count {
+		t.Errorf("Expected %v messages after enabling compression, got %v",
+			count, info.State.Msgs)
+	}
+
+	// messages written before the change still read back
+	msg, err := s.GetLastMsgForSubject(ctx,
+		"inst.existing.existing.node9.p.value.0")
+	if err != nil {
+		t.Fatal("Error reading a message written before compression:", err)
+	}
+
+	if len(msg.Data) == 0 {
+		t.Error("Expected the message written before compression to have data")
+	}
+
+	t.Logf("stream holds %v msgs, %v bytes after enabling compression",
+		info.State.Msgs, info.State.Bytes)
 }
 
 // TestDbJetStreamRetention verifies per-subject retention drops old

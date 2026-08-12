@@ -159,6 +159,40 @@ when it comes from the environment rather than the command line. To read it back
 from a running system instead, `nats stream info` reports the limit each stream
 was given.
 
+### Compression
+
+Streams are compressed with
+[S2](https://github.com/klauspost/compress/tree/master/s2) by default. Point
+data compresses unusually well, because the same point type repeats in every
+message, keys come from a small set, and timestamps march forward — the kind of
+repetition a compressor is built for. The cost is a small amount of CPU on write
+and read, far below what any SIOT write rate produces.
+
+JetStream compresses a block when it seals it, not while it is the active block
+being written, so the saving appears once a store outgrows its first block.
+Measured on scraped Prometheus points:
+
+| Messages | Uncompressed | S2      | Saving |
+| -------- | ------------ | ------- | ------ |
+| 20,000   | 6.7 MB       | 6.7 MB  | none   |
+| 100,000  | 33.4 MB      | 11.7 MB | 65%    |
+
+The sealed blocks themselves compress to roughly a sixth of their size; the
+uncompressed active block is what holds the whole-store figure short of that. A
+small store therefore gives up nothing and gains nothing, and compression starts
+paying exactly where disk begins to matter.
+
+`--storeCompression` (or `SIOT_STORE_COMPRESSION`) accepts `s2` or `none`.
+Turning it on for an instance that already has data is safe: existing messages
+stay readable and are recompressed as their blocks are rewritten. As with
+retention, each instance applies its own setting to every stream on its own
+disk, replica streams included, and the effective value appears in the startup
+log:
+
+```
+STORE: compression: s2 (default)
+```
+
 The JetStream file store fsyncs on a 2-minute interval by default.
 `--storeSyncInterval` (or `SIOT_STORE_SYNC_INTERVAL`) accepts a Go duration to
 shorten that window, or `always` to fsync every write, for edge devices with

@@ -42,6 +42,14 @@ For more details or to discuss releases, please visit the
   did, including `histogram_quantile` over bucket series. The parse is strict,
   so keys written by every other client are left alone. See the
   [database documentation](docs/user/database.md).
+- store: compress JetStream streams with S2, on by default. Point data
+  compresses well, since the same point type repeats in every message and keys
+  come from a small set. A store of 100,000 scraped points went from 33.4 MB to
+  11.7 MB in testing. JetStream compresses a block when it seals it, so a store
+  still inside its first block is unchanged and the saving appears as it grows.
+  `--storeCompression` (or `SIOT_STORE_COMPRESSION`) accepts `s2` or `none`.
+  Existing instances pick this up on the next start; messages already written
+  stay readable. See the [store reference](docs/ref/store.md).
 - store: log the effective retention policy at startup, as in
   `STORE: retention: 5000 points per subject (default); current state is always preserved`.
   The policy is resolved from a flag, an environment variable, and a default,

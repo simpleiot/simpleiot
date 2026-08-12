@@ -34,7 +34,31 @@ type JsConfig struct {
 	// ensured or discovered after restart, and JetStream trims
 	// existing subjects to the new limit.
 	MaxMsgsPerSubject int64
+
+	// Compression selects the file store compression algorithm: "" uses
+	// the default (s2), "s2" is explicit, and "none" disables it. Point
+	// streams compress unusually well -- the same point type repeats in
+	// every message and keys come from a small set -- so this trades a
+	// little CPU for a large part of the disk. Like MaxMsgsPerSubject,
+	// the value applies to each stream the first time it is ensured or
+	// discovered after restart.
+	//
+	// JetStream compresses a block when it seals it, not while it is the
+	// active block being written, so a store that still fits inside its
+	// first block is unchanged. Measured on scraped points: 20k messages
+	// (one unsealed block) saved nothing, while 100k messages (three
+	// sealed blocks and one active) went from 33.4 MB to 11.7 MB. The
+	// sealed portion compresses to roughly a sixth; the active block is
+	// what keeps the whole-store figure short of that.
+	Compression string
 }
+
+// Store compression settings, as they are written on the command line
+// and in the environment.
+const (
+	CompressionS2   = "s2"
+	CompressionNone = "none"
+)
 
 // defaultMaxMsgsPerSubject bounds per-subject history when no retention
 // is configured: about a month of 10-minute data, effectively unlimited
@@ -153,6 +177,7 @@ func NewJetStreamDb(nc *nats.Conn, rootID string, cfg JsConfig) (*DbJetStream, e
 	}
 
 	log.Println("STORE: retention:", db.retentionDescription())
+	log.Println("STORE: compression:", db.compressionDescription())
 
 	// Load meta from KV
 	err = db.loadMeta()
@@ -247,6 +272,7 @@ func (db *DbJetStream) ensureOriginStreamFor(boundaryID, originID string) (jetst
 		Name:              name,
 		Subjects:          []string{streamCaptureSubject(boundaryID, originID)},
 		MaxMsgsPerSubject: db.maxMsgsForStream(name),
+		Compression:       db.compressionForStream(name),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error creating stream %v: %v", name, err)
@@ -280,6 +306,35 @@ func (db *DbJetStream) retentionDescription() string {
 	return fmt.Sprintf(
 		"%v points per subject (default); current state is always preserved",
 		defaultMaxMsgsPerSubject)
+}
+
+// compressionForStream resolves the file store compression for a stream.
+// Compression is on unless it is explicitly turned off, since point streams
+// compress to roughly a fifth of their size and the CPU cost is far below
+// what any SIOT write rate produces.
+//
+// An unrecognized setting falls back to the default rather than failing to
+// start, and is reported by the startup log.
+func (db *DbJetStream) compressionForStream(_ string) jetstream.StoreCompression {
+	if db.cfg.Compression == CompressionNone {
+		return jetstream.NoCompression
+	}
+
+	return jetstream.S2Compression
+}
+
+// compressionDescription describes the effective compression for the log
+// written at startup, naming a setting that could not be understood.
+func (db *DbJetStream) compressionDescription() string {
+	switch db.cfg.Compression {
+	case "":
+		return "s2 (default)"
+	case CompressionS2, CompressionNone:
+		return db.cfg.Compression
+	}
+
+	return fmt.Sprintf("s2 (default; %q is not a compression setting)",
+		db.cfg.Compression)
 }
 
 // maxMsgsForStream resolves the per-subject retention limit for a
