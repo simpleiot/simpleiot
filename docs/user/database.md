@@ -30,8 +30,8 @@ streams independently.
 Two limits apply:
 
 - Stream retention bounds how far behind a client can fall. By default the store
-  keeps the last 5000 points per subject (one subject is one point type and key
-  on one node). If a client is down long enough that a signal exceeds this
+  keeps the last 20,000 points per subject (one subject is one point type and
+  key on one node). If a client is down long enough that a signal exceeds this
   limit, the oldest points for that signal are dropped from the stream and will
   be missing from the database.
 - High-rate points are not stored in streams. They are delivered live and are

@@ -32,6 +32,11 @@ For more details or to discuss releases, please visit the
   `--storeCompression` (or `SIOT_STORE_COMPRESSION`) accepts `s2` or `none`.
   Existing instances pick this up on the next start and their messages stay
   readable. See the [store reference](docs/ref/store.md).
+- **Default store retention raised from 5000 to 20,000 points per subject.**
+  About four months of 10-minute data, or two weeks of per-minute data.
+  Compression absorbs most of the extra disk. Existing instances pick this up on
+  the next start; `--storeMaxMsgsPerSubject` (or
+  `SIOT_STORE_MAX_MSGS_PER_SUBJECT`) lowers it on a device with little flash.
 - **The store logs its effective retention and compression at startup.** Both
   are resolved from a flag, an environment variable, and a default, and neither
   was visible once an instance was running.

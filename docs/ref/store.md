@@ -124,16 +124,23 @@ purges the old subjects; ownership follows the tree.
 
 ## Retention and durability
 
-Streams keep the most recent **5000 messages per subject** by default. Because
+Streams keep the most recent **20,000 messages per subject** by default. Because
 the limit is per subject, current state — including rarely-written configuration
 points — is always preserved, which time- or size-based retention could not
 guarantee. The default is sized so that:
 
-- data reported every 10 minutes keeps about a month of local history,
+- data reported every 10 minutes keeps about four months of local history, and
+  per-minute data about two weeks,
 - configuration subjects, written a handful of times, are effectively unlimited,
   and
 - disk use on unattended edge devices stays bounded (a 1-per-minute subject
   would otherwise grow by ~525k messages a year).
+
+The default is deliberately generous, because compression absorbs most of what
+the extra history costs — four times the messages take well under twice the disk
+of the earlier uncompressed default — and because history that has already
+wrapped cannot be recovered. Keeping too much is the cheaper mistake. A device
+with little flash can lower it.
 
 History is tiered by write rate: fast subjects wrap sooner locally, and
 long-term history for them belongs in an external time-series database fed by
@@ -149,8 +156,8 @@ The store logs the policy it resolved when it starts, so the effective value is
 visible without inspecting a stream:
 
 ```
-STORE: retention: 5000 points per subject (default); current state is always preserved
-STORE: retention: 20000 points per subject; current state is always preserved
+STORE: retention: 20000 points per subject (default); current state is always preserved
+STORE: retention: 50000 points per subject; current state is always preserved
 STORE: retention: unlimited points per subject
 ```
 

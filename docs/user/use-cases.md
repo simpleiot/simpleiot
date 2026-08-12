@@ -41,8 +41,8 @@ device connects.
 
 How long a device can be offline and still catch up in full depends on how much
 history the store keeps. The store retains a bounded number of points per value
-(5000 by default), and the limit is adjustable, so a device that samples slowly
-can be offline far longer than one writing every second. See
+(20,000 by default), and the limit is adjustable, so a device that samples
+slowly can be offline far longer than one writing every second. See
 [Synchronization](sync.md) for setting up an upstream connection,
 [Store](../ref/store.md) for the retention setting, and the
 [synchronization reference](../ref/sync.md) for the mechanics of queuing and

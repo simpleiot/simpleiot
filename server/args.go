@@ -39,7 +39,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	flagProvisioningDir := flags.String("provisioningDir", "",
 		"directory of YAML files to apply at start-up and when they change (default <SIOT_DATA>/provisioning if it exists)")
 	flagStoreMaxMsgsPerSubject := flags.Int64("storeMaxMsgsPerSubject", 0,
-		"per-subject history retained in store streams (0 = default of 5000, -1 = unlimited); current state is always preserved")
+		"per-subject history retained in store streams (0 = default of 20000, -1 = unlimited); current state is always preserved")
 	flagStoreCompression := flags.String("storeCompression", "",
 		"store file compression ('s2' or 'none'); empty uses the default of s2")
 	flagStoreSyncInterval := flags.String("storeSyncInterval", "",

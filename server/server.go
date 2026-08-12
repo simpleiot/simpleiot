@@ -64,7 +64,7 @@ type Options struct {
 	// optional ID (must be unique) for this instance, otherwise, a UUID will be used
 	ID string
 	// StoreMaxMsgsPerSubject bounds per-subject history in store
-	// streams; 0 uses the default (5000), -1 means unlimited. Current
+	// streams; 0 uses the default (20000), -1 means unlimited. Current
 	// state is always preserved.
 	StoreMaxMsgsPerSubject int64
 	// StoreCompression selects file store compression: "" uses the

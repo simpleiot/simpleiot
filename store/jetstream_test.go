@@ -613,7 +613,7 @@ func TestRetentionDescription(t *testing.T) {
 		{
 			desc:   "unconfigured reports the default",
 			config: 0,
-			exp: "5000 points per subject (default); current state is " +
+			exp: "20000 points per subject (default); current state is " +
 				"always preserved",
 		},
 		{

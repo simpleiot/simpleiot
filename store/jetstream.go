@@ -26,7 +26,7 @@ type Meta struct {
 // JsConfig holds JetStream store tunables.
 type JsConfig struct {
 	// MaxMsgsPerSubject bounds per-subject history in the streams on
-	// this instance; 0 uses the default (5000), -1 means unlimited.
+	// this instance; 0 uses the default (20000), -1 means unlimited.
 	// Retention is per subject, so subject tips (current state) are
 	// always preserved, including rarely-updated config points that
 	// time- or size-based policies could silently drop. Changing the
@@ -61,10 +61,15 @@ const (
 )
 
 // defaultMaxMsgsPerSubject bounds per-subject history when no retention
-// is configured: about a month of 10-minute data, effectively unlimited
-// for rarely-written configuration subjects, and a bounded disk
-// footprint on unattended devices.
-const defaultMaxMsgsPerSubject = 5000
+// is configured: about four months of 10-minute data or two weeks of
+// per-minute data, effectively unlimited for rarely-written configuration
+// subjects, and a bounded disk footprint on unattended devices.
+//
+// The default is deliberately generous now that streams are compressed.
+// Four times the history costs well under twice the disk of the earlier
+// uncompressed default, and history that has already wrapped cannot be
+// recovered, so the cheaper mistake is keeping too much.
+const defaultMaxMsgsPerSubject = 20000
 
 // DbJetStream implements the store backend using NATS JetStream with
 // boundary-origin streams (ADR-7): each (boundary, origin instance)
