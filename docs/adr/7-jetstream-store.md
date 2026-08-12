@@ -4,6 +4,12 @@
 - Status: in progress (stages 1-2 complete; stage 3 initial implementation
   complete, follow-on work remaining)
 
+This document records the design and the reasoning that led to it. For how the
+store behaves today — retention, compression, payload limits, and the settings
+that control each — see the [store reference](../ref/store.md), which is kept
+current as the implementation moves. Where the two disagree, the reference
+describes what the code does.
+
 ## Problem
 
 SQLite has worked well as a SIOT store. There are a few things we would like to
@@ -443,9 +449,9 @@ Resolved by the 2026-08-06 revision:
   an instance is preserved because boundaries fall where authorization already
   happens (devices and groups).
 - ~~How robust is the JetStream store compared to SQLite in events like power
-  loss?~~ The file store fsyncs on a 2-minute interval by default, comparable
-  to the prior SQLite WAL exposure; `--storeSyncInterval` shortens the window
-  or forces an fsync on every write.
+  loss?~~ The file store fsyncs on a 2-minute interval by default, comparable to
+  the prior SQLite WAL exposure; `--storeSyncInterval` shortens the window or
+  forces an fsync on every write.
 
 ### Stream Granularity and Synchronization Model (2026-08-06 revision)
 
@@ -454,79 +460,76 @@ before merging the store raised two structural concerns with that layout and
 with the original Stage 3 synchronization sketch, and led to a revised model.
 
 **Echo in merge-on-receive synchronization.** The original Stage 3 sketch fed
-points received from a remote instance into the local store's merge logic,
-which writes them into local streams. With bi-directional sync, each side then
-replays the other's points back to it: the hub writes leaf points into hub
-streams, and the leaf's consumer on those streams receives its own points
-again. Preventing the loop requires origin-based echo suppression on every
-message, and any defect in that suppression circulates points between
-instances indefinitely. Merge-on-receive also gives up the single-writer
-property that motivated JetStream in the first place: each stream becomes a
-mixture of local writes and republished remote writes, with arrival-order
-interleaving in the history.
+points received from a remote instance into the local store's merge logic, which
+writes them into local streams. With bi-directional sync, each side then replays
+the other's points back to it: the hub writes leaf points into hub streams, and
+the leaf's consumer on those streams receives its own points again. Preventing
+the loop requires origin-based echo suppression on every message, and any defect
+in that suppression circulates points between instances indefinitely.
+Merge-on-receive also gives up the single-writer property that motivated
+JetStream in the first place: each stream becomes a mixture of local writes and
+republished remote writes, with arrival-order interleaving in the history.
 
 **Hub scaling.** Per-node streams scale with the total number of nodes in the
-fleet, not with the number of instances. A hub serving 500 devices with 30
-nodes each holds roughly 15,000 streams, each with its own file store and
-accounting, plus a durable consumer per synced stream per connected leaf.
-Node creation and deletion become stream administration operations rather
-than message publishes, and startup enumeration touches every stream.
+fleet, not with the number of instances. A hub serving 500 devices with 30 nodes
+each holds roughly 15,000 streams, each with its own file store and accounting,
+plus a durable consumer per synced stream per connected leaf. Node creation and
+deletion become stream administration operations rather than message publishes,
+and startup enumeration touches every stream.
 
 **Alternatives considered:**
 
-1. *One stream per origin instance (an oplog per writer).* Sync becomes one
+1. _One stream per origin instance (an oplog per writer)._ Sync becomes one
    consumer per peer and hub storage scales with instance count.
-   `MaxMsgsPerSubject` retention still works because it applies per subject,
-   not per stream. However, node IDs are UUIDs, so the subject space is flat:
-   selecting a subtree to sync requires maintaining an explicit filter list,
-   and read-side AuthZ inside a single stream depends on filter-constrained
-   consumer permissions, which have sharp edges (single-filter form only,
-   legacy API forms must be denied).
-2. *Streams at sync/AuthZ boundaries.* Authorization in SIOT naturally happens
-   at device or group boundaries (see AuthN/AuthZ above), and a device
-   subtree syncs as a unit. Making the stream the boundary aligns storage,
-   sync, and permissions, and drops hub stream count to a small multiple of
-   the device count.
-3. *Merge at read instead of on receive.* Keep every stream single-writer and
-   replicate remote streams locally (JetStream sourcing or durable
-   consumers). Current state is the merge of subject tips across the local
-   and replica streams, which is exactly the two-stream comparison described
-   in the Bi-Directional Synchronization section above. The in-memory edge
-   and point caches already perform this merge once at load time, so the
-   read-path cost is negligible. Echo is impossible by construction because
-   no instance ever writes remote data into its own streams.
+   `MaxMsgsPerSubject` retention still works because it applies per subject, not
+   per stream. However, node IDs are UUIDs, so the subject space is flat:
+   selecting a subtree to sync requires maintaining an explicit filter list, and
+   read-side AuthZ inside a single stream depends on filter-constrained consumer
+   permissions, which have sharp edges (single-filter form only, legacy API
+   forms must be denied).
+2. _Streams at sync/AuthZ boundaries._ Authorization in SIOT naturally happens
+   at device or group boundaries (see AuthN/AuthZ above), and a device subtree
+   syncs as a unit. Making the stream the boundary aligns storage, sync, and
+   permissions, and drops hub stream count to a small multiple of the device
+   count.
+3. _Merge at read instead of on receive._ Keep every stream single-writer and
+   replicate remote streams locally (JetStream sourcing or durable consumers).
+   Current state is the merge of subject tips across the local and replica
+   streams, which is exactly the two-stream comparison described in the
+   Bi-Directional Synchronization section above. The in-memory edge and point
+   caches already perform this merge once at load time, so the read-path cost is
+   negligible. Echo is impossible by construction because no instance ever
+   writes remote data into its own streams.
 
 **Revised model (adopted): boundary-origin streams**, combining 2 and 3:
 
-- A **boundary** is a node that represents a SIOT instance: the local
-  instance's root node and any device node that corresponds to a (potentially
-  synced) remote instance. Every node is owned by the nearest boundary found
-  walking up the tree. Nodes above all device boundaries are owned by the
-  instance root boundary.
+- A **boundary** is a node that represents a SIOT instance: the local instance's
+  root node and any device node that corresponds to a (potentially synced)
+  remote instance. Every node is owned by the nearest boundary found walking up
+  the tree. Nodes above all device boundaries are owned by the instance root
+  boundary.
 - Each (boundary, origin instance) pair gets one stream, named
   `inst_<boundaryID>_<originID>` (stream names cannot contain dots, so the
-  subject separator becomes an underscore; node IDs are UUIDs and carry
-  dashes of their own). The `inst` prefix identifies both tokens as
-  instances — a boundary is a node representing an instance — and keeps
-  "node" reserved for the data tree. Only instance `<originID>` ever appends
-  to that stream.
+  subject separator becomes an underscore; node IDs are UUIDs and carry dashes
+  of their own). The `inst` prefix identifies both tokens as instances — a
+  boundary is a node representing an instance — and keeps "node" reserved for
+  the data tree. Only instance `<originID>` ever appends to that stream.
 - Storage subjects carry both routing tokens so stream subject spaces never
   overlap: `inst.<boundaryID>.<originID>.<nodeID>.p.<type>.<key>` for node
   points and `inst.<boundaryID>.<originID>.<parentID>.ep.<childID>` for edge
-  points. The stream captures `inst.<boundaryID>.<originID>.>`. Core NATS
-  wire subjects (`p.>`, `ep.>`) are unchanged.
+  points. The stream captures `inst.<boundaryID>.<originID>.>`. Core NATS wire
+  subjects (`p.>`, `ep.>`) are unchanged.
 - Current state of a node is the merge of subject tips across all
-  `inst_<boundaryID>_*` streams present locally, newest timestamp wins. The
-  edge and point caches hold the merged state; merging happens at cache load
-  and as messages arrive.
-- Trade-offs accepted with this layout: retention (`MaxMsgsPerSubject`) is
-  tuned per boundary rather than per node; moving a node across boundaries
-  requires republishing its subject tips into the new stream and purging the
-  old subjects; reads consult one stream per origin that has written to the
-  boundary. Nodes mirrored under multiple parents resolve to a single owner
-  (the instance root boundary when more than one boundary can reach them);
-  mirroring across device boundaries remains an open design point for
-  Stage 3.
+  `inst_<boundaryID>_*` streams present locally, newest timestamp wins. The edge
+  and point caches hold the merged state; merging happens at cache load and as
+  messages arrive.
+- Trade-offs accepted with this layout: retention (`MaxMsgsPerSubject`) is tuned
+  per boundary rather than per node; moving a node across boundaries requires
+  republishing its subject tips into the new stream and purging the old
+  subjects; reads consult one stream per origin that has written to the
+  boundary. Nodes mirrored under multiple parents resolve to a single owner (the
+  instance root boundary when more than one boundary can reach them); mirroring
+  across device boundaries remains an open design point for Stage 3.
 
 ## Experiments
 
@@ -540,171 +543,162 @@ https://github.com/simpleiot/nats-exp
 Implementation is broken down into 3 stages:
 
 1. message/subject encoding changes — **COMPLETE**
-   ([plan](../../plans/2026-03-11-jetstream-point-encoding-changes.md),
-   branch `feat/js-subject-point-changes`). Point struct now uses
-   `DataType`/`Data` instead of `Value`/`Text`. Protobuf replaced with binary
-   encoding for point wire format. NATS subjects include type/key
-   (`p.<nodeId>.<type>.<key>`, `ep.<nodeId>.<parentId>`). One point per NATS
-   message for node points; edge points remain batched for atomicity.
+   ([plan](../../plans/2026-03-11-jetstream-point-encoding-changes.md), branch
+   `feat/js-subject-point-changes`). Point struct now uses `DataType`/`Data`
+   instead of `Value`/`Text`. Protobuf replaced with binary encoding for point
+   wire format. NATS subjects include type/key (`p.<nodeId>.<type>.<key>`,
+   `ep.<nodeId>.<parentId>`). One point per NATS message for node points; edge
+   points remain batched for atomicity.
 1. switch store from SQLite to JetStream — initial implementation **COMPLETE**
    with per-node streams
-   ([plan](../../plans/2026-03-17-implement-the-next-stage-of-adr-7.md),
-   branch `feat/js-store`); layout revision to boundary-origin streams
-   **COMPLETE**
-   ([plan](../../plans/2026-08-06-boundary-origin-streams.md)). See the
-   Stream Granularity and Synchronization Model section for the analysis
-   behind the revision.
-   - Boundary-origin streams: each (boundary, origin instance) pair gets
-     stream `inst_<boundaryID>_<originID>` capturing subjects
+   ([plan](../../plans/2026-03-17-implement-the-next-stage-of-adr-7.md), branch
+   `feat/js-store`); layout revision to boundary-origin streams **COMPLETE**
+   ([plan](../../plans/2026-08-06-boundary-origin-streams.md)). See the Stream
+   Granularity and Synchronization Model section for the analysis behind the
+   revision.
+   - Boundary-origin streams: each (boundary, origin instance) pair gets stream
+     `inst_<boundaryID>_<originID>` capturing subjects
      `inst.<boundaryID>.<originID>.<nodeID>.p.<type>.<key>` (node points) and
-     `inst.<boundaryID>.<originID>.<parentID>.ep.<childID>` (edge points,
-     stored with the parent node's boundary). Only the origin instance
-     appends to a stream.
-   - Streams retain full history (time-series). Current state = merge of
-     subject tips (via `GetLastMsgForSubject`) across the streams for a
-     boundary, newest timestamp wins. Retention uses `MaxMsgsPerSubject`
-     (not `MaxAge` or stream-level `MaxBytes`/`MaxMsgs`) so current state is
-     always preserved, including rarely-updated config points that
-     time/size-based policies could silently drop.
-   - Retention is resolved per stream: the default is 5000 messages per
-     subject (about a month of 10-minute data, effectively unlimited for
-     configuration subjects, bounded disk on unattended devices), and the
-     server option `--storeMaxMsgsPerSubject` /
-     `SIOT_STORE_MAX_MSGS_PER_SUBJECT` overrides it (-1 = unlimited).
-     Stage 3 adds per-boundary overrides at the same resolution point.
-     Each instance's store owns the configuration of every stream on its
-     own disk: sync pumps create replica streams bare and never update
-     existing stream configuration, and the store applies local retention
+     `inst.<boundaryID>.<originID>.<parentID>.ep.<childID>` (edge points, stored
+     with the parent node's boundary). Only the origin instance appends to a
+     stream.
+   - Streams retain full history (time-series). Current state = merge of subject
+     tips (via `GetLastMsgForSubject`) across the streams for a boundary, newest
+     timestamp wins. Retention uses `MaxMsgsPerSubject` (not `MaxAge` or
+     stream-level `MaxBytes`/`MaxMsgs`) so current state is always preserved,
+     including rarely-updated config points that time/size-based policies could
+     silently drop.
+   - Retention is resolved per stream: the default is 5000 messages per subject
+     (about a month of 10-minute data, effectively unlimited for configuration
+     subjects, bounded disk on unattended devices), and the server option
+     `--storeMaxMsgsPerSubject` / `SIOT_STORE_MAX_MSGS_PER_SUBJECT` overrides it
+     (-1 = unlimited). Stage 3 adds per-boundary overrides at the same
+     resolution point. Each instance's store owns the configuration of every
+     stream on its own disk: sync pumps create replica streams bare and never
+     update existing stream configuration, and the store applies local retention
      when it discovers a replica, so hub and device retain independently.
-     Changing the value applies to each existing stream the first time it
-     is ensured or discovered after a restart, and JetStream trims
-     existing subjects to the new limit.
+     Changing the value applies to each existing stream the first time it is
+     ensured or discovered after a restart, and JetStream trims existing
+     subjects to the new limit.
    - Durability: the JetStream file store fsyncs on a 2-minute interval by
-     default, which is the accepted power-loss window for typical
-     deployments (comparable exposure to the prior SQLite WAL
-     configuration). `--storeSyncInterval` / `SIOT_STORE_SYNC_INTERVAL`
-     accepts a Go duration to shorten the window, or `always` to fsync
-     every write for edge devices with unreliable power, trading write
-     throughput.
+     default, which is the accepted power-loss window for typical deployments
+     (comparable exposure to the prior SQLite WAL configuration).
+     `--storeSyncInterval` / `SIOT_STORE_SYNC_INTERVAL` accepts a Go duration to
+     shorten the window, or `always` to fsync every write for edge devices with
+     unreliable power, trading write throughput.
    - `META` KV bucket for instance metadata (rootID, jwtKey).
-   - In-memory edge and point caches hold the merged current state, populated
-     on startup by reading stream tips.
+   - In-memory edge and point caches hold the merged current state, populated on
+     startup by reading stream tips.
    - Hash tree removed; JetStream sequence numbers replace it.
    - SQLite removed entirely; migration via `siot export`/`siot import`.
-1. Use JetStream to sync between systems — initial implementation
-   **COMPLETE** ([plan](../../plans/2026-08-06-stage3-jetstream-sync.md),
-   branch `feat/js-store-boundary-stream`), with follow-on work remaining
-   (see the end of this section).
+1. Use JetStream to sync between systems — initial implementation **COMPLETE**
+   ([plan](../../plans/2026-08-06-stage3-jetstream-sync.md), branch
+   `feat/js-store-boundary-stream`), with follow-on work remaining (see the end
+   of this section).
    - Each instance runs its own NATS server and owns its origin streams. The
      single-writer invariant holds globally: instance R appends only to
      `inst_*_R` streams.
    - Instances connect via NATS leaf/client connections. Each instance keeps
      local **replicas** of the remote-origin streams for the boundaries it
-     participates in, using JetStream sourcing (durable consumers as a
-     fallback if sourcing proves unsuitable across leaf connections).
-     Replication is sequence-tracked, so reconnect after network loss
-     delivers only missed messages. No rescan or hash comparison.
-   - Replicated data stays in the replica streams. There is no
-     merge-on-receive: current state is merged at read in the edge and point
-     caches. Echo cannot occur because no instance writes remote data into
-     its own streams.
-   - Example: device X (root node ID X, hub root ID R) owns `inst_X_X`. The
-     hub writes configuration for X's subtree to its own `inst_X_R`. The hub
+     participates in, using JetStream sourcing (durable consumers as a fallback
+     if sourcing proves unsuitable across leaf connections). Replication is
+     sequence-tracked, so reconnect after network loss delivers only missed
+     messages. No rescan or hash comparison.
+   - Replicated data stays in the replica streams. There is no merge-on-receive:
+     current state is merged at read in the edge and point caches. Echo cannot
+     occur because no instance writes remote data into its own streams.
+   - Example: device X (root node ID X, hub root ID R) owns `inst_X_X`. The hub
+     writes configuration for X's subtree to its own `inst_X_R`. The hub
      replicates `inst_X_X` from the device; the device replicates `inst_X_R`
      from the hub. Multi-hop topologies chain sourcing through intermediate
      instances.
-   - AuthZ: writes are enforced with core NATS subject permissions
-     (unchanged by stream layout); reads with per-stream JetStream API
-     permissions. Device X may replicate `inst_X_*` and export only
-     `inst_X_X`. Grants are issued dynamically (NATS auth callout) as the
-     tree changes.
-   - Real-time point delivery continues via core NATS subjects (`p.>`,
-     `ep.>`) as today. Replica catch-up covers only the offline/startup gap.
+   - AuthZ: writes are enforced with core NATS subject permissions (unchanged by
+     stream layout); reads with per-stream JetStream API permissions. Device X
+     may replicate `inst_X_*` and export only `inst_X_X`. Grants are issued
+     dynamically (NATS auth callout) as the tree changes.
+   - Real-time point delivery continues via core NATS subjects (`p.>`, `ep.>`)
+     as today. Replica catch-up covers only the offline/startup gap.
    - Prerequisite spikes before implementation: verify JetStream sourcing
-     behavior across leaf connections/domains, and verify the
-     filter-carrying consumer-create permission form
+     behavior across leaf connections/domains, and verify the filter-carrying
+     consumer-create permission form
      (`$JS.API.CONSUMER.CREATE.<stream>.<consumer>.<filter>`) on the NATS
      version SIOT pins.
-   - Spike results (2026-08-06): JetStream sourcing across a leaf
-     connection with distinct JetStream domains works, including catch-up
-     after the sourced server restarts (only missed messages delivered);
-     see `store/leafnode_spike_test.go`. Chained (multi-hop) sourcing and
-     the consumer-create permission form remain to be verified.
+   - Spike results (2026-08-06): JetStream sourcing across a leaf connection
+     with distinct JetStream domains works, including catch-up after the sourced
+     server restarts (only missed messages delivered); see
+     `store/leafnode_spike_test.go`. Chained (multi-hop) sourcing and the
+     consumer-create permission form remain to be verified.
    - Initial implementation (2026-08-06,
      [plan](../../plans/2026-08-06-stage3-jetstream-sync.md)) uses
-     durable-consumer replication over the existing upstream client
-     connection rather than sourcing: the sync client copies messages
-     between same-named streams subject-for-subject, acknowledging only
-     after the receiving side confirms the write, so reconnects resume
-     with only missed messages. This needs no leafnode listener and no
-     static JetStream domain configuration (domains are server config,
-     while instance identity is only known once the store initializes),
-     and it chains through intermediate instances naturally. Sourcing
-     over leaf connections remains the intended replacement once
+     durable-consumer replication over the existing upstream client connection
+     rather than sourcing: the sync client copies messages between same-named
+     streams subject-for-subject, acknowledging only after the receiving side
+     confirms the write, so reconnects resume with only missed messages. This
+     needs no leafnode listener and no static JetStream domain configuration
+     (domains are server config, while instance identity is only known once the
+     store initializes), and it chains through intermediate instances naturally.
+     Sourcing over leaf connections remains the intended replacement once
      identity/domain configuration is worked out.
-   - The receiving store consumes replica streams, merges tips into its
-     caches, and re-broadcasts changed tips on the core NATS wire
-     subjects tagged with a `Siot-Origin` header; a store never persists
-     a wire message tagged with a remote origin. After an offline gap,
-     broadcasts are held until the backlog drains and only final tips
-     are sent, so rules do not replay intermediate values.
-   - Deleting a device node on the hub now detaches it: the device does
-     not force itself back into the tree (the old hash sync re-created
-     it); only the hub can restore the edge.
+   - The receiving store consumes replica streams, merges tips into its caches,
+     and re-broadcasts changed tips on the core NATS wire subjects tagged with a
+     `Siot-Origin` header; a store never persists a wire message tagged with a
+     remote origin. After an offline gap, broadcasts are held until the backlog
+     drains and only final tips are sent, so rules do not replay intermediate
+     values.
+   - Deleting a device node on the hub now detaches it: the device does not
+     force itself back into the tree (the old hash sync re-created it); only the
+     hub can restore the edge.
    - Follow-on work is listed in the Remaining Work section below.
 
 ## Remaining Work
 
-Stage 3 is functional end to end — two instances replicate in both
-directions, survive disconnection, and converge — but the items below are
-still outstanding. They are grouped by area and roughly ordered by priority
-within each group. The Stage 3
-[plan](../../plans/2026-08-06-stage3-jetstream-sync.md) tracks progress.
+Stage 3 is functional end to end — two instances replicate in both directions,
+survive disconnection, and converge — but the items below are still outstanding.
+They are grouped by area and roughly ordered by priority within each group. The
+Stage 3 [plan](../../plans/2026-08-06-stage3-jetstream-sync.md) tracks progress.
 
 **Sync coverage**
 
 1. Nested device boundaries: only the root boundary replicates today, so a
    device beneath another device's boundary does not yet sync.
-2. Multi-hop chaining test: each hop is independent and expected to work,
-   but this is unverified.
-3. Nodes mirrored across device boundaries: a node reachable from more than
-   one boundary resolves to the instance root boundary. How mirroring
-   should behave across a sync boundary is an open design point (see the
-   Stream Granularity section).
-4. Moving a node between boundaries: requires republishing subject tips
-   into the new stream and purging the old subjects. Not implemented.
+2. Multi-hop chaining test: each hop is independent and expected to work, but
+   this is unverified.
+3. Nodes mirrored across device boundaries: a node reachable from more than one
+   boundary resolves to the instance root boundary. How mirroring should behave
+   across a sync boundary is an open design point (see the Stream Granularity
+   section).
+4. Moving a node between boundaries: requires republishing subject tips into the
+   new stream and purging the old subjects. Not implemented.
 
 **Transport**
 
-5. JetStream sourcing over leaf connections remains the intended
-   replacement for durable-consumer replication, pending a way to drive
-   server domain configuration from instance identity (identity is known
-   only after the store initializes).
+5. JetStream sourcing over leaf connections remains the intended replacement for
+   durable-consumer replication, pending a way to drive server domain
+   configuration from instance identity (identity is known only after the store
+   initializes).
 6. Chained (multi-hop) sourcing is unverified; the single-hop spike passed
    (`store/leafnode_spike_test.go`).
 
 **Security**
 
-7. AuthZ tightening: instances share a token today. The target is
-   per-stream JetStream permissions issued dynamically via NATS auth
-   callout, so a device may replicate `inst_X_*` and export only
-   `inst_X_X`.
+7. AuthZ tightening: instances share a token today. The target is per-stream
+   JetStream permissions issued dynamically via NATS auth callout, so a device
+   may replicate `inst_X_*` and export only `inst_X_X`.
 8. The filter-carrying consumer-create permission form
-   (`$JS.API.CONSUMER.CREATE.<stream>.<consumer>.<filter>`) is unverified
-   on the NATS version SIOT pins. Item 7 depends on it.
+   (`$JS.API.CONSUMER.CREATE.<stream>.<consumer>.<filter>`) is unverified on the
+   NATS version SIOT pins. Item 7 depends on it.
 
 **Operations and observability**
 
-9. Per-replica retention overrides: replica streams are currently
-   unlimited. The resolution point exists in `maxMsgsForStream`.
-10. History sinks: the Db client consumes boundary-origin streams with a
-    durable consumer, so node points are gap-free across restarts
-    (`client/db.go`), and external sinks can follow the same pattern.
-    Remaining: edge points are excluded by the consumer filter and are not
-    stored, and sink lag is not surfaced. High-rate (`phrup`) data stays a
-    core NATS subscription by design.
-11. Sync status points: per-replica lag and last-delivered sequence.
-    `SyncCount` currently counts replication sessions.
+9. Per-replica retention overrides: replica streams are currently unlimited. The
+   resolution point exists in `maxMsgsForStream`.
+10. History sinks: the Db client consumes boundary-origin streams with a durable
+    consumer, so node points are gap-free across restarts (`client/db.go`), and
+    external sinks can follow the same pattern. Remaining: edge points are
+    excluded by the consumer filter and are not stored, and sink lag is not
+    surfaced. High-rate (`phrup`) data stays a core NATS subscription by design.
+11. Sync status points: per-replica lag and last-delivered sequence. `SyncCount`
+    currently counts replication sessions.
 12. Frontend sync status UI: surface lag rather than the former hash and
     `SyncCount` values.
 
@@ -714,12 +708,12 @@ Positive:
 
 - Every stream is a single-writer, linearizable log with provenance intact.
   Bi-directional sync cannot echo points between instances.
-- Hub storage and consumer counts scale with the number of instances, not
-  with total fleet node count. Node creation and deletion are message
-  publishes, not stream administration.
+- Hub storage and consumer counts scale with the number of instances, not with
+  total fleet node count. Node creation and deletion are message publishes, not
+  stream administration.
 - Stream boundaries align with sync boundaries and with the natural AuthZ
-  boundaries (devices and groups), so device-level permissions are one rule
-  per device.
+  boundaries (devices and groups), so device-level permissions are one rule per
+  device.
 - History is retained locally per boundary and synchronizes with the same
   mechanism as current state.
 
@@ -728,11 +722,11 @@ Negative:
 - The store must resolve which boundary owns a node (an edge cache walk) on
   every write, and boundary resolution rules must be identical on every
   instance.
-- Moving a node across boundaries requires republishing subject tips and
-  purging old subjects; per-node streams handled moves for free.
+- Moving a node across boundaries requires republishing subject tips and purging
+  old subjects; per-node streams handled moves for free.
 - Retention is tuned per boundary rather than per node.
-- Reads merge tips across one stream per origin instance that has written to
-  the boundary; the in-memory caches hide this cost but must be correct.
+- Reads merge tips across one stream per origin instance that has written to the
+  boundary; the in-memory caches hide this cost but must be correct.
 - No SQLite fallback; existing users migrate via `siot export`/`siot import`.
 
 ## Additional Notes/Reference
