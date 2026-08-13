@@ -194,9 +194,11 @@ safe to apply repeatedly as any other.
 Nodes can be exported to a YAML file. This is useful to:
 
 - Back up the current configuration
-- Dump node data for debugging
 - Transfer a configuration, or part of one, from one instance to another
 - Build a configuration in the UI and then ship it as a provisioning file
+
+To look at an instance rather than reproduce it, use `siot dump` instead, which
+is described below.
 
 To export the entire tree:
 
@@ -221,6 +223,40 @@ Two nodes that share a parent and a description cannot be told apart by a file,
 so `siot export` reports that rather than writing a file that would do the wrong
 thing when applied. Give those nodes distinct descriptions, which is worth doing
 anyway.
+
+## Instance dump
+
+`siot dump` describes an instance as it actually is. Export answers "what would
+recreate this configuration"; dump answers "why is this instance behaving the
+way it is", so it reports the identifiers and structure export leaves out:
+
+`siot dump`
+
+- The instance root node ID, which is the identity this instance replicates
+  under
+- The tree with every node ID and type, including deleted nodes
+- Every parent of each node, so a node that appears in more than one place says
+  so
+- An `anomalies` section listing any node other than the root that carries the
+  virtual `root` parent, which would give the instance a second root
+
+Two flags add detail:
+
+- `siot dump -points` includes every point with the origin that wrote it and the
+  time it was written, which is what to compare when two instances disagree
+  about a value
+- `siot dump -streams` lists the boundary-origin replication streams and their
+  message counts, which shows at a glance which instances this one replicates
+  with
+
+`siot dump -all` turns on both, and `siot dump -nodeID <id>` limits the tree to
+one subtree.
+
+Comparing the same dump from two instances is the quickest way to tell a
+replication problem from a configuration one. Instances that disagree about
+their root IDs, or that are missing a stream for each other, have a replication
+problem; instances that agree on structure but differ on a point's origin or
+time have a configuration one.
 
 ## Configuration import
 

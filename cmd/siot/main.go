@@ -51,6 +51,7 @@ func main() {
 		fmt.Println("  - install (install SIOT and register service)")
 		fmt.Println("  - import (import nodes from YAML file)")
 		fmt.Println("  - export (export nodes to YAML file)")
+		fmt.Println("  - dump (describe a running instance for troubleshooting)")
 		fmt.Println("  - provision (check provisioning files, or print what they would do)")
 		fmt.Println("  - update (update to the latest release)")
 	}
@@ -90,6 +91,8 @@ func main() {
 		runImport(args[1:])
 	case "export":
 		runExport(args[1:])
+	case "dump":
+		runDump(args[1:])
 	case "provision":
 		runProvision(args[1:])
 	case "update":
@@ -554,6 +557,75 @@ func runExport(args []string) {
 		log.Fatal("Error writing YAML to STDOUT: ", err)
 	}
 
+}
+
+func runDump(args []string) {
+	flags := flag.NewFlagSet("dump", flag.ExitOnError)
+
+	flagNodeID := flags.String("nodeID", "", "node ID to dump. Default is the instance root")
+	flagPoints := flags.Bool("points", false, "include every point, with its origin and time")
+	flagStreams := flags.Bool("streams", false, "include the replication stream inventory")
+	flagAll := flags.Bool("all", false, "same as -points -streams")
+	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
+	flagAuthToken := flags.String("token", "", "Auth token")
+
+	if err := flags.Parse(args); err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	// only consider env if command line option is something different
+	// that default
+	natsServer := *flagNatsServer
+	if natsServer == defaultNatsServer {
+		natsServerE := os.Getenv("SIOT_NATS_SERVER")
+		if natsServerE != "" {
+			natsServer = natsServerE
+		}
+	}
+
+	authToken := *flagAuthToken
+	if authToken == "" {
+		authTokenE := os.Getenv("SIOT_AUTH_TOKEN")
+		if authTokenE != "" {
+			authToken = authTokenE
+		}
+	}
+
+	opts := client.EdgeOptions{
+		URI:       natsServer,
+		AuthToken: authToken,
+		NoEcho:    true,
+		Disconnected: func() {
+			log.Println("NATS Disconnected")
+		},
+		Reconnected: func() {
+			log.Println("NATS Reconnected")
+		},
+		Closed: func() {
+			log.Fatal("NATS Closed")
+		},
+		Connected: func() {
+			log.Println("NATS Connected")
+		},
+	}
+
+	nc, err := client.EdgeConnect(opts)
+	if err != nil {
+		log.Fatal("Error connecting to NATS server: ", err)
+	}
+
+	out, err := client.DumpInstance(nc, client.DumpOptions{
+		NodeID:  *flagNodeID,
+		Points:  *flagPoints || *flagAll,
+		Streams: *flagStreams || *flagAll,
+	})
+	if err != nil {
+		log.Fatal("Error dumping instance: ", err)
+	}
+
+	if _, err := os.Stdout.WriteString(out); err != nil {
+		log.Fatal("Error writing dump to STDOUT: ", err)
+	}
 }
 
 func runProvision(args []string) {

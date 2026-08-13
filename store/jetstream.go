@@ -845,6 +845,15 @@ func (db *DbJetStream) loadEdgeSubjects(s jetstream.Stream, origin, filter strin
 		}
 		parentID, childID := tok[3], tok[5]
 
+		if parentID == "root" && origin != db.meta.RootID {
+			// every instance anchors its own tree with the virtual
+			// "root" parent, so a replica stream carries the edge that
+			// makes its origin a root. Loading it here would give this
+			// instance a second root node (see mergeReplicaMsg, which
+			// applies the same rule on the live path).
+			continue
+		}
+
 		msg, err := s.GetLastMsgForSubject(ctx, subject)
 		if err != nil {
 			log.Printf("error getting edge tip for %v: %v", subject, err)
@@ -937,16 +946,19 @@ func (db *DbJetStream) getNodes(_ any, parent, id, typ string, includeDel bool) 
 
 	switch {
 	case parent == "root":
-		edges = db.edgeCache.Children("root")
-		if id != "all" {
-			// Filter to specific root node
-			var filtered []EdgeEntry
-			for _, e := range edges {
-				if e.Down == id {
-					filtered = append(filtered, e)
-				}
+		// an instance has exactly one root, the one recorded in meta.
+		// Selecting it by ID rather than taking whatever sits under the
+		// virtual "root" parent keeps a stray edge -- a replica's root
+		// anchor loaded by an older version, say -- from standing in as
+		// this instance's root
+		want := db.meta.RootID
+		if id != "all" && id != want {
+			want = ""
+		}
+		for _, e := range db.edgeCache.Children("root") {
+			if e.Down == want {
+				edges = append(edges, e)
 			}
-			edges = filtered
 		}
 	case parent == "all" && id == "all":
 		return nil, errors.New("invalid combination of parent and id")

@@ -15,6 +15,34 @@ For more details or to discuss releases, please visit the
 
 ### Added
 
+- **`siot dump` describes a running instance for troubleshooting.** It reports
+  the instance root ID, the tree with node IDs and every parent of each node,
+  deleted nodes, and anything holding a second root. `-points` adds each point's
+  origin and timestamp, `-streams` adds the replication stream inventory, and
+  `-all` turns on both. See the
+  [configuration reference](docs/user/configuration.md).
+
+### Changed
+
+- **Sync replicates in windows instead of one message at a time.** A pump now
+  sends up to 256 messages before waiting for the receiving instance to confirm
+  them, so the round trips overlap. A first sync of a large stream, such as the
+  one that follows an upstream store reset, finishes in a fraction of the time.
+
+### Fixed
+
+- **A failed replication window is resent rather than skipped.** A message the
+  receiving instance did not accept used to be left for redelivery while later
+  messages kept flowing, which could store an older point after a newer one on a
+  subject. A window that fails is now retried as a unit with none of it
+  acknowledged, so each subject arrives in source order.
+- **An upstream no longer adopts a downstream instance's root as its own.**
+  Every instance anchors its tree with a virtual `root` parent, and the store
+  was loading that edge out of replica streams, so an upstream ended up with two
+  root nodes and could serve the downstream's as its own. The upstream then
+  exported the downstream's tree and started clients for its hardware. An
+  upstream already in this state recovers on restart.
+
 ## [0.23.3] - 2026-08-12
 
 - **Prometheus scrape in the metrics client.** A `prometheus` metrics type
