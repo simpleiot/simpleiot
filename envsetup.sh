@@ -318,6 +318,69 @@ siot_release() {
 	rm "${VERSION}.info"
 }
 
+# the version of the topmost released section of the changelog, so
+# "## [0.23.4] - 2026-08-13" yields "0.23.4". The "## [Unreleased]" heading does
+# not match because the pattern requires the section to start with a digit.
+_siot_changelog_version() {
+	sed -n 's/^## \[\([0-9][^]]*\)\].*/\1/p' CHANGELOG.md | head -1
+}
+
+# succeeds when the "## Next" section holds no entries, which is how we know the
+# pending changes have been moved under a version heading
+_siot_changelog_next_empty() {
+	awk '
+		/^## Next/ { next_section = 1; next }
+		next_section && /^## / { exit }
+		next_section && NF { entries = 1 }
+		END { exit entries ? 1 : 0 }
+	' CHANGELOG.md
+}
+
+# tag the current master commit with the version at the top of the changelog and
+# push the tag, which starts the Release workflow (.github/workflows/release.yml)
+siot_tag() {
+	BRANCH=$(git rev-parse --abbrev-ref HEAD) || return 1
+	if [ "$BRANCH" != "master" ]; then
+		echo "releases are tagged on master, currently on $BRANCH"
+		return 1
+	fi
+
+	if [ -n "$(git status --porcelain)" ]; then
+		echo "working tree has uncommitted changes, please commit them first"
+		return 1
+	fi
+
+	VERSION=$(_siot_changelog_version)
+	if [ -z "$VERSION" ]; then
+		echo "no version heading found in CHANGELOG.md"
+		return 1
+	fi
+	TAG="v$VERSION"
+
+	if ! _siot_changelog_next_empty; then
+		echo "the Next section of CHANGELOG.md still has entries"
+		echo "move them under a \"## [X.Y.Z] - <date>\" heading and commit first"
+		return 1
+	fi
+
+	if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+		echo "$TAG already exists, please add a new version section to CHANGELOG.md"
+		return 1
+	fi
+
+	git fetch origin master || return 1
+	if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/master)" ]; then
+		echo "master and origin/master point at different commits"
+		echo "please push or pull so the tag lands on a commit that is upstream"
+		return 1
+	fi
+
+	echo "tagging $TAG"
+	git tag "$TAG" || return 1
+	git push origin "$TAG" || return 1
+	return 0
+}
+
 # dblab keyboard shortcuts
 # - Ctrl+space execute query
 # - Ctrl+H,J,K,L move to panel left,below,above,right
