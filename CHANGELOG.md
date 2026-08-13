@@ -13,6 +13,8 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [0.23.4] - 2026-08-13
+
 ### Added
 
 - **`siot dump` describes a running instance for troubleshooting.** It reports
