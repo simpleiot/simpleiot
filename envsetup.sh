@@ -198,11 +198,51 @@ siot_frontend_fix() {
 	(cd frontend && npx elm-review --fix-all)
 }
 
+# Enumerate markdown files via git so gitignored build output (book/,
+# node_modules/, frontend/public/dist) is never walked. Symlinks are dropped so
+# prettier does not error on "explicitly specified pattern is a symbolic link".
+_siot_md_files() {
+	git ls-files '*.md' | while IFS= read -r f; do
+		[ -L "$f" ] && continue
+		printf '%s\0' "$f"
+	done
+}
+
+# Prefer a prettier on PATH, and fall back to the copy the frontend
+# dependencies already install. Both read .prettierrc at the repo root.
+_siot_prettier_bin() {
+	if command -v prettier >/dev/null 2>&1; then
+		command -v prettier
+		return 0
+	fi
+	if [ -x frontend/node_modules/.bin/prettier ]; then
+		echo ./frontend/node_modules/.bin/prettier
+		return 0
+	fi
+	echo "prettier not found -- run siot_install_frontend_deps" >&2
+	return 1
+}
+
+siot_format_md() {
+	PRETTIER=$(_siot_prettier_bin) || return 1
+	_siot_md_files | xargs -0 -r "$PRETTIER" --write || return 1
+	return 0
+}
+
+siot_format_md_check() {
+	PRETTIER=$(_siot_prettier_bin) || return 1
+	_siot_md_files | xargs -0 -r "$PRETTIER" --check || return 1
+	return 0
+}
+
 siot_format() {
 	echo "Formatting Go code..."
 	gofmt -w .
 	echo "Formatting Elm code..."
 	(cd frontend && npx elm-format --yes src/)
+	echo "Formatting Markdown..."
+	siot_format_md || return 1
+	return 0
 }
 
 # please run the following before pushing -- best if your editor can be set up
@@ -216,6 +256,8 @@ siot_test() {
 	go test -p=1 -race "$@" ./... || return 1
 	echo "Lint backend ..."
 	golangci-lint run || return 1
+	echo "Check Markdown formatting ..."
+	siot_format_md_check || return 1
 	echo "Testing passed :-)"
 	return 0
 }
