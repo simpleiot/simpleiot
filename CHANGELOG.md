@@ -13,7 +13,14 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
-### Added
+### Fixed
+
+- **An upstream no longer adopts a downstream instance's root as its own.**
+  Every instance anchors its tree with a virtual `root` parent, and the store
+  was loading that edge out of replica streams, so an upstream ended up with two
+  root nodes and could serve the downstream's as its own. The upstream then
+  exported the downstream's tree and started clients for its hardware. An
+  upstream already in this state recovers on restart.
 
 ## [0.23.3] - 2026-08-12
 

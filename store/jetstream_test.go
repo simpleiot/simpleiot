@@ -1144,3 +1144,140 @@ func TestDbJetStreamBatchPoints(t *testing.T) {
 		t.Fatal("Point collapsing did not pick latest")
 	}
 }
+
+// TestDbJetStreamReplicaRootNotAdopted covers an upstream that holds a
+// downstream's replica stream. Every instance anchors its own tree with an
+// edge whose parent is the virtual "root", and that edge rides along in the
+// stream the downstream pushes up. The upstream must not load it as a root of
+// its own: doing so gave it two roots, and it would then serve the
+// downstream's root as its own and start clients for the downstream's nodes.
+func TestDbJetStreamReplicaRootNotAdopted(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "siot-js-test-*")
+	if err != nil {
+		t.Fatal("Error creating temp dir:", err)
+	}
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	ns, nc := newTestNatsServer(t, tmpDir)
+
+	db, err := NewJetStreamDb(nc, "", JsConfig{})
+	if err != nil {
+		t.Fatal("Error creating JetStream db:", err)
+	}
+
+	rootID := db.rootNodeID()
+
+	// a downstream instance and one of its nodes
+	downID := uuid.New().String()
+	serialID := uuid.New().String()
+
+	// the replica stream a sync pump creates on the upstream, carrying the
+	// downstream's own origin stream for its root boundary
+	ctx := context.Background()
+	_, err = db.js.CreateStream(ctx, jetstream.StreamConfig{
+		Name:     streamName(downID, downID),
+		Subjects: []string{fmt.Sprintf("inst.%v.%v.>", downID, downID)},
+	})
+	if err != nil {
+		t.Fatal("Error creating replica stream:", err)
+	}
+
+	// the downstream's root anchor, and a node below it
+	anchor := data.Points{
+		data.NewPointFloat(data.PointTypeTombstone, "", 0),
+		data.NewPointString(data.PointTypeNodeType, "", data.NodeTypeDevice),
+	}
+	_, err = db.js.Publish(ctx,
+		edgePointSubject(downID, downID, "root", downID), anchor.Encode())
+	if err != nil {
+		t.Fatal("Error publishing downstream root anchor:", err)
+	}
+
+	child := data.Points{
+		data.NewPointFloat(data.PointTypeTombstone, "", 0),
+		data.NewPointString(data.PointTypeNodeType, "", data.NodeTypeSerialDev),
+	}
+	_, err = db.js.Publish(ctx,
+		edgePointSubject(downID, downID, downID, serialID), child.Encode())
+	if err != nil {
+		t.Fatal("Error publishing downstream child edge:", err)
+	}
+
+	// restart so the streams are loaded from scratch
+	nc.Close()
+	ns.Shutdown()
+	ns.WaitForShutdown()
+
+	ns, nc = newTestNatsServer(t, tmpDir)
+	defer func() {
+		nc.Close()
+		ns.Shutdown()
+	}()
+
+	db, err = NewJetStreamDb(nc, "", JsConfig{})
+	if err != nil {
+		t.Fatal("Error re-opening JetStream db:", err)
+	}
+
+	if db.rootNodeID() != rootID {
+		t.Fatalf("root ID changed across restart: %v != %v",
+			db.rootNodeID(), rootID)
+	}
+
+	roots, err := db.getNodes(nil, "root", "all", "", false)
+	if err != nil {
+		t.Fatal("Error getting root node:", err)
+	}
+	if len(roots) != 1 {
+		t.Fatalf("expected exactly one root node, got %v", len(roots))
+	}
+	if roots[0].ID != rootID {
+		t.Fatalf("root node is %v, expected this instance's root %v",
+			roots[0].ID, rootID)
+	}
+
+	// the downstream's own nodes still replicate: only its root anchor is
+	// dropped, so its subtree stays reachable below it
+	kids, err := db.getNodes(nil, downID, "all", "", false)
+	if err != nil {
+		t.Fatal("Error getting downstream children:", err)
+	}
+	if len(kids) != 1 || kids[0].ID != serialID {
+		t.Fatalf("expected the downstream's serialDev below it, got %v", kids)
+	}
+}
+
+// TestDbJetStreamStrayRootEdgeIgnored covers a store that already holds a
+// second root edge, as one written by an earlier version would. The root is
+// the one recorded in meta, so such a store recovers on restart rather than
+// needing the stray edge removed by hand.
+func TestDbJetStreamStrayRootEdgeIgnored(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
+
+	rootID := db.rootNodeID()
+	strayID := uuid.New().String()
+
+	db.edgeCache.MergeEdgePoints("root", strayID, data.NodeTypeDevice, strayID,
+		data.Points{
+			data.NewPointFloat(data.PointTypeTombstone, "", 0),
+			data.NewPointString(data.PointTypeNodeType, "", data.NodeTypeDevice),
+		})
+
+	roots, err := db.getNodes(nil, "root", "all", "", false)
+	if err != nil {
+		t.Fatal("Error getting root node:", err)
+	}
+	if len(roots) != 1 || roots[0].ID != rootID {
+		t.Fatalf("expected only this instance's root %v, got %v", rootID, roots)
+	}
+
+	// asking for the stray by ID must not hand it back as a root either
+	nodes, err := db.getNodes(nil, "root", strayID, "", false)
+	if err != nil {
+		t.Fatal("Error getting stray root node:", err)
+	}
+	if len(nodes) != 0 {
+		t.Fatalf("stray edge served as a root node: %v", nodes)
+	}
+}
