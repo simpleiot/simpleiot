@@ -12,3 +12,4 @@
 | 2026-08-01-provisioning.md                      | **COMPLETE**                                                                            | 54169492      |
 | 2026-08-01-modbus-onewire-clients.md            | **COMPLETE**                                                                            | 54169492      |
 | 2026-08-11-prometheus-scrape-metrics.md         | **COMPLETE**                                                                            | ff1e2c7d      |
+| 2026-08-13-live-history-stream-split.md         | **PLANNED**                                                                             | 640fe7de      |
