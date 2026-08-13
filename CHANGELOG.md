@@ -13,6 +13,15 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+### Added
+
+- **`siot dump` describes a running instance for troubleshooting.** It reports
+  the instance root ID, the tree with node IDs and every parent of each node,
+  deleted nodes, and anything holding a second root. `-points` adds each point's
+  origin and timestamp, `-streams` adds the replication stream inventory, and
+  `-all` turns on both. See the
+  [configuration reference](docs/user/configuration.md).
+
 ### Fixed
 
 - **An upstream no longer adopts a downstream instance's root as its own.**
