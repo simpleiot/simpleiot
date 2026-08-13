@@ -368,7 +368,9 @@ siot_tag() {
 		return 1
 	fi
 
-	git fetch origin master || return 1
+	# --ff-only so a release tag is never placed on a merge commit the pull
+	# created; a diverged master stops here and is sorted out by hand
+	git pull --ff-only origin master || return 1
 	if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/master)" ]; then
 		echo "master and origin/master point at different commits"
 		echo "please push or pull so the tag lands on a commit that is upstream"
