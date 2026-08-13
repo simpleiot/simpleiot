@@ -22,8 +22,20 @@ For more details or to discuss releases, please visit the
   `-all` turns on both. See the
   [configuration reference](docs/user/configuration.md).
 
+### Changed
+
+- **Sync replicates in windows instead of one message at a time.** A pump now
+  sends up to 256 messages before waiting for the receiving instance to confirm
+  them, so the round trips overlap. A first sync of a large stream, such as the
+  one that follows an upstream store reset, finishes in a fraction of the time.
+
 ### Fixed
 
+- **A failed replication window is resent rather than skipped.** A message the
+  receiving instance did not accept used to be left for redelivery while later
+  messages kept flowing, which could store an older point after a newer one on a
+  subject. A window that fails is now retried as a unit with none of it
+  acknowledged, so each subject arrives in source order.
 - **An upstream no longer adopts a downstream instance's root as its own.**
   Every instance anchors its tree with a virtual `root` parent, and the store
   was loading that edge out of replica streams, so an upstream ended up with two

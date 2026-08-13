@@ -309,7 +309,7 @@ func (up *SyncClient) runSession(ctx context.Context, ncRemote *nats.Conn) error
 
 	// pull upstream-origin streams for our boundary; rescan for new
 	// ones (e.g. the first time the upstream writes configuration)
-	pulls := make(map[string]jetstream.ConsumeContext)
+	pulls := make(map[string]pumpStopper)
 	defer func() {
 		for _, cc := range pulls {
 			cc.Stop()
@@ -333,7 +333,7 @@ func (up *SyncClient) runSession(ctx context.Context, ncRemote *nats.Conn) error
 // scanPulls discovers upstream-origin streams for our boundary and
 // starts a pull pump for each new one.
 func (up *SyncClient) scanPulls(ctx context.Context, jsLocal, jsRemote jetstream.JetStream,
-	boundary string, pulls map[string]jetstream.ConsumeContext) {
+	boundary string, pulls map[string]pumpStopper) {
 
 	lister := jsRemote.ListStreams(ctx,
 		jetstream.WithStreamListSubject(fmt.Sprintf("inst.%v.>", boundary)))
@@ -377,14 +377,87 @@ func streamBoundaryOrigin(cfg jetstream.StreamConfig) (boundary, origin string, 
 	return tok[1], tok[2], true
 }
 
+// pumpWindowSize is how many messages a pump sends before waiting for the
+// receiving server to confirm them. Windowing is what makes a first sync of a
+// large stream practical: the round trips overlap instead of running one at a
+// time. It stays well under the JetStream client's default limit on
+// outstanding async publishes.
+const pumpWindowSize = 256
+
+// pumpRetryPeriod is how long a pump waits before resending a window the
+// receiving side did not accept.
+const pumpRetryPeriod = 5 * time.Second
+
+// pumpMsg is the part of a JetStream message a pump uses. It is an interface
+// so the window logic can be exercised without a server.
+type pumpMsg interface {
+	Subject() string
+	Data() []byte
+	Ack() error
+}
+
+// asyncPublisher is the part of a JetStream context a pump uses.
+type asyncPublisher interface {
+	PublishAsync(subject string, payload []byte,
+		opts ...jetstream.PublishOpt) (jetstream.PubAckFuture, error)
+}
+
+// pumpStopper shuts a running pump down.
+type pumpStopper interface {
+	Stop()
+}
+
+// sendWindow publishes every message in a window, waits for the receiving
+// server to confirm all of them, and acknowledges the source messages only
+// once every publish has succeeded. Acknowledging none of them on failure is
+// what keeps ordering intact: the durable consumer redelivers the whole window
+// in the order it was stored, so a resend can never place an older point after
+// a newer one. That matters because the receiving store reads the last message
+// on a subject as that subject's current value.
+func sendWindow(ctx context.Context, dst asyncPublisher, window []pumpMsg) error {
+	if len(window) == 0 {
+		return nil
+	}
+
+	futures := make([]jetstream.PubAckFuture, 0, len(window))
+	for _, m := range window {
+		f, err := dst.PublishAsync(m.Subject(), m.Data())
+		if err != nil {
+			return fmt.Errorf("error publishing %v: %w", m.Subject(), err)
+		}
+		futures = append(futures, f)
+	}
+
+	// every message is in flight, so waiting on the futures in turn costs
+	// about one round trip for the window rather than one per message
+	for i, f := range futures {
+		select {
+		case err := <-f.Err():
+			return fmt.Errorf("error replicating %v: %w", window[i].Subject(), err)
+		case <-f.Ok():
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+
+	for _, m := range window {
+		if err := m.Ack(); err != nil {
+			return fmt.Errorf("error acking %v: %w", m.Subject(), err)
+		}
+	}
+
+	return nil
+}
+
 // runPump copies messages from a boundary-origin stream on src into the
 // same-named replica stream on dst, preserving subjects. A durable
 // consumer on src (named for the receiving instance) makes the copy
 // resumable: after a disconnect, only unacknowledged messages are
-// redelivered. Messages are acknowledged only after dst confirms the
-// write.
+// redelivered. Messages move in windows and are acknowledged only after dst
+// confirms every write in the window; a window that fails is resent rather
+// than skipped, so the receiving stream sees each subject in source order.
 func runPump(ctx context.Context, src, dst jetstream.JetStream,
-	boundary, origin, durableFor string) (jetstream.ConsumeContext, error) {
+	boundary, origin, durableFor string) (pumpStopper, error) {
 
 	name := fmt.Sprintf("inst_%v_%v", boundary, origin)
 
@@ -418,18 +491,59 @@ func runPump(ctx context.Context, src, dst jetstream.JetStream,
 		return nil, fmt.Errorf("error creating sync consumer on %v: %v", name, err)
 	}
 
-	return c.Consume(func(msg jetstream.Msg) {
-		_, err := dst.Publish(ctx, msg.Subject(), msg.Data())
-		if err != nil {
-			if ctx.Err() == nil {
-				log.Printf("Sync: error replicating %v: %v\n", msg.Subject(), err)
+	it, err := c.Messages(jetstream.PullMaxMessages(pumpWindowSize))
+	if err != nil {
+		return nil, fmt.Errorf("error iterating %v: %v", name, err)
+	}
+
+	go func() {
+		for {
+			window, err := fillWindow(it)
+			if err != nil {
+				// the iterator was stopped, or the session ended
+				return
 			}
-			// leave unacknowledged; it will be redelivered
-			return
+
+			// resend until it lands: moving on would let a later
+			// message overtake this window on the receiving side
+			for {
+				err := sendWindow(ctx, dst, window)
+				if err == nil {
+					break
+				}
+				if ctx.Err() != nil {
+					return
+				}
+				log.Printf("Sync: error replicating %v, retrying: %v\n", name, err)
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(pumpRetryPeriod):
+				}
+			}
 		}
-		err = msg.Ack()
-		if err != nil && ctx.Err() == nil {
-			log.Println("Sync: error acking replicated msg:", err)
+	}()
+
+	return it, nil
+}
+
+// fillWindow collects up to a full window from the iterator, returning early
+// once the source has nothing further waiting so a caught-up pump does not sit
+// on a partial window.
+func fillWindow(it jetstream.MessagesContext) ([]pumpMsg, error) {
+	window := make([]pumpMsg, 0, pumpWindowSize)
+
+	for len(window) < pumpWindowSize {
+		msg, err := it.Next()
+		if err != nil {
+			return nil, err
 		}
-	})
+		window = append(window, msg)
+
+		if meta, err := msg.Metadata(); err == nil && meta.NumPending == 0 {
+			break
+		}
+	}
+
+	return window, nil
 }
