@@ -13,6 +13,14 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+### Added
+
+- **A high availability reference describes the options and their constraints.**
+  The [high availability reference](docs/ref/high-availability.md) covers what
+  the store and synchronization design already protect, what running against an
+  external or hosted NATS cluster would take, and what happens to points
+  published while the application is stopped.
+
 ## [0.23.5] - 2026-08-18
 
 ### Fixed

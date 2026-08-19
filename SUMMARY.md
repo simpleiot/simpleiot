@@ -45,6 +45,7 @@
   - [Store](docs/ref/store.md)
   - [Synchronization](docs/ref/sync.md)
 - [Reliability](docs/ref/reliability.md)
+  - [High Availability](docs/ref/high-availability.md)
 - [API](docs/ref/api.md)
 - [Frontend](docs/ref/frontend.md)
 - [Rules](docs/ref/rules.md)
