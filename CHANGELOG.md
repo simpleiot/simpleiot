@@ -13,6 +13,8 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [0.23.5] - 2026-08-18
+
 ### Fixed
 
 - **Logging in to an upstream instance now signs you in as that instance's own
