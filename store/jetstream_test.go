@@ -250,6 +250,47 @@ func TestDbJetStreamUserCheck(t *testing.T) {
 	}
 }
 
+// A user replicated up from a downstream instance can carry the same
+// credentials as the upstream's own admin. Login must resolve to the user
+// closest to the root, and must do so on every call.
+func TestDbJetStreamUserCheckDuplicateCredentials(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
+
+	rootID := db.rootNodeID()
+
+	// a downstream device, holding a replicated user with the same
+	// email and password as the admin created with the root node
+	deviceID := uuid.New().String()
+	mkTestNode(t, db, rootID, deviceID, data.NodeTypeDevice, "downstream")
+
+	dupID := uuid.New().String()
+	mkTestNode(t, db, deviceID, dupID, data.NodeTypeUser, "")
+	err := db.nodePoints(dupID, data.Points{
+		data.NewPointString(data.PointTypeEmail, "", "admin"),
+		data.NewPointString(data.PointTypePass, "", "admin"),
+	})
+	if err != nil {
+		t.Fatal("Error writing downstream user points:", err)
+	}
+
+	for i := 0; i < 10; i++ {
+		users, err := db.userCheck("admin", "admin")
+		if err != nil {
+			t.Fatal("userCheck returned error:", err)
+		}
+		if len(users) != 2 {
+			t.Fatal("expected both matching users, got:", len(users))
+		}
+		if users[0].ID == dupID {
+			t.Fatal("userCheck picked the downstream user over the root user")
+		}
+		if users[1].ID != dupID {
+			t.Fatal("downstream user not ordered after the root user")
+		}
+	}
+}
+
 func TestDbJetStreamUp(t *testing.T) {
 	db, cleanup := newTestJsDb(t)
 	defer cleanup()

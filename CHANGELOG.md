@@ -13,6 +13,14 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+### Fixed
+
+- **Logging in to an upstream instance now signs you in as that instance's own
+  user.** Sync copies a downstream instance's users upstream, so an upstream can
+  hold more than one user with the same email and password. Login previously
+  picked one of them at random, which could show the downstream device's tree
+  instead of the upstream's. The user closest to the root now wins.
+
 ## [0.23.4] - 2026-08-13
 
 ### Added

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -1051,32 +1052,69 @@ func (db *DbJetStream) userCheck(email, password string) (data.Nodes, error) {
 		}
 	}
 
-	// Verify each user has a path to root
-	var ret []data.NodeEdge
+	// Keep only users with a path to root, and order them by how close
+	// they sit to the root. Sync replicates a downstream instance's user
+	// nodes upstream, so an upstream can hold several users with the same
+	// credentials; the caller authenticates as the first one returned, and
+	// the user nearest the root is the one that belongs to this instance.
+	type ranked struct {
+		node  data.NodeEdge
+		depth int
+	}
+
+	var found []ranked
 	for _, u := range users {
-		if db.hasPathToRoot(u.ID) {
-			ret = append(ret, u)
+		d := db.depthToRoot(u.ID)
+		if d < 0 {
+			continue
 		}
+		found = append(found, ranked{node: u, depth: d})
+	}
+
+	// ID breaks ties so that equally placed users resolve the same way on
+	// every login rather than following map iteration order
+	sort.Slice(found, func(i, j int) bool {
+		if found[i].depth != found[j].depth {
+			return found[i].depth < found[j].depth
+		}
+		return found[i].node.ID < found[j].node.ID
+	})
+
+	ret := make([]data.NodeEdge, 0, len(found))
+	for _, f := range found {
+		ret = append(ret, f.node)
 	}
 
 	return ret, nil
 }
 
-// hasPathToRoot checks if a node has an undeleted path to the root node.
-func (db *DbJetStream) hasPathToRoot(id string) bool {
-	parents := db.edgeCache.Parents(id)
-	for _, e := range parents {
-		if e.IsTombstone() {
-			continue
+// depthToRoot returns the number of edges on the shortest undeleted path
+// from a node to the root, or -1 when the node has no path to the root.
+// The root node itself is at depth 0.
+func (db *DbJetStream) depthToRoot(id string) int {
+	visited := map[string]bool{id: true}
+	frontier := []string{id}
+
+	for depth := 0; len(frontier) > 0; depth++ {
+		var next []string
+		for _, n := range frontier {
+			for _, e := range db.edgeCache.Parents(n) {
+				if e.IsTombstone() {
+					continue
+				}
+				if e.Up == "root" {
+					return depth
+				}
+				if !visited[e.Up] {
+					visited[e.Up] = true
+					next = append(next, e.Up)
+				}
+			}
 		}
-		if e.Up == "root" {
-			return true
-		}
-		if db.hasPathToRoot(e.Up) {
-			return true
-		}
+		frontier = next
 	}
-	return false
+
+	return -1
 }
 
 func (db *DbJetStream) initRoot(rootID string) (string, error) {
