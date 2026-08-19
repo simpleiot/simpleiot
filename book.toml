@@ -11,6 +11,9 @@ title = "Simple IoT"
 [output.html]
 git-repository-url = "https://github.com/simpleiot/simpleiot"
 edit-url-template = "https://github.com/simpleiot/simpleiot/edit/master/{path}"
+# docs/theme (inside the docs/ mount used by the Docker build) overrides the
+# favicon; missing theme files fall back to the built-in themes.
+theme = "docs/theme"
 # docs/theme/siot.css restyles the built-in "coal" theme to match the palette
 # and typography of simpleiot.org, so coal serves as both the default and the
 # preferred dark theme. The other built-in themes stay available in the picker.
