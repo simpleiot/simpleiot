@@ -193,11 +193,13 @@ const (
 	PointValueSetValue  = "setValue"
 	PointValuePlayAudio = "playAudio"
 
-	// Transient points that are used for notifications, etc.
-	// These points are not stored in the state of any node,
-	// but are recorded in the time series database to record history.
-	PointMsgAll  = "msgAll"
-	PointMsgUser = "msgUser"
+	// Notifications and messages travel as points carrying a JSON payload
+	// (see data/notification.go and data/message.go). A notification says
+	// what happened; a message says what happened and who to send it to.
+	// Both use a fixed key so a node carries only its most recent one --
+	// history lives in the JetStream stream.
+	PointTypeNotification = "notification"
+	PointTypeMessage      = "message"
 
 	NodeTypeMsgService = "msgService"
 
@@ -205,10 +207,13 @@ const (
 
 	PointValueTwilio = "twilio"
 	PointValueSMTP   = "smtp"
+	PointValueNtfy   = "ntfy"
 
 	PointTypeSID       = "sid"
 	PointTypeAuthToken = "authToken"
 	PointTypeFrom      = "from"
+	PointTypeUsername  = "username"
+	PointTypeTopic     = "topic"
 
 	NodeTypeVariable      = "variable"
 	PointTypeVariableType = "variableType"

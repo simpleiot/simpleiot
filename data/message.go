@@ -1,55 +1,51 @@
 package data
 
 import (
-	"github.com/simpleiot/simpleiot/internal/pb"
-	"google.golang.org/protobuf/proto"
+	"encoding/json"
+	"fmt"
+	"time"
 )
 
-// Message describes a notification that is sent to a particular user
+// Message is a notification addressed to a particular user. It travels as
+// a JSON payload in a point of type PointTypeMessage on the user node that
+// generated it. Like notifications, the point uses a fixed (empty) key, so
+// the user node carries only its most recent message.
 type Message struct {
-	ID             string
-	UserID         string
-	ParentID       string
-	NotificationID string
-	Email          string
-	Phone          string
-	Subject        string
-	Message        string
+	// NotificationID is carried through unchanged from the notification
+	// that generated this message, so a service can recognize two messages
+	// generated from one notification by different instances of a mirrored
+	// user node.
+	NotificationID string `json:"notificationID"`
+	UserID         string `json:"userID"`
+	Phone          string `json:"phone"`
+	Email          string `json:"email"`
+	Subject        string `json:"subject"`
+	Message        string `json:"message"`
 }
 
-// ToPb converts to protobuf data
-func (m *Message) ToPb() ([]byte, error) {
-	pbMsg := pb.Message{
-		Id:             m.ID,
-		UserId:         m.UserID,
-		ParentId:       m.ParentID,
-		NotificationId: m.NotificationID,
-		Email:          m.Email,
-		Phone:          m.Phone,
-		Subject:        m.Subject,
-		Message:        m.Message,
-	}
-
-	return proto.Marshal(&pbMsg)
-}
-
-// PbDecodeMessage converts a protobuf to a message data structure
-func PbDecodeMessage(data []byte) (Message, error) {
-	pbMsg := &pb.Message{}
-
-	err := proto.Unmarshal(data, pbMsg)
+// Point encodes the message as a point ready to send to a node.
+func (m Message) Point() (Point, error) {
+	d, err := json.Marshal(m)
 	if err != nil {
-		return Message{}, err
+		return Point{}, err
 	}
 
-	return Message{
-		ID:             pbMsg.Id,
-		UserID:         pbMsg.UserId,
-		ParentID:       pbMsg.ParentId,
-		NotificationID: pbMsg.NotificationId,
-		Email:          pbMsg.Email,
-		Phone:          pbMsg.Phone,
-		Subject:        pbMsg.Subject,
-		Message:        pbMsg.Message,
+	return Point{
+		Type:     PointTypeMessage,
+		Time:     time.Now(),
+		DataType: PointDataTypeJSON,
+		Data:     d,
 	}, nil
+}
+
+// PointToMessage decodes a message from a point.
+func PointToMessage(p Point) (Message, error) {
+	var ret Message
+
+	if p.Type != PointTypeMessage {
+		return ret, fmt.Errorf("point type %v is not a message", p.Type)
+	}
+
+	err := json.Unmarshal(p.Data, &ret)
+	return ret, err
 }
