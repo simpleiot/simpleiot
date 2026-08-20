@@ -206,6 +206,15 @@ type RuleClient struct {
 	// and computes the state it was already in does not re-assert its
 	// setValue outputs or re-send its notification.
 	actionState bool
+
+	// condState holds the in-process state of each condition, keyed by
+	// condition node ID
+	condState map[string]*condRuntime
+
+	// lastTrigger is the node that last moved a condition, used to name the
+	// node that fired the rule when an action runs from a timer rather than
+	// from an inbound point
+	lastTrigger string
 }
 
 // NewRuleClient constructor ...
@@ -263,34 +272,64 @@ func (rc *RuleClient) Run() error {
 		scheduleTicker.Stop()
 	}
 
+	// deadlineTimer fires when a condition can change state on its own, with
+	// no inbound point. It stays stopped whenever nothing is pending, so an
+	// idle rule costs nothing.
+	deadlineTimer := time.NewTimer(time.Hour)
+	if !deadlineTimer.Stop() {
+		<-deadlineTimer.C
+	}
+
+	armDeadline := func() {
+		if !deadlineTimer.Stop() {
+			select {
+			case <-deadlineTimer.C:
+			default:
+			}
+		}
+
+		next := rc.nextDeadline()
+		if next.IsZero() {
+			return
+		}
+
+		wait := time.Until(next)
+		if wait < 0 {
+			wait = 0
+		}
+
+		deadlineTimer.Reset(wait)
+	}
+
+	// run evaluates the rule and acts on a change of state. points may be
+	// empty, which is how a timer re-evaluates conditions with nothing new to
+	// compare against.
 	run := func(id string, pts data.Points) {
 		var active bool
 
-		if id == "" {
-			// a configuration change rather than an inbound point; the rule
-			// itself is the trigger node as far as the actions are concerned
-			id = rc.config.ID
-		}
+		defer armDeadline()
 
 		if rc.config.Disabled {
 			// a disabled rule is inactive, and publishing that keeps the state
 			// the actions ran for and the state the UI shows in agreement
 			rc.setRuleActive(false)
 		} else {
-			if len(pts) <= 0 {
-				// a configuration change; send a schedule trigger through just
-				// in case someone changed a schedule condition
-				pts = data.Points{{
-					Time: time.Now(),
-					Type: data.PointTypeTrigger,
-				}}
+			if len(pts) > 0 {
+				rc.ruleUpdateConditions(id, pts)
 			}
 
-			var err error
-			active, err = rc.ruleProcessPoints(id, pts)
-			if err != nil {
-				log.Println("Error processing rule point:", err)
-			}
+			rc.ruleApplyHeldState(time.Now())
+			active = rc.ruleComputeActive()
+		}
+
+		if id == "" {
+			// the rule ran from a timer rather than from an inbound point;
+			// name the node that last moved a condition as the trigger
+			id = rc.lastTrigger
+		}
+
+		if id == "" {
+			id = rc.config.ID
 		}
 
 		if active == rc.actionState {
@@ -353,6 +392,11 @@ done:
 				Type: data.PointTypeTrigger,
 			}})
 
+		case <-deadlineTimer.C:
+			// a pending period or a hold expired; re-evaluate with nothing
+			// new to compare against
+			run("", nil)
+
 		case pts := <-rc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &rc.config)
 			if err != nil {
@@ -365,7 +409,12 @@ done:
 				scheduleTicker.Stop()
 			}
 
-			run("", nil)
+			// send a schedule trigger through just in case someone changed a
+			// schedule condition
+			run("", data.Points{{
+				Time: time.Now(),
+				Type: data.PointTypeTrigger,
+			}})
 
 		case pts := <-rc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &rc.config)
@@ -373,7 +422,10 @@ done:
 				log.Println("error merging rule edge points:", err)
 			}
 
-			run("", nil)
+			run("", data.Points{{
+				Time: time.Now(),
+				Type: data.PointTypeTrigger,
+			}})
 		}
 	}
 
@@ -472,11 +524,48 @@ func (rc *RuleClient) processError(errS string) {
 	}
 }
 
-// ruleProcessPoints runs points through a rules conditions and and updates condition
-// and rule active status. Returns the rule active state.
-// Currently, this function only processes the first point that matches -- this should
-// handle all current uses.
-func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool, error) {
+// condRuntime is the in-process state of a condition. The raw comparison
+// result and the time it last changed are what the held-state pass debounces;
+// the condition's active point is the held result and is what the rule, the
+// UI, and history see.
+//
+// This state is not persisted. A pending period therefore restarts after a
+// client restart or a configuration change that reloads the client, which is
+// how Grafana behaves as well -- persisting a pending timer would mean writing
+// a point on every evaluation.
+type condRuntime struct {
+	// raw is the last undebounced comparison result
+	raw bool
+	// rawChanged is when raw last took its current value
+	rawChanged time.Time
+	// deadline is when the held state changes on its own, zero when the
+	// held state already agrees with raw
+	deadline time.Time
+}
+
+// condRuntime returns the in-process state for a condition, seeding it from
+// the condition's persisted active point the first time it is asked for.
+func (rc *RuleClient) condRuntime(id string, active bool) *condRuntime {
+	if rc.condState == nil {
+		rc.condState = make(map[string]*condRuntime)
+	}
+
+	cs, ok := rc.condState[id]
+	if !ok {
+		cs = &condRuntime{raw: active, rawChanged: time.Now()}
+		rc.condState[id] = cs
+	}
+
+	return cs
+}
+
+// ruleUpdateConditions compares incoming points against each condition and
+// records the raw comparison result. The condition's active point is left to
+// the held-state pass, which is the only place that decides what the rule
+// sees.
+// Currently, this function only processes the first point that matches -- this
+// should handle all current uses.
+func (rc *RuleClient) ruleUpdateConditions(nodeID string, points data.Points) {
 	for _, p := range points {
 		for i, c := range rc.config.Conditions {
 			var active bool
@@ -560,17 +649,16 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 				}
 			}
 
-			if active != c.Active {
-				// update condition
-				p := data.NewPointFloat(data.PointTypeActive, "", data.BoolToFloat(active))
-				p.Time = time.Now()
-
-				err := rc.sendPoint(c.ID, p)
-				if err != nil {
-					log.Println("Rule error sending point:", err)
+			cs := rc.condRuntime(c.ID, c.Active)
+			if active != cs.raw {
+				cs.raw = active
+				cs.rawChanged = time.Now()
+				if nodeID != "" {
+					// remember what moved the condition so an action that
+					// runs later, when a pending period expires, can still
+					// name the node that fired the rule
+					rc.lastTrigger = nodeID
 				}
-
-				rc.config.Conditions[i].Active = active
 			}
 
 			if !errorActive && c.Error != "" {
@@ -587,7 +675,66 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 			}
 		}
 	}
+}
 
+// ruleApplyHeldState moves each condition's active point toward its raw state.
+// It runs from a timer as well as from an inbound point, so it takes the
+// current time rather than reading the clock per condition.
+func (rc *RuleClient) ruleApplyHeldState(now time.Time) {
+	live := make(map[string]bool, len(rc.config.Conditions))
+
+	for i, c := range rc.config.Conditions {
+		live[c.ID] = true
+
+		cs := rc.condRuntime(c.ID, c.Active)
+		cs.deadline = time.Time{}
+
+		if cs.raw == c.Active {
+			continue
+		}
+
+		if delay := c.holdTime(cs.raw); delay > 0 {
+			deadline := cs.rawChanged.Add(delay)
+			if now.Before(deadline) {
+				cs.deadline = deadline
+				continue
+			}
+		}
+
+		rc.setConditionActive(i, cs.raw)
+	}
+
+	// drop state for conditions that are no longer children of the rule
+	for id := range rc.condState {
+		if !live[id] {
+			delete(rc.condState, id)
+		}
+	}
+}
+
+// holdTime is how long a condition's raw result must hold before the
+// condition's active point follows it.
+func (Condition) holdTime(_ bool) time.Duration {
+	return 0
+}
+
+// setConditionActive publishes a condition's active point
+func (rc *RuleClient) setConditionActive(i int, active bool) {
+	p := data.NewPointFloat(data.PointTypeActive, "", data.BoolToFloat(active))
+	p.Time = time.Now()
+
+	err := rc.sendPoint(rc.config.Conditions[i].ID, p)
+	if err != nil {
+		log.Println("Rule error sending point:", err)
+	}
+
+	rc.config.Conditions[i].Active = active
+}
+
+// ruleComputeActive computes the rule state from its conditions and publishes
+// the rule's active point when it changes. A rule is active when every enabled
+// condition is active and at least one condition is enabled.
+func (rc *RuleClient) ruleComputeActive() bool {
 	allActive := true
 	activeConditionCount := 0
 
@@ -607,7 +754,7 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 
 	rc.setRuleActive(allActive)
 
-	return allActive, nil
+	return allActive
 }
 
 // setRuleActive publishes the rule's active point when the state changes
@@ -625,6 +772,34 @@ func (rc *RuleClient) setRuleActive(active bool) {
 	}
 
 	rc.config.Active = active
+}
+
+// nextDeadline returns the earliest time at which the rule can change state on
+// its own, with no inbound point -- a pending period expiring or a hold
+// expiring. It returns the zero time when nothing is pending, in which case the
+// client arms no timer at all.
+func (rc *RuleClient) nextDeadline() time.Time {
+	var next time.Time
+
+	consider := func(t time.Time) {
+		if t.IsZero() {
+			return
+		}
+		if next.IsZero() || t.Before(next) {
+			next = t
+		}
+	}
+
+	for _, c := range rc.config.Conditions {
+		if c.Disabled {
+			continue
+		}
+		if cs, ok := rc.condState[c.ID]; ok {
+			consider(cs.deadline)
+		}
+	}
+
+	return next
 }
 
 // ruleRunActions runs rule actions
