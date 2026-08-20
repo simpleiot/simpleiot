@@ -15,3 +15,4 @@
 | 2026-08-19-notifications.md                     | **COMPLETE** (notification display in UI deferred)                                      | d2bbb2a3      |
 | 2026-08-20-mqtt.md                              | **PLANNED**                                                                             | 9032d3c3      |
 | 2026-08-20-rule-timing-and-actions.md           | **PLANNED**                                                                             | 9032d3c3      |
+| 2026-08-20-per-device-credentials.md            | **PLANNED**                                                                             | cbc07a67      |

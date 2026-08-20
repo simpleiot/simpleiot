@@ -15,6 +15,7 @@
   - [Database](docs/user/database.md)
   - [GPS](docs/user/gps.md)
   - [Modbus](docs/user/modbus.md)
+  - [MQTT (planned)](docs/user/mqtt.md)
   - [1-Wire](docs/user/onewire.md)
   - [Messaging services](docs/user/messaging.md)
   - [MCU Devices](docs/user/mcu.md)
