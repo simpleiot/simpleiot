@@ -11,7 +11,7 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-## Next
+## [0.24.1] - 2026-08-20
 
 ### Added
 
