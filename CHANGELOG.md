@@ -15,6 +15,12 @@ For more details or to discuss releases, please visit the
 
 ### Added
 
+- **Notify actions take a repeat interval.** Set in minutes on a rule's notify
+  action, it re-sends the notification while the rule stays active and keeps
+  that action from notifying more often than the interval no matter how often
+  the rule transitions. Leaving it unset keeps one notification per transition
+  with no rate limit. See the
+  [rules documentation](docs/user/rules.md#notifications).
 - **Rule conditions can hold themselves active with `minInactive`.** Set in
   minutes on a condition, it keeps the condition met until its input has been
   clear for that long, so a value oscillating around a threshold is one incident

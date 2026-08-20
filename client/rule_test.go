@@ -532,6 +532,27 @@ func minutes(m float64) time.Duration {
 	return time.Duration(m * float64(time.Minute))
 }
 
+// addNotifyActionInactive adds a notify action that runs when the rule
+// resolves.
+func (rts *ruleTestServer) addNotifyActionInactive(id string) client.ActionInactive {
+	a := client.ActionInactive{
+		ID:          id,
+		Parent:      rts.r.ID,
+		Description: "notify inactive " + id,
+		Action:      data.PointValueNotify,
+	}
+
+	err := client.SendNodeType(rts.nc, a, "test")
+	if err != nil {
+		rts.t.Fatalf("Error sending inactive notify action: %v", err)
+	}
+
+	// give the rule client time to pick up the new child
+	time.Sleep(250 * time.Millisecond)
+
+	return a
+}
+
 /*
 minActive is a pending period: the condition has to hold continuously for that
 long before the rule goes active.
@@ -671,4 +692,125 @@ func TestRuleMinInactive(t *testing.T) {
 	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
 	r.checkVoutStays(1, minutes(minInactive)/2, "hold is still running", "0")
 	r.checkVout(0, "rule clears once the input has been clear for minInactive", "0")
+}
+
+/*
+A repeat interval rate limits a notify action: no matter how often the rule
+transitions, it notifies at most once per interval.
+*/
+func TestRuleNotifyRateLimit(t *testing.T) {
+	r, err := setupRuleTest(t, 1)
+	if err != nil {
+		t.Fatal("Rule test setup failed: ", err)
+	}
+
+	defer r.stop()
+	defer r.voutStop()
+
+	an := r.addNotifyAction("ID-action-notify")
+
+	const repeatInterval = 0.05 // 3s
+
+	r.sendPoint(an.ID, data.NewPointFloat(data.PointTypeRepeatInterval, "", repeatInterval))
+	time.Sleep(150 * time.Millisecond)
+
+	notifyCount, notifyStop := r.countPoints(r.r.ID, data.PointTypeNotification)
+	defer notifyStop()
+
+	r.checkVout(0, "initial value", "0")
+
+	for i := 0; i < 4; i++ {
+		r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
+		r.checkVout(1, "rule active", "0")
+		r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
+		r.checkVout(0, "rule inactive", "0")
+	}
+
+	if got := notifyCount(); got != 1 {
+		t.Errorf("expected 1 notification within the repeat interval, got %v", got)
+	}
+}
+
+/*
+A rule that stays active re-sends its notification every repeat interval, and
+stops once it resolves.
+*/
+func TestRuleNotifyRepeat(t *testing.T) {
+	r, err := setupRuleTest(t, 1)
+	if err != nil {
+		t.Fatal("Rule test setup failed: ", err)
+	}
+
+	defer r.stop()
+	defer r.voutStop()
+
+	an := r.addNotifyAction("ID-action-notify")
+
+	const repeatInterval = 0.02 // 1.2s
+
+	r.sendPoint(an.ID, data.NewPointFloat(data.PointTypeRepeatInterval, "", repeatInterval))
+	time.Sleep(150 * time.Millisecond)
+
+	notifyCount, notifyStop := r.countPoints(r.r.ID, data.PointTypeNotification)
+	defer notifyStop()
+
+	r.checkVout(0, "initial value", "0")
+
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
+	r.checkVout(1, "rule active", "0")
+
+	// the first notification plus a reminder at each interval
+	time.Sleep(minutes(repeatInterval) * 5 / 2)
+
+	if got := notifyCount(); got != 3 {
+		t.Errorf("expected 3 notifications (one plus two reminders), got %v", got)
+	}
+
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
+	r.checkVout(0, "rule inactive", "0")
+
+	after := notifyCount()
+
+	time.Sleep(minutes(repeatInterval) * 2)
+
+	if got := notifyCount(); got != after {
+		t.Errorf("a resolved rule sent %v more notifications", got-after)
+	}
+}
+
+/*
+An inactive action does not repeat -- a resolved rule is the normal state, so a
+reminder about it would never stop. The rate limit still applies.
+*/
+func TestRuleNotifyInactiveNoRepeat(t *testing.T) {
+	r, err := setupRuleTest(t, 1)
+	if err != nil {
+		t.Fatal("Rule test setup failed: ", err)
+	}
+
+	defer r.stop()
+	defer r.voutStop()
+
+	an := r.addNotifyActionInactive("ID-action-notify-inactive")
+
+	const repeatInterval = 0.02 // 1.2s
+
+	r.sendPoint(an.ID, data.NewPointFloat(data.PointTypeRepeatInterval, "", repeatInterval))
+	time.Sleep(150 * time.Millisecond)
+
+	notifyCount, notifyStop := r.countPoints(r.r.ID, data.PointTypeNotification)
+	defer notifyStop()
+
+	r.checkVout(0, "initial value", "0")
+
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
+	r.checkVout(1, "rule active", "0")
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
+	r.checkVout(0, "rule inactive", "0")
+
+	time.Sleep(minutes(repeatInterval) * 3)
+
+	if got := notifyCount(); got != 1 {
+		t.Errorf("expected 1 notification from the inactive action, got %v", got)
+	}
 }

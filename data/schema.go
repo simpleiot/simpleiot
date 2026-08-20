@@ -194,6 +194,8 @@ const (
 	PointValueSetValue  = "setValue"
 	PointValuePlayAudio = "playAudio"
 
+	PointTypeRepeatInterval = "repeatInterval"
+
 	// Notifications and messages travel as points carrying a JSON payload
 	// (see data/notification.go and data/message.go). A notification says
 	// what happened; a message says what happened and who to send it to.

@@ -113,10 +113,23 @@ triggered the rule in the message. From there it is delivered to users and
 messaging services in scope as described in the
 [notifications documentation](notifications.md).
 
-Each state transition sends one notification. There is no rate limiting at the
-rule yet, so a rule that cycles rapidly between active and inactive (a sensor
-sitting right at a threshold, a device going on and off line) sends a
-notification per transition — see [Planned Changes](#planned-changes).
+Each state transition sends one notification. A notify action may also set a
+repeat interval, in minutes, which turns on two behaviors at once:
+
+- **A reminder.** While the rule stays active, an action of type `action`
+  re-sends its notification every interval, so a long running condition is not a
+  single message that scrolled away hours ago. An inactive action does not
+  repeat — a resolved rule is the normal state, so a reminder about it would
+  never stop.
+- **A rate limit.** An action does not notify more often than its repeat
+  interval no matter how often the rule transitions. The transition still
+  happens and the rule state is still correct; only the notification is dropped.
+  This bounds the damage from a condition that flaps faster than its `minActive`
+  and `minInactive` durations guard against.
+
+With no repeat interval set, an action sends one notification per transition and
+is not rate limited. Send times are in-process state, so they reset if the
+instance restarts.
 
 ### Set node point
 
@@ -191,6 +204,7 @@ nodes:
         - action:
             action: notify
             description: Tell the operators
+            repeatInterval: 240
         - actionInactive:
             action: setValue
             description: Clear the alarm
@@ -225,8 +239,10 @@ its leading zero, along with `weekday` and `date`. `weekday` is seven points,
 Sunday first, each `1` or `0`. `date` is a list of dates, and a schedule carries
 dates or weekdays rather than both.
 
-`action` is `notify`, `setValue`, or `playAudio`. A `setValue` action names what
-to write with `nodeID`, `pointType`, and `pointKey`, and what to write with
+`action` is `notify`, `setValue`, or `playAudio`. A `notify` action takes an
+optional `repeatInterval`, in minutes, which reminds while the rule stays active
+and rate limits the action in both directions. A `setValue` action names what to
+write with `nodeID`, `pointType`, and `pointKey`, and what to write with
 `valueType` and `value` or `valueText`. A `playAudio` action names the WAV file
 to play with `filePath`, the ALSA device to play it on with `device`, and the
 channel with `channel`.
@@ -241,15 +257,6 @@ The timing behavior around rule state and notifications is being improved. The
 design follows the model that Grafana alerting and Prometheus Alertmanager have
 converged on, since it has proven itself for exactly the problems rules have
 here: noisy conditions, flapping, and notification fatigue.
-
-- **A repeat interval on the notify action.** Two related behaviors, both taken
-  from Grafana's repeat interval (default there is 4 hours):
-  - While a rule stays active, an optional reminder can be re-sent every repeat
-    interval, so a long-running condition is not a single message that scrolled
-    away hours ago.
-  - The interval also acts as a rate limit: a rule will not notify more often
-    than the repeat interval no matter how often it transitions, bounding the
-    damage from a flapping condition that slips past the duration guards.
 
 Grafana's remaining defenses — evaluating over an aggregation window instead of
 raw samples, and a recovery threshold separate from the firing threshold —

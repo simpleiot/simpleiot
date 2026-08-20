@@ -143,6 +143,7 @@ module Api.Point exposing
     , typeReadOnly
     , typeReboot
     , typeRefresh
+    , typeRepeatInterval
     , typeRetryInterval
     , typeRotate
     , typeRoundTo
@@ -806,6 +807,11 @@ typeDialogColor =
 typeTouchQuirk : String
 typeTouchQuirk =
     "touchquirk"
+
+
+typeRepeatInterval : String
+typeRepeatInterval =
+    "repeatInterval"
 
 
 typeRetryInterval : String

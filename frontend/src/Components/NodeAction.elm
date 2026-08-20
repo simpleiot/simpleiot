@@ -105,6 +105,9 @@ view o =
                         actionPlayAudio =
                             actionType == Point.valuePlayAudio
 
+                        actionNotify =
+                            actionType == Point.valueNotify
+
                         valueType =
                             Point.getText o.node.points Point.typeValueType "0"
 
@@ -121,6 +124,8 @@ view o =
                         , ( Point.valueSetValue, "set node value" )
                         , ( Point.valuePlayAudio, "play audio" )
                         ]
+                    , viewIf actionNotify <|
+                        numberInput Point.typeRepeatInterval "Repeat interval (m)"
                     , viewIf actionSetValue <|
                         optionInput Point.typePointType
                             "Point Type"
