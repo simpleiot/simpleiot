@@ -37,6 +37,12 @@ For more details or to discuss releases, please visit the
   value can create. See the
   [MQTT page](docs/user/mqtt.md#automatic-nodes-with-a-topic-schema).
 
+### Changed
+
+- **The Simple IoT title in the documentation header links to simpleiot.org.**
+  Selecting the name at the top of any documentation page now returns you to the
+  main site.
+
 ## [0.24.1] - 2026-08-20
 
 ### Added

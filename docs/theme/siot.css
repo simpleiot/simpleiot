@@ -311,6 +311,20 @@ html.sidebar-visible #mdbook-menu-bar {
   color: var(--siot-muted);
 }
 
+/* docs/theme/siot.js wraps the menu title in a link to the main site. */
+.menu-title-link,
+.menu-title-link:visited {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.menu-title-link:hover,
+.menu-title-link:focus-visible {
+  color: var(--siot-accent);
+  text-decoration: none;
+}
+
 .sidebar {
   border-inline-end: 1px solid var(--siot-border);
 }

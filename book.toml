@@ -18,6 +18,9 @@ theme = "docs/theme"
 # and typography of simpleiot.org, so coal serves as both the default and the
 # preferred dark theme. The other built-in themes stay available in the picker.
 additional-css = ["docs/theme/siot.css"]
+# docs/theme/siot.js turns the book title in the menu bar into a link back to
+# the main site at simpleiot.org.
+additional-js = ["docs/theme/siot.js"]
 default-theme = "coal"
 preferred-dark-theme = "coal"
 

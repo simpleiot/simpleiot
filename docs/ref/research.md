@@ -154,3 +154,24 @@ concurrently. Some information on this:
     - Billing Group (Can also be described by tree structure)
 - https://www.thingrex.com/aws_iot_thing_type/
   - Each type has a specified attributes - kind of a neat idea
+
+## Industry 4.0
+
+### umati
+
+[umati](https://umati.org/) (Universal Machine Technology Interface) is a
+community of machine builders, component suppliers, software vendors, and users
+working toward open interfaces for machine data. It builds on
+[OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) rather than
+defining a protocol of its own.
+
+- the data models are published as OPC UA companion specifications -- around 25
+  of them so far, covering machine tools, robotics, measurement systems, and
+  plastics machinery, with roughly 30 more in progress
+- the central "OPC UA for Machinery" specification carries the building blocks
+  common to any machine: identification, job management, and energy monitoring
+- https://umati.app/ is a live demonstration platform showing data from
+  participating machines
+- interesting to Simple IoT as a ready-made vocabulary for naming points on
+  factory equipment, and as further reason to build a native OPC UA client; see
+  the [OPC UA notes](../user/plc.md#opc-ua-planned)
