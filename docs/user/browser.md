@@ -32,8 +32,8 @@ nodes:
       url: http://localhost:8118
 ```
 
-The point types are lower case throughout, which matches the settings written
-to `/etc/default/yoe-kiosk-browser`. Checkboxes are stored as `1` and `0`.
+The point types are lower case throughout, which matches the settings written to
+`/etc/default/yoe-kiosk-browser`. Checkboxes are stored as `1` and `0`.
 `debugport` is text, so it is quoted; `rotate` and `retryinterval` are numbers.
 `displaycard` and `screenresolution` are the two settings that land in
 `/etc/default/eglfs.json`.

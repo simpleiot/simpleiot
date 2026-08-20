@@ -96,8 +96,7 @@ milliseconds. A `timeout` of zero or less is replaced with 100.
 along with `scale`, `offset`, and `units`.
 
 The values read and written, the error counts, and the connection state are
-points the client maintains, so an export of a running bus carries them as
-well.
+points the client maintains, so an export of a running bus carries them as well.
 
 ## Videos
 

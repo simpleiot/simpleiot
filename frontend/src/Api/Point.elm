@@ -109,8 +109,8 @@ module Api.Point exposing
     , typeMaxSeries
     , typeMaxValue
     , typeMinActive
-    , typeMinIncrement
     , typeMinInactive
+    , typeMinIncrement
     , typeMinValue
     , typeModbusIOType
     , typeMsgsInDb

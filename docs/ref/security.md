@@ -49,8 +49,8 @@ behavior users will see. The intended implementation:
   maintaining a separate NATS accounts file.
 - Permissions returned at connect time restrict the device to the subjects and
   JetStream streams of its own boundary. The stream-per-boundary layout
-  ([ADR-7](adr/7-jetstream-store.md)) is what makes a
-  one-rule-per-device grant possible.
+  ([ADR-7](adr/7-jetstream-store.md)) is what makes a one-rule-per-device grant
+  possible.
 - Revocation disconnects any live session using that credential and rejects
   reconnects.
 - The shared auth token keeps working for a transition period and for

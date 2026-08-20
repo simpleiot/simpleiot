@@ -40,8 +40,8 @@ and by name when there is no email. `phone` is written as text so the leading
 
 `role` is `admin` or `user` and lives under `edgePoints` rather than with the
 points, because a role belongs to the connection between the user and the node
-above rather than to the user. The same user mirrored into two places can hold
-a different role in each.
+above rather than to the user. The same user mirrored into two places can hold a
+different role in each.
 
 An export carries `pass` as it was entered, so treat a file that contains user
 nodes the way you would treat the passwords in it.
