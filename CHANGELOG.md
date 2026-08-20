@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-08-20
+
 ### Added
 
 - **Simple IoT now serves MQTT.** Set `SIOT_NATS_MQTT_PORT=1883` and gateways
