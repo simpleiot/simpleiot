@@ -36,6 +36,9 @@ For more details or to discuss releases, please visit the
   `maxNodes` (1000 by default) bounds what a topic level carrying an unbounded
   value can create. See the
   [MQTT page](docs/user/mqtt.md#automatic-nodes-with-a-topic-schema).
+- **MQTT device nodes show the values they hold.** Expanding a node a topic
+  schema created lists every point the device publishes next to its current
+  value, the way a serial device node does.
 
 ### Changed
 

@@ -149,6 +149,10 @@ Plant data (mqtt)
               point: value, key tank_level
 ```
 
+Expanding the `mqttDevice` node in the web UI lists every point it holds
+alongside its current value, so you can see what a device is publishing without
+querying the store.
+
 The rules:
 
 - **Each named level becomes a node**, carrying a tag named by its schema label.
