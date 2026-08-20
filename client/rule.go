@@ -678,21 +678,20 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 
 			n := data.Notification{
 				ID:         uuid.New().String(),
-				SourceNode: a.NodeID,
+				SourceNode: triggerNodeID,
+				Subject:    rc.config.Description,
 				Message:    rc.config.Description + " fired at " + triggerNodeDesc,
 			}
 
-			// TODO this notify code needs to be reworked
-			d, err := n.ToPb()
-
+			p, err := n.Point()
 			if err != nil {
-				return err
+				processError(fmt.Errorf("error encoding notification: %w", err))
+				break
 			}
 
-			err = rc.nc.Publish("node."+rc.config.ID+".not", d)
-
+			err = rc.sendPoint(rc.config.ID, p)
 			if err != nil {
-				return err
+				processError(fmt.Errorf("error sending notification point: %w", err))
 			}
 		case data.PointValuePlayAudio:
 			f, err := os.Open(a.FilePath)

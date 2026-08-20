@@ -122,16 +122,6 @@ func (st *Store) Run() error {
 		return fmt.Errorf("subscribe node error: %w", err)
 	}
 
-	/*
-		if st.subscriptions["notifications"], err = nc.Subscribe("node.*.not", st.handleNotification); err != nil {
-			return fmt.Errorf("Subscribe notification error: %w", err)
-		}
-
-		if st.subscriptions["messages"], err = nc.Subscribe("node.*.msg", st.handleMessage); err != nil {
-			return fmt.Errorf("Subscribe message error: %w", err)
-		}
-	*/
-
 	if st.subscriptions["auth.user"], err = nc.Subscribe("auth.user", st.handleAuthUser); err != nil {
 		return fmt.Errorf("subscribe auth error: %w", err)
 	}

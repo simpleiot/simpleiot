@@ -232,15 +232,20 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 
 			not.ID = uuid.New().String()
+			if not.SourceNode == "" {
+				not.SourceNode = id
+			}
 
-			d, err := not.ToPb()
+			p, err := not.Point()
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusBadRequest)
 				return
 			}
 
-			err = h.nc.Publish("node."+id+".not", d)
+			p.Origin = userID
+
+			err = client.SendNodePoint(h.nc, id, p, true)
 
 			if err != nil {
 				http.Error(res, err.Error(), http.StatusBadRequest)
