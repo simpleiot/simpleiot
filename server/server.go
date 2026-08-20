@@ -38,18 +38,21 @@ type Options struct {
 	NatsPort          int
 	NatsHTTPPort      int
 	NatsWSPort        int
-	NatsTLSCert       string
-	NatsTLSKey        string
-	NatsTLSTimeout    float64
-	AuthToken         string
-	ParticleAPIKey    string
-	AppVersion        string
-	OSVersionField    string
-	LogNats           bool
-	Dev               bool
-	CustomUIDir       string
-	CustomUIFS        fs.FS
-	UIAssetsDebug     bool
+	// NatsMQTTPort enables the built-in MQTT broker on this port. Zero, the
+	// default, leaves it off.
+	NatsMQTTPort   int
+	NatsTLSCert    string
+	NatsTLSKey     string
+	NatsTLSTimeout float64
+	AuthToken      string
+	ParticleAPIKey string
+	AppVersion     string
+	OSVersionField string
+	LogNats        bool
+	Dev            bool
+	CustomUIDir    string
+	CustomUIFS     fs.FS
+	UIAssetsDebug  bool
 	// ProvisioningDir is a directory of YAML files applied at start-up and
 	// whenever they change. Empty disables reading files from disk; file nodes
 	// under the provisioning node are still applied.
@@ -180,11 +183,13 @@ func (s *Server) Run() error {
 		Port:         o.NatsPort,
 		HTTPPort:     o.NatsHTTPPort,
 		WSPort:       o.NatsWSPort,
+		MQTTPort:     o.NatsMQTTPort,
 		Auth:         o.AuthToken,
 		TLSCert:      o.NatsTLSCert,
 		TLSKey:       o.NatsTLSKey,
 		TLSTimeout:   o.NatsTLSTimeout,
 		StoreDir:     jsDir,
+		ID:           o.ID,
 		SyncInterval: o.StoreSyncInterval,
 		SyncAlways:   o.StoreSyncAlways,
 	}

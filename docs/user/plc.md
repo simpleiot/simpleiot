@@ -115,13 +115,13 @@ becomes the limiting factor.
 
 MQTT is the most common way to get data out of a plant network and into
 something else, and it is the transport underneath Sparkplug B, described below.
-Simple IoT does not support it yet. Three pieces are involved:
+Three pieces are involved:
 
 1. Something on the PLC side that reads tags and publishes them.
-2. A broker. Simple IoT can provide this itself, described next.
+2. A broker. Simple IoT provides this itself, described next.
 3. A mapping from published messages into Simple IoT points.
 
-### The broker is already built in (planned)
+### The broker is already built in
 
 Simple IoT embeds a NATS server, and NATS includes an MQTT server. It needs
 JetStream, which Simple IoT already runs, so exposing it is a matter of opening
@@ -129,11 +129,10 @@ a port rather than adding a dependency. A gateway or sensor then publishes
 directly to Simple IoT, with no Mosquitto, HiveMQ, or EMQX to deploy, secure,
 and update. On an edge device that is one fewer process to keep running.
 
-The planned configuration is a port setting alongside the existing NATS port
-options, disabled by default:
+The configuration is a port setting alongside the existing NATS port options,
+disabled by default:
 
 ```
-# planned, subject to change
 SIOT_NATS_MQTT_PORT=1883
 ```
 
@@ -148,8 +147,9 @@ Points worth knowing about the NATS MQTT server:
   literal `.` in a topic converts to `//`. A Sparkplug topic of
   `spBv1.0/plant/DDATA/line3/tank` therefore arrives on the NATS subject
   `spBv1//0.plant.DDATA.line3.tank`.
-- MQTT connections authenticate against the credentials configured for the MQTT
-  listener. Use TLS whenever the connection leaves a trusted network.
+- MQTT connections authenticate with the Simple IoT auth token, supplied in the
+  password field of the connect packet. Use TLS whenever the connection leaves a
+  trusted network.
 
 An external broker still makes sense when the plant already runs one, when you
 need to bridge several sites, or when you need broker features such as

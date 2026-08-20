@@ -1,9 +1,10 @@
-# MQTT (planned)
+# MQTT
 
-Simple IoT can serve MQTT itself and turn published messages into points.
-Everything on this page is planned rather than implemented; it is documented now
-so you can plan deployments around it and so the design is open for discussion
-on the [community forum](https://community.tmpdir.org/c/simple-iot/5). See the
+Simple IoT can serve MQTT itself and turn published messages into points. The
+built-in broker is available now; the sections marked **(planned)** below are
+documented so you can plan deployments around them and so the design is open for
+discussion on the
+[community forum](https://community.tmpdir.org/c/simple-iot/5). See the
 [PLC page](plc.md) for how MQTT compares with the other ways to bring plant data
 in, and [ADR-8](../adr/8-iot-data-models.md) for how common MQTT payload formats
 compare with the Simple IoT point model.
@@ -19,7 +20,7 @@ Support comes in four pieces, each usable without the ones after it:
 4. **Sparkplug B.** Birth certificates describe the data, so the node structure
    builds itself. Covered in its own section below.
 
-## The built-in broker (planned)
+## The built-in broker
 
 Simple IoT embeds a NATS server, and NATS includes an MQTT server. It needs
 JetStream, which Simple IoT already runs, so serving MQTT is a port setting
@@ -36,14 +37,24 @@ The port is disabled by default. Points worth knowing:
 - QoS 0, 1, and 2 are supported. Sessions and retained messages are stored in
   JetStream, so they survive a restart.
 - When an auth token is configured (`SIOT_AUTH_TOKEN`), MQTT clients supply it
-  in the password field of the connect packet. Use TLS
-  (`SIOT_NATS_TLS_CERT`/`SIOT_NATS_TLS_KEY`, which also serve the MQTT listener)
-  whenever a connection leaves a trusted network.
+  in the password field of the connect packet, with any non-empty user name
+  alongside it, which MQTT 3.1.1 requires whenever a password is present. Use
+  TLS (`SIOT_NATS_TLS_CERT`/`SIOT_NATS_TLS_KEY`, which also serve the MQTT
+  listener) whenever a connection leaves a trusted network.
 - Published messages become NATS subjects, so anything connected to Simple IoT
   over NATS sees them. Topic levels convert as `/` to `.`, and a literal `.` in
   a topic converts to `//`. A Sparkplug topic of
   `spBv1.0/plant/DDATA/line3/tank` arrives on the NATS subject
   `spBv1//0.plant.DDATA.line3.tank`.
+
+Try it with the Mosquitto command line tools:
+
+```
+mosquitto_sub -h localhost -p 1883 -t 'plant/#' -v
+mosquitto_pub -h localhost -p 1883 -t plant/line3/tank -m '{"value":42.1}'
+```
+
+Add `-u siot -P $SIOT_AUTH_TOKEN` to both when a token is configured.
 
 An external broker still makes sense when the plant already runs one, when you
 bridge several sites, or when you need broker features such as clustering or

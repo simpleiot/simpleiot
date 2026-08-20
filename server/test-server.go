@@ -19,6 +19,7 @@ var TestServerOptions = Options{
 	HTTPPort:     "8901",
 	NatsHTTPPort: 8902,
 	NatsWSPort:   8903,
+	NatsMQTTPort: 8904,
 	NatsServer:   "nats://localhost:8900",
 	ID:           "inst1",
 }
@@ -29,6 +30,7 @@ var TestServerOptions2 = Options{
 	HTTPPort:     "8911",
 	NatsHTTPPort: 8912,
 	NatsWSPort:   8913,
+	NatsMQTTPort: 8914,
 	NatsServer:   "nats://localhost:8910",
 	ID:           "inst2",
 }

@@ -11,6 +11,14 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Added
+
+- **Simple IoT now serves MQTT.** Set `SIOT_NATS_MQTT_PORT=1883` and gateways
+  and sensors publish straight to Simple IoT, with no separate broker to deploy.
+  The port is disabled by default, the auth token authenticates clients in the
+  connect packet password field, and TLS settings serve the MQTT listener too.
+  See the [MQTT page](docs/user/mqtt.md).
+
 ## [0.24.1] - 2026-08-20
 
 ### Added

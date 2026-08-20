@@ -109,6 +109,17 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 		natsWSPort = n
 	}
 
+	natsMQTTPort := 0
+	natsMQTTPortE := os.Getenv("SIOT_NATS_MQTT_PORT")
+	if natsMQTTPortE != "" {
+		n, err := strconv.Atoi(natsMQTTPortE)
+		if err != nil {
+			log.Println("Error parsing SIOT_NATS_MQTT_PORT:", err)
+			os.Exit(-1)
+		}
+		natsMQTTPort = n
+	}
+
 	natsServer := *flagNatsServer
 	// only consider env if command line option is something different
 	// that default
@@ -257,6 +268,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 		NatsPort:          natsPort,
 		NatsHTTPPort:      natsHTTPPort,
 		NatsWSPort:        natsWSPort,
+		NatsMQTTPort:      natsMQTTPort,
 		NatsTLSCert:       natsTLSCert,
 		NatsTLSKey:        natsTLSKey,
 		NatsTLSTimeout:    natsTLSTimeout,
