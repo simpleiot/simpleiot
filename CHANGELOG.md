@@ -23,6 +23,12 @@ For more details or to discuss releases, please visit the
   value and a blank path turning each field of an object into its own point.
   Units, scale, and offset apply the way they do on a Modbus IO. See the
   [MQTT page](docs/user/mqtt.md#subscriptions).
+- **Sparkplug B builds the node tree for you.** Set `sparkplug: true` on an
+  `mqtt` node and the groups, edge nodes, and devices a gateway announces appear
+  as nodes, one point per metric, each carrying a tag naming its Sparkplug
+  identity. Nodes go offline on a death certificate rather than disappearing,
+  and tags or descriptions you set on them survive a rebirth. See the
+  [MQTT page](docs/user/mqtt.md#sparkplug-b).
 
 ## [0.24.1] - 2026-08-20
 

@@ -165,6 +165,7 @@ module Api.Point exposing
     , typeSimReset
     , typeSimSpeed
     , typeSize
+    , typeSparkplug
     , typeSpeed
     , typeStart
     , typeSwitchSet
@@ -898,6 +899,11 @@ typeTopic =
 typePath : String
 typePath =
     "path"
+
+
+typeSparkplug : String
+typeSparkplug =
+    "sparkplug"
 
 
 typeVariableType : String

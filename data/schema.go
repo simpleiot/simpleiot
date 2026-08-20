@@ -228,6 +228,21 @@ const (
 	// notation such as $.a.b[0]. A blank path maps the whole payload.
 	PointTypePath = "path"
 
+	// PointTypeSparkplug enables Sparkplug B handling on an mqtt node. Birth
+	// certificates describe every metric, so the nodes below are created from
+	// the data rather than configured.
+	PointTypeSparkplug = "sparkplug"
+
+	NodeTypeSparkplugGroup  = "sparkplugGroup"
+	NodeTypeSparkplugNode   = "sparkplugNode"
+	NodeTypeSparkplugDevice = "sparkplugDevice"
+
+	// PointTypeSparkplugAlias holds the alias assignments from an edge node's
+	// birth certificates as a JSON object of alias to metric name. Keeping it
+	// on the sparkplugNode node means data that arrives after a restart
+	// resolves straight away rather than waiting for a rebirth.
+	PointTypeSparkplugAlias = "sparkplugAlias"
+
 	NodeTypeVariable      = "variable"
 	PointTypeVariableType = "variableType"
 

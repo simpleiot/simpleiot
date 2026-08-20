@@ -21,7 +21,7 @@ for discussion on the
 | ---------------------------------------------- | --------------------------------------- | --------- | ------------------- | --------------------------------- |
 | [Modbus](#modbus)                              | [Modbus](modbus.md)                     | Available | No                  | PLC-side Modbus server            |
 | [MQTT](#mqtt)                                  | [MQTT](mqtt.md)                         | Available | Yes                 | A gateway that publishes PLC tags |
-| [Sparkplug B](#sparkplug-b-planned)            | [MQTT](mqtt.md)                         | (planned) | Yes                 | A gateway that speaks Sparkplug   |
+| [Sparkplug B](#sparkplug-b)                    | [MQTT](mqtt.md)                         | Available | Yes                 | A gateway that speaks Sparkplug   |
 | [OPC UA](#opc-ua-planned)                      | OPC UA                                  | (planned) | Yes                 | Enable the server on the PLC      |
 | [EtherNet/IP](#ethernetip-tags-planned)        | Logix                                   | (planned) | Yes                 | None beyond network access        |
 | [Anything else](#writing-your-own-integration) | A process of your own over the NATS API | Available | Depends             | A process you write               |
@@ -218,7 +218,7 @@ group, the edge node, and the device. There is no guessing involved, so building
 the node structure automatically is the intended behavior: a group becomes a
 node, edge nodes and devices become nodes beneath it, and metrics become points.
 
-## Sparkplug B (planned)
+## Sparkplug B
 
 [Sparkplug B](https://sparkplug.eclipse.org/) is an Eclipse specification that
 adds a defined topic namespace, a protobuf payload, and a state model on top of
@@ -245,17 +245,15 @@ What it adds over plain MQTT:
 
 The structure maps onto the Simple IoT graph directly: a group becomes a node,
 each edge node and device becomes a node beneath it, and each metric becomes a
-point or a child node. Because a birth certificate enumerates the metrics,
-Simple IoT can build that structure as edge nodes announce themselves rather
-than having you configure it, which is the same idea as browsing the tag list of
-a Logix controller.
+point. Because a birth certificate enumerates the metrics, Simple IoT builds
+that structure as edge nodes announce themselves rather than having you
+configure it, which is the same idea as browsing the tag list of a Logix
+controller. Set `sparkplug: true` on an `mqtt` node and everything below it
+appears as the gateway publishes; the [MQTT page](mqtt.md#sparkplug-b) covers
+what arrives and how it is named.
 
-Sparkplug support is planned as a phase after plain JSON payloads, because it
-requires meaningfully more work: protobuf payload decoding, a cache mapping
-aliases back to metric names per edge node, handling rebirth requests when that
-cache is lost, and honoring the state topic if Simple IoT acts as a primary host
-application. Running it against the built-in MQTT server described above removes
-the broker from that list, but the payload and state handling remain.
+Acting as a primary host application, which is what the state topic is for, and
+publishing Simple IoT data outbound as Sparkplug are the remaining pieces.
 
 ## OPC UA (planned)
 
@@ -263,6 +261,20 @@ the broker from that list, but the payload and state handling remain.
 is the vendor-neutral standard for industrial data exchange, and it is the
 single client that would cover the widest range of hardware. It is not
 implemented yet.
+
+### Reaching OPC UA data today
+
+OPC UA data can already flow into Simple IoT through the [MQTT client](mqtt.md).
+Several products collect from OPC UA servers and publish to MQTT, among them
+[Idako](https://onewayautomation.com/idako/),
+[Prosys Forge](https://onewayautomation.com/forge/), and
+[Takebishi DeviceGateway](https://onewayautomation.com/devicegateway/), which
+also collects from sources other than OPC UA. A number of MQTT brokers include
+an OPC UA connector as well. If one of these is already running in the plant,
+this path works today and needs nothing new in Simple IoT.
+
+A native client is still worth having for installations that would rather not
+add another process between the controller and Simple IoT.
 
 ### What already has an OPC UA server
 
@@ -330,9 +342,11 @@ Security is where OPC UA costs more than the other options. A client presents an
 application instance certificate, and the server has to be told to trust it,
 which is usually a manual step in the server's own configuration. On top of that
 sit the security policy, the message mode, and the user token. Simple IoT would
-need to generate and store a certificate, present it, and give you a way to see
-why a connection was rejected, since a rejected certificate and a wrong password
-look similar from the client side.
+need to generate and store a certificate, present it, and show you why a
+connection was rejected. The specification is helpful here: an untrusted
+certificate, a rejected identity token, and a failed user authentication each
+come back as a distinct status code, so the reason is available. The work is in
+surfacing that detail rather than reporting a generic connection failure.
 
 Anonymous connections with no security are common on isolated plant networks and
 are the quickest way to get a first reading, but they are not a good place to
@@ -593,7 +607,7 @@ Two arrangements both work, and the payload usually decides:
   points_value{type="value", key="tank_level", "node.tag.machine"="press-3"}
   ```
 
-For [Sparkplug B](#sparkplug-b-planned) the structure is already decided by the
+For [Sparkplug B](#sparkplug-b) the structure is already decided by the
 specification: the group, edge node, and device become nodes, which means they
 become inherited tags without any configuration, and each metric becomes a
 point.

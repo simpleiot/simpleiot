@@ -12,14 +12,17 @@ import (
 // published to it arrive as NATS subjects, so the subscriptions below are
 // ordinary NATS subscriptions and no MQTT client library is involved.
 type Mqtt struct {
-	ID          string    `node:"id"`
-	Parent      string    `node:"parent"`
-	Description string    `point:"description"`
-	URI         string    `point:"uri"`
-	Disabled    bool      `point:"disabled"`
-	Debug       int       `point:"debug"`
-	Error       string    `point:"error"`
-	Subs        []MqttSub `child:"mqttSub"`
+	ID          string `node:"id"`
+	Parent      string `node:"parent"`
+	Description string `point:"description"`
+	URI         string `point:"uri"`
+	Disabled    bool   `point:"disabled"`
+	Debug       int    `point:"debug"`
+	Error       string `point:"error"`
+	// Sparkplug enables Sparkplug B handling, which builds the nodes below
+	// this one from the birth certificates edge nodes publish.
+	Sparkplug bool      `point:"sparkplug"`
+	Subs      []MqttSub `child:"mqttSub"`
 }
 
 // errMqttExternalBroker is set on the node when a URI is configured. Connecting
@@ -29,6 +32,8 @@ const errMqttExternalBroker = "external MQTT brokers are not supported yet; leav
 // mqttMsg carries a message from a NATS subscription callback into the client
 // run loop, where the configuration can be read without a lock.
 type mqttMsg struct {
+	// subID names the mqttSub node the message is for, and is empty for a
+	// message from the Sparkplug subscription
 	subID   string
 	subject string
 	data    []byte
@@ -48,6 +53,11 @@ type MqttClient struct {
 	// subErr records the error last reported for each node, so an error is
 	// written once rather than on every message
 	subErr map[string]string
+
+	// spSub is the subscription covering the Sparkplug namespace, and sp
+	// holds what the Sparkplug handler has learned
+	spSub *nats.Subscription
+	sp    *sparkplugState
 }
 
 // NewMqttClient returns a new MQTT client for the given node
@@ -77,6 +87,12 @@ done:
 			break done
 
 		case pts := <-c.newPoints:
+			// points also arrive for the nodes Sparkplug creates below this
+			// one, which are not part of this client's configuration
+			if !c.owns(pts.ID) {
+				break
+			}
+
 			if err := data.MergePoints(pts.ID, pts.Points, &c.config); err != nil {
 				log.Println("MQTT: error merging new points:", err)
 			}
@@ -84,6 +100,10 @@ done:
 			c.sync()
 
 		case pts := <-c.newEdgePoints:
+			if !c.owns(pts.ID) {
+				break
+			}
+
 			if err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &c.config); err != nil {
 				log.Println("MQTT: error merging new edge points:", err)
 			}
@@ -99,6 +119,8 @@ done:
 		_ = sub.Unsubscribe()
 		delete(c.subs, id)
 	}
+
+	c.stopSparkplug()
 
 	return nil
 }
@@ -117,6 +139,22 @@ func (c *MqttClient) Points(nodeID string, points []data.Point) {
 // received.
 func (c *MqttClient) EdgePoints(nodeID, parentID string, points []data.Point) {
 	c.newEdgePoints <- NewPoints{nodeID, parentID, points}
+}
+
+// owns reports whether a node is part of this client's configuration -- the
+// mqtt node itself or one of its subscription children.
+func (c *MqttClient) owns(id string) bool {
+	if id == c.config.ID {
+		return true
+	}
+
+	for _, s := range c.config.Subs {
+		if s.ID == id {
+			return true
+		}
+	}
+
+	return false
 }
 
 // sync brings the live subscriptions in line with the configuration, which is
@@ -179,7 +217,65 @@ func (c *MqttClient) sync() {
 		c.setError(id, "")
 	}
 
+	c.syncSparkplug()
 	c.syncTopicTags()
+}
+
+// syncSparkplug starts or stops the subscription covering the Sparkplug
+// namespace as the sparkplug point on this node changes.
+func (c *MqttClient) syncSparkplug() {
+	want := c.config.Sparkplug && !c.config.Disabled && c.config.URI == ""
+
+	if !want {
+		c.stopSparkplug()
+		return
+	}
+
+	if c.spSub != nil {
+		// keep the handler's logging in step with edits to this node
+		c.sp.desc = c.config.Description
+		c.sp.debug = c.config.Debug
+		return
+	}
+
+	subject, err := data.MQTTFilterToSubject(sparkplugFilter)
+	if err != nil {
+		c.setError(c.config.ID, err.Error())
+		return
+	}
+
+	sp := newSparkplugState(c.nc, c.config.ID, c.config.Description, c.config.Debug)
+
+	if err := sp.load(); err != nil {
+		c.setError(c.config.ID, err.Error())
+		return
+	}
+
+	sub, err := c.nc.Subscribe(subject, func(m *nats.Msg) {
+		select {
+		case c.msgs <- mqttMsg{subject: m.Subject, data: m.Data}:
+		case <-c.stop:
+		}
+	})
+	if err != nil {
+		c.setError(c.config.ID, err.Error())
+		return
+	}
+
+	log.Printf("MQTT %v: Sparkplug B enabled\n", c.config.Description)
+
+	c.sp = sp
+	c.spSub = sub
+}
+
+func (c *MqttClient) stopSparkplug() {
+	if c.spSub == nil {
+		return
+	}
+
+	_ = c.spSub.Unsubscribe()
+	c.spSub = nil
+	c.sp = nil
 }
 
 // syncTopicTags keeps a tag point named topic on each subscription node
@@ -202,6 +298,13 @@ func (c *MqttClient) syncTopicTags() {
 
 // handle turns one message into points on the subscription node.
 func (c *MqttClient) handle(m mqttMsg) {
+	if m.subID == "" {
+		if c.sp != nil {
+			c.sp.handle(data.MQTTSubjectToTopic(m.subject), m.data)
+		}
+		return
+	}
+
 	var sub *MqttSub
 
 	for i := range c.config.Subs {

@@ -40,6 +40,9 @@ module Api.Node exposing
     , typeShelly
     , typeShellyIO
     , typeSignalGenerator
+    , typeSparkplugDevice
+    , typeSparkplugGroup
+    , typeSparkplugNode
     , typeSync
     , typeUpdate
     , typeUser
@@ -124,6 +127,21 @@ typeModbus =
 typeModbusIO : String
 typeModbusIO =
     "modbusIo"
+
+
+typeSparkplugGroup : String
+typeSparkplugGroup =
+    "sparkplugGroup"
+
+
+typeSparkplugNode : String
+typeSparkplugNode =
+    "sparkplugNode"
+
+
+typeSparkplugDevice : String
+typeSparkplugDevice =
+    "sparkplugDevice"
 
 
 typeMqtt : String

@@ -173,7 +173,7 @@ The schema and explicit subscriptions compose well: start with a schema to see
 what a site publishes, then add `mqttSub` entries for the values that need
 units, scaling, or careful naming.
 
-## Sparkplug B (planned)
+## Sparkplug B
 
 [Sparkplug B](https://sparkplug.eclipse.org/) adds a defined topic namespace, a
 protobuf payload, and birth and death certificates on top of MQTT. Because an
@@ -206,15 +206,26 @@ Plant 03 Sparkplug (mqtt)
   existing nodes rather than duplicating them, and tags or descriptions you have
   set on them survive.
 - **NDATA and DDATA** arrive as point updates carrying the payload timestamp.
-  Metrics are referenced by numeric alias after birth; when Simple IoT has no
-  mapping for an alias, such as after its own restart, it requests a rebirth and
-  the structure rebuilds.
-- **NDEATH and DDEATH** mark the node offline rather than deleting it.
+  Metrics are referenced by numeric alias after birth, and the alias assignments
+  are kept on the edge node, so data that arrives after a restart resolves
+  straight away. When there is no mapping for an alias -- data from a gateway
+  that was already running when Simple IoT started, for instance -- Simple IoT
+  requests a rebirth and the structure builds itself from the answer.
+- **NDEATH and DDEATH** mark the node offline rather than deleting it. An edge
+  node death takes its devices offline with it.
 
-Sparkplug types map to point types the same way other PLC values do: see the
-[data types table](plc.md#data-types). Acting as a Sparkplug primary host
-application (the STATE topic) and publishing Simple IoT data outbound as
-Sparkplug are not part of the initial support.
+Each auto-created node carries a tag naming its Sparkplug identity --
+`sparkplugGroup`, `sparkplugNode`, `sparkplugDevice` -- so queries select on the
+structure the same way they select on a hand-set tag, and
+[tag inheritance](database.md#tags) carries a site tag on the `mqtt` node down
+through all of it.
+
+Metric names become point keys, with any character a subject cannot carry
+replaced by an underscore. Sparkplug types map to point types the same way other
+PLC values do: see the [data types table](plc.md#data-types). Metrics carrying a
+dataset, a template, or a file are skipped for now, and the rest of the message
+is used. Acting as a Sparkplug primary host application (the STATE topic) and
+publishing Simple IoT data outbound as Sparkplug are not part of this support.
 
 ## A multi-site deployment
 

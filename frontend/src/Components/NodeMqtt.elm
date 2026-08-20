@@ -51,6 +51,7 @@ view o =
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typeURI "Broker URI" "blank uses the built-in broker"
+                    , checkboxInput Point.typeSparkplug "Sparkplug B"
                     , numberInput Point.typeDebug "Debug level (0-9)"
                     , checkboxInput Point.typeDisabled "Disabled"
                     , viewIf (error /= "") <|
