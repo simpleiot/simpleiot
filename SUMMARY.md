@@ -27,6 +27,7 @@
   - [Update](docs/user/update.md)
   - [USB](docs/user/usb.md)
   - [Browser](docs/user/browser.md)
+- [PLCs](docs/user/plc.md)
 - [Graphing](docs/user/graphing.md)
 - [Configuration](docs/user/configuration.md)
 - [Status/Errata](docs/user/status.md)
