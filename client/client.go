@@ -66,6 +66,12 @@ func DefaultClients(nc *nats.Conn) (*RunGroup, error) {
 	ntp := NewManager(nc, NewNTPClient, nil)
 	g.Add(ntp)
 
+	user := NewManager(nc, NewUserClient, nil)
+	g.Add(user)
+
+	msgService := NewManager(nc, NewMsgServiceClient, nil)
+	g.Add(msgService)
+
 	gps := NewManager(nc, NewGPSClient, nil)
 	g.Add(gps)
 

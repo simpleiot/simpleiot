@@ -5,6 +5,14 @@ often used to monitor and control critical systems and processes. Performance is
 a key aspect of reliability because if the system is not performing well, then
 it can't keep up and do its job.
 
+## High Availability
+
+Reliability also covers what happens when part of the system is down. The
+[high availability reference](high-availability.md) describes what the store and
+synchronization design already protect, what running against an external or
+hosted NATS cluster would take, and what happens to points published while the
+application is stopped.
+
 ## Point Metrics
 
 The fundamental operation of SimpleIoT is that it process `points`, which are

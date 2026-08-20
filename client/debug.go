@@ -107,31 +107,12 @@ func Log(natsServer, authToken string) {
 		}
 	})
 
-	_, _ = nc.Subscribe("node.*.not", func(msg *nats.Msg) {
-		err := Dump(nc, msg)
-		if err != nil {
-			log.Println("Error dumping nats msg:", err)
-		}
-	})
-
-	_, _ = nc.Subscribe("node.*.msg", func(msg *nats.Msg) {
-		err := Dump(nc, msg)
-		if err != nil {
-			log.Println("Error dumping nats msg:", err)
-		}
-	})
-
 	_, _ = nc.Subscribe("ep.*.*", func(msg *nats.Msg) {
 		err := Dump(nc, msg)
 		if err != nil {
 			log.Println("Error dumping nats msg:", err)
 		}
 	})
-
-	if err != nil {
-		log.Println("Nats subscribe error:", err)
-		os.Exit(-1)
-	}
 
 	_, err = nc.Subscribe("node.*", func(msg *nats.Msg) {
 		err := Dump(nc, msg)

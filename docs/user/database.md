@@ -102,6 +102,9 @@ connection settings are similar, but the two differ in what they store and in
 how you graph the result. Existing Database nodes have no database type set and
 continue to behave as InfluxDB.
 
+A third option, [TimescaleDB](#timescaledb-planned), is described below as a
+planned addition. It is not implemented.
+
 ## Victoria Metrics
 
 Set the database type to Victoria Metrics and set the URI to the write endpoint,
@@ -203,6 +206,100 @@ Point data can also be stored in an InfluxDB 2.x database by adding a Database
 node:
 
 <img src="assets/image-20240319111031186.png" alt="image-20240319111031186" style="zoom:50%;" />
+
+## TimescaleDB (planned)
+
+Support for [TimescaleDB](https://www.timescale.com/) is not implemented. This
+section describes what it would look like so the design can be discussed on the
+[community forum](https://community.tmpdir.org/c/simple-iot/5) before the work
+starts.
+
+TimescaleDB is PostgreSQL with time-series extensions, which makes it different
+from the two options above in ways that matter:
+
+- **It stores text.** Points carrying strings are skipped today, because
+  VictoriaMetrics converts non-numeric values to zero. A batch or lot number, a
+  barcode read, an operator ID, or a machine state written as text would be
+  stored and queryable. See [text data](plc.md#text-data) for where this comes
+  up with industrial equipment.
+- **It is relational.** Point history can be joined against tables you already
+  keep, such as work orders, product definitions, or maintenance records,
+  without moving either side.
+- **It downsamples and ages data on its own** through continuous aggregates,
+  compression, and retention policies, all configured in the database rather
+  than in Simple IoT.
+
+### How points would map
+
+One point becomes one row in a hypertable, which is close to the point model
+already, so little has to be invented:
+
+```sql
+-- planned, subject to change
+CREATE TABLE points (
+    time    TIMESTAMPTZ      NOT NULL,
+    node_id UUID             NOT NULL,
+    type    TEXT             NOT NULL,
+    key     TEXT             NOT NULL DEFAULT '',
+    value   DOUBLE PRECISION,
+    text    TEXT,
+    tags    JSONB
+);
+SELECT create_hypertable('points', 'time');
+```
+
+The `tags` column holds the same tags described above, including the ones
+inherited from ancestor nodes, so a query selects on `tags->>'node.tag.machine'`
+where a MetricsQL query would select on a label. The client would create the
+table on first use if the database role allows it, and otherwise log the
+statements for you to run.
+
+### Configuration
+
+The connection settings differ from the InfluxDB ones, since PostgreSQL uses a
+connection URI and a database role rather than an organization, bucket, and
+token:
+
+```yaml
+# planned, subject to change
+nodes:
+  - db:
+      dbType: timescale
+      description: TimescaleDB
+      uri: postgres://siot@db.example.com:5432/siot
+      authToken: password
+      tagPointType: tag
+```
+
+### Graphing
+
+Grafana reads TimescaleDB through its PostgreSQL data source, and queries are
+SQL rather than MetricsQL:
+
+```sql
+SELECT time_bucket('1 minute', time) AS bucket,
+       avg(value)
+FROM points
+WHERE type = 'value'
+  AND tags->>'node.tag.machine' = 'press-3'
+  AND $__timeFilter(time)
+GROUP BY bucket
+ORDER BY bucket;
+```
+
+### Things to weigh
+
+- **PostgreSQL is heavier than VictoriaMetrics at the edge.** VictoriaMetrics
+  runs as a single binary on a small device with little tuning. TimescaleDB is a
+  better fit for a server or cloud instance, so this is an addition to the
+  options rather than a replacement for them.
+- **Check the licensing for the features you want.** Hypertables are available
+  under the Apache 2.0 edition, while compression, continuous aggregates, and
+  retention policies are part of the Community edition under the Timescale
+  License.
+- **Retention and rollups move into the database.** That is an advantage once
+  configured, and something to configure that the other two options do not ask
+  for.
 
 ## Tags
 

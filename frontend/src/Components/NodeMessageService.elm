@@ -7,6 +7,7 @@ import Element.Border as Border
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
 import UI.Style exposing (colors)
+import UI.ViewIf exposing (viewIf)
 
 
 view : NodeOptions msg -> Element msg
@@ -36,15 +37,46 @@ view o =
 
                         optionInput =
                             NodeInputs.nodeOptionInput opts "0"
+
+                        service =
+                            Point.getText o.node.points Point.typeService ""
+
+                        isTwilio =
+                            service == Point.valueTwilio
+
+                        isSMTP =
+                            service == Point.valueSMTP
+
+                        isNtfy =
+                            service == Point.valueNtfy
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , optionInput Point.typeService
                         "Service"
                         [ ( Point.valueTwilio, "Twilio SMS" )
+                        , ( Point.valueSMTP, "Email (SMTP)" )
+                        , ( Point.valueNtfy, "ntfy push" )
                         ]
-                    , textInput Point.typeSID "SID" ""
-                    , textInput Point.typeAuthToken "Auth Token" ""
-                    , textInput Point.typeFrom "From" ""
+                    , viewIf isTwilio <|
+                        textInput Point.typeSID "SID" ""
+                    , viewIf isTwilio <|
+                        textInput Point.typeAuthToken "Auth Token" ""
+                    , viewIf isTwilio <|
+                        textInput Point.typeFrom "From" "+15555555555"
+                    , viewIf isSMTP <|
+                        textInput Point.typeURL "Server" "smtp.example.com:587"
+                    , viewIf isSMTP <|
+                        textInput Point.typeUsername "Username" ""
+                    , viewIf isSMTP <|
+                        textInput Point.typeAuthToken "Password" ""
+                    , viewIf isSMTP <|
+                        textInput Point.typeFrom "From" "siot@example.com"
+                    , viewIf isNtfy <|
+                        textInput Point.typeURL "Server" "https://ntfy.sh"
+                    , viewIf isNtfy <|
+                        textInput Point.typeTopic "Topic" ""
+                    , viewIf isNtfy <|
+                        textInput Point.typeAuthToken "Access Token" "(optional)"
                     , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
 

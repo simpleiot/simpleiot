@@ -13,6 +13,42 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [0.24.0] - 2026-08-20
+
+### Added
+
+_The message service client has not been thoroughly tested yet, testing feedback
+welcome._
+
+- **Notifications work again, with SMS, email, and ntfy push delivery.** A rule
+  notify action or the web UI's message function now reaches users through
+  Twilio SMS, email (SMTP), or an [ntfy](https://ntfy.sh) topic, configured on a
+  Messaging Service node. ntfy needs no user nodes — every notification in the
+  service's scope is pushed to the topic. Delivery is deduplicated, so a user
+  mirrored into several groups gets one message. Notifications now travel as
+  ordinary points, so they are stored, synchronized, and visible in history; the
+  old `node.<id>.not` and `node.<id>.msg` NATS subjects are gone. See the
+  [notifications](docs/user/notifications.md) and
+  [messaging](docs/user/messaging.md) documentation.
+- **The database page describes TimescaleDB support as a planned addition.** The
+  [database page](docs/user/database.md) outlines how points would map to a
+  hypertable, how graphing and configuration would differ from the existing
+  options, and what TimescaleDB offers that the current ones do not, including
+  storing text.
+- **A PLC page describes the options for reading data from controllers.** The
+  [PLC page](docs/user/plc.md) covers which client to use for which protocol,
+  what Modbus supports today for Allen-Bradley Logix and other controllers, and
+  the planned MQTT, Sparkplug B, OPC UA, and EtherNet/IP support. It also covers
+  Opto 22 groov, Phoenix Contact PLCnext, and Ignition, how PLC data maps to
+  VictoriaMetrics labels for graphing, and notes that the NATS server embedded
+  in Simple IoT includes an MQTT server, so an MQTT deployment would not need a
+  separate broker.
+- **A high availability reference describes the options and their constraints.**
+  The [high availability reference](docs/ref/high-availability.md) covers what
+  the store and synchronization design already protect, what running against an
+  external or hosted NATS cluster would take, and what happens to points
+  published while the application is stopped.
+
 ## [0.23.5] - 2026-08-18
 
 ### Fixed
