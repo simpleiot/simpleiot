@@ -22,8 +22,6 @@ module Api.Node exposing
     , typeGps
     , typeGroup
     , typeMetrics
-    , typeProvisioning
-    , typeProvisioningFile
     , typeModbus
     , typeModbusIO
     , typeMsgService
@@ -33,6 +31,8 @@ module Api.Node exposing
     , typeNetworkManagerDevice
     , typeOneWire
     , typeParticle
+    , typeProvisioning
+    , typeProvisioningFile
     , typeRule
     , typeSerialDev
     , typeShelly

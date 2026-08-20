@@ -25,6 +25,14 @@ For more details or to discuss releases, please visit the
   old `node.<id>.not` and `node.<id>.msg` NATS subjects are gone. See the
   [notifications](docs/user/notifications.md) and
   [messaging](docs/user/messaging.md) documentation.
+- **A PLC page describes the options for reading data from controllers.** The
+  [PLC page](docs/user/plc.md) covers which client to use for which protocol,
+  what Modbus supports today for Allen-Bradley Logix and other controllers, and
+  the planned MQTT, Sparkplug B, OPC UA, and EtherNet/IP support. It also covers
+  Opto 22 groov, Phoenix Contact PLCnext, and Ignition, how PLC data maps to
+  VictoriaMetrics labels for graphing, and notes that the NATS server embedded
+  in Simple IoT includes an MQTT server, so an MQTT deployment would not need a
+  separate broker.
 - **A high availability reference describes the options and their constraints.**
   The [high availability reference](docs/ref/high-availability.md) covers what
   the store and synchronization design already protect, what running against an

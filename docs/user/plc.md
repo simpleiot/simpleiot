@@ -22,6 +22,7 @@ for discussion on the
 | [Modbus](#modbus)                              | [Modbus](modbus.md)                     | Available | No                  | PLC-side Modbus server            |
 | [MQTT](#mqtt-planned)                          | MQTT                                    | (planned) | Yes                 | A gateway that publishes PLC tags |
 | [Sparkplug B](#sparkplug-b-planned)            | MQTT                                    | (planned) | Yes                 | A gateway that speaks Sparkplug   |
+| [OPC UA](#opc-ua-planned)                      | OPC UA                                  | (planned) | Yes                 | Enable the server on the PLC      |
 | [EtherNet/IP](#ethernetip-tags-planned)        | Logix                                   | (planned) | Yes                 | None beyond network access        |
 | [Anything else](#writing-your-own-integration) | A process of your own over the NATS API | Available | Depends             | A process you write               |
 
@@ -31,11 +32,14 @@ A few questions usually settle the choice:
   as Kepware or Ignition is already installed and licensed, MQTT reuses it. You
   do not need to add a broker to go this route, since Simple IoT can serve MQTT
   itself.
-- **Do you want SIOT to be the edge gateway?** If so, reading tags directly over
-  EtherNet/IP avoids a second box and a second license.
+- **Do you want Simple IoT to be the edge gateway?** If so, reading tags
+  directly over OPC UA or EtherNet/IP avoids a second box and a second license.
 - **How many values, and how often do they change?** A handful of stable values
   is a good fit for Modbus. Hundreds of values, or a tag list that changes as
   the PLC program is edited, is not.
+- **What firmware are the Logix controllers on?** From v36 they include an OPC
+  UA server, which changes the answer considerably. See
+  [OPC UA](#opc-ua-planned).
 - **Is the controller an open Linux platform?** Products such as Opto 22 groov
   and Phoenix Contact PLCnext publish MQTT themselves and can run Simple IoT on
   the controller. See [other controllers](#other-controllers).
@@ -254,10 +258,115 @@ cache is lost, and honoring the state topic if Simple IoT acts as a primary host
 application. Running it against the built-in MQTT server described above removes
 the broker from that list, but the payload and state handling remain.
 
+## OPC UA (planned)
+
+[OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) (IEC 62541)
+is the vendor-neutral standard for industrial data exchange, and it is the
+single client that would cover the widest range of hardware. It is not
+implemented yet.
+
+### What already has an OPC UA server
+
+Most modern controllers, and this now includes Allen-Bradley:
+
+- **Logix 5380, 5580, and 5590 controllers have a native OPC UA server from
+  firmware v36**, disabled by default and enabled in the controller
+  configuration. If your controllers are on v36 or later, this is the most
+  direct path available today for reading tags by name, with no add-on
+  instruction, gateway, or license involved.
+- **CompactLogix 5480** hosts FactoryTalk Linx Gateway on its Windows side to
+  serve OPC UA. Older Logix controllers need FactoryTalk Linx Gateway or a
+  product such as Kepware.
+- **Siemens** S7-1200 and S7-1500 include a server, as do **Phoenix Contact
+  PLCnext**, **Beckhoff TwinCAT**, and **B&R** controllers.
+- **Ignition** and most gateway products expose one as well, so OPC UA is often
+  a way to reach data that has already been collected.
+
+### Why it fits Simple IoT well
+
+- **One client covers many vendors.** Every other option on this page is
+  specific to a protocol or a product line.
+- **The address space is browsable**, and carries tag names, data types, and
+  engineering units. Simple IoT can create the node structure by browsing the
+  server, the same idea as a Sparkplug birth certificate or a Logix tag list,
+  rather than having you type node IDs.
+- **Subscriptions rather than polling.** You register the values you care about
+  with a publishing interval and an optional deadband, and the server sends
+  changes. This scales considerably better than a poll loop.
+- **Values arrive with context.** Each update carries a source timestamp and a
+  status code, so a stale or bad reading is distinguishable from a good one.
+  Points already carry a timestamp; representing status is a question to settle
+  when the client is built.
+
+### What it would look like
+
+```yaml
+# planned, subject to change
+nodes:
+  - opcua:
+      description: Line 3 controller
+      endpoint: opc.tcp://192.168.1.50:4840
+      securityPolicy: Basic256Sha256
+      securityMode: SignAndEncrypt
+      publishInterval: 1000
+      disabled: 0
+      children:
+        - opcuaNode:
+            description: Tank level
+            nodeId: ns=2;s=Tank_Level_PV
+            deadband: 0.5
+            scale: 1
+            offset: 0
+            units: cm
+```
+
+[gopcua](https://github.com/gopcua/opcua) is the likely dependency. It is a
+native Go implementation with browsing, subscriptions, and the standard security
+policies, it is used in production elsewhere including Telegraf, and staying in
+pure Go keeps the single static binary and the ARM builds intact.
+
+### The part that takes the work
+
+Security is where OPC UA costs more than the other options. A client presents an
+application instance certificate, and the server has to be told to trust it,
+which is usually a manual step in the server's own configuration. On top of that
+sit the security policy, the message mode, and the user token. Simple IoT would
+need to generate and store a certificate, present it, and give you a way to see
+why a connection was rejected, since a rejected certificate and a wrong password
+look similar from the client side.
+
+Anonymous connections with no security are common on isolated plant networks and
+are the quickest way to get a first reading, but they are not a good place to
+stop. See the [security reference](../ref/security.md) for how Simple IoT
+handles certificates elsewhere.
+
+### Beyond reading values
+
+A useful client is browse, read, write, and subscribe. The rest of the
+specification is much larger, and none of it is needed to get data flowing:
+
+- **Historical access**, for pulling archived values out of a server that keeps
+  them.
+- **Methods**, for calling functions the server exposes.
+- **Alarms and events**, which would map onto [notifications](notifications.md).
+- **OPC UA PubSub**, which publishes over MQTT or UDP rather than a client
+  session. Since Simple IoT already contains an MQTT server, receiving PubSub
+  data would build on the same work as the MQTT client.
+
+Serving OPC UA is the other direction worth considering. Exposing Simple IoT
+nodes as an address space would let existing SCADA software read Simple IoT data
+without any of it needing to know what Simple IoT is.
+
 ## EtherNet/IP tags (planned)
 
-Reading Logix tags directly is the approach that fits Simple IoT best: no
-gateway, no license, and no register map. It is not implemented yet.
+Reading Logix tags over EtherNet/IP means no gateway, no license, and no
+register map. It is not implemented yet.
+
+This overlaps with [OPC UA](#opc-ua-planned), which reaches the same tags on
+firmware v36 and later through a standard that also covers other vendors. Where
+an EtherNet/IP client still earns its place is on controllers older than v36,
+which is a large installed base, and on sites that would rather not enable
+another server on the controller.
 
 The intended design is a `logix` node holding the controller connection, with a
 child node per tag:
@@ -338,6 +447,126 @@ the cost of merging the whole value as a unit.
 [ADR-1](../adr/1-consider-changing-point-data-type.md) covers the reasoning
 behind the point data types.
 
+## Graphing PLC data
+
+None of the clients on this page write to a time series database themselves.
+They create nodes and publish points, and a [Database node](database.md) writes
+those points to VictoriaMetrics or InfluxDB, where [Grafana](graphing.md) reads
+them. So the question of how a PLC tag or an MQTT topic ends up as a queryable
+series is really a question about what nodes and points the client creates, and
+the answer is the same whichever protocol brought the data in.
+
+### What a point becomes
+
+Every point written to VictoriaMetrics arrives as the metric `points_value`,
+with these labels:
+
+| Label              | Comes from                                     |
+| ------------------ | ---------------------------------------------- |
+| `type`             | The point type, such as `value`                |
+| `key`              | The point key, used for arrays and maps        |
+| `node.id`          | The node that emitted the point                |
+| `node.type`        | The node type, such as `modbusIo` or `mqttSub` |
+| `node.description` | The node's Description field                   |
+| `node.tag.*`       | Tag points on the node, and on its ancestors   |
+
+That last row is what makes plant structure queryable. A tag point set once on a
+node is inherited by every point emitted beneath it, up to the Database node's
+parent, so a site or line or machine label is set in one place rather than
+repeated on every sensor. The [database page](database.md#tags) covers the
+rules, including that the value nearest the emitting node wins.
+
+### How this is usually done elsewhere
+
+The common tool for MQTT into a time series database is Telegraf's
+`mqtt_consumer` input, and it does two things worth knowing:
+
+- **It stores the whole topic as a tag named `topic`, by default.** You can turn
+  that off with `topic_tag = ""`.
+- **It also parses the topic into separate tags**, through `topic_parsing` rules
+  that assign each topic level to a measurement, a tag, or a field.
+
+InfluxData's own guidance is that the whole topic on its own needs extra
+processing before it is useful, and that parsing the levels into distinct tags
+is what makes the data queryable. Other tools take the same approach by
+different means; `mqtt2prometheus`, for example, pulls labels out of the topic
+with a regular expression.
+
+So the answer to whether you store the entire topic is usually "yes, and also
+the parsed levels". The full topic is worth keeping for tracing a series back to
+its source and for selecting one exact series. It is not a good primary label,
+because a query that wants every tank level on line 3 cannot express that
+against an opaque string.
+
+### How it maps in Simple IoT
+
+The topic hierarchy becomes the node hierarchy, and the levels you want to query
+on become tag points. Given a topic of `plant-a/line3/press/tank_level` carrying
+`{"value": 42.1}`:
+
+```
+plant-a              tag: site=plant-a
+└── line3            tag: line=3
+    └── press        tag: machine=press-3
+        └── Tank level   (mqttSub, topic: plant-a/line3/press/tank_level)
+                         tag: topic=plant-a/line3/press/tank_level
+```
+
+The point emitted by that subscription node is written as:
+
+```
+points_value{type="value",
+             "node.description"="Tank level",
+             "node.tag.site"="plant-a",
+             "node.tag.line"="3",
+             "node.tag.machine"="press-3",
+             "node.tag.topic"="plant-a/line3/press/tank_level"}
+```
+
+Label names contain periods, so MetricsQL queries quote them. Every tank level
+on line 3, regardless of machine:
+
+```
+points_value{type="value", "node.tag.line"="3", "node.description"="Tank level"}
+```
+
+Storing the full topic as a tag point named `topic` is the same idea as
+Telegraf's default, and it needs nothing new in the Database client, since it is
+an ordinary tag point.
+
+### Choosing the point shape
+
+Two arrangements both work, and the payload usually decides:
+
+- **A node per measurement**, with a point of type `value`. This matches how
+  [Modbus IOs](modbus.md) already work, and suits topics that carry a single
+  scalar.
+- **A node per device**, with one point per field, where the point key holds the
+  field name. A payload with twenty fields becomes one node and twenty points
+  rather than twenty nodes, and the field name is queryable as the `key` label:
+
+  ```
+  points_value{type="value", key="tank_level", "node.tag.machine"="press-3"}
+  ```
+
+For [Sparkplug B](#sparkplug-b-planned) the structure is already decided by the
+specification: the group, edge node, and device become nodes, which means they
+become inherited tags without any configuration, and each metric becomes a
+point.
+
+### Things to plan for
+
+- **Keep unbounded values out of tags.** Each distinct combination of labels is
+  a separate series, and series count is what makes a time series database slow,
+  not label length. A topic level holding a message ID or a timestamp should not
+  become a tag, and where topics carry one, storing the full topic is a poor
+  idea as well.
+- **Settle tag names before collecting history.** Editing a tag or a description
+  starts a new series from that moment, and a query spanning the change sees
+  both.
+- **Publish numbers, not strings.** VictoriaMetrics converts non-numeric values
+  to zero, so the Database client skips string points entirely.
+
 ## Other controllers
 
 The Logix approach above assumes a closed controller that you can only reach
@@ -403,13 +632,12 @@ connection is available. A few things to check before committing to it:
   [store reference](../ref/store.md) covers the settings that affect this.
 - What a firmware update does to anything you installed.
 
-### Siemens and OPC UA
+### Siemens
 
-Siemens S7 and OPC UA are not implemented. OPC UA is the more general of the two
-and would cover a wide range of controllers, including the Siemens, Phoenix
-Contact, and Opto 22 products above, so it is a reasonable candidate after the
-work already described. Until then, Modbus or the custom client approach below
-covers these cases.
+The S7 protocol is not implemented. Siemens S7-1200 and S7-1500 controllers
+include an OPC UA server, so the [OPC UA client](#opc-ua-planned) would cover
+them without anything S7-specific. Until then, Modbus or the custom client
+approach below covers these cases.
 
 ## Ignition
 

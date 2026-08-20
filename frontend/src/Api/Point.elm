@@ -38,7 +38,6 @@ module Api.Point exposing
     , typeBitRate
     , typeBucket
     , typeChannel
-    , typeDbType
     , typeClientServer
     , typeConditionType
     , typeConnected
@@ -48,6 +47,7 @@ module Api.Point exposing
     , typeData
     , typeDataFormat
     , typeDate
+    , typeDbType
     , typeDebug
     , typeDebugPort
     , typeDefaultDialogs
@@ -89,7 +89,6 @@ module Api.Point exposing
     , typeHRDest
     , typeHash
     , typeHdop
-    , typeProvisionHash
     , typeHeading
     , typeHrRx
     , typeHrRxReset
@@ -137,6 +136,7 @@ module Api.Point exposing
     , typePrefix
     , typeProgress
     , typeProtocol
+    , typeProvisionHash
     , typeRate
     , typeRateHR
     , typeReadOnly
@@ -203,8 +203,8 @@ module Api.Point exposing
     , valueGpsSourceSim
     , valueGreaterThan
     , valueINT16
-    , valueInfluxDb
     , valueINT32
+    , valueInfluxDb
     , valueLessThan
     , valueModbusCoil
     , valueModbusDiscreteInput
