@@ -110,6 +110,7 @@ module Api.Point exposing
     , typeMaxValue
     , typeMinActive
     , typeMinIncrement
+    , typeMinInactive
     , typeMinValue
     , typeModbusIOType
     , typeMsgsInDb
@@ -745,6 +746,11 @@ valueContains =
 typeMinActive : String
 typeMinActive =
     "minActive"
+
+
+typeMinInactive : String
+typeMinInactive =
+    "minInactive"
 
 
 typeAction : String

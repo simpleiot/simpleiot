@@ -624,3 +624,51 @@ func TestRuleMinActiveDisabled(t *testing.T) {
 	r.checkVoutStays(0, minutes(minActive)/2, "pending period restarted", "0")
 	r.checkVout(1, "rule activates after the restarted pending period", "0")
 }
+
+/*
+minInactive holds a condition active until its input has been clear for the
+full duration, so an input oscillating across a threshold is one incident and
+one notification rather than one per cycle.
+*/
+func TestRuleMinInactive(t *testing.T) {
+	r, err := setupRuleTest(t, 1)
+	if err != nil {
+		t.Fatal("Rule test setup failed: ", err)
+	}
+
+	defer r.stop()
+	defer r.voutStop()
+
+	r.addNotifyAction("ID-action-notify")
+
+	notifyCount, notifyStop := r.countPoints(r.r.ID, data.PointTypeNotification)
+	defer notifyStop()
+
+	const minInactive = 0.02 // 1.2s
+
+	r.sendPoint(r.c.ID, data.NewPointFloat(data.PointTypeMinInactive, "", minInactive))
+	time.Sleep(150 * time.Millisecond)
+
+	r.checkVout(0, "initial value", "0")
+
+	// the rule activates with no pending period
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
+	r.checkVout(1, "rule activates immediately", "0")
+
+	// oscillate faster than the hold; the rule must stay active throughout
+	for i := 0; i < 3; i++ {
+		r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
+		r.checkVoutStays(1, minutes(minInactive)/3, "hold keeps the rule active", "0")
+		r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
+		r.checkVoutStays(1, minutes(minInactive)/3, "returning cancels the hold", "0")
+	}
+
+	if notifyCount() != 1 {
+		t.Errorf("expected 1 notification for one incident, got %v", notifyCount())
+	}
+
+	// once the input stays clear, the condition deactivates on its own
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
+	r.checkVoutStays(1, minutes(minInactive)/2, "hold is still running", "0")
+	r.checkVout(0, "rule clears once the input has been clear for minInactive", "0")
+}

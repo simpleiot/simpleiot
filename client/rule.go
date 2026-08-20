@@ -55,6 +55,7 @@ type Condition struct {
 	Disabled      bool    `point:"disabled"`
 	ConditionType string  `point:"conditionType"`
 	MinActive     float64 `point:"minActive"`
+	MinInactive   float64 `point:"minInactive"`
 	Active        bool    `point:"active"`
 	Error         string  `point:"error"`
 
@@ -101,6 +102,9 @@ func (c Condition) String() string {
 		}
 		if c.MinActive > 0 {
 			ret += fmt.Sprintf("  MINACT:%v", c.MinActive)
+		}
+		if c.MinInactive > 0 {
+			ret += fmt.Sprintf("  MININACT:%v", c.MinInactive)
 		}
 		ret += fmt.Sprintf("  A:%v", c.Active)
 		ret += "\n"
@@ -719,13 +723,16 @@ func (rc *RuleClient) ruleApplyHeldState(now time.Time) {
 // holdTime is how long a condition's raw result must hold before the
 // condition's active point follows it. MinActive is the pending period: a
 // spike that crosses the threshold and returns before it expires never
-// activates the condition at all.
+// activates the condition at all. MinInactive is its mirror image: once
+// active, the condition stays active until the input has been clear for that
+// long, so an input oscillating across a threshold is one incident rather than
+// one per cycle.
 func (c Condition) holdTime(raw bool) time.Duration {
 	if raw {
 		return minutesToDuration(c.MinActive)
 	}
 
-	return 0
+	return minutesToDuration(c.MinInactive)
 }
 
 // minutesToDuration converts the fractional minutes the rule timing points are

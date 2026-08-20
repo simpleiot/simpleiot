@@ -13,6 +13,14 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+### Added
+
+- **Rule conditions can hold themselves active with `minInactive`.** Set in
+  minutes on a condition, it keeps the condition met until its input has been
+  clear for that long, so a value oscillating around a threshold is one incident
+  and one notification rather than one per cycle. See the
+  [rules documentation](docs/user/rules.md#conditions).
+
 ### Changed
 
 - **`minActive` on a rule condition is now enforced.** A condition with

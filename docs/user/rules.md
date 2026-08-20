@@ -39,8 +39,15 @@ rule at all. An input that crosses the threshold and returns before the period
 expires never activates the condition, and the wait starts over the next time it
 crosses.
 
-A pending period is in-process state, so it restarts if the instance restarts or
-the rule is edited. Disabling a rule clears any pending period as well.
+A condition may also specify a minimum inactive duration (`minInactive`), the
+mirror image of `minActive`: once the condition is met, it stays met until its
+input has been clear for that many minutes. An input that returns before the
+duration expires cancels the wait and the condition never goes inactive, so a
+value oscillating around a threshold is one incident and one notification rather
+than one per cycle.
+
+Both durations are in-process state, so they restart if the instance restarts or
+the rule is edited. Disabling a rule clears them as well.
 
 ### Node state
 
@@ -161,6 +168,7 @@ nodes:
             description: Level below 10
             disabled: 0
             minActive: 5
+            minInactive: 10
             nodeID: Tank level
             operator: <
             pointKey: ""
@@ -209,7 +217,8 @@ decides how it compares them: a `number` condition compares `value` using
 `operator`, one of `>`, `<`, `=`, or `!=`; a `text` condition compares
 `valueText` using `=`, `!=`, or `contains`; and an `onOff` condition matches a
 `value` of `1` or `0` and needs no operator. `minActive` is how many minutes the
-condition has to hold before it is considered met.
+condition has to hold before it is considered met, and `minInactive` is how many
+minutes its input has to be clear before it stops being met.
 
 A schedule condition uses `start` and `end`, written as text so `08:00` keeps
 its leading zero, along with `weekday` and `date`. `weekday` is seven points,
@@ -232,13 +241,6 @@ The timing behavior around rule state and notifications is being improved. The
 design follows the model that Grafana alerting and Prometheus Alertmanager have
 converged on, since it has proven itself for exactly the problems rules have
 here: noisy conditions, flapping, and notification fatigue.
-
-- **A minimum inactive duration to stop flapping.** The mirror image of
-  `minActive`: once active, a rule will stay active until its conditions have
-  been clear for a set duration. Grafana calls this "keep firing for" and gives
-  the alert a recovering state. Without it, a value oscillating around a
-  threshold resolves and re-fires repeatedly, and every cycle is a new
-  notification. With it, one incident is one notification.
 
 - **A repeat interval on the notify action.** Two related behaviors, both taken
   from Grafana's repeat interval (default there is 4 hours):
