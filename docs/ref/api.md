@@ -28,8 +28,8 @@ a separate NATS server.
 Point data uses a compact binary encoding (see `data/point.go`). Node requests
 still use protobuf, defined
 [here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb). Each
-node point is sent as a single NATS message with `type` and `key` encoded in
-the subject.
+node point is sent as a single NATS message with `type` and `key` encoded in the
+subject.
 
 Because the type and key become subject tokens, they may not contain a period,
 whitespace, or the NATS wildcards `*` and `>`. Listeners read the node ID and
@@ -38,8 +38,8 @@ would add a token and shift everything after it, delivering the point to the
 wrong handler. The store checks every point on the way in and rejects any that
 cannot be published, logging the offending type and key and setting an `error`
 point on the node so the sender can be found. A client that generates keys from
-names it does not control -- sysfs device names, mount points, network
-interface names -- should pass them through `data.SubjectSafeToken` first.
+names it does not control -- sysfs device names, mount points, network interface
+names -- should pass them through `data.SubjectSafeToken` first.
 
 - Nodes
   - `nodes.<parentId>.<nodeId>.<type>.<key>`
@@ -75,12 +75,6 @@ interface names -- should pass them through `data.SubjectSafeToken` first.
   - `up.<upstreamId>.<nodeId>.<parentId>.<type>.<key>`
     - edge points rebroadcast at every upstream node ID.
 - Legacy APIs that are being deprecated
-  - `node.<id>.not`
-    - used when a node sends a [notification](./notifications.md) (typically a
-      rule, or a message sent directly from a node)
-  - `node.<id>.msg`
-    - used when a node sends a message (SMS, email, phone call, etc). This is
-      typically initiated by a [notification](./notifications.md).
   - `node.<id>.file` (not currently implemented)
     - Is used to transfer files to a node in chunks, which is optimized for
       unreliable networks like cellular and is handy for transferring software
@@ -134,9 +128,10 @@ Most APIs that do not return specific data (update/delete) return a
       the `CmdPending` flag in the Device state.
     - POST: posts a `cmd` for the node and sets the node `CmdPending` flag.
   - `/v1/nodes/:id/not`
-    - POST: send a
+    - POST: publish a
       [notification](https://github.com/simpleiot/simpleiot/blob/master/data/notification.go)
-      to all node users and upstream users
+      point on the node, which reaches the users and messaging services in scope
+      as described in the [notification documentation](./notifications.md)
 - Auth
   - `/v1/auth`
     - POST: accepts `email` and `password` as form values, and returns a JWT

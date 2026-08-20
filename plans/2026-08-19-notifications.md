@@ -2,6 +2,26 @@
 
 **Branch:** `feat/notifications` **Branched from:** `d2bbb2a3`
 
+## Implementation Notes (added after completion)
+
+The implementation followed the plan with these deviations:
+
+- **A `username` point type was added** for SMTP authentication. The planned
+  `MsgService` struct had no field for the SMTP login name, and reusing `sid`
+  for it would have been misleading. `authToken` doubles as the SMTP password.
+- **The rule notify action sets `SourceNode` to the trigger node** (the node
+  that satisfied the condition) and `Subject` to the rule description. The old
+  code set `SourceNode` to the action's target node ID, which is usually empty
+  for a notify action, and left the subject blank.
+- **Showing the most recent notification on a node in the UI was deferred.** The
+  rest of Phase 6 (service selection with conditional fields, new point types)
+  is done. The notification is available as a point with the payload in the
+  `text` field, so the display is a small self-contained follow-up.
+- **`cmd/send-sms/` was left as-is** (open question 4). It remains useful for
+  testing Twilio credentials outside a running instance.
+- **The deduplication window is the planned one hour**, swept every quarter
+  window (open question 1 left at the initial guess).
+
 ## Context
 
 Notification delivery has not worked since December 2022. Commit `d451cad0`

@@ -15,6 +15,16 @@ For more details or to discuss releases, please visit the
 
 ### Added
 
+- **Notifications work again, with SMS, email, and ntfy push delivery.** A rule
+  notify action or the web UI's message function now reaches users through
+  Twilio SMS, email (SMTP), or an [ntfy](https://ntfy.sh) topic, configured on a
+  Messaging Service node. ntfy needs no user nodes — every notification in the
+  service's scope is pushed to the topic. Delivery is deduplicated, so a user
+  mirrored into several groups gets one message. Notifications now travel as
+  ordinary points, so they are stored, synchronized, and visible in history; the
+  old `node.<id>.not` and `node.<id>.msg` NATS subjects are gone. See the
+  [notifications](docs/user/notifications.md) and
+  [messaging](docs/user/messaging.md) documentation.
 - **A high availability reference describes the options and their constraints.**
   The [high availability reference](docs/ref/high-availability.md) covers what
   the store and synchronization design already protect, what running against an

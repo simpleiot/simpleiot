@@ -12,4 +12,4 @@
 | 2026-08-01-provisioning.md                      | **COMPLETE**                                                                            | 54169492      |
 | 2026-08-01-modbus-onewire-clients.md            | **COMPLETE**                                                                            | 54169492      |
 | 2026-08-11-prometheus-scrape-metrics.md         | **COMPLETE**                                                                            | ff1e2c7d      |
-| 2026-08-19-notifications.md                     | **PLANNED**                                                                             | d2bbb2a3      |
+| 2026-08-19-notifications.md                     | **COMPLETE** (notification display in UI deferred)                                      | d2bbb2a3      |

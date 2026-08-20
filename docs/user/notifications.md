@@ -1,16 +1,17 @@
 # Notifications
 
 Notifications are sent to users when a [rule](./rules.md) goes from inactive to
-active and contains a notification action. This notification travels up the node
-graph. At each parent node, users potentially listen for notifications. If a
-user is found, then a message is generated. This message likewise travels up the
-node graph. At each parent node, messaging service nodes potentially listen for
-messages and then process the message. Each node in Simple IoT that generates
-information is not concerned with the recipient of the information or how the
-information is used. This decoupling is the essence of messaging based systems
-(we use [NATS](https://nats.io/)) and is very flexible and powerful. Because
-nodes can be aliased (mirrored) to different places, this gives us a lot of
-flexibility in how points are processed. The node tree also gives us a very
+active and contains a notification action, or when a user sends a message from
+the web UI. This notification travels up the node graph. At each parent node,
+users potentially listen for notifications. If a user is found, then a message
+is generated. This message likewise travels up the node graph. At each parent
+node, [messaging service](messaging.md) nodes (Twilio SMS, email) potentially
+listen for messages and then process the message. Each node in Simple IoT that
+generates information is not concerned with the recipient of the information or
+how the information is used. This decoupling is the essence of messaging based
+systems (we use [NATS](https://nats.io/)) and is very flexible and powerful.
+Because nodes can be aliased (mirrored) to different places, this gives us a lot
+of flexibility in how points are processed. The node tree also gives us a very
 visual view of how things are connected as well as an easy way to expand or
 narrow scope based on high in the hierarchy a node is placed.
 
@@ -68,3 +69,20 @@ messages sent to the root node. With the node hierarchy, we can easily partition
 who gets notified. Additional group layers can be added if needed. No explicit
 binding is required between any of the nodes - the location in the graph manages
 all that. The higher up you go, the more visibility and access a node has.
+
+## Services Without Users
+
+A service with a global destination does not need user nodes at all. An
+[ntfy](https://ntfy.sh) messaging service node publishes every notification
+raised in its parent's subtree straight to its configured topic, so anyone
+subscribed to that topic on their phone or desktop receives it. Per-user
+services (Twilio SMS, email) need a user in scope to address the message; ntfy
+fires either way.
+
+## Duplicates
+
+A user can be mirrored into several groups, and two branches of the tree can
+feed the same messaging service. Delivery is deduplicated per notification and
+destination address, so each user still receives one SMS or email, and each ntfy
+topic receives one push, no matter how many paths the notification takes through
+the tree.
