@@ -45,13 +45,6 @@ The port is disabled by default. Points worth knowing:
   `spBv1.0/plant/DDATA/line3/tank` arrives on the NATS subject
   `spBv1//0.plant.DDATA.line3.tank`.
 
-Try it with the Mosquitto command line tools:
-
-```
-mosquitto_sub -h localhost -p 1883 -t 'plant/#' -v
-mosquitto_pub -h localhost -p 1883 -t plant/line3/tank -m '{"value":42.1}'
-```
-
 Add `-u siot -P $SIOT_AUTH_TOKEN` to both when a token is configured. The
 [command line walkthrough](#trying-a-topic-schema-from-the-command-line) below
 takes this further and creates nodes from published messages.
@@ -326,6 +319,8 @@ by description.
   a mistyped topic leaves a node behind. Delete it in the UI once you are done.
 
 ## Sparkplug B
+
+_Note, Sparkplug B support is preliminary, testing feedback is welcome._
 
 [Sparkplug B](https://sparkplug.eclipse.org/) adds a defined topic namespace, a
 protobuf payload, and birth and death certificates on top of MQTT. Because an
