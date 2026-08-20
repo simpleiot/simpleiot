@@ -2,6 +2,7 @@ package client_test
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -363,4 +364,145 @@ func TestRuleActionPointKey(t *testing.T) {
 	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
 
 	r.checkVout(0, "should be low", "1")
+}
+
+// countPoints counts points of a given type sent to a node. Points are sent to
+// the p.<id> subject, so counting means subscribing rather than reading the
+// current value -- a notification point uses a fixed key, so a second
+// notification overwrites the first.
+func (rts *ruleTestServer) countPoints(id, typ string) (count func() int, stop func()) {
+	var lock sync.Mutex
+	c := 0
+
+	unsub, err := client.SubscribePoints(rts.nc, id, func(points []data.Point) {
+		lock.Lock()
+		defer lock.Unlock()
+		for _, p := range points {
+			if p.Type == typ {
+				c++
+			}
+		}
+	})
+
+	if err != nil {
+		rts.t.Fatalf("Error subscribing to points for %v: %v", id, err)
+	}
+
+	return func() int {
+		lock.Lock()
+		defer lock.Unlock()
+		return c
+	}, unsub
+}
+
+// addNotifyAction adds a notify action to the rule so notifications can be
+// counted alongside the setValue action the harness already installs.
+func (rts *ruleTestServer) addNotifyAction(id string) client.Action {
+	a := client.Action{
+		ID:          id,
+		Parent:      rts.r.ID,
+		Description: "notify " + id,
+		Action:      data.PointValueNotify,
+	}
+
+	err := client.SendNodeType(rts.nc, a, "test")
+	if err != nil {
+		rts.t.Fatalf("Error sending notify action: %v", err)
+	}
+
+	// give the rule client time to pick up the new child
+	time.Sleep(250 * time.Millisecond)
+
+	return a
+}
+
+/*
+Actions run when the rule changes state, and only then. Editing a rule, a
+condition, or an action while the rule is active must not re-run the actions or
+re-send the notification.
+*/
+func TestRuleTransitionsOnly(t *testing.T) {
+	r, err := setupRuleTest(t, 1)
+	if err != nil {
+		t.Fatal("Rule test setup failed: ", err)
+	}
+
+	defer r.stop()
+	defer r.voutStop()
+
+	r.addNotifyAction("ID-action-notify")
+
+	notifyCount, notifyStop := r.countPoints(r.r.ID, data.PointTypeNotification)
+	defer notifyStop()
+
+	voutCount, voutStop := r.countPoints(r.vout.ID, data.PointTypeValue)
+	defer voutStop()
+
+	r.checkVout(0, "initial value", "0")
+
+	// set vin and look for vout to change
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
+	r.checkVout(1, "look for vout to change after set vin", "0")
+
+	time.Sleep(100 * time.Millisecond)
+
+	if notifyCount() != 1 {
+		t.Fatalf("expected 1 notification after the rule went active, got %v", notifyCount())
+	}
+
+	notifyBefore := notifyCount()
+	voutBefore := voutCount()
+
+	// edit the rule, the condition, and the action while the rule is active
+	r.sendPoint(r.r.ID, data.NewPointString(data.PointTypeDescription, "", "test rule edited"))
+	r.sendPoint(r.c.ID, data.NewPointString(data.PointTypeDescription, "", "cond edited"))
+	r.sendPoint(r.a.ID, data.NewPointString(data.PointTypeDescription, "", "action edited"))
+
+	time.Sleep(300 * time.Millisecond)
+
+	if notifyCount() != notifyBefore {
+		t.Errorf("editing an active rule sent %v extra notifications",
+			notifyCount()-notifyBefore)
+	}
+
+	if voutCount() != voutBefore {
+		t.Errorf("editing an active rule wrote the output %v extra times",
+			voutCount()-voutBefore)
+	}
+}
+
+/*
+Disabling an active rule runs the inactive actions exactly once, and further
+edits while the rule is disabled run nothing.
+*/
+func TestRuleDisableTransition(t *testing.T) {
+	r, err := setupRuleTest(t, 1)
+	if err != nil {
+		t.Fatal("Rule test setup failed: ", err)
+	}
+
+	defer r.stop()
+	defer r.voutStop()
+
+	voutCount, voutStop := r.countPoints(r.vout.ID, data.PointTypeValue)
+	defer voutStop()
+
+	r.checkVout(0, "initial value", "0")
+
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
+	r.checkVout(1, "rule active", "0")
+
+	countBefore := voutCount()
+
+	r.sendPoint(r.r.ID, data.NewPointFloat(data.PointTypeDisabled, "", 1))
+	r.checkVout(0, "disabling an active rule runs the inactive actions", "0")
+
+	// further edits while disabled run nothing
+	r.sendPoint(r.r.ID, data.NewPointString(data.PointTypeDescription, "", "edited while disabled"))
+
+	time.Sleep(300 * time.Millisecond)
+
+	if voutCount() != countBefore+1 {
+		t.Errorf("expected 1 output write on disable, got %v", voutCount()-countBefore)
+	}
 }

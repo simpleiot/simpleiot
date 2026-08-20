@@ -80,7 +80,16 @@ See also a video demo:
 
 Actions run when the rule changes state. Actions of type `action` run on the
 inactive to active transition, and actions of type `actionInactive` run on the
-active to inactive transition.
+active to inactive transition. Editing a rule, a condition, or an action while
+the rule is active does not re-run the actions — only a change of state does.
+
+Disabling a rule makes it inactive, which is a transition like any other, so
+disabling an active rule runs its inactive actions once and further edits while
+it stays disabled run nothing.
+
+Rule state is persisted, so a restart resumes in the state the rule was in and
+does not re-run the actions or re-send the notification for a state that has not
+changed.
 
 ### Notifications
 
@@ -241,10 +250,6 @@ here: noisy conditions, flapping, and notification fatigue.
   - The interval also acts as a rate limit: a rule will not notify more often
     than the repeat interval no matter how often it transitions, bounding the
     damage from a flapping condition that slips past the duration guards.
-
-- **Actions run only on state transitions.** Editing an active rule (or its
-  conditions or actions) currently re-runs its actions, which re-sends the
-  notification. Actions will run only when the rule actually changes state.
 
 Grafana's remaining defenses — evaluating over an aggregation window instead of
 raw samples, and a recovery threshold separate from the firing threshold —

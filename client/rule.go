@@ -198,6 +198,14 @@ type RuleClient struct {
 	newEdgePoints chan NewPoints
 	newRulePoints chan NewPoints
 	upSub         *nats.Subscription
+
+	// actionState is the rule state the actions were last run for. Actions
+	// run only when the rule changes state, so a configuration edit on an
+	// active rule no longer re-runs them. It is seeded from the rule's
+	// persisted active point in Run(), which means a client that starts up
+	// and computes the state it was already in does not re-assert its
+	// setValue outputs or re-send its notification.
+	actionState bool
 }
 
 // NewRuleClient constructor ...
@@ -214,6 +222,10 @@ func NewRuleClient(nc *nats.Conn, config Rule) Client {
 
 // Run runs the main logic for this client and blocks until stopped
 func (rc *RuleClient) Run() error {
+	// the rule's active point is persisted, so the state the actions were
+	// last run for is the state the rule resumes in
+	rc.actionState = rc.config.Active
+
 	// watch all points that flow through parent node
 	// TODO: we should optimize this so we only watch the nodes
 	// that are in the conditions
@@ -252,34 +264,41 @@ func (rc *RuleClient) Run() error {
 	}
 
 	run := func(id string, pts data.Points) {
-		var active, changed bool
-		var err error
+		var active bool
+
+		if id == "" {
+			// a configuration change rather than an inbound point; the rule
+			// itself is the trigger node as far as the actions are concerned
+			id = rc.config.ID
+		}
 
 		if rc.config.Disabled {
-			active = false
+			// a disabled rule is inactive, and publishing that keeps the state
+			// the actions ran for and the state the UI shows in agreement
+			rc.setRuleActive(false)
 		} else {
-			if len(pts) > 0 {
-				active, changed, err = rc.ruleProcessPoints(id, pts)
-				if err != nil {
-					log.Println("Error processing rule point:", err)
-				}
-
-				if !changed {
-					return
-				}
-			} else {
-				// send a schedule trigger through just in case someone changed a
-				// schedule condition
-				active, _, err = rc.ruleProcessPoints(rc.config.ID, data.Points{{
+			if len(pts) <= 0 {
+				// a configuration change; send a schedule trigger through just
+				// in case someone changed a schedule condition
+				pts = data.Points{{
 					Time: time.Now(),
 					Type: data.PointTypeTrigger,
-				}})
+				}}
+			}
 
-				if err != nil {
-					log.Println("Error processing rule point:", err)
-				}
+			var err error
+			active, err = rc.ruleProcessPoints(id, pts)
+			if err != nil {
+				log.Println("Error processing rule point:", err)
 			}
 		}
+
+		if active == rc.actionState {
+			// actions run on state transitions only
+			return
+		}
+
+		rc.actionState = active
 
 		if active {
 			err := rc.ruleRunActions(rc.config.Actions, id)
@@ -454,10 +473,10 @@ func (rc *RuleClient) processError(errS string) {
 }
 
 // ruleProcessPoints runs points through a rules conditions and and updates condition
-// and rule active status. Returns true if point was processed and active is true.
+// and rule active status. Returns the rule active state.
 // Currently, this function only processes the first point that matches -- this should
 // handle all current uses.
-func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool, bool, error) {
+func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool, error) {
 	for _, p := range points {
 		for i, c := range rc.config.Conditions {
 			var active bool
@@ -586,22 +605,26 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 		allActive = false
 	}
 
-	changed := false
+	rc.setRuleActive(allActive)
 
-	if allActive != rc.config.Active {
-		p := data.NewPointFloat(data.PointTypeActive, "", data.BoolToFloat(allActive))
-		p.Time = time.Now()
+	return allActive, nil
+}
 
-		err := rc.sendPoint(rc.config.ID, p)
-		if err != nil {
-			log.Println("Rule error sending point:", err)
-		}
-		changed = true
-
-		rc.config.Active = allActive
+// setRuleActive publishes the rule's active point when the state changes
+func (rc *RuleClient) setRuleActive(active bool) {
+	if active == rc.config.Active {
+		return
 	}
 
-	return allActive, changed, nil
+	p := data.NewPointFloat(data.PointTypeActive, "", data.BoolToFloat(active))
+	p.Time = time.Now()
+
+	err := rc.sendPoint(rc.config.ID, p)
+	if err != nil {
+		log.Println("Rule error sending point:", err)
+	}
+
+	rc.config.Active = active
 }
 
 // ruleRunActions runs rule actions
@@ -660,8 +683,10 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				log.Println("Error sending rule action point:", err)
 			}
 		case data.PointValueNotify:
-			// get node that fired the rule
-			nodes, err := GetNodes(rc.nc, "none", triggerNodeID, "", false)
+			// get node that fired the rule; "all" asks for every living
+			// instance of the node, which is how a node is fetched when
+			// the caller knows the ID but not the parent
+			nodes, err := GetNodes(rc.nc, "all", triggerNodeID, "", false)
 			if err != nil {
 				processError(err)
 				break

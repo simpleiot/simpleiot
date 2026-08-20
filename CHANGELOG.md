@@ -13,6 +13,18 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+### Fixed
+
+- **Rule actions run only when the rule changes state.** Editing a rule, a
+  condition, or an action while the rule was active used to re-run the actions,
+  which re-sent the notification and rewrote any `setValue` output. Disabling an
+  active rule now publishes the rule inactive and runs its inactive actions
+  once. A restart resumes in the rule's persisted state without re-running
+  anything.
+- **Notify actions can find the node that fired the rule again.** The lookup
+  used a form of the node request the JetStream store rejects, so every notify
+  action logged an error instead of sending its notification.
+
 ## [0.24.0] - 2026-08-20
 
 ### Added
