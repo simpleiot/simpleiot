@@ -31,10 +31,16 @@ can then paste this node ID into the Node ID field in a condition or action.
 
 ## Conditions
 
-Each condition may optionally specify a minimum active duration (`minActive`)
-before the condition is considered met. This allows timing to be encoded in the
-rules. **Note:** `minActive` is accepted and stored today but not yet enforced —
-see [Planned Changes](#planned-changes) below.
+Each condition may optionally specify a minimum active duration (`minActive`),
+in minutes, that it has to hold continuously before it is considered met. This
+is a pending period, and it keeps a brief spike — a level that grazes a
+threshold, a device that drops offline for a few seconds — from activating the
+rule at all. An input that crosses the threshold and returns before the period
+expires never activates the condition, and the wait starts over the next time it
+crosses.
+
+A pending period is in-process state, so it restarts if the instance restarts or
+the rule is edited. Disabling a rule clears any pending period as well.
 
 ### Node state
 
@@ -203,8 +209,7 @@ decides how it compares them: a `number` condition compares `value` using
 `operator`, one of `>`, `<`, `=`, or `!=`; a `text` condition compares
 `valueText` using `=`, `!=`, or `contains`; and an `onOff` condition matches a
 `value` of `1` or `0` and needs no operator. `minActive` is how many minutes the
-condition has to hold before the rule goes active (stored today, enforced as
-part of the [planned changes](#planned-changes)).
+condition has to hold before it is considered met.
 
 A schedule condition uses `start` and `end`, written as text so `08:00` keeps
 its leading zero, along with `weekday` and `date`. `weekday` is seven points,
@@ -227,13 +232,6 @@ The timing behavior around rule state and notifications is being improved. The
 design follows the model that Grafana alerting and Prometheus Alertmanager have
 converged on, since it has proven itself for exactly the problems rules have
 here: noisy conditions, flapping, and notification fatigue.
-
-- **Enforce `minActive` (pending period).** A condition with `minActive` set
-  will have to hold continuously for that long before it is considered met. This
-  is the equivalent of Grafana's pending period, which keeps a brief spike — a
-  level that grazes a threshold, a device that drops offline for a few seconds —
-  from activating the rule at all. Today the field is stored and shown in the UI
-  but has no effect.
 
 - **A minimum inactive duration to stop flapping.** The mirror image of
   `minActive`: once active, a rule will stay active until its conditions have

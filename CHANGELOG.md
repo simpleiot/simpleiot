@@ -13,6 +13,15 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+### Changed
+
+- **`minActive` on a rule condition is now enforced.** A condition with
+  `minActive` set has to hold continuously for that many minutes before it is
+  considered met, so a brief spike no longer activates the rule. The field has
+  been stored and shown in the UI for some time without doing anything, so a
+  rule that already carries a non-zero `minActive` changes behavior on upgrade.
+  See the [rules documentation](docs/user/rules.md#conditions).
+
 ### Fixed
 
 - **Rule actions run only when the rule changes state.** Editing a rule, a

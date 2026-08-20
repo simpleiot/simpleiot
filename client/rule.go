@@ -313,6 +313,10 @@ func (rc *RuleClient) Run() error {
 			// a disabled rule is inactive, and publishing that keeps the state
 			// the actions ran for and the state the UI shows in agreement
 			rc.setRuleActive(false)
+
+			// a disabled rule counts nothing, so any pending period is
+			// cleared and starts over when the rule is enabled again
+			rc.condState = nil
 		} else {
 			if len(pts) > 0 {
 				rc.ruleUpdateConditions(id, pts)
@@ -713,9 +717,26 @@ func (rc *RuleClient) ruleApplyHeldState(now time.Time) {
 }
 
 // holdTime is how long a condition's raw result must hold before the
-// condition's active point follows it.
-func (Condition) holdTime(_ bool) time.Duration {
+// condition's active point follows it. MinActive is the pending period: a
+// spike that crosses the threshold and returns before it expires never
+// activates the condition at all.
+func (c Condition) holdTime(raw bool) time.Duration {
+	if raw {
+		return minutesToDuration(c.MinActive)
+	}
+
 	return 0
+}
+
+// minutesToDuration converts the fractional minutes the rule timing points are
+// expressed in. Fractional values work, which is what lets the tests exercise
+// the timing at hundredths of a minute.
+func minutesToDuration(m float64) time.Duration {
+	if m <= 0 {
+		return 0
+	}
+
+	return time.Duration(m * float64(time.Minute))
 }
 
 // setConditionActive publishes a condition's active point

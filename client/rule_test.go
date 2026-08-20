@@ -53,6 +53,24 @@ func (rts *ruleTestServer) checkVout(expected float64, msg string, pointKey stri
 	}
 }
 
+// checkVoutStays asserts the output holds its current value for the whole
+// window. Most of the rule timing tests take this shape -- nothing should
+// happen yet.
+func (rts *ruleTestServer) checkVoutStays(expected float64, window time.Duration, msg string, pointKey string) {
+	rts.lastCheck = msg
+
+	start := time.Now()
+	for time.Since(start) < window {
+		if got := rts.voutGet().Value[pointKey]; got != expected {
+			rts.t.Fatalf("vout changed to %v during %v, expected it to stay %v, test: %v",
+				got, window, expected, msg)
+		}
+		<-time.After(time.Millisecond * 10)
+	}
+
+	rts.lastvout = expected
+}
+
 func (rts *ruleTestServer) sendPoint(id string, point data.Point) {
 	point.Origin = "test"
 	err := client.SendNodePoint(rts.nc, id, point, true)
@@ -505,4 +523,104 @@ func TestRuleDisableTransition(t *testing.T) {
 	if voutCount() != countBefore+1 {
 		t.Errorf("expected 1 output write on disable, got %v", voutCount()-countBefore)
 	}
+}
+
+// minutes converts the fractional minutes the rule timing points are expressed
+// in. The timing tests use hundredths of a minute -- 0.01 minutes is 600ms --
+// which keeps the suite fast while still exercising real durations.
+func minutes(m float64) time.Duration {
+	return time.Duration(m * float64(time.Minute))
+}
+
+/*
+minActive is a pending period: the condition has to hold continuously for that
+long before the rule goes active.
+*/
+func TestRuleMinActive(t *testing.T) {
+	r, err := setupRuleTest(t, 1)
+	if err != nil {
+		t.Fatal("Rule test setup failed: ", err)
+	}
+
+	defer r.stop()
+	defer r.voutStop()
+
+	const minActive = 0.01 // 600ms
+
+	r.sendPoint(r.c.ID, data.NewPointFloat(data.PointTypeMinActive, "", minActive))
+	time.Sleep(150 * time.Millisecond)
+
+	r.checkVout(0, "initial value", "0")
+
+	// a spike that returns before the pending period expires never activates
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
+	r.checkVoutStays(0, minutes(minActive)/2, "spike does not activate immediately", "0")
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
+	r.checkVoutStays(0, minutes(minActive), "spike never activates the rule", "0")
+
+	// a value that stays activates after the period, with no further points
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
+	r.checkVoutStays(0, minutes(minActive)/2, "pending period is still running", "0")
+	r.checkVout(1, "rule activates when the pending period expires", "0")
+
+	// clearing has no pending period of its own
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
+	r.checkVout(0, "rule clears immediately", "0")
+}
+
+/*
+Changing minActive while a pending period is running applies the new value
+against the time the input changed.
+*/
+func TestRuleMinActiveChanged(t *testing.T) {
+	r, err := setupRuleTest(t, 1)
+	if err != nil {
+		t.Fatal("Rule test setup failed: ", err)
+	}
+
+	defer r.stop()
+	defer r.voutStop()
+
+	r.sendPoint(r.c.ID, data.NewPointFloat(data.PointTypeMinActive, "", 0.2)) // 12s
+	time.Sleep(150 * time.Millisecond)
+
+	r.checkVout(0, "initial value", "0")
+
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
+	r.checkVoutStays(0, 200*time.Millisecond, "long pending period is running", "0")
+
+	// shorten the pending period to one that has already elapsed
+	r.sendPoint(r.c.ID, data.NewPointFloat(data.PointTypeMinActive, "", 0.001))
+	r.checkVout(1, "shortening minActive while pending activates the rule", "0")
+}
+
+/*
+Disabling a rule clears any pending period, so enabling it again starts the
+wait over.
+*/
+func TestRuleMinActiveDisabled(t *testing.T) {
+	r, err := setupRuleTest(t, 1)
+	if err != nil {
+		t.Fatal("Rule test setup failed: ", err)
+	}
+
+	defer r.stop()
+	defer r.voutStop()
+
+	const minActive = 0.02 // 1.2s
+
+	r.sendPoint(r.c.ID, data.NewPointFloat(data.PointTypeMinActive, "", minActive))
+	r.sendPoint(r.r.ID, data.NewPointFloat(data.PointTypeDisabled, "", 1))
+	time.Sleep(150 * time.Millisecond)
+
+	// the input goes true while the rule is disabled, so nothing is counting
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
+	r.checkVoutStays(0, minutes(minActive), "a disabled rule counts nothing", "0")
+
+	// enabling the rule starts the pending period over from an input that is
+	// already true, which needs a fresh point to be seen at all
+	r.sendPoint(r.r.ID, data.NewPointFloat(data.PointTypeDisabled, "", 0))
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
+	r.checkVoutStays(0, minutes(minActive)/2, "pending period restarted", "0")
+	r.checkVout(1, "rule activates after the restarted pending period", "0")
 }
