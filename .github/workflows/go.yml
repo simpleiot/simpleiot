@@ -40,4 +40,7 @@ jobs:
       - name: Lint backend
         uses: golangci/golangci-lint-action@v9
         with:
+          # Pinned so CI matches the version developers run locally. Bump
+          # this deliberately, along with any fixes new checks require.
+          version: v2.12.2
           args: --timeout=5m
