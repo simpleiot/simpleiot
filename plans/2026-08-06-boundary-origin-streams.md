@@ -23,13 +23,12 @@ the layout is revised now, before Stage 3 builds on it. ADR-7 records the full
 analysis and the adopted model; this plan implements it.
 
 A draft of the Stage 3 sync plan
-([2026-08-06-stage3-jetstream-sync.md](2026-08-06-stage3-jetstream-sync.md))
-was worked through on 2026-08-06 to surface store-level accommodations; those
-are folded into the phases below. One consequence is accepted rather than
-mitigated: the existing hash-based sync client is inert once this plan lands
-(the store no longer maintains hashes), so upstream sync is nonfunctional
-between Stage 2 and Stage 3. That gap is acceptable — upstream sync returns,
-rebuilt, with Stage 3.
+([2026-08-06-stage3-jetstream-sync.md](2026-08-06-stage3-jetstream-sync.md)) was
+worked through on 2026-08-06 to surface store-level accommodations; those are
+folded into the phases below. One consequence is accepted rather than mitigated:
+the existing hash-based sync client is inert once this plan lands (the store no
+longer maintains hashes), so upstream sync is nonfunctional between Stage 2 and
+Stage 3. That gap is acceptable — upstream sync returns, rebuilt, with Stage 3.
 
 ## Design Summary (ADR-7 is authoritative)
 
@@ -103,23 +102,22 @@ stream layout.
     fanned out but never persisted locally, so the write path keeps a single
     persist-vs-merge-only branch point.
   - `ensureStream` keyed by (boundary, origin=self); local writes route via
-    `OwningBoundary`. Structure the API so "ensure my origin stream" is
-    distinct from "ensure a replica of a remote stream" (Stage 3 creates
-    replicas with a `Sources` config and no direct publish), and make the
-    stream-config equality check tolerant of sourcing fields.
+    `OwningBoundary`. Structure the API so "ensure my origin stream" is distinct
+    from "ensure a replica of a remote stream" (Stage 3 creates replicas with a
+    `Sources` config and no direct publish), and make the stream-config equality
+    check tolerant of sourcing fields.
   - `loadNodePoints` / `loadEdgeCache`: enumerate subjects across all
     `inst-<boundaryID>-*` streams, merge tips. Each must be callable for a
     single stream and safe to run concurrently with live writes; startup
     iterates streams. Stage 3 adds replica streams at runtime and reuses the
     single-stream path.
-  - Merge rule, specified and unit-tested directly: newest timestamp wins;
-    equal timestamps from different origins resolve by a deterministic
-    origin-ID tie-break; an identical (timestamp, origin) delivery is an
-    idempotent no-op. This is what makes independently-merging instances
-    converge in Stage 3.
+  - Merge rule, specified and unit-tested directly: newest timestamp wins; equal
+    timestamps from different origins resolve by a deterministic origin-ID
+    tie-break; an identical (timestamp, origin) delivery is an idempotent no-op.
+    This is what makes independently-merging instances converge in Stage 3.
   - Keep cache-merge and fan-out (`p.>`, `ep.>`, `up.>`) logic callable apart
-    from the NATS subscription closures, so Stage 3 stream deliveries
-    (replica catch-up) drive the same code path as wire messages.
+    from the NATS subscription closures, so Stage 3 stream deliveries (replica
+    catch-up) drive the same code path as wire messages.
   - **Mandatory point cache pre-population at startup** (this fixes the cache
     poisoning bug: the previous implementation seeded the cache from the first
     write after restart and then trusted the partial entry). As a backstop,
@@ -155,15 +153,15 @@ loads, nodes persist across restart.
 plan.
 
 - Configurable `MaxMsgsPerSubject` applied at stream creation/update. Resolve
-  the limit per stream (a function of stream name, with the server option as
-  the default) so Stage 3 per-boundary and per-replica overrides — hub keeps
-  long history on replicas, device keeps a short local buffer — slot in
-  without reworking the option. Document whether changing it retroactively
-  updates existing streams.
-- Note the catch-up interaction: per-subject retention preserves tips but
-  drops intermediate points, so a history consumer offline longer than the
-  retention window sees a gap. Current state is unaffected; gap-free history
-  delivery is the Stage 3 stream-consumer concern.
+  the limit per stream (a function of stream name, with the server option as the
+  default) so Stage 3 per-boundary and per-replica overrides — hub keeps long
+  history on replicas, device keeps a short local buffer — slot in without
+  reworking the option. Document whether changing it retroactively updates
+  existing streams.
+- Note the catch-up interaction: per-subject retention preserves tips but drops
+  intermediate points, so a history consumer offline longer than the retention
+  window sees a gap. Current state is unaffected; gap-free history delivery is
+  the Stage 3 stream-consumer concern.
 - Decide and document the JetStream `SyncInterval` posture for power-loss
   durability on edge devices (default is a 2-minute fsync interval); expose a
   server option if warranted. Record the decision in ADR-7.
@@ -234,35 +232,33 @@ repo's production code).
 
 ## Retrospective (2026-08-07)
 
-All phases implemented in one pass, suite green after each phase. Two
-lessons worth keeping:
+All phases implemented in one pass, suite green after each phase. Two lessons
+worth keeping:
 
-1. **Run tests the way CI does.** Package tests share fixed NATS ports
-   and data directories, so a plain `go test ./...` runs packages in
-   parallel and they collide, producing failures that look like
-   regressions. CI serializes with `-p=1`; use that locally. The first
-   Phase 1 verification lost time to this before the baseline
-   comparison (stash, clean-tree run, repeated runs) showed the only
-   real failure was a pre-existing flaky sync test.
+1. **Run tests the way CI does.** Package tests share fixed NATS ports and data
+   directories, so a plain `go test ./...` runs packages in parallel and they
+   collide, producing failures that look like regressions. CI serializes with
+   `-p=1`; use that locally. The first Phase 1 verification lost time to this
+   before the baseline comparison (stash, clean-tree run, repeated runs) showed
+   the only real failure was a pre-existing flaky sync test.
 
-2. **Moves finalize on the tombstone leg.** The plan scoped subject
-   migration to "new or undeleted" edges, but SIOT's standard move is
-   add-new-edge then tombstone-old-edge — and it is the tombstone write
-   that settles ownership (a node briefly under two boundaries resolves
-   to the root boundary until the old edge dies). Triggering only on
-   new/undelete would have stranded subjects in that transient
-   location. The implementation triggers on any tombstone transition
-   and skips migration for fully deleted nodes so plain deletions do
+2. **Moves finalize on the tombstone leg.** The plan scoped subject migration to
+   "new or undeleted" edges, but SIOT's standard move is add-new-edge then
+   tombstone-old-edge — and it is the tombstone write that settles ownership (a
+   node briefly under two boundaries resolves to the root boundary until the old
+   edge dies). Triggering only on new/undelete would have stranded subjects in
+   that transient location. The implementation triggers on any tombstone
+   transition and skips migration for fully deleted nodes so plain deletions do
    not churn.
 
 ## Commits
 
-| Hash | Description                                                 | Status  |
-| ---- | ----------------------------------------------------------- | ------- |
-| ✓    | fix: edge handler reply and edge validation order (Phase 1) | Done    |
-| ✓    | feat: boundary resolution in edge cache (Phase 2)           | Done    |
-| ✓    | feat: boundary-origin stream layout (Phase 3)               | Done    |
-| ✓    | feat: cross-boundary node moves (Phase 4)                   | Done    |
-| ✓    | feat: retention and durability options (Phase 5)            | Done    |
-| ✓    | test/docs: coverage and cleanup (Phase 6)                   | Done    |
-| ✓    | docs: Stage 3 spike results in ADR-7 (Phase 7, sourcing)    | Done    |
+| Hash | Description                                                 | Status |
+| ---- | ----------------------------------------------------------- | ------ |
+| ✓    | fix: edge handler reply and edge validation order (Phase 1) | Done   |
+| ✓    | feat: boundary resolution in edge cache (Phase 2)           | Done   |
+| ✓    | feat: boundary-origin stream layout (Phase 3)               | Done   |
+| ✓    | feat: cross-boundary node moves (Phase 4)                   | Done   |
+| ✓    | feat: retention and durability options (Phase 5)            | Done   |
+| ✓    | test/docs: coverage and cleanup (Phase 6)                   | Done   |
+| ✓    | docs: Stage 3 spike results in ADR-7 (Phase 7, sourcing)    | Done   |

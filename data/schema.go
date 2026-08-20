@@ -182,7 +182,8 @@ const (
 
 	PointTypeValueText = "valueText"
 
-	PointTypeMinActive = "minActive"
+	PointTypeMinActive   = "minActive"
+	PointTypeMinInactive = "minInactive"
 
 	NodeTypeAction         = "action"
 	NodeTypeActionInactive = "actionInactive"
@@ -192,6 +193,8 @@ const (
 	PointValueNotify    = "notify"
 	PointValueSetValue  = "setValue"
 	PointValuePlayAudio = "playAudio"
+
+	PointTypeRepeatInterval = "repeatInterval"
 
 	// Notifications and messages travel as points carrying a JSON payload
 	// (see data/notification.go and data/message.go). A notification says

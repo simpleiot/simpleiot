@@ -167,21 +167,21 @@ pass-through and only the NMEA path maps:
 `fixQuality` — SIOT adopts the NMEA GGA encoding, so the serial path is a
 pass-through and only the gpsd path maps:
 
-| SIOT           | NMEA GGA `FixQuality` | gpsd TPV `status`            | sim |
-| -------------- | --------------------- | ---------------------------- | --- |
-| `0` none       | `0` Invalid           | `0` Unknown with mode 0 or 1 |     |
-| `1` GPS        | `1` GPS               | `1` Normal                   | ✓   |
-| `2` DGPS       | `2` DGPS              | `2` DGPS                     |     |
-| `3` PPS        | `3` PPS               | `9` P(Y)                     |     |
-| `4` RTK fixed  | `4` RTK               | `3` RTK Fixed                |     |
-| `5` RTK float  | `5` FRTK              | `4` RTK Floating             |     |
-| `6` estimated  | `6` EST               | `5` DR, `6` GNSSDR           |     |
-| `7` manual     | `7` manual input      | —                            |     |
-| `8` simulated  | `8` simulation mode   | `8` Simulated                |     |
+| SIOT          | NMEA GGA `FixQuality` | gpsd TPV `status`            | sim |
+| ------------- | --------------------- | ---------------------------- | --- |
+| `0` none      | `0` Invalid           | `0` Unknown with mode 0 or 1 |     |
+| `1` GPS       | `1` GPS               | `1` Normal                   | ✓   |
+| `2` DGPS      | `2` DGPS              | `2` DGPS                     |     |
+| `3` PPS       | `3` PPS               | `9` P(Y)                     |     |
+| `4` RTK fixed | `4` RTK               | `3` RTK Fixed                |     |
+| `5` RTK float | `5` FRTK              | `4` RTK Floating             |     |
+| `6` estimated | `6` EST               | `5` DR, `6` GNSSDR           |     |
+| `7` manual    | `7` manual input      | —                            |     |
+| `8` simulated | `8` simulation mode   | `8` Simulated                |     |
 
 `go-nmea` only defines fix quality constants through `6` EST, and its
-`EnumString` parser rejects any GGA whose fix quality falls outside that set.
-So `7` and `8` are reachable through the gpsd path but not the serial one: a
+`EnumString` parser rejects any GGA whose fix quality falls outside that set. So
+`7` and `8` are reachable through the gpsd path but not the serial one: a
 receiver reporting either would have its GGA rejected and be treated as
 reporting no fix. Both values are rare enough from real hardware that this is
 not worth working around, but it is a real limit of the serial path.
@@ -216,12 +216,13 @@ is that a raw database query shows `4` instead of `rtkFixed`; the mapping tables
 above belong in the user documentation for that reason, and Grafana value
 mappings can restore the labels in a panel.
 
-**Every point in one fix must carry an identical timestamp.** `client.SendPoints`
-stamps each point with its own `time.Now()` when `Point.Time` is zero, which
-would leave latitude and longitude microseconds apart. A geomap needs both
-coordinates in the same row, so the client takes one timestamp per fix and
-applies it to every point in that fix before publishing. Without this, joining
-latitude and longitude in Grafana yields rows where one is null.
+**Every point in one fix must carry an identical timestamp.**
+`client.SendPoints` stamps each point with its own `time.Now()` when
+`Point.Time` is zero, which would leave latitude and longitude microseconds
+apart. A geomap needs both coordinates in the same row, so the client takes one
+timestamp per fix and applies it to every point in that fix before publishing.
+Without this, joining latitude and longitude in Grafana yields rows where one is
+null.
 
 ### Grafana Geomap
 
@@ -232,20 +233,20 @@ numeric fields in the same frame. Getting there differs by database:
   into one row natively, which is the simpler path. Rename the resulting columns
   to `latitude` and `longitude` and the panel auto-detects them.
 - **VictoriaMetrics** — query `points_value{type="latitude"}` and
-  `points_value{type="longitude"}` as two queries, then apply a
-  **Join by field** transformation on Time, an **Organize fields**
-  transformation to rename them to `latitude` and `longitude`, and set the panel
-  to Coordinates mode. A range query aligns both series to the same step grid,
-  so set the panel's min step at or below the GPS update rate to avoid
-  decimating the track.
+  `points_value{type="longitude"}` as two queries, then apply a **Join by
+  field** transformation on Time, an **Organize fields** transformation to
+  rename them to `latitude` and `longitude`, and set the panel to Coordinates
+  mode. A range query aligns both series to the same step grid, so set the
+  panel's min step at or below the GPS update rate to avoid decimating the
+  track.
 
 Resolved during implementation:
 
 - The db client's tag names contain dots (`node.type`, `node.description`),
-  which is not a valid Prometheus label name. This was flagged as a risk
-  needing `-usePromCompatibleNaming`. It turned out not to be one:
-  VictoriaMetrics accepts dotted label names and Grafana queries them directly,
-  confirmed against a working dashboard. No flag needed.
+  which is not a valid Prometheus label name. This was flagged as a risk needing
+  `-usePromCompatibleNaming`. It turned out not to be one: VictoriaMetrics
+  accepts dotted label names and Grafana queries them directly, confirmed
+  against a working dashboard. No flag needed.
 - The Grafana setup is documented from a working configuration rather than from
   theory. Setting each query's Legend to the field name is what produces the
   `latitude` and `longitude` fields the Geomap panel looks for, and the join
@@ -255,9 +256,9 @@ Resolved during implementation:
 Still worth verifying:
 
 - Because the db client writes a `text` field on every point, VictoriaMetrics
-  gets a `points_text` series holding zeros alongside every real series. Harmless
-  but wasteful. Reducing it means changing the db client to omit empty text
-  fields, which is out of scope here — worth noting as a follow-up.
+  gets a `points_text` series holding zeros alongside every real series.
+  Harmless but wasteful. Reducing it means changing the db client to omit empty
+  text fields, which is out of scope here — worth noting as a follow-up.
 
 ## Client Configuration Struct
 
@@ -331,9 +332,9 @@ restarts cleanly on config changes.
    detail — `SendPoints` otherwise stamps each point with its own `time.Now()`,
    leaving latitude and longitude microseconds apart and unjoinable. Add a test
    asserting all points from one fix share a timestamp.
-4. Register the manager in `client/DefaultClients`:
+5. Register the manager in `client/DefaultClients`:
    `g.Add(NewManager(nc, NewGPSClient, nil))`.
-5. Apply defaults when unset: `Source` to `serial`, `Baud` to `9600`,
+6. Apply defaults when unset: `Source` to `serial`, `Baud` to `9600`,
    `GpsdAddress` to `localhost:2947`, `Period` to `1`, `SimSpeed` to `10`,
    `SimHeadingRate` to `5`.
 
@@ -448,8 +449,8 @@ canned sentences without a port:
 - A corrupt sentence and a bad checksum both return an error rather than
   publishing a partial fix.
 - A receiver stream with no GSA leaves `fixType` unpublished.
-- A cold receiver's no-fix GGA reports fix quality 0, publishes no position,
-  and counts no error. This is the test that caught the Null Island defect.
+- A cold receiver's no-fix GGA reports fix quality 0, publishes no position, and
+  counts no error. This is the test that caught the Null Island defect.
 - A no-fix GGA still publishes its satellite count, but no altitude or HDOP.
 - An invalid RMC does not overwrite a fix quality GGA reported earlier in the
   same cycle.
@@ -508,8 +509,8 @@ replay a recorded NMEA log through a real gpsd instance without hardware.
 
 - A captured TPV object with `mode: 3` yields the expected position, speed in
   m/s, heading, and `fixType` `3`.
-- A TPV with `status: 3` (gpsd RTK Fixed) yields `fixQuality` `4`, exercising the
-  fact that the two encodings differ and the mapping is not an identity.
+- A TPV with `status: 3` (gpsd RTK Fixed) yields `fixQuality` `4`, exercising
+  the fact that the two encodings differ and the mapping is not an identity.
 - A TPV omitting `speed` leaves the previous speed untouched rather than
   publishing zero.
 - A TPV at `lat: 0, lon: 0` publishes that position rather than treating it as
@@ -520,12 +521,12 @@ replay a recorded NMEA log through a real gpsd instance without hardware.
   `satellites` array fallback when `uSat` is absent.
 - VERSION and DEVICES objects are ignored without error.
 
-`client/testdata/gpsd-session.json` holds a session used by a replay test.
-It was written from the documented report shapes rather than captured from a
+`client/testdata/gpsd-session.json` holds a session used by a replay test. It
+was written from the documented report shapes rather than captured from a
 running daemon, since gpsd is not installed on the development machine.
 Replacing it with a real `gpspipe -w` capture is worth doing when hardware is
-available — a genuine capture would exercise field combinations and gpsd
-version quirks that hand-written reports do not anticipate.
+available — a genuine capture would exercise field combinations and gpsd version
+quirks that hand-written reports do not anticipate.
 
 ### Phase 5: Frontend
 

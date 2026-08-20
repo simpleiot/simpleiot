@@ -28,8 +28,8 @@ Everything `client.Manager` already does is reimplemented here, less well:
 
 - **Node discovery is a poll, not a subscription.** New busses are noticed up to
   20 seconds late, and new IOs up to 10 seconds late. The comment in
-  `node/node.go` says as much: `TODO: this will not scale and needs to be made
-  event driven`.
+  `node/node.go` says as much:
+  `TODO: this will not scale and needs to be made event driven`.
 - **Node decoding is hand-written.** `NewModbusNode` and friends read every
   point by type and convert it, roughly 320 lines that `data.Decode` and the
   `point:` struct tags do generically. The same code then hand-writes the
@@ -38,13 +38,13 @@ Everything `client.Manager` already does is reimplemented here, less well:
   funnels points through a shared channel with a hand-rolled closure to avoid a
   data race. `client.Manager` subscribes once per client to `up.<nodeID>.>` and
   delivers points for the node and all its descendants.
-- **The subscription subject is the old one.** `p.<nodeID>` is the point subject,
-  not the `up.` propagation subject the rest of the system uses, so these nodes
-  do not participate in the same point flow as every other client.
-- **Discovery only searches below the root node.** `GetNodes(nc, rootNodeID,
-  "all", data.NodeTypeModbus, ...)` finds only direct children of root, so a
-  modbus node placed inside a group is never started. `client.Manager.scanHelper`
-  recurses through groups and declared parent types.
+- **The subscription subject is the old one.** `p.<nodeID>` is the point
+  subject, not the `up.` propagation subject the rest of the system uses, so
+  these nodes do not participate in the same point flow as every other client.
+- **Discovery only searches below the root node.**
+  `GetNodes(nc, rootNodeID, "all", data.NodeTypeModbus, ...)` finds only direct
+  children of root, so a modbus node placed inside a group is never started.
+  `client.Manager.scanHelper` recurses through groups and declared parent types.
 - **Nothing is testable.** There are no tests for either subsystem. The client
   framework has `server.TestServer` and `client.NodeWatcher`, which the serial,
   GPS, and rule clients use for real end-to-end tests.
@@ -65,12 +65,11 @@ needs no changes. Configurations in existing databases keep working.
 cannot act alone: it shares the serial port or TCP socket, the register map, and
 the poll cycle with its bus. Making each IO a separate client would require
 those to be shared across client boundaries. Instead the bus client declares
-`IOs []ModbusIo \`child:"modbusIo"\``, exactly as `CanBus` declares
-`Databases []File` and `Shelly` declares `IOs []ShellyIo`. `client.Manager`
-subscribes to `up.<busID>.>`, which carries points for the bus node and all its
-descendants, and `data.MergePoints(pts.ID, ...)` routes a point to the right
-element by matching the `node:"id"` field anywhere in the struct tree. One
-`MergePoints` call handles both bus and IO points.
+`IOs []ModbusIo \`child:"modbusIo"\``, exactly as `CanBus`declares`Databases
+[]File`and`Shelly`declares`IOs
+[]ShellyIo`. `client.Manager`subscribes to`up.<busID>.>`, which carries points for the bus node and all its descendants, and `data.MergePoints(pts.ID,
+...)`routes a point to the right element by matching the`node:"id"`field anywhere in the struct tree. One`MergePoints`
+call handles both bus and IO points.
 
 The same reasoning applies to 1-Wire: the bus owns the poll timer, the device
 detection, and the bus-level error count.
@@ -106,9 +105,9 @@ keeping the derivation honest avoids a confusing trap later.
 modbus server address (unit ID), unrelated to the SIOT node ID. `data.Decode`
 reads the `node:` and `point:` tags independently, so two fields can both be
 tagged `id` as long as the Go field names differ. The config uses
-`ID string \`node:"id"\`` and `ServerID int \`point:"id"\``, and the IO config
-uses `ID string \`node:"id"\`` and `Address int \`point:"address"\`` alongside
-`ServerID int \`point:"id"\``.
+`ID string \`node:"id"\``and`ServerID int
+\`point:"id"\``, and the IO config uses `ID string \`node:"id"\``and`Address int
+\`point:"address"\``alongside`ServerID int \`point:"id"\``.
 
 **Runtime state stays out of the config struct.** The config struct mirrors the
 node's points and is rewritten by `MergePoints` on every update. Values that
@@ -118,17 +117,17 @@ map — live in a separate map on the client keyed by IO node ID, rebuilt when
 `Run` starts.
 
 **1-Wire buses are no longer auto-created at the root node; devices on a bus
-still are.** Today `oneWireManager.update` globs `/sys/bus/w1/devices/
-w1_bus_master*` and creates a `oneWire` node under root for each controller it
-finds. Nothing in the client framework runs when no node exists, so preserving
-this would mean keeping a hardware-scanning goroutine alive in `server/` purely
-for 1-Wire, which is the thing this plan sets out to remove. Every other bus in
-Simple IoT — modbus, CAN, serial — is added by the person configuring the
-system, who is also the only one who knows which group or device node it belongs
-under. So a person adds a 1-Wire node and sets its bus index, and the client
-detects the sensors on that bus and creates `oneWireIO` children, which is the
-part that actually saves work. `docs/user/onewire.md` is updated to describe
-this.
+still are.** Today `oneWireManager.update` globs
+`/sys/bus/w1/devices/ w1_bus_master*` and creates a `oneWire` node under root
+for each controller it finds. Nothing in the client framework runs when no node
+exists, so preserving this would mean keeping a hardware-scanning goroutine
+alive in `server/` purely for 1-Wire, which is the thing this plan sets out to
+remove. Every other bus in Simple IoT — modbus, CAN, serial — is added by the
+person configuring the system, who is also the only one who knows which group or
+device node it belongs under. So a person adds a 1-Wire node and sets its bus
+index, and the client detects the sensors on that bus and creates `oneWireIO`
+children, which is the part that actually saves work. `docs/user/onewire.md` is
+updated to describe this.
 
 **1-Wire device detection is scoped to the bus.** The current `detect()` globs
 `/sys/bus/w1/devices/28-*`, which lists every DS18B20 on every controller, so
@@ -139,8 +138,8 @@ regardless of controller.
 
 **Version reporting moves to `server/`.** Beyond the two bus managers,
 `node.Manager` writes the app version and OS version to the root node at
-startup. That is about forty lines with no relationship to modbus or 1-Wire.
-It becomes a small function in `server/server.go` that runs once after the store
+startup. That is about forty lines with no relationship to modbus or 1-Wire. It
+becomes a small function in `server/server.go` that runs once after the store
 starts, rather than a long-lived actor in the run group.
 
 ## Phase 1 — Modbus Client
@@ -226,12 +225,13 @@ work is in the surrounding plumbing:
 - `Run` keeps the `select` over the poll timer, the port-check timer, and the
   register-change channel, and replaces `chPoint`/`chDone` with the standard
   `newPoints`/`newEdgePoints`/`stop` channels.
-- The 150-line point `switch` collapses into `data.MergePoints(pts.ID,
-  pts.Points, &c.config)` followed by a much smaller switch that reacts only to
-  the points with side effects: `clientServer`, `id`, `debug`, `port`, `baud`,
-  `uri`, and `timeout` re-open the port; `pollPeriod` resets the scan timer; the
-  three `errorCount*Reset` points publish zeros; a `value` point on an IO drives
-  `ServerIO`; a `valueSet` point on an IO drives `ClientIO`.
+- The 150-line point `switch` collapses into
+  `data.MergePoints(pts.ID, pts.Points, &c.config)` followed by a much smaller
+  switch that reacts only to the points with side effects: `clientServer`, `id`,
+  `debug`, `port`, `baud`, `uri`, and `timeout` re-open the port; `pollPeriod`
+  resets the scan timer; the three `errorCount*Reset` points publish zeros; a
+  `value` point on an IO drives `ServerIO`; a `valueSet` point on an IO drives
+  `ClientIO`.
 - `CheckIOs` and the 10-second IO scan go away. The port-check timer stays,
   since it detects a serial port that was unplugged and plugged back in.
 - Points sent to IO nodes set `Origin` to `c.config.ID`.
@@ -242,14 +242,14 @@ Register `NewModbusClient` in `client.DefaultClients`.
 
 ### Tests
 
-The modbus client is the first subsystem in this move that can be tested
-end to end without hardware: a modbus **server** bus and a modbus **client**
-bus, both running as `ModbusClient` instances inside one `server.TestServer`,
-talking to each other over a TCP loopback socket. Every register type and data
-format goes over a real wire, through the real transport encode/decode, and back
-out as a point on a SIOT node. `modbus/rtu-end-to-end_test.go` already does this
-at the protocol layer with an in-memory serial pair; these tests do it a layer
-up, through nodes and points.
+The modbus client is the first subsystem in this move that can be tested end to
+end without hardware: a modbus **server** bus and a modbus **client** bus, both
+running as `ModbusClient` instances inside one `server.TestServer`, talking to
+each other over a TCP loopback socket. Every register type and data format goes
+over a real wire, through the real transport encode/decode, and back out as a
+point on a SIOT node. `modbus/rtu-end-to-end_test.go` already does this at the
+protocol layer with an in-memory serial pair; these tests do it a layer up,
+through nodes and points.
 
 `client/modbus_test.go` follows the shape of `client/serial_test.go`.
 
@@ -280,8 +280,8 @@ wrong:
 
 - **The TCP server binds a real port.** Grab one by listening on `127.0.0.1:0`,
   reading the assigned port, and closing the listener before creating the nodes.
-  A fixed high port would collide with a developer's machine or a parallel `go
-  test` run.
+  A fixed high port would collide with a developer's machine or a parallel
+  `go test` run.
 - **Coils and registers share one address space.** `Regs.AddCoil(num)` maps a
   coil to register `num/16` (`modbus/reg.go`), so bit addresses 0–31 occupy
   registers 0 and 1. The test keeps bits below 32 and words at 100 and above so
@@ -292,16 +292,16 @@ wrong:
 Data flows in a different direction for each register type, which follows from
 `ClientIO` and `ServerIO` — a discrete input and an input register are written
 by the server and read by the client, while a coil and a holding register are
-written by the client and observed by the server. Each case gets its own IO
-pair at its own address, and each is asserted in both the direction it supports
-and, where it applies, on the read-back path:
+written by the client and observed by the server. Each case gets its own IO pair
+at its own address, and each is asserted in both the direction it supports and,
+where it applies, on the read-back path:
 
-| IO type            | Direction        | Stimulus                          | Assertion                                                             |
-| ------------------ | ---------------- | --------------------------------- | --------------------------------------------------------------------- |
-| `discreteInput`    | server → client  | `value` point on server IO node    | client IO node `value` matches                                        |
-| `inputRegister`    | server → client  | `value` point on server IO node    | client IO node `value` matches, scaled                                |
-| `coil`             | client → server  | `valueSet` point on client IO node | server IO node `value` matches, and client IO `value` follows          |
-| `holdingRegister`  | client → server  | `valueSet` point on client IO node | server IO node `value` matches, and client IO `value` follows          |
+| IO type           | Direction       | Stimulus                           | Assertion                                                     |
+| ----------------- | --------------- | ---------------------------------- | ------------------------------------------------------------- |
+| `discreteInput`   | server → client | `value` point on server IO node    | client IO node `value` matches                                |
+| `inputRegister`   | server → client | `value` point on server IO node    | client IO node `value` matches, scaled                        |
+| `coil`            | client → server | `valueSet` point on client IO node | server IO node `value` matches, and client IO `value` follows |
+| `holdingRegister` | client → server | `valueSet` point on client IO node | server IO node `value` matches, and client IO `value` follows |
 
 `InitRegs` seeds each server register from the node's stored `value` when the
 port opens, so a fresh coil or holding register starts at the server's value and
@@ -314,20 +314,20 @@ Input and holding registers are exercised across every supported format, since
 each one takes a different branch through `ReadBusReg`, `ReadReg`, and
 `WriteReg`, and the 32-bit formats span two registers:
 
-| Format    | Registers | Test value            | Notes                                     |
-| --------- | --------- | --------------------- | ----------------------------------------- |
-| `uint16`  | 1         | 65535                 | top of range                              |
-| `int16`   | 1         | -1234                 | sign preserved through the uint16 wire    |
-| `uint32`  | 2         | 4000000000            | above int32 range                         |
-| `int32`   | 2         | -2000000              | sign across the register pair             |
-| `float32` | 2         | 3.25                  | exact in binary, so equality is safe      |
+| Format    | Registers | Test value | Notes                                  |
+| --------- | --------- | ---------- | -------------------------------------- |
+| `uint16`  | 1         | 65535      | top of range                           |
+| `int16`   | 1         | -1234      | sign preserved through the uint16 wire |
+| `uint32`  | 2         | 4000000000 | above int32 range                      |
+| `int32`   | 2         | -2000000   | sign across the register pair          |
+| `float32` | 2         | 3.25       | exact in binary, so equality is safe   |
 
 Addresses advance by the register count of the case before it, so a two-register
 format cannot overlap its neighbor. One case also sets `scale` and `offset` to
 non-default values (for example scale 0.1, offset -40, a common temperature
 transmitter scaling) and asserts the scaled value on the client and the unscaled
-value in the server's register, which is the one place the two sides deliberately
-disagree.
+value in the server's register, which is the one place the two sides
+deliberately disagree.
 
 A table-driven test builds one IO pair per row and asserts them all against a
 single pair of busses, so the whole matrix costs one server startup and one port
@@ -335,8 +335,8 @@ open rather than one per case.
 
 #### Additional cases
 
-1. **Adding an IO to a running bus.** Create a bus with one IO, wait for a value,
-   then add a second IO and assert it starts polling. This exercises the
+1. **Adding an IO to a running bus.** Create a bus with one IO, wait for a
+   value, then add a second IO and assert it starts polling. This exercises the
    client-restart-on-child-change path described above, and is the one case that
    must not be folded into the matrix test.
 2. **Error counts.** Point a client bus at a port with nothing listening and
@@ -361,10 +361,10 @@ Two small helpers keep the assertions readable and are worth writing first:
   watchers plus a cleanup function.
 
 Unit tests for register scaling and the data-format conversions can go in the
-same file without a server, since `ReadReg`/`WriteReg` operate on a `modbus.Regs`
-directly. These cover the conversion math in isolation, which makes a failure in
-the end-to-end matrix easier to place: if the unit tests pass and the matrix
-fails, the problem is in the plumbing rather than the arithmetic.
+same file without a server, since `ReadReg`/`WriteReg` operate on a
+`modbus.Regs` directly. These cover the conversion math in isolation, which
+makes a failure in the end-to-end matrix easier to place: if the unit tests pass
+and the matrix fails, the problem is in the plumbing rather than the arithmetic.
 
 ### Cleanup and docs
 
@@ -415,14 +415,15 @@ changed or ten minutes have passed. Read failures increment the bus and IO error
 counts. Point handling reduces to `MergePoints` plus a small switch for
 `pollPeriod` and `errorCountReset`.
 
-Sysfs access is behind a small interface (or a package-level variable holding the
-device root) so tests can point it at a fixture directory. Register
+Sysfs access is behind a small interface (or a package-level variable holding
+the device root) so tests can point it at a fixture directory. Register
 `NewOneWireClient` in `client.DefaultClients`.
 
 Tests in `client/onewire_test.go` use a temporary directory laid out like the w1
 sysfs tree: assert that a `28-*` directory produces a `oneWireIO` child node,
-that a `temperature` file of `23456` produces a `value` of `23.456`, that `Units`
-of `F` converts, and that a missing or empty file increments both error counts.
+that a `temperature` file of `23456` produces a `value` of `23.456`, that
+`Units` of `F` converts, and that a missing or empty file increments both error
+counts.
 
 Delete `node/onewire.go`, `node/onewire-manager.go`, `node/onewire-node.go`,
 `node/onewire-io.go`, `node/onewire-io-node.go`, and remove `oneWireManager`
@@ -437,10 +438,10 @@ With both managers gone, `node.Manager` does nothing but write the app and OS
 version to the root node, and `node/node.go` also holds `renderNotifyTemplate`,
 which nothing outside `node/node_test.go` calls.
 
-- Move the version reporting into `server/server.go` as a function that runs once
-  after `siotStore.WaitStart`, replacing the `nodeManager` entry in the run
-  group. It needs `o.AppVersion`, `o.OSVersionField`, and `system.ReadOSVersion`,
-  all already reachable from there.
+- Move the version reporting into `server/server.go` as a function that runs
+  once after `siotStore.WaitStart`, replacing the `nodeManager` entry in the run
+  group. It needs `o.AppVersion`, `o.OSVersionField`, and
+  `system.ReadOSVersion`, all already reachable from there.
 - Delete `renderNotifyTemplate`, `nodeTemplateData`, and `node/node_test.go`.
   Notification templating lives in the rule client now; if any of this is worth
   keeping it belongs there, and nothing currently calls it.
@@ -458,8 +459,8 @@ Verify with `golangci-lint run` and `go test -race ./...`.
   clients.
 - Run the full suite: `siot_test`.
 - Manual check against hardware where available: an RTU client against a real
-  device, and a DS18B20 on a Raspberry Pi GPIO bus. Confirm that a
-  configuration exported from the current release imports and runs unchanged.
+  device, and a DS18B20 on a Raspberry Pi GPIO bus. Confirm that a configuration
+  exported from the current release imports and runs unchanged.
 
 ## Risks
 

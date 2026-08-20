@@ -4,28 +4,27 @@ description:
   Use when adding or changing nodes in a Simple IoT instance — a Modbus bus, a
   signal generator, a database client, a rule, a user, a group, or any other
   node type. Triggers on requests like "add a modbus node", "create a signal
-  generator writing to X", "set up a db node pointing at Victoria Metrics",
-  "add a rule that ...", "configure an upstream sync", or "provision these
-  nodes on the device". Writes the node file, dry runs it, and applies it with
-  `siot import`; use the provisioning directory only when the request says
-  provision.
+  generator writing to X", "set up a db node pointing at Victoria Metrics", "add
+  a rule that ...", "configure an upstream sync", or "provision these nodes on
+  the device". Writes the node file, dry runs it, and applies it with `siot
+  import`; use the provisioning directory only when the request says provision.
 ---
 
 # Adding nodes to a SIOT instance
 
 Nodes are added by writing a YAML node file and applying it, rather than by
-clicking through the UI. The same file format serves `siot import`, `siot
-export`, and provisioning, so a file that works one way works the others.
+clicking through the UI. The same file format serves `siot import`,
+`siot export`, and provisioning, so a file that works one way works the others.
 
 **Default to `siot import`.** It applies to a running instance immediately and
 is what almost every request means. Reach for the provisioning directory only
 when the request says provision, or asks for configuration that survives a
 reflash and comes up on its own.
 
-| Path | When | Applied |
-| --- | --- | --- |
-| `siot import` | The default | Once, immediately, to a running instance |
-| Provisioning directory | Asked for by name, or config that must come up on its own | At start-up and whenever a file changes |
+| Path                   | When                                                      | Applied                                  |
+| ---------------------- | --------------------------------------------------------- | ---------------------------------------- |
+| `siot import`          | The default                                               | Once, immediately, to a running instance |
+| Provisioning directory | Asked for by name, or config that must come up on its own | At start-up and whenever a file changes  |
 
 ## 1. Find the schema
 
@@ -34,25 +33,25 @@ with its point types, value forms, and enumerations. Read it before writing
 anything — point types are exact strings, and a wrong one is accepted silently
 as a point nothing reads.
 
-| Node type | Doc |
-| --- | --- |
-| `browser` | `docs/user/browser.md` |
-| `canBus` | `docs/user/can.md` |
-| `db` | `docs/user/database.md` |
-| `file` | `docs/user/file.md` |
-| `gps` | `docs/user/gps.md` |
-| `group`, `user` | `docs/user/users-groups.md` |
-| `metrics` | `docs/user/metrics.md` |
-| `modbus`, `modbusIo` | `docs/user/modbus.md` |
-| `msgService` | `docs/user/messaging.md` |
-| `oneWire`, `oneWireIO` | `docs/user/onewire.md` |
-| `particle` | `docs/user/particle.md` |
-| `rule`, `condition`, `action`, `actionInactive` | `docs/user/rules.md` |
-| `serialDev` | `docs/user/mcu.md` |
-| `shelly`, `shellyIo` | `docs/user/shelly.md` |
-| `signalGenerator` | `docs/user/signal-generator.md` |
-| `sync` | `docs/user/sync.md` |
-| `update` | `docs/user/update.md` |
+| Node type                                       | Doc                             |
+| ----------------------------------------------- | ------------------------------- |
+| `browser`                                       | `docs/user/browser.md`          |
+| `canBus`                                        | `docs/user/can.md`              |
+| `db`                                            | `docs/user/database.md`         |
+| `file`                                          | `docs/user/file.md`             |
+| `gps`                                           | `docs/user/gps.md`              |
+| `group`, `user`                                 | `docs/user/users-groups.md`     |
+| `metrics`                                       | `docs/user/metrics.md`          |
+| `modbus`, `modbusIo`                            | `docs/user/modbus.md`           |
+| `msgService`                                    | `docs/user/messaging.md`        |
+| `oneWire`, `oneWireIO`                          | `docs/user/onewire.md`          |
+| `particle`                                      | `docs/user/particle.md`         |
+| `rule`, `condition`, `action`, `actionInactive` | `docs/user/rules.md`            |
+| `serialDev`                                     | `docs/user/mcu.md`              |
+| `shelly`, `shellyIo`                            | `docs/user/shelly.md`           |
+| `signalGenerator`                               | `docs/user/signal-generator.md` |
+| `sync`                                          | `docs/user/sync.md`             |
+| `update`                                        | `docs/user/update.md`           |
 
 `docs/user/configuration.md` is the reference for the format itself.
 
@@ -106,11 +105,11 @@ What decides the outcome:
   the whole file is read, so it may point forward.
 - **Edge points go under `edgePoints`** — a user's `role` is the one in common
   use.
-- **An entry with no description matches the single node of its type**, which
-  is how a `metrics` or `serial` node is addressed. A user has no description,
-  so it is found by `email`, and by name when there is no email.
-- `apiVersion: 1` is optional. Adding it costs nothing and says which format
-  the file is in.
+- **An entry with no description matches the single node of its type**, which is
+  how a `metrics` or `serial` node is addressed. A user has no description, so
+  it is found by `email`, and by name when there is no email.
+- `apiVersion: 1` is optional. Adding it costs nothing and says which format the
+  file is in.
 
 Write files under the scratchpad directory unless they are going into the repo
 or a provisioning directory.
@@ -122,10 +121,10 @@ or a provisioning directory.
 ./siot import < config.yaml
 ```
 
-Read the dry run before applying. It prints one line per node — `create modbus
-Sensor bus (7 point(s))`, `update ...`, `delete ...` — so `create` where you
-expected `update` means the description did not match an existing node and a
-second node is about to appear beside it.
+Read the dry run before applying. It prints one line per node —
+`create modbus Sensor bus (7 point(s))`, `update ...`, `delete ...` — so
+`create` where you expected `update` means the description did not match an
+existing node and a second node is about to appear beside it.
 
 `import` reads STDIN and gives up after two seconds, so always redirect a file
 into it. Add `-natsServer nats://127.0.0.1:4222` for an instance that is not on
@@ -147,8 +146,8 @@ Where the files go:
 - `-provisioningDir` or `SIOT_PROVISIONING_DIR`, falling back to
   `<SIOT_DATA>/provisioning` when that directory exists.
 - Files are `.yaml` or `.yml`, applied in lexical order, so use the familiar
-  `10-`, `20-` prefixes to express which goes first. Dotfiles and
-  subdirectories are skipped.
+  `10-`, `20-` prefixes to express which goes first. Dotfiles and subdirectories
+  are skipped.
 - Files uploaded through the UI are `file` nodes under the `provisioning` node
   and are layered on top of the ones on disk.
 
@@ -163,10 +162,10 @@ the checksum applied, and the last error.
 ./siot export | grep -A20 'Sensor bus'
 ```
 
-Export the tree and confirm the node reads back the way the file described it.
-A point that came out empty where text was expected is the quoting rule; a
-point that is missing entirely is a point type that does not match what the
-client reads.
+Export the tree and confirm the node reads back the way the file described it. A
+point that came out empty where text was expected is the quoting rule; a point
+that is missing entirely is a point type that does not match what the client
+reads.
 
 ## Removing nodes
 
@@ -184,15 +183,15 @@ Deleting what is already gone does nothing.
 
 ## Pitfalls
 
-| Symptom | Cause |
-| --- | --- |
-| A second node appears beside the first | The description no longer matches, usually because one side was renamed |
-| `2 nodes here match "..."` | Two nodes share a parent and a description; make them distinct |
+| Symptom                                              | Cause                                                                                        |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| A second node appears beside the first               | The description no longer matches, usually because one side was renamed                      |
+| `2 nodes here match "..."`                           | Two nodes share a parent and a description; make them distinct                               |
 | `is a group node here and a modbus node in the file` | The description names a node of another type; delete it first if the type is meant to change |
-| A text setting reads as empty | The value was written bare and became numeric — quote it |
-| `this looks like the old export format` | The file names its type in a `type:` field; re-export to get the current one |
-| A user is not found | A user is matched by `email`, or by name when there is no email |
-| A provisioning file was edited but nothing changed | Provisioning applies on a content change; check the checksum on the `provisioningFile` node |
+| A text setting reads as empty                        | The value was written bare and became numeric — quote it                                     |
+| `this looks like the old export format`              | The file names its type in a `type:` field; re-export to get the current one                 |
+| A user is not found                                  | A user is matched by `email`, or by name when there is no email                              |
+| A provisioning file was edited but nothing changed   | Provisioning applies on a content change; check the checksum on the `provisioningFile` node  |
 
 Files carry secrets in the clear: `authToken` on `db`, `sync`, `particle`, and
 `msgService` nodes, and `pass` on a `user`. Treat a node file the way you would

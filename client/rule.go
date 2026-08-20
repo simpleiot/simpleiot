@@ -55,6 +55,7 @@ type Condition struct {
 	Disabled      bool    `point:"disabled"`
 	ConditionType string  `point:"conditionType"`
 	MinActive     float64 `point:"minActive"`
+	MinInactive   float64 `point:"minInactive"`
 	Active        bool    `point:"active"`
 	Error         string  `point:"error"`
 
@@ -102,6 +103,9 @@ func (c Condition) String() string {
 		if c.MinActive > 0 {
 			ret += fmt.Sprintf("  MINACT:%v", c.MinActive)
 		}
+		if c.MinInactive > 0 {
+			ret += fmt.Sprintf("  MININACT:%v", c.MinInactive)
+		}
 		ret += fmt.Sprintf("  A:%v", c.Active)
 		ret += "\n"
 	case data.PointValueSchedule:
@@ -134,6 +138,9 @@ type Action struct {
 	ValueType string  `point:"valueType"`
 	Value     float64 `point:"value"`
 	ValueText string  `point:"valueText"`
+	// RepeatInterval is used with notify actions, in minutes. It is both a
+	// rate limit and, for an active action, a reminder interval.
+	RepeatInterval float64 `point:"repeatInterval"`
 	// the following are used for audio playback
 	Channel  int    `point:"channel"`
 	Device   string `point:"device"`
@@ -183,6 +190,10 @@ type ActionInactive struct {
 	ValueType string  `point:"valueType"`
 	Value     float64 `point:"value"`
 	ValueText string  `point:"valueText"`
+	// RepeatInterval rate limits a notify action, in minutes. An inactive
+	// action does not repeat -- a resolved rule is the normal state, so a
+	// reminder about it would never stop.
+	RepeatInterval float64 `point:"repeatInterval"`
 	// the following are used for audio playback
 	Channel  int    `point:"channel"`
 	Device   string `point:"device"`
@@ -198,6 +209,28 @@ type RuleClient struct {
 	newEdgePoints chan NewPoints
 	newRulePoints chan NewPoints
 	upSub         *nats.Subscription
+
+	// actionState is the rule state the actions were last run for. Actions
+	// run only when the rule changes state, so a configuration edit on an
+	// active rule no longer re-runs them. It is seeded from the rule's
+	// persisted active point in Run(), which means a client that starts up
+	// and computes the state it was already in does not re-assert its
+	// setValue outputs or re-send its notification.
+	actionState bool
+
+	// condState holds the in-process state of each condition, keyed by
+	// condition node ID
+	condState map[string]*condRuntime
+
+	// lastTrigger is the node that last moved a condition, used to name the
+	// node that fired the rule when an action runs from a timer rather than
+	// from an inbound point
+	lastTrigger string
+
+	// notifyState records when each notify action last sent, keyed by action
+	// node ID. It backs both the repeat interval's rate limit and its
+	// reminder, and like the condition state it is not persisted.
+	notifyState map[string]time.Time
 }
 
 // NewRuleClient constructor ...
@@ -214,6 +247,10 @@ func NewRuleClient(nc *nats.Conn, config Rule) Client {
 
 // Run runs the main logic for this client and blocks until stopped
 func (rc *RuleClient) Run() error {
+	// the rule's active point is persisted, so the state the actions were
+	// last run for is the state the rule resumes in
+	rc.actionState = rc.config.Active
+
 	// watch all points that flow through parent node
 	// TODO: we should optimize this so we only watch the nodes
 	// that are in the conditions
@@ -251,35 +288,83 @@ func (rc *RuleClient) Run() error {
 		scheduleTicker.Stop()
 	}
 
-	run := func(id string, pts data.Points) {
-		var active, changed bool
-		var err error
+	// deadlineTimer fires when a condition can change state on its own, with
+	// no inbound point. It stays stopped whenever nothing is pending, so an
+	// idle rule costs nothing.
+	deadlineTimer := time.NewTimer(time.Hour)
+	if !deadlineTimer.Stop() {
+		<-deadlineTimer.C
+	}
 
-		if rc.config.Disabled {
-			active = false
-		} else {
-			if len(pts) > 0 {
-				active, changed, err = rc.ruleProcessPoints(id, pts)
-				if err != nil {
-					log.Println("Error processing rule point:", err)
-				}
-
-				if !changed {
-					return
-				}
-			} else {
-				// send a schedule trigger through just in case someone changed a
-				// schedule condition
-				active, _, err = rc.ruleProcessPoints(rc.config.ID, data.Points{{
-					Time: time.Now(),
-					Type: data.PointTypeTrigger,
-				}})
-
-				if err != nil {
-					log.Println("Error processing rule point:", err)
-				}
+	armDeadline := func() {
+		if !deadlineTimer.Stop() {
+			select {
+			case <-deadlineTimer.C:
+			default:
 			}
 		}
+
+		next := rc.nextDeadline()
+		if next.IsZero() {
+			return
+		}
+
+		wait := time.Until(next)
+		if wait < 0 {
+			wait = 0
+		}
+
+		deadlineTimer.Reset(wait)
+	}
+
+	// run evaluates the rule and acts on a change of state. points may be
+	// empty, which is how a timer re-evaluates conditions with nothing new to
+	// compare against.
+	run := func(id string, pts data.Points) {
+		var active bool
+
+		defer armDeadline()
+
+		rc.pruneNotifyState()
+
+		if rc.config.Disabled {
+			// a disabled rule is inactive, and publishing that keeps the state
+			// the actions ran for and the state the UI shows in agreement
+			rc.setRuleActive(false)
+
+			// a disabled rule counts nothing, so any pending period is
+			// cleared and starts over when the rule is enabled again
+			rc.condState = nil
+		} else {
+			if len(pts) > 0 {
+				rc.ruleUpdateConditions(id, pts)
+			}
+
+			rc.ruleApplyHeldState(time.Now())
+			active = rc.ruleComputeActive()
+		}
+
+		if id == "" {
+			// the rule ran from a timer rather than from an inbound point;
+			// name the node that last moved a condition as the trigger
+			id = rc.lastTrigger
+		}
+
+		if id == "" {
+			id = rc.config.ID
+		}
+
+		if active == rc.actionState {
+			// actions run on state transitions only; a rule that stays
+			// active still re-sends any notification whose repeat interval
+			// has come due
+			if active {
+				rc.ruleRepeatNotifications(id)
+			}
+			return
+		}
+
+		rc.actionState = active
 
 		if active {
 			err := rc.ruleRunActions(rc.config.Actions, id)
@@ -334,6 +419,11 @@ done:
 				Type: data.PointTypeTrigger,
 			}})
 
+		case <-deadlineTimer.C:
+			// a pending period or a hold expired; re-evaluate with nothing
+			// new to compare against
+			run("", nil)
+
 		case pts := <-rc.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &rc.config)
 			if err != nil {
@@ -346,7 +436,12 @@ done:
 				scheduleTicker.Stop()
 			}
 
-			run("", nil)
+			// send a schedule trigger through just in case someone changed a
+			// schedule condition
+			run("", data.Points{{
+				Time: time.Now(),
+				Type: data.PointTypeTrigger,
+			}})
 
 		case pts := <-rc.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &rc.config)
@@ -354,7 +449,10 @@ done:
 				log.Println("error merging rule edge points:", err)
 			}
 
-			run("", nil)
+			run("", data.Points{{
+				Time: time.Now(),
+				Type: data.PointTypeTrigger,
+			}})
 		}
 	}
 
@@ -453,11 +551,48 @@ func (rc *RuleClient) processError(errS string) {
 	}
 }
 
-// ruleProcessPoints runs points through a rules conditions and and updates condition
-// and rule active status. Returns true if point was processed and active is true.
-// Currently, this function only processes the first point that matches -- this should
-// handle all current uses.
-func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool, bool, error) {
+// condRuntime is the in-process state of a condition. The raw comparison
+// result and the time it last changed are what the held-state pass debounces;
+// the condition's active point is the held result and is what the rule, the
+// UI, and history see.
+//
+// This state is not persisted. A pending period therefore restarts after a
+// client restart or a configuration change that reloads the client, which is
+// how Grafana behaves as well -- persisting a pending timer would mean writing
+// a point on every evaluation.
+type condRuntime struct {
+	// raw is the last undebounced comparison result
+	raw bool
+	// rawChanged is when raw last took its current value
+	rawChanged time.Time
+	// deadline is when the held state changes on its own, zero when the
+	// held state already agrees with raw
+	deadline time.Time
+}
+
+// condRuntime returns the in-process state for a condition, seeding it from
+// the condition's persisted active point the first time it is asked for.
+func (rc *RuleClient) condRuntime(id string, active bool) *condRuntime {
+	if rc.condState == nil {
+		rc.condState = make(map[string]*condRuntime)
+	}
+
+	cs, ok := rc.condState[id]
+	if !ok {
+		cs = &condRuntime{raw: active, rawChanged: time.Now()}
+		rc.condState[id] = cs
+	}
+
+	return cs
+}
+
+// ruleUpdateConditions compares incoming points against each condition and
+// records the raw comparison result. The condition's active point is left to
+// the held-state pass, which is the only place that decides what the rule
+// sees.
+// Currently, this function only processes the first point that matches -- this
+// should handle all current uses.
+func (rc *RuleClient) ruleUpdateConditions(nodeID string, points data.Points) {
 	for _, p := range points {
 		for i, c := range rc.config.Conditions {
 			var active bool
@@ -541,17 +676,16 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 				}
 			}
 
-			if active != c.Active {
-				// update condition
-				p := data.NewPointFloat(data.PointTypeActive, "", data.BoolToFloat(active))
-				p.Time = time.Now()
-
-				err := rc.sendPoint(c.ID, p)
-				if err != nil {
-					log.Println("Rule error sending point:", err)
+			cs := rc.condRuntime(c.ID, c.Active)
+			if active != cs.raw {
+				cs.raw = active
+				cs.rawChanged = time.Now()
+				if nodeID != "" {
+					// remember what moved the condition so an action that
+					// runs later, when a pending period expires, can still
+					// name the node that fired the rule
+					rc.lastTrigger = nodeID
 				}
-
-				rc.config.Conditions[i].Active = active
 			}
 
 			if !errorActive && c.Error != "" {
@@ -568,7 +702,86 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 			}
 		}
 	}
+}
 
+// ruleApplyHeldState moves each condition's active point toward its raw state.
+// It runs from a timer as well as from an inbound point, so it takes the
+// current time rather than reading the clock per condition.
+func (rc *RuleClient) ruleApplyHeldState(now time.Time) {
+	live := make(map[string]bool, len(rc.config.Conditions))
+
+	for i, c := range rc.config.Conditions {
+		live[c.ID] = true
+
+		cs := rc.condRuntime(c.ID, c.Active)
+		cs.deadline = time.Time{}
+
+		if cs.raw == c.Active {
+			continue
+		}
+
+		if delay := c.holdTime(cs.raw); delay > 0 {
+			deadline := cs.rawChanged.Add(delay)
+			if now.Before(deadline) {
+				cs.deadline = deadline
+				continue
+			}
+		}
+
+		rc.setConditionActive(i, cs.raw)
+	}
+
+	// drop state for conditions that are no longer children of the rule
+	for id := range rc.condState {
+		if !live[id] {
+			delete(rc.condState, id)
+		}
+	}
+}
+
+// holdTime is how long a condition's raw result must hold before the
+// condition's active point follows it. MinActive is the pending period: a
+// spike that crosses the threshold and returns before it expires never
+// activates the condition at all. MinInactive is its mirror image: once
+// active, the condition stays active until the input has been clear for that
+// long, so an input oscillating across a threshold is one incident rather than
+// one per cycle.
+func (c Condition) holdTime(raw bool) time.Duration {
+	if raw {
+		return minutesToDuration(c.MinActive)
+	}
+
+	return minutesToDuration(c.MinInactive)
+}
+
+// minutesToDuration converts the fractional minutes the rule timing points are
+// expressed in. Fractional values work, which is what lets the tests exercise
+// the timing at hundredths of a minute.
+func minutesToDuration(m float64) time.Duration {
+	if m <= 0 {
+		return 0
+	}
+
+	return time.Duration(m * float64(time.Minute))
+}
+
+// setConditionActive publishes a condition's active point
+func (rc *RuleClient) setConditionActive(i int, active bool) {
+	p := data.NewPointFloat(data.PointTypeActive, "", data.BoolToFloat(active))
+	p.Time = time.Now()
+
+	err := rc.sendPoint(rc.config.Conditions[i].ID, p)
+	if err != nil {
+		log.Println("Rule error sending point:", err)
+	}
+
+	rc.config.Conditions[i].Active = active
+}
+
+// ruleComputeActive computes the rule state from its conditions and publishes
+// the rule's active point when it changes. A rule is active when every enabled
+// condition is active and at least one condition is enabled.
+func (rc *RuleClient) ruleComputeActive() bool {
 	allActive := true
 	activeConditionCount := 0
 
@@ -586,22 +799,201 @@ func (rc *RuleClient) ruleProcessPoints(nodeID string, points data.Points) (bool
 		allActive = false
 	}
 
-	changed := false
+	rc.setRuleActive(allActive)
 
-	if allActive != rc.config.Active {
-		p := data.NewPointFloat(data.PointTypeActive, "", data.BoolToFloat(allActive))
-		p.Time = time.Now()
+	return allActive
+}
 
-		err := rc.sendPoint(rc.config.ID, p)
-		if err != nil {
-			log.Println("Rule error sending point:", err)
-		}
-		changed = true
-
-		rc.config.Active = allActive
+// setRuleActive publishes the rule's active point when the state changes
+func (rc *RuleClient) setRuleActive(active bool) {
+	if active == rc.config.Active {
+		return
 	}
 
-	return allActive, changed, nil
+	p := data.NewPointFloat(data.PointTypeActive, "", data.BoolToFloat(active))
+	p.Time = time.Now()
+
+	err := rc.sendPoint(rc.config.ID, p)
+	if err != nil {
+		log.Println("Rule error sending point:", err)
+	}
+
+	rc.config.Active = active
+}
+
+// pruneNotifyState drops the recorded send times of actions that are no longer
+// children of the rule
+func (rc *RuleClient) pruneNotifyState() {
+	if len(rc.notifyState) == 0 {
+		return
+	}
+
+	live := make(map[string]bool, len(rc.config.Actions)+len(rc.config.ActionsInactive))
+	for _, a := range rc.config.Actions {
+		live[a.ID] = true
+	}
+	for _, a := range rc.config.ActionsInactive {
+		live[a.ID] = true
+	}
+
+	for id := range rc.notifyState {
+		if !live[id] {
+			delete(rc.notifyState, id)
+		}
+	}
+}
+
+// nextDeadline returns the earliest time at which the rule can change state on
+// its own, with no inbound point -- a pending period expiring or a hold
+// expiring. It returns the zero time when nothing is pending, in which case the
+// client arms no timer at all.
+func (rc *RuleClient) nextDeadline() time.Time {
+	var next time.Time
+
+	consider := func(t time.Time) {
+		if t.IsZero() {
+			return
+		}
+		if next.IsZero() || t.Before(next) {
+			next = t
+		}
+	}
+
+	for _, c := range rc.config.Conditions {
+		if c.Disabled {
+			continue
+		}
+		if cs, ok := rc.condState[c.ID]; ok {
+			consider(cs.deadline)
+		}
+	}
+
+	if rc.config.Active {
+		for _, a := range rc.config.Actions {
+			if next, ok := a.nextRepeat(rc.notifyState); ok {
+				consider(next)
+			}
+		}
+	}
+
+	return next
+}
+
+// sendNotification publishes a notification point on the rule node for a
+// notify action. An action with a repeat interval does not send if it sent
+// less than that many minutes ago; the transition still happens and the rule
+// state is still correct, only the notification is dropped. Deferring it
+// instead would mean a rule that resolved in the meantime still sends a
+// message about being active.
+func (rc *RuleClient) sendNotification(a Action, triggerNodeID string) error {
+	now := time.Now()
+
+	if interval := minutesToDuration(a.RepeatInterval); interval > 0 {
+		if last, ok := rc.notifyState[a.ID]; ok && now.Sub(last) < interval {
+			return nil
+		}
+	}
+
+	// get node that fired the rule; "all" asks for every living instance of
+	// the node, which is how a node is fetched when the caller knows the ID
+	// but not the parent
+	nodes, err := GetNodes(rc.nc, "all", triggerNodeID, "", false)
+	if err != nil {
+		return err
+	}
+
+	if len(nodes) < 1 {
+		return fmt.Errorf("trigger node not found")
+	}
+
+	triggerNodeDesc := nodes[0].Desc()
+
+	n := data.Notification{
+		ID:         uuid.New().String(),
+		SourceNode: triggerNodeID,
+		Subject:    rc.config.Description,
+		Message:    rc.config.Description + " fired at " + triggerNodeDesc,
+	}
+
+	p, err := n.Point()
+	if err != nil {
+		return fmt.Errorf("error encoding notification: %w", err)
+	}
+
+	if err := rc.sendPoint(rc.config.ID, p); err != nil {
+		return fmt.Errorf("error sending notification point: %w", err)
+	}
+
+	if rc.notifyState == nil {
+		rc.notifyState = make(map[string]time.Time)
+	}
+	rc.notifyState[a.ID] = now
+
+	return nil
+}
+
+// ruleRepeatNotifications re-sends the notification for any active-side notify
+// action whose repeat interval has come due, so a long running condition is
+// not a single message that scrolled away hours ago. Inactive actions do not
+// repeat: a resolved rule is the normal state, so a reminder about it would
+// never stop.
+func (rc *RuleClient) ruleRepeatNotifications(triggerNodeID string) {
+	now := time.Now()
+
+	for i, a := range rc.config.Actions {
+		if !a.dueForRepeat(rc.notifyState, now) {
+			continue
+		}
+
+		if err := rc.sendNotification(a, triggerNodeID); err != nil {
+			rc.actionError(rc.config.Actions, i, err)
+		}
+	}
+}
+
+// dueForRepeat reports whether a notify action's reminder has come due
+func (a Action) dueForRepeat(sent map[string]time.Time, now time.Time) bool {
+	next, ok := a.nextRepeat(sent)
+	return ok && !now.Before(next)
+}
+
+// nextRepeat returns when a notify action's reminder comes due
+func (a Action) nextRepeat(sent map[string]time.Time) (time.Time, bool) {
+	if a.Disabled || a.Action != data.PointValueNotify {
+		return time.Time{}, false
+	}
+
+	interval := minutesToDuration(a.RepeatInterval)
+	if interval <= 0 {
+		return time.Time{}, false
+	}
+
+	last, ok := sent[a.ID]
+	if !ok {
+		return time.Time{}, false
+	}
+
+	return last.Add(interval), true
+}
+
+// actionError records an error on an action node and rolls it up to the rule
+func (rc *RuleClient) actionError(actions []Action, i int, err error) {
+	a := actions[i]
+	errS := err.Error()
+
+	if a.Error != errS {
+		p := data.NewPointString(data.PointTypeError, "", errS)
+		p.Time = time.Now()
+
+		log.Printf("Rule action error %v:%v:%v\n", rc.config.Description, a.Description, err)
+		if err := rc.sendPoint(a.ID, p); err != nil {
+			log.Println("Rule error sending point:", err)
+		} else {
+			actions[i].Error = errS
+		}
+	}
+
+	rc.processError(errS)
 }
 
 // ruleRunActions runs rule actions
@@ -615,20 +1007,7 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 
 		processError := func(err error) {
 			errorActive = true
-			errS := err.Error()
-			if a.Error != errS {
-				p := data.NewPointString(data.PointTypeError, "", errS)
-				p.Time = time.Now()
-
-				log.Printf("Rule action error %v:%v:%v\n", rc.config.Description, a.Description, err)
-				err := rc.sendPoint(a.ID, p)
-				if err != nil {
-					log.Println("Rule error sending point:", err)
-				} else {
-					actions[i].Error = errS
-				}
-			}
-			rc.processError(errS)
+			rc.actionError(actions, i, err)
 		}
 
 		switch a.Action {
@@ -660,38 +1039,8 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				log.Println("Error sending rule action point:", err)
 			}
 		case data.PointValueNotify:
-			// get node that fired the rule
-			nodes, err := GetNodes(rc.nc, "none", triggerNodeID, "", false)
-			if err != nil {
+			if err := rc.sendNotification(a, triggerNodeID); err != nil {
 				processError(err)
-				break
-			}
-
-			if len(nodes) < 1 {
-				processError(fmt.Errorf("trigger node not found"))
-				break
-			}
-
-			triggerNode := nodes[0]
-
-			triggerNodeDesc := triggerNode.Desc()
-
-			n := data.Notification{
-				ID:         uuid.New().String(),
-				SourceNode: triggerNodeID,
-				Subject:    rc.config.Description,
-				Message:    rc.config.Description + " fired at " + triggerNodeDesc,
-			}
-
-			p, err := n.Point()
-			if err != nil {
-				processError(fmt.Errorf("error encoding notification: %w", err))
-				break
-			}
-
-			err = rc.sendPoint(rc.config.ID, p)
-			if err != nil {
-				processError(fmt.Errorf("error sending notification point: %w", err))
 			}
 		case data.PointValuePlayAudio:
 			f, err := os.Open(a.FilePath)

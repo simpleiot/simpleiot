@@ -77,15 +77,14 @@ nodes:
             units: F
 ```
 
-`index` is the number of the bus controller, matching the
-`w1_bus_master<index>` directory in `/sys/bus/w1/devices`. `pollPeriod` is in
-milliseconds and defaults to 3000 when it is zero or missing.
+`index` is the number of the bus controller, matching the `w1_bus_master<index>`
+directory in `/sys/bus/w1/devices`. `pollPeriod` is in milliseconds and defaults
+to 3000 when it is zero or missing.
 
-`id` on a device is its 1-wire address rather than a node ID, which is why it
-is spelled like any other point. Simple IoT creates a device node for each
-sensor it detects on the bus, so these usually arrive on their own; what a file
-adds is a lasting `description` and, where wanted, `units`.
+`id` on a device is its 1-wire address rather than a node ID, which is why it is
+spelled like any other point. Simple IoT creates a device node for each sensor
+it detects on the bus, so these usually arrive on their own; what a file adds is
+a lasting `description` and, where wanted, `units`.
 
 Leaving `units` out reports degrees Celsius. The readings and error counts are
-points the client maintains, so an export of a running bus carries them as
-well.
+points the client maintains, so an export of a running bus carries them as well.

@@ -49,13 +49,13 @@ func main() {
 		log.Println("Error setting send interval:", err)
 	}
 
+	// Read only returns when it hits an error, so there is no need to
+	// check the return value for nil.
 	err = tof.Read(func(v int) {
 		log.Printf("TOF data: %vmm\n", v)
 	}, func(err error) {
 		log.Println("Error reading TOF:", err)
 	})
 
-	if err != nil {
-		log.Println("Error reading TOF:", err)
-	}
+	log.Println("Error reading TOF:", err)
 }

@@ -20,8 +20,8 @@ for discussion on the
 | Protocol                                       | Client                                  | Status    | Tag names preserved | Work required                     |
 | ---------------------------------------------- | --------------------------------------- | --------- | ------------------- | --------------------------------- |
 | [Modbus](#modbus)                              | [Modbus](modbus.md)                     | Available | No                  | PLC-side Modbus server            |
-| [MQTT](#mqtt-planned)                          | MQTT                                    | (planned) | Yes                 | A gateway that publishes PLC tags |
-| [Sparkplug B](#sparkplug-b-planned)            | MQTT                                    | (planned) | Yes                 | A gateway that speaks Sparkplug   |
+| [MQTT](#mqtt-planned)                          | [MQTT](mqtt.md)                         | (planned) | Yes                 | A gateway that publishes PLC tags |
+| [Sparkplug B](#sparkplug-b-planned)            | [MQTT](mqtt.md)                         | (planned) | Yes                 | A gateway that speaks Sparkplug   |
 | [OPC UA](#opc-ua-planned)                      | OPC UA                                  | (planned) | Yes                 | Enable the server on the PLC      |
 | [EtherNet/IP](#ethernetip-tags-planned)        | Logix                                   | (planned) | Yes                 | None beyond network access        |
 | [Anything else](#writing-your-own-integration) | A process of your own over the NATS API | Available | Depends             | A process you write               |

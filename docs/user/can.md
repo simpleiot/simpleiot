@@ -238,16 +238,14 @@ nodes:
             name: vehicle.kcd
 ```
 
-`device` is the SocketCAN interface name and `bitRate` is text, so it is
-quoted.
+`device` is the SocketCAN interface name and `bitRate` is text, so it is quoted.
 
 The database rides along in the `data` point of the child file node, which is
 what makes an export of a CAN node enough to recreate it elsewhere. See the
 [File client](file.md) for the rest of that node.
 
-The message and signal counts and the received counts shown in the UI are
-points the client maintains, so an export of a running node carries them as
-well.
+The message and signal counts and the received counts shown in the UI are points
+the client maintains, so an export of a running node carries them as well.
 
 ## Future Work
 

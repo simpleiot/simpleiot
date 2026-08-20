@@ -3,17 +3,16 @@
 **Status:** DRAFT — written before Stage 2 (boundary-origin streams) is
 implemented, to think through the sync design far enough to catch anything that
 should change in the
-[Stage 2 store plan](2026-08-06-boundary-origin-streams.md). The phases here
-are a sketch, not a commitment; they get firmed up after the Stage 2 work and
-the Phase 7 spikes land. **ADR:** docs/adr/7-jetstream-store.md (Stage 3
-decision).
+[Stage 2 store plan](2026-08-06-boundary-origin-streams.md). The phases here are
+a sketch, not a commitment; they get firmed up after the Stage 2 work and the
+Phase 7 spikes land. **ADR:** docs/adr/7-jetstream-store.md (Stage 3 decision).
 
 ## Context
 
 ### What sync does today
 
-`client/sync.go` implements upstream sync over a second NATS *client*
-connection to the remote instance:
+`client/sync.go` implements upstream sync over a second NATS _client_ connection
+to the remote instance:
 
 - **Live path:** subscribes to all local `p.>` / `ep.>` traffic and forwards it
   to the remote; subscribes per-node to remote point subjects and forwards them
@@ -44,11 +43,11 @@ because no instance ever writes remote data into its own streams.
 
 For a device X (root node ID X) synced to hub R:
 
-| Stream       | Origin | On device X   | On hub R      |
-| ------------ | ------ | ------------- | ------------- |
-| `inst-X-X`   | X      | owned, writes | replica       |
-| `inst-X-R`   | R      | replica       | owned, writes |
-| `inst-R-R`   | R      | not present   | owned, writes |
+| Stream     | Origin | On device X   | On hub R      |
+| ---------- | ------ | ------------- | ------------- |
+| `inst-X-X` | X      | owned, writes | replica       |
+| `inst-X-R` | R      | replica       | owned, writes |
+| `inst-R-R` | R      | not present   | owned, writes |
 
 The edge attaching X into the hub's tree (group → X) lives in the hub's root
 boundary stream (`inst-R-R`, edges belong to the parent's boundary), so the
@@ -61,8 +60,8 @@ device never needs any hub-boundary stream.
 JetStream sourcing is a server-to-server feature. For the hub to source
 `inst-X-X` from the device (and vice versa), each side's JetStream API must be
 reachable from the other, which in NATS terms means a **leaf node connection**
-(possibly with distinct JS domains) rather than the plain client connection
-sync uses today.
+(possibly with distinct JS domains) rather than the plain client connection sync
+uses today.
 
 - The embedded NATS server currently has no leafnode listener or remote
   configuration (`server/server.go` configures client ports and auth token
@@ -70,14 +69,14 @@ sync uses today.
   and leafnode remote config (URI + credentials) on the device side, likely
   still driven by the Sync node's URI/AuthToken points.
 - **Fallback** (if the Phase 7 spikes show sourcing across leaf connections is
-  unsuitable — e.g. domain handling, reconnect behavior, or bandwidth): the
-  sync client replicates manually with a durable consumer over the existing
-  client connection and appends the messages to a local replica stream,
-  preserving order and tracking sequence. The stream remains logically
-  single-writer (it holds only origin X's messages); the local appender is a
-  replication agent, not a second writer. This changes who creates the replica
-  stream (the sync client, with direct publish allowed) versus sourcing (the
-  store, with a `Sources` config and direct publish denied).
+  unsuitable — e.g. domain handling, reconnect behavior, or bandwidth): the sync
+  client replicates manually with a durable consumer over the existing client
+  connection and appends the messages to a local replica stream, preserving
+  order and tracking sequence. The stream remains logically single-writer (it
+  holds only origin X's messages); the local appender is a replication agent,
+  not a second writer. This changes who creates the replica stream (the sync
+  client, with direct publish allowed) versus sourcing (the store, with a
+  `Sources` config and direct publish denied).
 
 The decision is made after the Stage 2 Phase 7 spikes and recorded in ADR-7.
 
@@ -86,19 +85,18 @@ The decision is made after the Stage 2 Phase 7 spikes and recorded in ADR-7.
 - **Which replicas exist where:** device X replicates `inst-X-*` except its own
   `inst-X-X`. The hub replicates `inst-X-X` for every synced device X — and in
   multi-hop topologies, `inst-X-I` for any intermediate instance I that has
-  written config for X. The set is dynamic: it changes when devices are
-  adopted, when a new origin first writes to a boundary, and when devices are
-  removed.
+  written config for X. The set is dynamic: it changes when devices are adopted,
+  when a new origin first writes to a boundary, and when devices are removed.
 - **Discovery:** an instance must learn which `inst-<boundary>-*` streams exist
   on the remote for boundaries it participates in. Simplest: query the remote's
   `$JS.API.STREAM.NAMES` with subject filter `inst.<boundaryID>.>` on connect
   and periodically; re-check when a replica delivers an edge point referencing
   an origin with no known stream.
-- **Creation/teardown:** replicas are created on first discovery and removed
-  (or retained, configurable) when a device is detached. Stream names are
-  identical on every instance that holds a copy, which keeps the store's
-  "enumerate `inst-<boundaryID>-*`" read path unchanged — a replica is just
-  another stream matching the pattern.
+- **Creation/teardown:** replicas are created on first discovery and removed (or
+  retained, configurable) when a device is detached. Stream names are identical
+  on every instance that holds a copy, which keeps the store's "enumerate
+  `inst-<boundaryID>-*`" read path unchanged — a replica is just another stream
+  matching the pattern.
 
 ### 3. Live path (latency) vs replica path (persistence)
 
@@ -113,9 +111,9 @@ support (see Implications below):
   persisted (published to JetStream) and merged into the cache. This is the
   Stage 2 behavior.
 - A point arriving on the wire that was **forwarded from a remote origin** must
-  NOT be persisted (single-writer; the replica will deliver and persist it).
-  It is merged into the cache and fanned out to `up.>` so rules, dbs, and the
-  UI react in real time.
+  NOT be persisted (single-writer; the replica will deliver and persist it). It
+  is merged into the cache and fanned out to `up.>` so rules, dbs, and the UI
+  react in real time.
 - A point delivered by a **replica stream** while connected is usually a
   duplicate of one already seen live — the cache merge must be an idempotent
   no-op. After an offline gap, replica delivery is the first sighting; how it
@@ -125,28 +123,28 @@ support (see Implications below):
 
 Clients divide into two kinds with different catch-up needs:
 
-- **State clients** (rules, protocol clients, the UI) care about current
-  state. Replaying every intermediate point missed during an outage is
-  actively harmful — a rule would fire actions on stale values in burst. After
-  replica catch-up completes for a subject, the store emits one notification
-  per *changed subject tip* (normal `p.>`/`ep.>`/`up.>` fan-out, carrying the
-  origin header), so state converges without a replay storm.
-- **History sinks** (Db/InfluxDB, VictoriaMetrics, or any external TSDB
-  client) need every point, gap-free. They should not depend on core NATS
-  wire delivery at all: each history sink owns a **durable JetStream
-  consumer** on the relevant `inst-*` streams (filtered to its subtree's
-  subjects). Sequence tracking makes delivery resumable and gap-free across
-  *both* sync outages and the sink's own downtime or instance restarts — a
-  guarantee the current fire-and-forget `up.>` delivery never provided.
-  Replica streams participate naturally: when the hub's replica of
-  `inst-X-X` catches up after a device was offline, the hub-side sink's
-  consumer receives those messages in stream order with original embedded
-  timestamps, so external TSDB backfill happens automatically.
+- **State clients** (rules, protocol clients, the UI) care about current state.
+  Replaying every intermediate point missed during an outage is actively harmful
+  — a rule would fire actions on stale values in burst. After replica catch-up
+  completes for a subject, the store emits one notification per _changed subject
+  tip_ (normal `p.>`/`ep.>`/`up.>` fan-out, carrying the origin header), so
+  state converges without a replay storm.
+- **History sinks** (Db/InfluxDB, VictoriaMetrics, or any external TSDB client)
+  need every point, gap-free. They should not depend on core NATS wire delivery
+  at all: each history sink owns a **durable JetStream consumer** on the
+  relevant `inst-*` streams (filtered to its subtree's subjects). Sequence
+  tracking makes delivery resumable and gap-free across _both_ sync outages and
+  the sink's own downtime or instance restarts — a guarantee the current
+  fire-and-forget `up.>` delivery never provided. Replica streams participate
+  naturally: when the hub's replica of `inst-X-X` catches up after a device was
+  offline, the hub-side sink's consumer receives those messages in stream order
+  with original embedded timestamps, so external TSDB backfill happens
+  automatically.
 
-A dedicated "catch-up subject" falls out of this for free: a push consumer
-with a deliver subject is exactly that, and the pull-consumer API is the more
-robust equivalent. The Db client rework to a durable consumer can ship as its
-own phase; until then it keeps the same best-effort behavior it has today.
+A dedicated "catch-up subject" falls out of this for free: a push consumer with
+a deliver subject is exactly that, and the pull-consumer API is the more robust
+equivalent. The Db client rework to a durable consumer can ship as its own
+phase; until then it keeps the same best-effort behavior it has today.
 
 One retention caveat: `MaxMsgsPerSubject` guarantees tips, not unbounded
 history. A sink offline longer than the per-subject window on a fast-changing
@@ -154,13 +152,13 @@ subject loses the intermediate points that aged out. Per-stream retention
 (hub-long, device-short) is the knob, and sink lag should be visible in sync
 status.
 
-Distinguishing the three cases requires **origin attribution on wire
-messages**: the flat `p.<nodeID>.<type>.<key>` subject cannot carry it, so
-forwarded and re-broadcast messages carry an origin marker in a NATS message
-header. Absence of the header means "originated here." Any defect here is
-caught structurally: the worst case is a remote point written into a local
-stream, which the single-writer stream naming makes visible and auditable,
-not an invisible echo loop.
+Distinguishing the three cases requires **origin attribution on wire messages**:
+the flat `p.<nodeID>.<type>.<key>` subject cannot carry it, so forwarded and
+re-broadcast messages carry an origin marker in a NATS message header. Absence
+of the header means "originated here." Any defect here is caught structurally:
+the worst case is a remote point written into a local stream, which the
+single-writer stream naming makes visible and auditable, not an invisible echo
+loop.
 
 ### 4. Merge determinism
 
@@ -168,26 +166,26 @@ With two origins writing the same subject tip (hub config write racing a
 device-local write), every instance must converge to the same winner:
 
 - Later timestamp wins (existing rule).
-- Equal timestamps: deterministic tie-break on origin ID (e.g. lexically
-  greater origin wins). Without this, hub and device caches can disagree
-  forever while both believe they are in sync.
-- Same timestamp and same origin: identical message (live + replica duplicate)
-  — no-op.
+- Equal timestamps: deterministic tie-break on origin ID (e.g. lexically greater
+  origin wins). Without this, hub and device caches can disagree forever while
+  both believe they are in sync.
+- Same timestamp and same origin: identical message (live + replica duplicate) —
+  no-op.
 
 ### 5. Adoption / first connect
 
 The boundary contract is: **the device node's ID on the hub equals the device
 instance's root node ID.** Streams only line up if this holds.
 
-- Device-initiated (matches today's flow): device connects, hub sees traffic
-  for an unknown boundary X, creates a device node with ID X under a configured
+- Device-initiated (matches today's flow): device connects, hub sees traffic for
+  an unknown boundary X, creates a device node with ID X under a configured
   default group, writing the attachment edge into its own `inst-R-R`. Policy
   point: auto-adopt vs. a pending-approval state.
 - Hub-initiated (pre-provisioning): hub creates the device node (ID X) and
   writes config into `inst-X-R` before the device ever connects. On first
   connect the device replicates `inst-X-R` and comes up configured. This is a
-  capability the old sync did not have and pairs well with the YAML
-  provisioning work.
+  capability the old sync did not have and pairs well with the YAML provisioning
+  work.
 - The device's first connect replaces today's `sendNodesRemote` tree push: the
   hub simply replicates `inst-X-X` from sequence 1 — full history, config, and
   structure arrive by the same mechanism as steady-state sync.
@@ -202,11 +200,11 @@ points on the Sync node so the UI and rules can use them.
 ### 7. Deletion and detach
 
 - In-boundary deletes (tombstone edge points) replicate like any other point.
-- Deleting the device *from the hub* tombstones the group→X edge in
-  `inst-R-R`, which the device does not replicate — the device does not learn
-  it was detached, matching the AuthZ view (detach revokes the hub's interest;
-  the device keeps operating standalone). Actual disconnect enforcement is
-  AuthZ (revoking stream export/credentials), not data sync.
+- Deleting the device _from the hub_ tombstones the group→X edge in `inst-R-R`,
+  which the device does not replicate — the device does not learn it was
+  detached, matching the AuthZ view (detach revokes the hub's interest; the
+  device keeps operating standalone). Actual disconnect enforcement is AuthZ
+  (revoking stream export/credentials), not data sync.
 - Permanent removal on the hub: delete replica `inst-X-X`, purge hub subjects
   for boundary X (`inst.X.R.>`), remove the edge. Ordering and retention of
   history for departed devices is a policy decision to settle here.
@@ -214,20 +212,20 @@ points on the Sync node so the UI and rules can use them.
 ### 8. Multi-hop
 
 Intermediate instance I between device X and hub R: R sources `inst-X-X` and
-`inst-X-I` through I (chained sourcing — I's replica is itself a source for
-R's replica). The Phase 7 spikes must confirm chained sourcing behaves over two
-leaf connections; the fallback replicator chains trivially since each hop is
+`inst-X-I` through I (chained sourcing — I's replica is itself a source for R's
+replica). The Phase 7 spikes must confirm chained sourcing behaves over two leaf
+connections; the fallback replicator chains trivially since each hop is
 independent.
 
 ### 9. AuthZ
 
 - Writes: the wire subjects can't express "only nodes in boundary X" (flat
-  UUIDs), so wire-level write enforcement stays coarse. The structural
-  guarantee comes from the stream side: an instance can only *export* streams
-  it is entitled to, and receivers never persist wire messages from remote
-  origins anyway (section 3). Receiving instances should additionally validate
-  that a message's claimed origin is entitled to the node's owning boundary
-  before fan-out.
+  UUIDs), so wire-level write enforcement stays coarse. The structural guarantee
+  comes from the stream side: an instance can only _export_ streams it is
+  entitled to, and receivers never persist wire messages from remote origins
+  anyway (section 3). Receiving instances should additionally validate that a
+  message's claimed origin is entitled to the node's owning boundary before
+  fan-out.
 - Reads: per-stream JetStream API permissions — device X may replicate
   `inst-X-*` and export only `inst-X-X`. Dynamic grants (NATS auth callout) as
   devices are adopted/removed.
@@ -255,8 +253,8 @@ should be surfaced in sync status.
 3. Adoption policy: auto-adopt unknown devices vs. pending approval.
 4. Nodes mirrored across device boundaries (explicitly deferred from Stage 2).
 5. Departed-device history retention policy on the hub.
-6. Frontend changes: sync status UI (lag instead of SyncCount), and whether
-   any UI flows assumed hash-based state.
+6. Frontend changes: sync status UI (lag instead of SyncCount), and whether any
+   UI flows assumed hash-based state.
 
 ## Implications for the Stage 2 Store Plan
 
@@ -265,138 +263,130 @@ accommodate in the Stage 2 rework than to retrofit:
 
 1. **Thread origin through the write path (Phase 3).** The store's subject
    builders and handlers should take origin as a parameter rather than assuming
-   "self", and the point/edge write path needs one branch point: *persist +
-   merge* (local origin) vs. *merge + fan-out only* (remote origin, identified
+   "self", and the point/edge write path needs one branch point: _persist +
+   merge_ (local origin) vs. _merge + fan-out only_ (remote origin, identified
    by an origin header on the wire message). Stage 2 always runs the first
    branch, but shaping the seam now means Stage 3 does not have to rework
    `handleNodePoints` / `handleEdgePoints`.
 2. **Specify the merge tie-break now (Phase 3).** "Newest timestamp wins" is
    under-specified for Stage 3: equal timestamps from different origins need a
-   deterministic winner (origin ID tie-break), and equal timestamp + same
-   origin must be an idempotent no-op (live/replica duplicates). Defining and
-   testing this in the Stage 2 cache merge costs little and locks in
-   cross-instance convergence.
+   deterministic winner (origin ID tie-break), and equal timestamp + same origin
+   must be an idempotent no-op (live/replica duplicates). Defining and testing
+   this in the Stage 2 cache merge costs little and locks in cross-instance
+   convergence.
 3. **Make cache loading incremental (Phase 3).** Replica streams appear at
-   runtime (device adopted, new origin writes to a boundary). `loadNodePoints`
-   / `loadEdgeCache` should be callable for a single stream and safe to run
-   concurrently with live writes — not a startup-only path. Startup then
-   becomes "for each stream, load one."
+   runtime (device adopted, new origin writes to a boundary). `loadNodePoints` /
+   `loadEdgeCache` should be callable for a single stream and safe to run
+   concurrently with live writes — not a startup-only path. Startup then becomes
+   "for each stream, load one."
 4. **`ensureStream` must anticipate replica configs (Phase 3).** Same stream
    name exists on multiple instances; a replica is created with a `Sources`
    config (or by the fallback replicator) rather than for direct publish.
-   Separate "ensure my origin stream" from "ensure replica of remote stream"
-   in the API even if Stage 2 only implements the first, and make the
+   Separate "ensure my origin stream" from "ensure replica of remote stream" in
+   the API even if Stage 2 only implements the first, and make the
    config-equality/update check tolerant of sourcing fields.
 5. **Assert the boundary ID contract in Phase 2 tests.** `IsBoundary` /
-   `OwningBoundary` must produce identical answers on hub and device given
-   their respective trees, with the device node ID equal to the remote root
-   ID. Add tests that model both perspectives of the same synced pair (hub
-   tree with device node; device tree standalone) and assert the stream set
-   each side computes lines up.
-6. **Per-stream retention override moves up (Phase 5).** The Stage 2 plan
-   defers per-boundary retention overrides; Stage 3's hub-long/device-short
-   asymmetry makes them a requirement, and on *replica* streams specifically.
-   Shape the Phase 5 config so a per-stream override slots in without
-   reworking the option (e.g. resolve retention via a function of stream name,
-   with the server option as default), even if the override itself ships in
-   Stage 3.
-7. **Notifications must be reachable from stream deliveries (Phase 3).**
-   After offline catch-up, changed subject tips must reach state clients via
-   the normal fan-out even though they arrived from a stream consumer rather
-   than a wire subscription. Keep the store's cache-merge/fan-out logic
-   callable from a non-wire entry point instead of embedding it in the NATS
-   handler closures.
+   `OwningBoundary` must produce identical answers on hub and device given their
+   respective trees, with the device node ID equal to the remote root ID. Add
+   tests that model both perspectives of the same synced pair (hub tree with
+   device node; device tree standalone) and assert the stream set each side
+   computes lines up.
+6. **Per-stream retention override moves up (Phase 5).** The Stage 2 plan defers
+   per-boundary retention overrides; Stage 3's hub-long/device-short asymmetry
+   makes them a requirement, and on _replica_ streams specifically. Shape the
+   Phase 5 config so a per-stream override slots in without reworking the option
+   (e.g. resolve retention via a function of stream name, with the server option
+   as default), even if the override itself ships in Stage 3.
+7. **Notifications must be reachable from stream deliveries (Phase 3).** After
+   offline catch-up, changed subject tips must reach state clients via the
+   normal fan-out even though they arrived from a stream consumer rather than a
+   wire subscription. Keep the store's cache-merge/fan-out logic callable from a
+   non-wire entry point instead of embedding it in the NATS handler closures.
 8. **Release sequencing.** Upstream sync is nonfunctional between the Stage 2
-   merge and Stage 3 (hash comparison is inert). Decided 2026-08-06: the gap
-   is acceptable; upstream sync returns, rebuilt, with Stage 3. Recorded in
-   the Stage 2 plan.
+   merge and Stage 3 (hash comparison is inert). Decided 2026-08-06: the gap is
+   acceptable; upstream sync returns, rebuilt, with Stage 3. Recorded in the
+   Stage 2 plan.
 
-*(Items 1–7 were folded into the Stage 2 plan on 2026-08-06.)*
+_(Items 1–7 were folded into the Stage 2 plan on 2026-08-06.)_
 
 ## Implementation Status (2026-08-06)
 
-The initial implementation landed on `feat/js-store-boundary-stream`
-immediately after the Stage 2 rework:
+The initial implementation landed on `feat/js-store-boundary-stream` immediately
+after the Stage 2 rework:
 
-- **Spike:** JetStream sourcing across a leaf connection with distinct
-  domains verified, including restart catch-up
-  (`store/leafnode_spike_test.go`). Chained sourcing and the
-  consumer-create permission form remain open.
-- **Transport:** durable-consumer replication over the existing
-  upstream client connection (`client/sync.go` `runPump`); no leafnode
-  or domain configuration needed. Sourcing remains the intended
-  replacement once instance identity can drive server configuration.
-- **Store:** origin-header ingress (merge and fan out, never persist),
-  replica stream consumers with catch-up gating (tip-only broadcasts
-  after the backlog drains), wire re-broadcast (`store/replica.go`).
-  Instance-local "root" edges are never merged from replicas.
-- **SyncClient:** rewritten around push/pull replication; adoption
-  announcement on first connect; detach semantics honored (an upstream
-  delete is final until the upstream restores the edge).
-- **Tests:** two-instance flows in both directions (points, node
-  create/delete), detach, offline catch-up
-  (`client/sync_test.go`).
+- **Spike:** JetStream sourcing across a leaf connection with distinct domains
+  verified, including restart catch-up (`store/leafnode_spike_test.go`). Chained
+  sourcing and the consumer-create permission form remain open.
+- **Transport:** durable-consumer replication over the existing upstream client
+  connection (`client/sync.go` `runPump`); no leafnode or domain configuration
+  needed. Sourcing remains the intended replacement once instance identity can
+  drive server configuration.
+- **Store:** origin-header ingress (merge and fan out, never persist), replica
+  stream consumers with catch-up gating (tip-only broadcasts after the backlog
+  drains), wire re-broadcast (`store/replica.go`). Instance-local "root" edges
+  are never merged from replicas.
+- **SyncClient:** rewritten around push/pull replication; adoption announcement
+  on first connect; detach semantics honored (an upstream delete is final until
+  the upstream restores the edge).
+- **Tests:** two-instance flows in both directions (points, node create/delete),
+  detach, offline catch-up (`client/sync_test.go`).
 
 Remaining, in rough priority order:
 
 1. Nested device boundaries (only the root boundary replicates today).
 2. Multi-hop chaining test (expected to work: each hop is independent).
-3. ~~Per-replica retention~~ — largely resolved 2026-08-07: retention
-   defaults to 5000 messages per subject, and each instance's store
-   applies its own policy to replica streams it discovers (sync pumps
-   create streams bare and never update configuration). Remaining:
-   per-boundary overrides at the `maxMsgsForStream` resolution point,
-   e.g. a hub keeping deeper history for selected devices.
-4. AuthZ tightening: shared token today; per-stream permissions via
-   auth callout.
-5. ~~History sinks as durable stream consumers~~ — done 2026-08-07:
-   the Db client consumes the `inst-*` streams with durable consumers
-   (DeliverNew on first start, DeliverAll for streams that appear
-   later), acknowledging after handoff to the batching writer. External
-   sinks can follow the same pattern.
-6. Sync status points (lag, last-delivered); `SyncCount` currently
-   counts replication sessions.
+3. ~~Per-replica retention~~ — largely resolved 2026-08-07: retention defaults
+   to 5000 messages per subject, and each instance's store applies its own
+   policy to replica streams it discovers (sync pumps create streams bare and
+   never update configuration). Remaining: per-boundary overrides at the
+   `maxMsgsForStream` resolution point, e.g. a hub keeping deeper history for
+   selected devices.
+4. AuthZ tightening: shared token today; per-stream permissions via auth
+   callout.
+5. ~~History sinks as durable stream consumers~~ — done 2026-08-07: the Db
+   client consumes the `inst-*` streams with durable consumers (DeliverNew on
+   first start, DeliverAll for streams that appear later), acknowledging after
+   handoff to the batching writer. External sinks can follow the same pattern.
+6. Sync status points (lag, last-delivered); `SyncCount` currently counts
+   replication sessions.
 7. Frontend sync status UI.
 
 ## Retrospective (2026-08-07)
 
-The initial implementation followed the Stage 2 rework in the same
-effort, and the seams folded into that plan were all used — the origin
-parameter, per-stream cache loading, and the merge tie-break dropped in
-without rework. Findings worth keeping:
+The initial implementation followed the Stage 2 rework in the same effort, and
+the seams folded into that plan were all used — the origin parameter, per-stream
+cache loading, and the merge tie-break dropped in without rework. Findings worth
+keeping:
 
-1. **The sourcing spike passed, but domains blocked v1.** JetStream
-   sourcing across a leaf connection with distinct domains works,
-   including restart catch-up (`store/leafnode_spike_test.go`). It was
-   still not used for the first implementation: JetStream domains are
-   static server configuration, while a SIOT instance only learns its
-   identity (root ID) after the store initializes. Durable-consumer
-   replication over the existing client connection avoids the ordering
-   problem entirely. Revisit sourcing once identity can drive server
-   configuration (for example, persisted before the NATS server
+1. **The sourcing spike passed, but domains blocked v1.** JetStream sourcing
+   across a leaf connection with distinct domains works, including restart
+   catch-up (`store/leafnode_spike_test.go`). It was still not used for the
+   first implementation: JetStream domains are static server configuration,
+   while a SIOT instance only learns its identity (root ID) after the store
+   initializes. Durable-consumer replication over the existing client connection
+   avoids the ordering problem entirely. Revisit sourcing once identity can
+   drive server configuration (for example, persisted before the NATS server
    starts).
 
-2. **Replicated streams contain instance-local state.** A device's
-   origin stream carries its own `root` edge
-   (`inst.X.X.root.ep.X`); merging that on the hub would create a
-   second root and break tree traversal and auth path checks. Edges
-   with the virtual `root` parent are instance-local by definition and
-   are never merged from a replica. Lesson: reason through what is
-   actually in a stream being copied — single-instance tests cannot
-   surface this class of defect.
+2. **Replicated streams contain instance-local state.** A device's origin stream
+   carries its own `root` edge (`inst.X.X.root.ep.X`); merging that on the hub
+   would create a second root and break tree traversal and auth path checks.
+   Edges with the virtual `root` parent are instance-local by definition and are
+   never merged from a replica. Lesson: reason through what is actually in a
+   stream being copied — single-instance tests cannot surface this class of
+   defect.
 
-3. **The client manager filters own-node points with an empty
-   `Origin`.** A test (or any caller) changing a client's
-   configuration must set `Origin` on the point, as UI edits do;
-   otherwise the manager assumes the client wrote the point itself and
-   drops it. This cost a debugging cycle on the offline catch-up test.
+3. **The client manager filters own-node points with an empty `Origin`.** A test
+   (or any caller) changing a client's configuration must set `Origin` on the
+   point, as UI edits do; otherwise the manager assumes the client wrote the
+   point itself and drops it. This cost a debugging cycle on the offline
+   catch-up test.
 
-4. **The model deletes more than it adds.** Hash walks, tree pushes,
-   and per-node remote subscriptions were replaced by two symmetric
-   copy pumps, and echo prevention became structural (no instance
-   writes remote data into its own streams) rather than a runtime
-   discipline. The catch-up gating fell out of the ordered consumer's
-   pending count.
+4. **The model deletes more than it adds.** Hash walks, tree pushes, and
+   per-node remote subscriptions were replaced by two symmetric copy pumps, and
+   echo prevention became structural (no instance writes remote data into its
+   own streams) rather than a runtime discipline. The catch-up gating fell out
+   of the ordered consumer's pending count.
 
 ## Phase Sketch (to be firmed up after Stage 2)
 
@@ -407,32 +397,32 @@ without rework. Findings worth keeping:
 2. **Replica lifecycle:** discovery, creation, teardown of replica streams;
    incremental cache load on replica appearance.
 3. **Store ingress:** origin headers, persist-vs-merge branch, catch-up
-   re-broadcast (whatever was not already landed in Stage 2 per the
-   implications above).
+   re-broadcast (whatever was not already landed in Stage 2 per the implications
+   above).
 4. **SyncClient rewrite:** replace hash walk and tree push with replica
-   management + live forwarding with origin tags; sync status points
-   (lag, last-delivered, connected).
-5. **Adoption:** device-initiated and hub-initiated flows; boundary ID
-   contract enforcement.
+   management + live forwarding with origin tags; sync status points (lag,
+   last-delivered, connected).
+5. **Adoption:** device-initiated and hub-initiated flows; boundary ID contract
+   enforcement.
 6. **Detach/removal:** hub-side detach, purge, history retention policy.
 7. **Multi-hop:** chained replication through an intermediate instance.
 8. **AuthZ tightening:** per-stream permissions via auth callout (may ship
    separately).
-9. **History sinks:** move the Db client (and document the pattern for
-   external TSDB sinks like VictoriaMetrics) to durable stream consumers for
-   gap-free delivery; surface sink lag in status.
+9. **History sinks:** move the Db client (and document the pattern for external
+   TSDB sinks like VictoriaMetrics) to durable stream consumers for gap-free
+   delivery; surface sink lag in status.
 10. **Tests/docs:** offline catch-up, convergence (equal-timestamp races),
-   echo-absence (assert no instance's origin streams ever contain remote
-   points), bandwidth sanity on constrained links; update ADR-7, user docs,
-   changelog.
+    echo-absence (assert no instance's origin streams ever contain remote
+    points), bandwidth sanity on constrained links; update ADR-7, user docs,
+    changelog.
 
 ## Key Files (expected)
 
-| File                            | Change                                              |
-| ------------------------------- | --------------------------------------------------- |
-| `client/sync.go`                | Rewritten around replica management                 |
-| `store/jetstream.go`            | Replica ensure/load, origin-aware ingress           |
-| `store/store.go`                | Fan-out callable from stream deliveries             |
-| `server/server.go` / `args.go`  | Leafnode options, replica retention defaults        |
-| `frontend/`                     | Sync status UI (lag instead of hash/SyncCount)      |
-| `docs/adr/7-jetstream-store.md` | Transport decision, adoption policy, spike results  |
+| File                            | Change                                             |
+| ------------------------------- | -------------------------------------------------- |
+| `client/sync.go`                | Rewritten around replica management                |
+| `store/jetstream.go`            | Replica ensure/load, origin-aware ingress          |
+| `store/store.go`                | Fan-out callable from stream deliveries            |
+| `server/server.go` / `args.go`  | Leafnode options, replica retention defaults       |
+| `frontend/`                     | Sync status UI (lag instead of hash/SyncCount)     |
+| `docs/adr/7-jetstream-store.md` | Transport decision, adoption policy, spike results |

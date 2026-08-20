@@ -14,31 +14,31 @@ SimpleIoT using [nats.ws](https://github.com/nats-io/nats.ws).
 ```js
 import { connect } from "simpleiot-js"
 ;(async function siotConnect() {
-  try {
-    // Note: nats.ws has built-in reconnection logic by default
-    const nc = await connect({
-      servers: "localhost:9222",
-      // Pass in options as documented in nats.ws package
-    })
-    // `getServer()` is a method documented by nats.ws
-    console.log(`connected to ${nc.getServer()}`)
-    // `closed()` is a nats.ws method that returns a promise
-    // indicating the client closed
-    const done = nc.closed()
+	try {
+		// Note: nats.ws has built-in reconnection logic by default
+		const nc = await connect({
+			servers: "localhost:9222",
+			// Pass in options as documented in nats.ws package
+		})
+		// `getServer()` is a method documented by nats.ws
+		console.log(`connected to ${nc.getServer()}`)
+		// `closed()` is a nats.ws method that returns a promise
+		// indicating the client closed
+		const done = nc.closed()
 
-    // Example: get root nodes from SimpleIoT tree
-    const n = await nc.getNodeChildren("root")
+		// Example: get root nodes from SimpleIoT tree
+		const n = await nc.getNodeChildren("root")
 
-    // close the connection
-    await nc.close()
-    // check if the close was OK
-    const err = await done
-    if (err) {
-      console.log(`error closing:`, err)
-    }
-  } catch (err) {
-    console.error("connection error:", err)
-  }
+		// close the connection
+		await nc.close()
+		// check if the close was OK
+		const err = await done
+		if (err) {
+			console.log(`error closing:`, err)
+		}
+	} catch (err) {
+		console.error("connection error:", err)
+	}
 })()
 ```
 
@@ -53,7 +53,6 @@ to SimpleIoT.
 
   getNode sends a request to `nodes.<parent>.<id>` to retrieve an array of
   NodeEdges for the specified Node ID.
-
   - If `id` is "all" or falsy, this calls `getNodeChildren` instead (see below);
     however, we strongly recommend using `getNodeChildren` directly
   - If `parent` is "all" or falsy, all instances of the specified node are
@@ -62,7 +61,6 @@ to SimpleIoT.
   - `opts` are options passed to the NATS request
 
   The returned node contains the following properties:
-
   - `id` - the node ID
   - `type` - the node type
   - `hash`
@@ -72,7 +70,6 @@ to SimpleIoT.
     and the specified parent
 
   Each point contains the following properties:
-
   - `time` - timestamp of the point converted to a JavaScript Date object
   - `type`
   - `key`
@@ -87,7 +84,6 @@ to SimpleIoT.
 
   getNodeChildren sends a request to `nodes.<parentID>.<id>` to retrieve an
   array of child NodeEdges of the specified parent node.
-
   - If `parentID` is "root", all root nodes are retrieved
   - `type` - can be used to filter nodes of a specified type (defaults to "")
   - `includeDel` - set to true to include deleted nodes (defaults to false)
@@ -107,7 +103,6 @@ to SimpleIoT.
 
   getNodesForUser returns the parent nodes for the given `userID` along with
   their descendants if `recursive` is truthy.
-
   - `type` - can be used to filter nodes of a specified type (defaults to "")
   - `includeDel` - set to true to include deleted nodes (defaults to false)
   - `recursive` - set to true to recursively retrieve all descendants matching
@@ -148,7 +143,6 @@ to SimpleIoT.
 - `sendNodePoints(nodeID, points, { ack, opts })`
 
   sendNodePoints sends an array of `points` for a given `nodeID`
-
   - `ack` - true if function should block waiting for send acknowledgement
     (defaults to true)
   - `opts` are options passed to the NATS request
@@ -157,7 +151,6 @@ to SimpleIoT.
 
   sendEdgePoints sends an array of `edgePoints` for the edge between `nodeID`
   and `parentID`
-
   - `ack` - true if function should block waiting for send acknowledgement
     (defaults to true)
   - `opts` are options passed to the NATS request

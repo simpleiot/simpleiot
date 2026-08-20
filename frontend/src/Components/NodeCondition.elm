@@ -248,4 +248,5 @@ pointValue o labelWidth =
             _ ->
                 Element.none
         , numberInput Point.typeMinActive "Min active time (m)"
+        , numberInput Point.typeMinInactive "Min inactive time (m)"
         ]

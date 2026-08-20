@@ -141,8 +141,8 @@ nodes:
 `shell`, and an empty value means binary, so nodes created before shell mode
 existed carry no `protocol` point at all.
 
-`timeout` is in seconds and `maxMessageLength` in bytes. `logConsole` applies
-to the shell protocol alone.
+`timeout` is in seconds and `maxMessageLength` in bytes. `logConsole` applies to
+the shell protocol alone.
 
 The counts, the connection state, the uptime, and the log line shown in the UI
 are points the client maintains, so an export of a running node carries them as
@@ -150,8 +150,8 @@ well.
 
 A node sending high rate data also carries an `hrDest` point holding the ID of
 the destination node. Unlike a point of type `nodeID`, it is written as the ID
-rather than as a description, so it names a node in the instance it was
-exported from.
+rather than as a description, so it names a node in the instance it was exported
+from.
 
 ## Zephyr Examples
 

@@ -27,8 +27,8 @@ remaining work is substantial — the old `Value`/`Text` fields are referenced i
   positional constructors updated. Frontend compiles and tests pass.
 - **Phase 6a**: COMPLETE — Edge points moved to `ep.` prefix.
 - **Phase 6b**: COMPLETE — Node point subjects now use `p.<nodeId>.<type>.<key>`
-  with one point per message. Edge points remain batched on `ep.<nodeId>.<parentId>`
-  for atomicity. All upstream subscriptions updated.
+  with one point per message. Edge points remain batched on
+  `ep.<nodeId>.<parentId>` for atomicity. All upstream subscriptions updated.
 - **Phase 7**: COMPLETE — MarshalYAML added for human-readable export. DB layer
   works via Val()/Txt() conversions with existing value/text columns — schema
   migration deferred since it works correctly as-is.
@@ -163,8 +163,8 @@ remaining work is substantial — the old `Value`/`Text` fields are referenced i
     - Update `SubjectNodePoints` to accept type/key parameters
     - Update `SendPoints` / `SendNodePoints` to build subject from point
       type/key
-    - Change store subscription from `p.*` to `p.>` (safe now that edge
-      points are on `ep.`)
+    - Change store subscription from `p.*` to `p.>` (safe now that edge points
+      are on `ep.`)
     - Update `DecodeNodePointsMsg` if type/key should be extracted from subject
     - Update debug subscriptions
 

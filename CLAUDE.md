@@ -158,6 +158,11 @@ default, a new setting, a link to the documentation. Reasoning, measurements,
 and design background belong in the docs and the commit message, not here. Call
 out anything that changes behavior for existing users explicitly.
 
+## Branching
+
+Make changes on the branch that is already checked out. Do not create a feature
+branch, switch branches, or start a worktree unless I ask for one.
+
 ## Committing
 
 Leave `frontend/public/dist/elm.js.gz` out of commits. The frontend build

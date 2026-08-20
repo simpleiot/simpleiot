@@ -109,6 +109,7 @@ module Api.Point exposing
     , typeMaxSeries
     , typeMaxValue
     , typeMinActive
+    , typeMinInactive
     , typeMinIncrement
     , typeMinValue
     , typeModbusIOType
@@ -142,6 +143,7 @@ module Api.Point exposing
     , typeReadOnly
     , typeReboot
     , typeRefresh
+    , typeRepeatInterval
     , typeRetryInterval
     , typeRotate
     , typeRoundTo
@@ -747,6 +749,11 @@ typeMinActive =
     "minActive"
 
 
+typeMinInactive : String
+typeMinInactive =
+    "minInactive"
+
+
 typeAction : String
 typeAction =
     "action"
@@ -800,6 +807,11 @@ typeDialogColor =
 typeTouchQuirk : String
 typeTouchQuirk =
     "touchquirk"
+
+
+typeRepeatInterval : String
+typeRepeatInterval =
+    "repeatInterval"
 
 
 typeRetryInterval : String
