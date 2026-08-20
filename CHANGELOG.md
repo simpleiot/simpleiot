@@ -18,6 +18,11 @@ For more details or to discuss releases, please visit the
   The port is disabled by default, the auth token authenticates clients in the
   connect packet password field, and TLS settings serve the MQTT listener too.
   See the [MQTT page](docs/user/mqtt.md).
+- **MQTT messages become points.** An `mqtt` node and its `mqttSub` children map
+  topics into points, with a JSON path such as `$.value` selecting a single
+  value and a blank path turning each field of an object into its own point.
+  Units, scale, and offset apply the way they do on a Modbus IO. See the
+  [MQTT page](docs/user/mqtt.md#subscriptions).
 
 ## [0.24.1] - 2026-08-20
 

@@ -24,6 +24,8 @@ import Components.NodeNTP as NodeNTP
 import Components.NodeNetworkManager as NodeNetworkManager
 import Components.NodeNetworkManagerConn as NodeNetworkManagerConn
 import Components.NodeNetworkManagerDevice as NodeNetworkManagerDevice
+import Components.NodeMqtt as NodeMqtt
+import Components.NodeMqttSub as NodeMqttSub
 import Components.NodeOneWire as NodeOneWire
 import Components.NodeOneWireIO as NodeOneWireIO
 import Components.NodeOptions exposing (CopyMove(..))
@@ -1054,6 +1056,7 @@ nodeCustomSortRules =
         , ( Node.typeUpdate, "T" )
         , ( Node.typeBrowser, "U" )
         , ( Node.typeGps, "V" )
+        , ( Node.typeMqtt, "W" )
 
         -- rule subnodes
         , ( Node.typeCondition, "A" )
@@ -1274,6 +1277,12 @@ viewNode model parent node children depth =
 
                     "modbusIo" ->
                         NodeModbusIO.view
+
+                    "mqtt" ->
+                        NodeMqtt.view
+
+                    "mqttSub" ->
+                        NodeMqttSub.view
 
                     "oneWire" ->
                         NodeOneWire.view
@@ -1524,6 +1533,7 @@ nodeTypesThatHaveChildNodes =
     , Node.typeGroup
     , Node.typeModbus
     , Node.typeOneWire
+    , Node.typeMqtt
     , Node.typeSerialDev
     , Node.typeCanBus
     , Node.typeRule
@@ -1685,6 +1695,16 @@ nodeDescGps =
     row [] [ Icon.mapPin, text "GPS" ]
 
 
+nodeDescMqtt : Element Msg
+nodeDescMqtt =
+    row [] [ Icon.mqtt, text "MQTT" ]
+
+
+nodeDescMqttSub : Element Msg
+nodeDescMqttSub =
+    row [] [ Icon.topic, text "MQTT Subscription" ]
+
+
 viewAddNode : String -> NodeView -> NodeToAdd -> Element Msg
 viewAddNode customNodeType parent add =
     column [ spacing 10 ]
@@ -1704,6 +1724,7 @@ viewAddNode customNodeType parent add =
                     , Input.option Node.typeSerialDev nodeDescSerialDev
                     , Input.option Node.typeCanBus nodeDescCanBus
                     , Input.option Node.typeGps nodeDescGps
+                    , Input.option Node.typeMqtt nodeDescMqtt
                     , Input.option Node.typeMsgService nodeDescMsgService
                     , Input.option Node.typeDb nodeDescDb
                     , Input.option Node.typeParticle nodeDescParticle
@@ -1727,6 +1748,7 @@ viewAddNode customNodeType parent add =
                             , Input.option Node.typeSerialDev nodeDescSerialDev
                             , Input.option Node.typeCanBus nodeDescCanBus
                             , Input.option Node.typeGps nodeDescGps
+                            , Input.option Node.typeMqtt nodeDescMqtt
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
                             , Input.option Node.typeParticle nodeDescParticle
@@ -1741,6 +1763,12 @@ viewAddNode customNodeType parent add =
                        )
                     ++ (if parent.node.typ == Node.typeModbus then
                             [ Input.option Node.typeModbusIO nodeDescModbusIO ]
+
+                        else
+                            []
+                       )
+                    ++ (if parent.node.typ == Node.typeMqtt then
+                            [ Input.option Node.typeMqttSub nodeDescMqttSub ]
 
                         else
                             []

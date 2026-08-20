@@ -61,7 +61,7 @@ bridge several sites, or when you need broker features such as clustering or
 fine-grained access control. Connecting to an external broker as a client is
 planned as well, so the choice stays open.
 
-## Subscriptions (planned)
+## Subscriptions
 
 An `mqtt` node holds the connection, and each `mqttSub` child maps one topic
 into points:
@@ -79,31 +79,44 @@ nodes:
             units: cm
 ```
 
-A blank `uri` uses the broker built into this instance. `mqttSub` settings:
+A blank `uri` uses the broker built into this instance, which is the only mode
+available today -- setting a `uri` reports an error on the node until external
+brokers are supported. `mqttSub` settings:
 
 | Setting    | Purpose                                                    |
 | ---------- | ---------------------------------------------------------- |
 | `topic`    | The topic to subscribe to                                  |
 | `path`     | Where in a JSON payload the value lives, such as `$.value` |
 | `units`    | Engineering units, carried on the emitted points           |
-| `scale`    | Multiplier applied to numeric values                       |
+| `scale`    | Multiplier applied to numeric values, 1 when unset         |
 | `offset`   | Added after scaling: `value = raw * scale + offset`        |
 | `disabled` | Stops the subscription without deleting the configuration  |
 
+Each subscription also carries a tag point named `topic` holding the full topic,
+so a series can be traced back to the message that produced it. See the
+[graphing section of the PLC page](plc.md#graphing-plc-data).
+
+A payload that does not parse, or a path that is not in it, sets an `error`
+point on the subscription node and leaves the rest running.
+
 ### Payloads
 
-JSON payloads are the first target, since they cover the AWS IoT, Azure IoT, and
-gateway-defined formats most installations use. How a payload maps depends on
-`path`:
+Payloads are JSON, which covers the AWS IoT, Azure IoT, and gateway-defined
+formats most installations use. How a payload maps depends on `path`:
 
 - **`path` set:** the value at that location becomes a single point. Numbers
-  become `value` points, strings become text points.
+  become `value` points, strings become text points, and `true` and `false`
+  become 1 and 0 so a rule compares them the way it compares any other on/off
+  value.
 - **`path` blank, payload is a bare number or string:** the payload itself
   becomes the point.
 - **`path` blank, payload is an object:** each top-level field becomes a point,
   with the field name as the point key. A payload with twenty fields becomes one
   node and twenty points rather than twenty nodes, and the field name is
   queryable in the database as the `key` label.
+
+A path is written in the dot notation JSON documentation generally uses:
+`$.value`, `$.a.b`, and `$.a[0]` all work, and the leading `$` is optional.
 
 Topics you have not named are ignored. A wildcard topic on one `mqttSub`
 subscribes fine, but every match lands on that one node, so name topics
@@ -203,7 +216,7 @@ Sparkplug types map to point types the same way other PLC values do: see the
 application (the STATE topic) and publishing Simple IoT data outbound as
 Sparkplug are not part of the initial support.
 
-## A multi-site deployment (planned)
+## A multi-site deployment
 
 Fifteen sites, each with one or more gateways publishing JSON to the broker
 built into a central instance. Put identity in the topic and configure the
@@ -213,11 +226,9 @@ gateways to match:
 {site}/{gateway}/{device}/{measurement}
 ```
 
-With one `mqtt` node and a topic schema, the whole fleet needs no per-site
-configuration; sites, gateways, and devices appear as they publish, each
-carrying its tags. When a site needs curated metadata, give it a provisioning
-file instead, with a group node per site carrying a `site` tag and explicit
-`mqttSub` entries below it:
+Give each site a provisioning file, with a group node per site carrying a `site`
+tag and explicit `mqttSub` entries below it. Only descriptions, tags, and topics
+vary, so the files come from one template:
 
 ```yaml
 apiVersion: 1
@@ -242,9 +253,13 @@ nodes:
                     machine: press-3
 ```
 
-Either way, with `tag` listed in the Database node's
-[Tag Point Types](database.md#tags), every point arrives in the time series
-database labeled by site, gateway, and machine:
+Once the topic schema lands, one `mqtt` node will cover the whole fleet with no
+per-site configuration, and provisioning files stay useful for the sites that
+want curated units, scaling, and machine tags.
+
+With `tag` listed in the Database node's [Tag Point Types](database.md#tags),
+every point arrives in the time series database labeled by site, gateway, and
+machine:
 
 ```
 points_value{key="tank_level",

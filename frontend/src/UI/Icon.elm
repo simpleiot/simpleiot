@@ -16,6 +16,7 @@ module UI.Icon exposing
     , io
     , list
     , mapPin
+    , mqtt
     , network
     , oneWire
     , particle
@@ -25,6 +26,7 @@ module UI.Icon exposing
     , serialDev
     , shelly
     , sync
+    , topic
     , trendingDown
     , trendingUp
     , update
@@ -278,3 +280,13 @@ globe =
 mapPin : Element msg
 mapPin =
     icon FeatherIcons.mapPin
+
+
+mqtt : Element msg
+mqtt =
+    icon FeatherIcons.rss
+
+
+topic : Element msg
+topic =
+    icon FeatherIcons.hash

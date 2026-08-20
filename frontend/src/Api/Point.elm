@@ -128,6 +128,7 @@ module Api.Point exposing
     , typeOperator
     , typeOrg
     , typePass
+    , typePath
     , typePeriod
     , typePhone
     , typePointKey
@@ -892,6 +893,11 @@ typeUsername =
 typeTopic : String
 typeTopic =
     "topic"
+
+
+typePath : String
+typePath =
+    "path"
 
 
 typeVariableType : String

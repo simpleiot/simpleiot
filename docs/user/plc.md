@@ -20,7 +20,7 @@ for discussion on the
 | Protocol                                       | Client                                  | Status    | Tag names preserved | Work required                     |
 | ---------------------------------------------- | --------------------------------------- | --------- | ------------------- | --------------------------------- |
 | [Modbus](#modbus)                              | [Modbus](modbus.md)                     | Available | No                  | PLC-side Modbus server            |
-| [MQTT](#mqtt-planned)                          | [MQTT](mqtt.md)                         | (planned) | Yes                 | A gateway that publishes PLC tags |
+| [MQTT](#mqtt)                                  | [MQTT](mqtt.md)                         | Available | Yes                 | A gateway that publishes PLC tags |
 | [Sparkplug B](#sparkplug-b-planned)            | [MQTT](mqtt.md)                         | (planned) | Yes                 | A gateway that speaks Sparkplug   |
 | [OPC UA](#opc-ua-planned)                      | OPC UA                                  | (planned) | Yes                 | Enable the server on the PLC      |
 | [EtherNet/IP](#ethernetip-tags-planned)        | Logix                                   | (planned) | Yes                 | None beyond network access        |
@@ -111,7 +111,7 @@ follow from the protocol itself:
 Modbus suits a stable set of tens of values. Beyond that, the register map
 becomes the limiting factor.
 
-## MQTT (planned)
+## MQTT
 
 MQTT is the most common way to get data out of a plant network and into
 something else, and it is the transport underneath Sparkplug B, described below.
@@ -165,13 +165,12 @@ HighByte Intelligence Hub, FactoryTalk Edge Gateway, and Opto 22 groov EPIC. All
 are licensed products and become a second system to maintain, which is the main
 argument for reading tags directly, described in the next section.
 
-### Turning messages into points (planned)
+### Turning messages into points
 
 A subscription node maps a topic to points. Leaving the broker address blank
-would mean the server built into this instance:
+means the server built into this instance:
 
 ```yaml
-# planned, subject to change
 nodes:
   - mqtt:
       description: Plant data
@@ -185,10 +184,10 @@ nodes:
             units: cm
 ```
 
-JSON payloads are the first target, since they cover the AWS IoT, Azure IoT, and
-gateway-defined formats that most installations use.
-[ADR-8](../adr/8-iot-data-models.md) compares these payload formats against the
-Simple IoT point model.
+Payloads are JSON, which covers the AWS IoT, Azure IoT, and gateway-defined
+formats that most installations use. [ADR-8](../adr/8-iot-data-models.md)
+compares these payload formats against the Simple IoT point model, and the
+[MQTT page](mqtt.md) covers the settings in full.
 
 ### Do topics become nodes automatically? (planned)
 

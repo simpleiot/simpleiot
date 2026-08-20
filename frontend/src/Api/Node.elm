@@ -24,6 +24,8 @@ module Api.Node exposing
     , typeMetrics
     , typeModbus
     , typeModbusIO
+    , typeMqtt
+    , typeMqttSub
     , typeMsgService
     , typeNTP
     , typeNetworkManager
@@ -122,6 +124,16 @@ typeModbus =
 typeModbusIO : String
 typeModbusIO =
     "modbusIo"
+
+
+typeMqtt : String
+typeMqtt =
+    "mqtt"
+
+
+typeMqttSub : String
+typeMqttSub =
+    "mqttSub"
 
 
 typeOneWire : String

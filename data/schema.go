@@ -218,6 +218,16 @@ const (
 	PointTypeUsername  = "username"
 	PointTypeTopic     = "topic"
 
+	// MQTT clients. An mqtt node holds the connection -- a blank uri means the
+	// broker built into this instance -- and its mqttSub children map topics
+	// into points.
+	NodeTypeMqtt    = "mqtt"
+	NodeTypeMqttSub = "mqttSub"
+
+	// PointTypePath locates the value inside a JSON payload, written in dot
+	// notation such as $.a.b[0]. A blank path maps the whole payload.
+	PointTypePath = "path"
+
 	NodeTypeVariable      = "variable"
 	PointTypeVariableType = "variableType"
 
