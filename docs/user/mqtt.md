@@ -52,7 +52,9 @@ mosquitto_sub -h localhost -p 1883 -t 'plant/#' -v
 mosquitto_pub -h localhost -p 1883 -t plant/line3/tank -m '{"value":42.1}'
 ```
 
-Add `-u siot -P $SIOT_AUTH_TOKEN` to both when a token is configured.
+Add `-u siot -P $SIOT_AUTH_TOKEN` to both when a token is configured. The
+[command line walkthrough](#trying-a-topic-schema-from-the-command-line) below
+takes this further and creates nodes from published messages.
 
 An external broker still makes sense when the plant already runs one, when you
 bridge several sites, or when you need broker features such as clustering or
@@ -173,6 +175,151 @@ The rules:
 The schema and explicit subscriptions compose well: start with a schema to see
 what a site publishes, then add `mqttSub` entries for the values that need
 units, scaling, or careful naming.
+
+## Trying a topic schema from the command line
+
+A topic schema is the quickest way to watch MQTT data turn into nodes, and the
+Mosquitto command line tools are enough to exercise the whole path. Install them
+with `apt install mosquitto-clients`, `pacman -S mosquitto`, or
+`brew install mosquitto`, then start an instance with the broker enabled:
+
+```
+SIOT_NATS_MQTT_PORT=1883 siot serve
+```
+
+Add an `mqtt` node with a schema. Setting `debug: 1` logs every message the node
+handles, which is worth having while testing:
+
+```
+cat <<EOF | siot import
+apiVersion: 1
+nodes:
+  - mqtt:
+      description: Plant data
+      uri: ""
+      topicSchema: "{site}/{gateway}/{device}"
+      debug: 1
+EOF
+```
+
+### One measurement per topic
+
+Publishing a single value per topic is what most gateways do. The schema names
+three levels, so the first message creates the site, gateway, and device nodes,
+and the levels past the third become the point key:
+
+```
+mosquitto_pub -h localhost -p 1883 \
+  -t plant-07/kepware-l3/press/tank_level -m '{"value":42.1}'
+mosquitto_pub -h localhost -p 1883 \
+  -t plant-07/kepware-l3/press/pump_rpm -m '{"value":1800}'
+```
+
+A payload that is a bare number or string works the same way, so a gateway that
+publishes `1800` with no JSON around it needs nothing extra:
+
+```
+mosquitto_pub -h localhost -p 1883 -t plant-07/kepware-l3/pump/rpm -m 1800
+```
+
+### Several measurements in one payload
+
+A gateway that publishes an object at the device level, the last level the
+schema names, gets one point per field, with the field name as the point key:
+
+```
+mosquitto_pub -h localhost -p 1883 -t plant-07/kepware-l3/hmi \
+  -m '{"line_speed":12.5,"state":"running","running":true}'
+```
+
+Numbers become value points, strings become text points, and `true` and `false`
+become 1 and 0, so the `hmi` device ends up with `line_speed`, `state`, and
+`running`.
+
+Topic levels past the schema and field names inside the payload join into the
+key with `/`, which means a deeper topic extends the key rather than the tree:
+
+```
+mosquitto_pub -h localhost -p 1883 \
+  -t plant-07/kepware-l3/pump/motor/temp -m '{"value":38.5,"units":"C"}'
+```
+
+That message lands on the `pump` device as `motor/temp/value` and
+`motor/temp/units`. An object holding one field named `value` is the scalar
+case, so the same topic carrying `{"value":38.5}` produces the single key
+`motor/temp`.
+
+### Seeing what arrived
+
+`siot export` prints the tree the messages built, tags included:
+
+```
+$ siot export
+apiVersion: 1
+nodes:
+  - mqtt:
+      description: Plant data
+      topicSchema: "{site}/{gateway}/{device}"
+      children:
+        - group:
+            description: plant-07
+            id: plant-07
+            tag:
+              site: plant-07
+            children:
+              - group:
+                  description: kepware-l3
+                  id: kepware-l3
+                  tag:
+                    gateway: kepware-l3
+                  children:
+                    - mqttDevice:
+                        description: press
+                        id: press
+                        tag:
+                          device: press
+                        value:
+                          pump_rpm: 1800
+                          tank_level: 42.1
+```
+
+`siot log` prints points as they arrive, which answers whether a value is
+updating without reloading a page:
+
+```
+$ siot log
+2026/08/20 14:32:09 NODE: hmi (mqttDevice) (799dd5f3-aa51-4245-a31d-5f3139cca804)
+   - POINT: T:value V:12.500 K:line_speed O:d931bb99-e924-4fc2-86e7-d949ec942f2c 2026-08-20T14:32:09-04:00
+```
+
+`mosquitto_sub` shows the messages themselves, which separates a gateway that is
+not publishing from a schema that is not matching:
+
+```
+mosquitto_sub -h localhost -p 1883 -t 'plant-07/#' -v
+```
+
+The same nodes appear in the web UI at `http://localhost:8118`, where you can
+rename a device or add tags to it. Those edits survive later messages and
+restarts, since auto-created nodes are matched by their `id` point rather than
+by description.
+
+### If nothing appears
+
+- **Match the depth.** A schema of `{site}/{gateway}/{device}` needs three
+  levels, so a message on `plant-07/kepware-l3` is ignored and logs nothing,
+  even with `debug: 1` set.
+- **Supply the token.** When `SIOT_AUTH_TOKEN` is set, a client that connects
+  without it is refused with return code 5. Add `-u siot -P $SIOT_AUTH_TOKEN` to
+  the `mosquitto_pub` and `mosquitto_sub` commands; the user name can be
+  anything non-empty, which MQTT 3.1.1 requires alongside a password.
+- **Stay on MQTT 3.1.1.** The Mosquitto clients use it by default, so no flag is
+  needed. Passing `-V mqttv5` is refused by the broker.
+- **Check the `mqtt` node for an error point.** A topic level carrying an
+  unbounded value can reach `maxNodes` (1000 by default), after which new topics
+  are dropped and the error point says so.
+- **Watch for typos becoming nodes.** Nodes are never deleted automatically, so
+  a mistyped topic leaves a node behind. Delete it in the UI once you are done.
 
 ## Sparkplug B
 
