@@ -109,6 +109,44 @@ sync nodes the way you would treat the token itself.
 The count of synchronizations is a point the client maintains, so an export of a
 running node carries it as well.
 
+## Per-device credentials (planned)
+
+Today every device that syncs to an upstream presents the same shared auth
+token. That keeps setup simple, but it means one token protects the whole
+fleet: if a device is lost, sold, or compromised, the only way to lock it out
+is to rotate the token and update every other device.
+
+The plan is to give each device its own credential so access can be granted
+and revoked one device at a time. The intended behavior:
+
+- **Each device gets its own credential.** When a device is added on the
+  upstream (or connects for the first time and is approved), the upstream
+  issues a credential that identifies that one device. The credential replaces
+  the shared `authToken` on the device's sync node.
+- **Revoking access is a single action.** Disabling or deleting the device's
+  credential on the upstream closes its connection and rejects further
+  connections from it. No other device is affected and nothing needs to be
+  redeployed.
+- **A device can only touch its own data.** A credential is scoped so the
+  device can write to its own subtree and read the configuration meant for it,
+  and nothing else. A compromised device cannot publish data as another device
+  or read another device's configuration.
+- **Rotation without downtime.** A new credential can be issued while the old
+  one is still valid, pushed to the device through sync, and the old one
+  retired once the device has reconnected with the new one.
+- **Works the same on every transport.** The same credential applies whether
+  the device connects over `nats://`, `ws://`, or `wss://`, and the same model
+  is intended for devices that speak [MQTT](plc.md#mqtt-planned) to the
+  built-in broker.
+
+Under the hood this builds on the NATS security model: per-device permissions
+are issued at connect time and limited to the streams that belong to the
+device, which the [one-stream-per-device store layout](../ref/store.md) makes
+straightforward. The shared auth token will continue to work so existing
+deployments are not disrupted, but once per-device credentials are available
+they are the recommended setup for any fleet on the public internet. See the
+[security reference](../ref/security.md) for the current state.
+
 ## Videos
 
 There are also several videos that demonstrate upstream connections:

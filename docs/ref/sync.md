@@ -159,6 +159,7 @@ replication resumes where it left off.
 - Authorization currently uses the shared auth token; per-stream permissions
   issued via NATS auth callout are the planned tightening, and the
   stream-per-boundary layout is what makes one-rule-per-device grants possible.
+  See [per-device credentials](../user/sync.md#per-device-credentials-planned).
 
 See the
 [Stage 3 plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-08-06-stage3-jetstream-sync.md)
