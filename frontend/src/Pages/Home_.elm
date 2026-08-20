@@ -493,7 +493,6 @@ update shared msg model =
                             { token = model.token
                             , not =
                                 { id = ""
-                                , parent = msgNode.parent
                                 , sourceNode = msgNode.id
                                 , subject = ""
                                 , message = msgNode.message

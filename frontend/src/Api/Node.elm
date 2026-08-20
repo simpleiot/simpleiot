@@ -255,7 +255,6 @@ type alias NodeDelete =
 
 type alias Notification =
     { id : String
-    , parent : String
     , sourceNode : String
     , subject : String
     , message : String
@@ -294,7 +293,6 @@ encodeNotification : Notification -> Encode.Value
 encodeNotification not =
     Encode.object
         [ ( "id", Encode.string not.id )
-        , ( "parent", Encode.string not.parent )
         , ( "sourceNode", Encode.string not.sourceNode )
         , ( "subject", Encode.string not.subject )
         , ( "message", Encode.string not.message )

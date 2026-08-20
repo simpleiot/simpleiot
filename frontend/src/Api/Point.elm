@@ -173,6 +173,7 @@ module Api.Point exposing
     , typeTagPointType
     , typeTimeout
     , typeTombstone
+    , typeTopic
     , typeTouchQuirk
     , typeTx
     , typeTxReset
@@ -180,6 +181,7 @@ module Api.Point exposing
     , typeURI
     , typeURL
     , typeUnits
+    , typeUsername
     , typeValue
     , typeValueSet
     , typeValueText
@@ -210,6 +212,7 @@ module Api.Point exposing
     , valueModbusInputRegister
     , valueNotEqual
     , valueNotify
+    , valueNtfy
     , valueNumber
     , valueOnOff
     , valuePlayAudio
@@ -220,6 +223,7 @@ module Api.Point exposing
     , valueProtocolShell
     , valueRTU
     , valueRandomWalk
+    , valueSMTP
     , valueSchedule
     , valueServer
     , valueSetValue
@@ -843,6 +847,16 @@ valueTwilio =
     "twilio"
 
 
+valueSMTP : String
+valueSMTP =
+    "smtp"
+
+
+valueNtfy : String
+valueNtfy =
+    "ntfy"
+
+
 typeSID : String
 typeSID =
     "sid"
@@ -856,6 +870,16 @@ typeAuthToken =
 typeFrom : String
 typeFrom =
     "from"
+
+
+typeUsername : String
+typeUsername =
+    "username"
+
+
+typeTopic : String
+typeTopic =
+    "topic"
 
 
 typeVariableType : String
