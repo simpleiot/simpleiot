@@ -447,6 +447,51 @@ the cost of merging the whole value as a unit.
 [ADR-1](../adr/1-consider-changing-point-data-type.md) covers the reasoning
 behind the point data types.
 
+### Text data
+
+Most of what a PLC reports is numeric, but text appears often enough to plan
+for. Where it shows up is fairly consistent across plants: batch, lot, recipe,
+and part numbers; barcode and RFID reads; serial numbers being recorded for
+traceability; operator or badge IDs; work order numbers; machine state and alarm
+text; and firmware or program version strings.
+
+Logix controllers have a `STRING` type, which is a structure holding a length
+and a character array, and OPC UA and Sparkplug B both carry strings natively.
+Modbus does not have a string type at all, so devices that report one pack ASCII
+into consecutive registers, two characters per register, by local convention.
+
+The useful observation is that this text is almost always **identity or context
+for the numeric data rather than a measurement in its own right**. Nobody graphs
+a batch number; they want to know which batch a temperature trace belongs to.
+That distinction decides where it should go:
+
+- **Text that changes slowly and describes the thing producing data** belongs on
+  a tag point, where it becomes a label on every point emitted beneath it. A
+  line, a machine, or an installed product variant fits here.
+- **Text that changes with production** is where care is needed. A batch number
+  as a tag gives you exactly the query you want, at the cost of a new series per
+  batch. That is affordable for batches lasting hours and not affordable for
+  something changing every few seconds.
+- **State and status** are better stored as numbers with a lookup. A machine
+  state written as an integer graphs and alarms cleanly, and Grafana value
+  mappings display the names. Historians have handled enumerations this way for
+  a long time, and it is worth doing even when the PLC has the state as a
+  string.
+- **Alarm and event text** is a poor fit for a time series database in any form.
+  In Simple IoT it maps better onto [notifications](notifications.md).
+
+Text is stored in points and kept in the store regardless, so the current value
+is visible in the UI and available over the [API](../ref/api.md), and its
+history is in the [store](../ref/store.md). What text does not do today is reach
+VictoriaMetrics, which converts non-numeric values to zero, so the Database
+client skips string points rather than filling the database with zeros.
+
+If a string has to be queryable in VictoriaMetrics and does not suit a tag, the
+established pattern is an information series: a value of 1 carrying the string
+as a label, joined onto the real measurement at query time with `group_left`.
+That is worth knowing about, though for most PLC data a tag point is the simpler
+answer.
+
 ## Graphing PLC data
 
 None of the clients on this page write to a time series database themselves.

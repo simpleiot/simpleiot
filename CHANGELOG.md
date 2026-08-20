@@ -13,7 +13,12 @@ For more details or to discuss releases, please visit the
 
 ## Next
 
+## [0.24.0] - 2026-08-20
+
 ### Added
+
+_The message service client has not been thoroughly tested yet, testing feedback
+welcome._
 
 - **Notifications work again, with SMS, email, and ntfy push delivery.** A rule
   notify action or the web UI's message function now reaches users through
@@ -25,6 +30,11 @@ For more details or to discuss releases, please visit the
   old `node.<id>.not` and `node.<id>.msg` NATS subjects are gone. See the
   [notifications](docs/user/notifications.md) and
   [messaging](docs/user/messaging.md) documentation.
+- **The database page describes TimescaleDB support as a planned addition.** The
+  [database page](docs/user/database.md) outlines how points would map to a
+  hypertable, how graphing and configuration would differ from the existing
+  options, and what TimescaleDB offers that the current ones do not, including
+  storing text.
 - **A PLC page describes the options for reading data from controllers.** The
   [PLC page](docs/user/plc.md) covers which client to use for which protocol,
   what Modbus supports today for Allen-Bradley Logix and other controllers, and
