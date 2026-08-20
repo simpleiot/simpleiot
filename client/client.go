@@ -54,6 +54,9 @@ func DefaultClients(nc *nats.Conn) (*RunGroup, error) {
 	oneWire := NewManager(nc, NewOneWireClient, nil)
 	g.Add(oneWire)
 
+	mqtt := NewManager(nc, NewMqttClient, nil)
+	g.Add(mqtt)
+
 	particle := NewManager(nc, NewParticleClient, nil)
 	g.Add(particle)
 

@@ -278,10 +278,18 @@ siot_protobuf_js() {
 	protoc --proto_path=internal/pb internal/pb/*.proto --js_out=import_style=commonjs,binary:./frontend/lib/protobuf/ || return 1
 }
 
+# The Sparkplug B definition is vendored from Eclipse Tahu and only the Go
+# client uses it, so it is generated on its own rather than with the SIOT
+# definitions, which also produce JavaScript for the frontend.
+siot_protobuf_sparkplug() {
+	protoc --proto_path=internal/pb/sparkplug internal/pb/sparkplug/*.proto --go_out=./ || return 1
+}
+
 siot_protobuf() {
 	echo "generating protobufs"
 	siot_protobuf_go
 	siot_protobuf_js
+	siot_protobuf_sparkplug
 }
 
 siot_edge_run() {

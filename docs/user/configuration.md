@@ -32,6 +32,8 @@ The following are currently defined:
     for more information.
   - `SIOT_NATS_WS_PORT`: Port to run NATS WebSocket (default is 9222, set to 0
     to disable)
+  - `SIOT_NATS_MQTT_PORT`: Port to serve MQTT on (disabled by default; 1883 is
+    the conventional port). See the [MQTT page](mqtt.md).
 - **Provisioning**
   - `SIOT_PROVISIONING_DIR`: directory of YAML files applied at start-up and
     whenever they change. If it is not set, `<SIOT_DATA>/provisioning` is used

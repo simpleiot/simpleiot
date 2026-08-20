@@ -218,6 +218,46 @@ const (
 	PointTypeUsername  = "username"
 	PointTypeTopic     = "topic"
 
+	// MQTT clients. An mqtt node holds the connection -- a blank uri means the
+	// broker built into this instance -- and its mqttSub children map topics
+	// into points.
+	NodeTypeMqtt    = "mqtt"
+	NodeTypeMqttSub = "mqttSub"
+
+	// NodeTypeMqttDevice is created automatically from a topic schema and
+	// holds the points extracted from the topics below it.
+	NodeTypeMqttDevice = "mqttDevice"
+
+	// PointTypeTopicSchema names the levels of a topic, such as
+	// "{site}/{gateway}/{device}", so nodes can be created from topics as they
+	// arrive. Plain MQTT says nothing about which level is which, and this
+	// supplies exactly that.
+	PointTypeTopicSchema = "topicSchema"
+
+	// PointTypeMaxNodes bounds how many nodes a topic schema creates, so a
+	// topic level carrying an unbounded value cannot grow the tree without
+	// limit.
+	PointTypeMaxNodes = "maxNodes"
+
+	// PointTypePath locates the value inside a JSON payload, written in dot
+	// notation such as $.a.b[0]. A blank path maps the whole payload.
+	PointTypePath = "path"
+
+	// PointTypeSparkplug enables Sparkplug B handling on an mqtt node. Birth
+	// certificates describe every metric, so the nodes below are created from
+	// the data rather than configured.
+	PointTypeSparkplug = "sparkplug"
+
+	NodeTypeSparkplugGroup  = "sparkplugGroup"
+	NodeTypeSparkplugNode   = "sparkplugNode"
+	NodeTypeSparkplugDevice = "sparkplugDevice"
+
+	// PointTypeSparkplugAlias holds the alias assignments from an edge node's
+	// birth certificates as a JSON object of alias to metric name. Keeping it
+	// on the sparkplugNode node means data that arrives after a restart
+	// resolves straight away rather than waiting for a rebirth.
+	PointTypeSparkplugAlias = "sparkplugAlias"
+
 	NodeTypeVariable      = "variable"
 	PointTypeVariableType = "variableType"
 

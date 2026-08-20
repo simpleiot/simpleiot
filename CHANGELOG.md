@@ -11,6 +11,43 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-08-20
+
+### Added
+
+- **Simple IoT now serves MQTT.** Set `SIOT_NATS_MQTT_PORT=1883` and gateways
+  and sensors publish straight to Simple IoT, with no separate broker to deploy.
+  The port is disabled by default, the auth token authenticates clients in the
+  connect packet password field, and TLS settings serve the MQTT listener too.
+  See the [MQTT page](docs/user/mqtt.md).
+- **MQTT messages become points.** An `mqtt` node and its `mqttSub` children map
+  topics into points, with a JSON path such as `$.value` selecting a single
+  value and a blank path turning each field of an object into its own point.
+  Units, scale, and offset apply the way they do on a Modbus IO. See the
+  [MQTT page](docs/user/mqtt.md#subscriptions).
+- **Sparkplug B builds the node tree for you.** Set `sparkplug: true` on an
+  `mqtt` node and the groups, edge nodes, and devices a gateway announces appear
+  as nodes, one point per metric, each carrying a tag naming its Sparkplug
+  identity. Nodes go offline on a death certificate rather than disappearing,
+  and tags or descriptions you set on them survive a rebirth. See the
+  [MQTT page](docs/user/mqtt.md#sparkplug-b).
+- **A topic schema creates nodes as data arrives.** Set
+  `topicSchema: "{site}/{gateway}/{device}"` on an `mqtt` node and matching
+  topics build that node path themselves, each level carrying a tag named by its
+  schema label. Explicit `mqttSub` children still take precedence, and
+  `maxNodes` (1000 by default) bounds what a topic level carrying an unbounded
+  value can create. See the
+  [MQTT page](docs/user/mqtt.md#automatic-nodes-with-a-topic-schema).
+- **MQTT device nodes show the values they hold.** Expanding a node a topic
+  schema created lists every point the device publishes next to its current
+  value, the way a serial device node does.
+
+### Changed
+
+- **The Simple IoT title in the documentation header links to simpleiot.org.**
+  Selecting the name at the top of any documentation page now returns you to the
+  main site.
+
 ## [0.24.1] - 2026-08-20
 
 ### Added

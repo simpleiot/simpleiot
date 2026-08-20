@@ -20,8 +20,8 @@ for discussion on the
 | Protocol                                       | Client                                  | Status    | Tag names preserved | Work required                     |
 | ---------------------------------------------- | --------------------------------------- | --------- | ------------------- | --------------------------------- |
 | [Modbus](#modbus)                              | [Modbus](modbus.md)                     | Available | No                  | PLC-side Modbus server            |
-| [MQTT](#mqtt-planned)                          | [MQTT](mqtt.md)                         | (planned) | Yes                 | A gateway that publishes PLC tags |
-| [Sparkplug B](#sparkplug-b-planned)            | [MQTT](mqtt.md)                         | (planned) | Yes                 | A gateway that speaks Sparkplug   |
+| [MQTT](#mqtt)                                  | [MQTT](mqtt.md)                         | Available | Yes                 | A gateway that publishes PLC tags |
+| [Sparkplug B](#sparkplug-b)                    | [MQTT](mqtt.md)                         | Available | Yes                 | A gateway that speaks Sparkplug   |
 | [OPC UA](#opc-ua-planned)                      | OPC UA                                  | (planned) | Yes                 | Enable the server on the PLC      |
 | [EtherNet/IP](#ethernetip-tags-planned)        | Logix                                   | (planned) | Yes                 | None beyond network access        |
 | [Anything else](#writing-your-own-integration) | A process of your own over the NATS API | Available | Depends             | A process you write               |
@@ -111,17 +111,17 @@ follow from the protocol itself:
 Modbus suits a stable set of tens of values. Beyond that, the register map
 becomes the limiting factor.
 
-## MQTT (planned)
+## MQTT
 
 MQTT is the most common way to get data out of a plant network and into
 something else, and it is the transport underneath Sparkplug B, described below.
-Simple IoT does not support it yet. Three pieces are involved:
+Three pieces are involved:
 
 1. Something on the PLC side that reads tags and publishes them.
-2. A broker. Simple IoT can provide this itself, described next.
+2. A broker. Simple IoT provides this itself, described next.
 3. A mapping from published messages into Simple IoT points.
 
-### The broker is already built in (planned)
+### The broker is already built in
 
 Simple IoT embeds a NATS server, and NATS includes an MQTT server. It needs
 JetStream, which Simple IoT already runs, so exposing it is a matter of opening
@@ -129,11 +129,10 @@ a port rather than adding a dependency. A gateway or sensor then publishes
 directly to Simple IoT, with no Mosquitto, HiveMQ, or EMQX to deploy, secure,
 and update. On an edge device that is one fewer process to keep running.
 
-The planned configuration is a port setting alongside the existing NATS port
-options, disabled by default:
+The configuration is a port setting alongside the existing NATS port options,
+disabled by default:
 
 ```
-# planned, subject to change
 SIOT_NATS_MQTT_PORT=1883
 ```
 
@@ -148,8 +147,9 @@ Points worth knowing about the NATS MQTT server:
   literal `.` in a topic converts to `//`. A Sparkplug topic of
   `spBv1.0/plant/DDATA/line3/tank` therefore arrives on the NATS subject
   `spBv1//0.plant.DDATA.line3.tank`.
-- MQTT connections authenticate against the credentials configured for the MQTT
-  listener. Use TLS whenever the connection leaves a trusted network.
+- MQTT connections authenticate with the Simple IoT auth token, supplied in the
+  password field of the connect packet. Use TLS whenever the connection leaves a
+  trusted network.
 
 An external broker still makes sense when the plant already runs one, when you
 need to bridge several sites, or when you need broker features such as
@@ -165,13 +165,12 @@ HighByte Intelligence Hub, FactoryTalk Edge Gateway, and Opto 22 groov EPIC. All
 are licensed products and become a second system to maintain, which is the main
 argument for reading tags directly, described in the next section.
 
-### Turning messages into points (planned)
+### Turning messages into points
 
 A subscription node maps a topic to points. Leaving the broker address blank
-would mean the server built into this instance:
+means the server built into this instance:
 
 ```yaml
-# planned, subject to change
 nodes:
   - mqtt:
       description: Plant data
@@ -185,32 +184,37 @@ nodes:
             units: cm
 ```
 
-JSON payloads are the first target, since they cover the AWS IoT, Azure IoT, and
-gateway-defined formats that most installations use.
-[ADR-8](../adr/8-iot-data-models.md) compares these payload formats against the
-Simple IoT point model.
+Payloads are JSON, which covers the AWS IoT, Azure IoT, and gateway-defined
+formats that most installations use. [ADR-8](../adr/8-iot-data-models.md)
+compares these payload formats against the Simple IoT point model, and the
+[MQTT page](mqtt.md) covers the settings in full.
 
-### Do topics become nodes automatically? (planned)
+### Do topics become nodes automatically?
 
-Not by default for plain MQTT, and yes for Sparkplug B. The difference is
-whether the data describes itself.
+Only when you say what the topic levels mean, and always for Sparkplug B. The
+difference is whether the data describes itself.
 
 A plain MQTT topic tree looks like it should map onto the node graph, and
 sometimes it does. But nothing in the protocol says which topic level is a
 device and which is a measurement, or what the payload contains. Subscribing to
 a wildcard on a busy plant broker and creating a node for everything that
 arrives would fill the store with nodes nobody asked for, and
-[synchronization](sync.md) would carry them upstream. So the default is that you
-name the topics you want and how to map their payloads, as in the example above.
+[synchronization](sync.md) would carry them upstream. So nothing is created
+until you supply the missing information.
 
-Discovery is still useful for finding out what a broker is publishing, so the
-plan is to offer it as an option on the MQTT node rather than as the default
-behavior. Turned on, it would create a child node for each topic seen under a
-prefix you specify, and you keep the ones you want and delete the rest. This
-follows what the [Shelly client](shelly.md) already does when it finds devices
-on the network. A topic that stops publishing would be marked offline rather
-than deleted, since a quiet sensor and a removed sensor look the same from
-outside.
+A [topic schema](mqtt.md#automatic-nodes-with-a-topic-schema) supplies exactly
+that: `topicSchema: "{site}/{gateway}/{device}"` on the MQTT node declares that
+the first level is a site, the second a gateway, and the third a device, and
+matching topics create those nodes as data arrives. Everything past the named
+levels becomes the point key, so a rogue deep topic extends a key rather than
+the node tree, and a `maxNodes` limit guards against a level carrying an
+unbounded value. Nodes are matched by the topic level they came from, so
+renaming one or adding tags to it survives, and nothing is ever deleted
+automatically -- a quiet sensor and a removed sensor look the same from outside.
+
+Browsing a broker with no topic convention at all, the way the
+[Shelly client](shelly.md) finds devices on the network, is still worth having
+and is not implemented yet.
 
 Sparkplug B is a different situation, and this is a large part of why it exists.
 An edge node announces itself with a birth certificate that lists every metric
@@ -219,7 +223,7 @@ group, the edge node, and the device. There is no guessing involved, so building
 the node structure automatically is the intended behavior: a group becomes a
 node, edge nodes and devices become nodes beneath it, and metrics become points.
 
-## Sparkplug B (planned)
+## Sparkplug B
 
 [Sparkplug B](https://sparkplug.eclipse.org/) is an Eclipse specification that
 adds a defined topic namespace, a protobuf payload, and a state model on top of
@@ -246,17 +250,15 @@ What it adds over plain MQTT:
 
 The structure maps onto the Simple IoT graph directly: a group becomes a node,
 each edge node and device becomes a node beneath it, and each metric becomes a
-point or a child node. Because a birth certificate enumerates the metrics,
-Simple IoT can build that structure as edge nodes announce themselves rather
-than having you configure it, which is the same idea as browsing the tag list of
-a Logix controller.
+point. Because a birth certificate enumerates the metrics, Simple IoT builds
+that structure as edge nodes announce themselves rather than having you
+configure it, which is the same idea as browsing the tag list of a Logix
+controller. Set `sparkplug: true` on an `mqtt` node and everything below it
+appears as the gateway publishes; the [MQTT page](mqtt.md#sparkplug-b) covers
+what arrives and how it is named.
 
-Sparkplug support is planned as a phase after plain JSON payloads, because it
-requires meaningfully more work: protobuf payload decoding, a cache mapping
-aliases back to metric names per edge node, handling rebirth requests when that
-cache is lost, and honoring the state topic if Simple IoT acts as a primary host
-application. Running it against the built-in MQTT server described above removes
-the broker from that list, but the payload and state handling remain.
+Acting as a primary host application, which is what the state topic is for, and
+publishing Simple IoT data outbound as Sparkplug are the remaining pieces.
 
 ## OPC UA (planned)
 
@@ -264,6 +266,20 @@ the broker from that list, but the payload and state handling remain.
 is the vendor-neutral standard for industrial data exchange, and it is the
 single client that would cover the widest range of hardware. It is not
 implemented yet.
+
+### Reaching OPC UA data today
+
+OPC UA data can already flow into Simple IoT through the [MQTT client](mqtt.md).
+Several products collect from OPC UA servers and publish to MQTT, among them
+[Idako](https://onewayautomation.com/idako/),
+[Prosys Forge](https://onewayautomation.com/forge/), and
+[Takebishi DeviceGateway](https://onewayautomation.com/devicegateway/), which
+also collects from sources other than OPC UA. A number of MQTT brokers include
+an OPC UA connector as well. If one of these is already running in the plant,
+this path works today and needs nothing new in Simple IoT.
+
+A native client is still worth having for installations that would rather not
+add another process between the controller and Simple IoT.
 
 ### What already has an OPC UA server
 
@@ -331,9 +347,11 @@ Security is where OPC UA costs more than the other options. A client presents an
 application instance certificate, and the server has to be told to trust it,
 which is usually a manual step in the server's own configuration. On top of that
 sit the security policy, the message mode, and the user token. Simple IoT would
-need to generate and store a certificate, present it, and give you a way to see
-why a connection was rejected, since a rejected certificate and a wrong password
-look similar from the client side.
+need to generate and store a certificate, present it, and show you why a
+connection was rejected. The specification is helpful here: an untrusted
+certificate, a rejected identity token, and a failed user authentication each
+come back as a distinct status code, so the reason is available. The work is in
+surfacing that detail rather than reporting a generic connection failure.
 
 Anonymous connections with no security are common on isolated plant networks and
 are the quickest way to get a first reading, but they are not a good place to
@@ -594,7 +612,7 @@ Two arrangements both work, and the payload usually decides:
   points_value{type="value", key="tank_level", "node.tag.machine"="press-3"}
   ```
 
-For [Sparkplug B](#sparkplug-b-planned) the structure is already decided by the
+For [Sparkplug B](#sparkplug-b) the structure is already decided by the
 specification: the group, edge node, and device become nodes, which means they
 become inherited tags without any configuration, and each metric becomes a
 point.
