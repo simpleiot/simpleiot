@@ -102,7 +102,7 @@ Most functionality is implemented as clients that:
 - Are managed by the ClientManager system
 
 Common client types: SerialDev, CanBus, Rule, Db, SignalGenerator, Sync,
-Metrics, Modbus, OneWire, Shelly, Particle, User, MsgService, etc.
+Metrics, Modbus, OneWire, Mqtt, Shelly, Particle, User, MsgService, etc.
 
 ### Frontend Architecture
 

@@ -13,6 +13,6 @@
 | 2026-08-01-modbus-onewire-clients.md            | **COMPLETE**                                                                            | 54169492      |
 | 2026-08-11-prometheus-scrape-metrics.md         | **COMPLETE**                                                                            | ff1e2c7d      |
 | 2026-08-19-notifications.md                     | **COMPLETE** (notification display in UI deferred)                                      | d2bbb2a3      |
-| 2026-08-20-mqtt.md                              | **PLANNED**                                                                             | 9032d3c3      |
+| 2026-08-20-mqtt.md                              | **COMPLETE**                                                                            | 9032d3c3      |
 | 2026-08-20-rule-timing-and-actions.md           | **COMPLETE**                                                                            | 9032d3c3      |
 | 2026-08-20-per-device-credentials.md            | **PLANNED**                                                                             | cbc07a67      |

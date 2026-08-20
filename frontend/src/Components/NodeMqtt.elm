@@ -51,6 +51,8 @@ view o =
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typeURI "Broker URI" "blank uses the built-in broker"
+                    , textInput Point.typeTopicSchema "Topic schema" "{site}/{gateway}/{device}"
+                    , numberInput Point.typeMaxNodes "Max nodes (0 = 1000)"
                     , checkboxInput Point.typeSparkplug "Sparkplug B"
                     , numberInput Point.typeDebug "Debug level (0-9)"
                     , checkboxInput Point.typeDisabled "Disabled"

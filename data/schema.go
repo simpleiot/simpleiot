@@ -224,6 +224,21 @@ const (
 	NodeTypeMqtt    = "mqtt"
 	NodeTypeMqttSub = "mqttSub"
 
+	// NodeTypeMqttDevice is created automatically from a topic schema and
+	// holds the points extracted from the topics below it.
+	NodeTypeMqttDevice = "mqttDevice"
+
+	// PointTypeTopicSchema names the levels of a topic, such as
+	// "{site}/{gateway}/{device}", so nodes can be created from topics as they
+	// arrive. Plain MQTT says nothing about which level is which, and this
+	// supplies exactly that.
+	PointTypeTopicSchema = "topicSchema"
+
+	// PointTypeMaxNodes bounds how many nodes a topic schema creates, so a
+	// topic level carrying an unbounded value cannot grow the tree without
+	// limit.
+	PointTypeMaxNodes = "maxNodes"
+
 	// PointTypePath locates the value inside a JSON payload, written in dot
 	// notation such as $.a.b[0]. A blank path maps the whole payload.
 	PointTypePath = "path"

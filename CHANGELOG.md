@@ -29,6 +29,13 @@ For more details or to discuss releases, please visit the
   identity. Nodes go offline on a death certificate rather than disappearing,
   and tags or descriptions you set on them survive a rebirth. See the
   [MQTT page](docs/user/mqtt.md#sparkplug-b).
+- **A topic schema creates nodes as data arrives.** Set
+  `topicSchema: "{site}/{gateway}/{device}"` on an `mqtt` node and matching
+  topics build that node path themselves, each level carrying a tag named by its
+  schema label. Explicit `mqttSub` children still take precedence, and
+  `maxNodes` (1000 by default) bounds what a topic level carrying an unbounded
+  value can create. See the
+  [MQTT page](docs/user/mqtt.md#automatic-nodes-with-a-topic-schema).
 
 ## [0.24.1] - 2026-08-20
 

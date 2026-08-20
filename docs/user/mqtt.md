@@ -1,15 +1,13 @@
 # MQTT
 
-Simple IoT can serve MQTT itself and turn published messages into points. The
-built-in broker is available now; the sections marked **(planned)** below are
-documented so you can plan deployments around them and so the design is open for
+Simple IoT can serve MQTT itself and turn published messages into points. See
+the [PLC page](plc.md) for how MQTT compares with the other ways to bring plant
+data in, and [ADR-8](../adr/8-iot-data-models.md) for how common MQTT payload
+formats compare with the Simple IoT point model. The design is open for
 discussion on the
-[community forum](https://community.tmpdir.org/c/simple-iot/5). See the
-[PLC page](plc.md) for how MQTT compares with the other ways to bring plant data
-in, and [ADR-8](../adr/8-iot-data-models.md) for how common MQTT payload formats
-compare with the Simple IoT point model.
+[community forum](https://community.tmpdir.org/c/simple-iot/5).
 
-Support comes in four pieces, each usable without the ones after it:
+Support comes in four pieces, each usable on its own:
 
 1. **A built-in broker.** Gateways and sensors publish directly to Simple IoT,
    with no separate broker to deploy, secure, and update.
@@ -123,7 +121,7 @@ subscribes fine, but every match lands on that one node, so name topics
 individually when they represent different things. The topic schema below is the
 better tool when you want one rule to cover many topics.
 
-## Automatic nodes with a topic schema (planned)
+## Automatic nodes with a topic schema
 
 Plain MQTT carries no information about which topic level is a site and which is
 a device, which is why nothing is created automatically by default. A topic
@@ -153,10 +151,13 @@ The rules:
 
 - **Each named level becomes a node**, carrying a tag named by its schema label.
   Intermediate levels are group nodes; the last named level is an `mqttDevice`
-  node that receives the points.
+  node that receives the points. Levels written without braces are literals a
+  topic has to match, so `plant/{site}/{device}` covers one prefix only.
 - **Everything beyond the named levels becomes the point key.** Remaining topic
-  levels and JSON field names join into the key, so a deeper topic extends the
-  key rather than the node tree.
+  levels and JSON field names join into the key with `/`, so a deeper topic
+  extends the key rather than the node tree. A payload carrying a single field
+  named `value` is treated as a scalar, since that is the shape a gateway
+  publishing one measurement per topic uses.
 - **Nodes are matched by topic identity, not by name.** Renaming a description
   or adding tags to an auto-created node survives later messages and restarts,
   and nothing is duplicated.
@@ -237,9 +238,22 @@ gateways to match:
 {site}/{gateway}/{device}/{measurement}
 ```
 
-Give each site a provisioning file, with a group node per site carrying a `site`
-tag and explicit `mqttSub` entries below it. Only descriptions, tags, and topics
-vary, so the files come from one template:
+With one `mqtt` node and a topic schema, the whole fleet needs no per-site
+configuration; sites, gateways, and devices appear as they publish, each
+carrying its tags:
+
+```yaml
+apiVersion: 1
+nodes:
+  - mqtt:
+      description: Plant data
+      uri: ""
+      topicSchema: "{site}/{gateway}/{device}"
+```
+
+When a site needs curated metadata, give it a provisioning file instead, with a
+group node per site carrying a `site` tag and explicit `mqttSub` entries below
+it:
 
 ```yaml
 apiVersion: 1
@@ -264,9 +278,9 @@ nodes:
                     machine: press-3
 ```
 
-Once the topic schema lands, one `mqtt` node will cover the whole fleet with no
-per-site configuration, and provisioning files stay useful for the sites that
-want curated units, scaling, and machine tags.
+The two compose: start with the schema to see what fifteen sites are publishing,
+then add `mqttSub` entries, which take precedence, for the values that need
+units, scaling, or careful naming.
 
 With `tag` listed in the Database node's [Tag Point Types](database.md#tags),
 every point arrives in the time series database labeled by site, gateway, and

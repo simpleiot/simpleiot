@@ -25,6 +25,7 @@ import Components.NodeNetworkManager as NodeNetworkManager
 import Components.NodeNetworkManagerConn as NodeNetworkManagerConn
 import Components.NodeNetworkManagerDevice as NodeNetworkManagerDevice
 import Components.NodeMqtt as NodeMqtt
+import Components.NodeMqttDevice as NodeMqttDevice
 import Components.NodeMqttSub as NodeMqttSub
 import Components.NodeOneWire as NodeOneWire
 import Components.NodeSparkplugDevice as NodeSparkplugDevice
@@ -1060,6 +1061,7 @@ nodeCustomSortRules =
         , ( Node.typeBrowser, "U" )
         , ( Node.typeGps, "V" )
         , ( Node.typeMqtt, "W" )
+        , ( Node.typeMqttDevice, "W1" )
         , ( Node.typeSparkplugGroup, "X" )
         , ( Node.typeSparkplugNode, "Y" )
         , ( Node.typeSparkplugDevice, "Z" )
@@ -1289,6 +1291,9 @@ viewNode model parent node children depth =
 
                     "mqttSub" ->
                         NodeMqttSub.view
+
+                    "mqttDevice" ->
+                        NodeMqttDevice.view
 
                     "sparkplugGroup" ->
                         NodeSparkplugGroup.view

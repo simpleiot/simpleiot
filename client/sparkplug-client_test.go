@@ -217,6 +217,14 @@ func TestSparkplugRebirth(t *testing.T) {
 		t.Fatal("Error starting test server: ", err)
 	}
 
+	restarted := false
+
+	defer func() {
+		if !restarted {
+			stop()
+		}
+	}()
+
 	mq := client.Mqtt{
 		ID:          "mqtt-rebirth",
 		Parent:      root.ID,
@@ -299,6 +307,7 @@ func TestSparkplugRebirth(t *testing.T) {
 		})
 
 	stop()
+	restarted = true
 
 	nc2, _, stop2, err := server.TestServerOptsKeepStore(server.TestServerOptions)
 	if err != nil {

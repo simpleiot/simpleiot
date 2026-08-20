@@ -189,27 +189,32 @@ formats that most installations use. [ADR-8](../adr/8-iot-data-models.md)
 compares these payload formats against the Simple IoT point model, and the
 [MQTT page](mqtt.md) covers the settings in full.
 
-### Do topics become nodes automatically? (planned)
+### Do topics become nodes automatically?
 
-Not by default for plain MQTT, and yes for Sparkplug B. The difference is
-whether the data describes itself.
+Only when you say what the topic levels mean, and always for Sparkplug B. The
+difference is whether the data describes itself.
 
 A plain MQTT topic tree looks like it should map onto the node graph, and
 sometimes it does. But nothing in the protocol says which topic level is a
 device and which is a measurement, or what the payload contains. Subscribing to
 a wildcard on a busy plant broker and creating a node for everything that
 arrives would fill the store with nodes nobody asked for, and
-[synchronization](sync.md) would carry them upstream. So the default is that you
-name the topics you want and how to map their payloads, as in the example above.
+[synchronization](sync.md) would carry them upstream. So nothing is created
+until you supply the missing information.
 
-Discovery is still useful for finding out what a broker is publishing, so the
-plan is to offer it as an option on the MQTT node rather than as the default
-behavior. Turned on, it would create a child node for each topic seen under a
-prefix you specify, and you keep the ones you want and delete the rest. This
-follows what the [Shelly client](shelly.md) already does when it finds devices
-on the network. A topic that stops publishing would be marked offline rather
-than deleted, since a quiet sensor and a removed sensor look the same from
-outside.
+A [topic schema](mqtt.md#automatic-nodes-with-a-topic-schema) supplies exactly
+that: `topicSchema: "{site}/{gateway}/{device}"` on the MQTT node declares that
+the first level is a site, the second a gateway, and the third a device, and
+matching topics create those nodes as data arrives. Everything past the named
+levels becomes the point key, so a rogue deep topic extends a key rather than
+the node tree, and a `maxNodes` limit guards against a level carrying an
+unbounded value. Nodes are matched by the topic level they came from, so
+renaming one or adding tags to it survives, and nothing is ever deleted
+automatically -- a quiet sensor and a removed sensor look the same from outside.
+
+Browsing a broker with no topic convention at all, the way the
+[Shelly client](shelly.md) finds devices on the network, is still worth having
+and is not implemented yet.
 
 Sparkplug B is a different situation, and this is a large part of why it exists.
 An edge node announces itself with a birth certificate that lists every metric

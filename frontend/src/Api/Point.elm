@@ -106,6 +106,7 @@ module Api.Point exposing
     , typeLongitude
     , typeMaxIncrement
     , typeMaxMessageLength
+    , typeMaxNodes
     , typeMaxSeries
     , typeMaxValue
     , typeMinActive
@@ -178,6 +179,7 @@ module Api.Point exposing
     , typeTimeout
     , typeTombstone
     , typeTopic
+    , typeTopicSchema
     , typeTouchQuirk
     , typeTx
     , typeTxReset
@@ -904,6 +906,16 @@ typePath =
 typeSparkplug : String
 typeSparkplug =
     "sparkplug"
+
+
+typeTopicSchema : String
+typeTopicSchema =
+    "topicSchema"
+
+
+typeMaxNodes : String
+typeMaxNodes =
+    "maxNodes"
 
 
 typeVariableType : String
