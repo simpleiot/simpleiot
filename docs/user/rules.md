@@ -49,6 +49,15 @@ than one per cycle.
 Both durations are in-process state, so they restart if the instance restarts or
 the rule is edited. Disabling a rule clears them as well.
 
+Together with the [repeat interval](#notifications) on a notify action, these
+durations follow the model Grafana alerting and Prometheus Alertmanager have
+converged on, because they address the same problems: noisy conditions,
+flapping, and notification fatigue. Two of Grafana's defenses are handled
+elsewhere in Simple IoT rather than in the rule. Evaluating over an aggregation
+window instead of raw samples belongs in the client producing the point, and a
+recovery threshold separate from the firing threshold is done with two rules or
+an inactive action as described in [Set node point](#set-node-point).
+
 ### Node state
 
 A point value condition looks at the point value of a node to determine if a
@@ -250,16 +259,3 @@ channel with `channel`.
 The rule's `active` state, its most recent notification, and any error are
 points the client maintains, so an export of a running rule carries them as
 well.
-
-## Planned Changes
-
-The timing behavior around rule state and notifications is being improved. The
-design follows the model that Grafana alerting and Prometheus Alertmanager have
-converged on, since it has proven itself for exactly the problems rules have
-here: noisy conditions, flapping, and notification fatigue.
-
-Grafana's remaining defenses — evaluating over an aggregation window instead of
-raw samples, and a recovery threshold separate from the firing threshold —
-already have equivalents here: smoothing belongs in the client producing the
-point, and hysteresis is done with two rules or an inactive action as described
-in [Set node point](#set-node-point) above.
