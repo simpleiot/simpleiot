@@ -16,3 +16,5 @@
 | 2026-08-20-mqtt.md                              | **COMPLETE**                                                                            | 9032d3c3      |
 | 2026-08-20-rule-timing-and-actions.md           | **COMPLETE**                                                                            | 9032d3c3      |
 | 2026-08-20-per-device-credentials.md            | **PLANNED**                                                                             | cbc07a67      |
+| 2026-08-24-linux-gpio-client.md                 | **PLANNED**                                                                             | 179d06ea      |
+| 2026-08-24-security-cleanup.md                  | **IN PROGRESS** (item 1 complete)                                                                             | 179d06ea      |

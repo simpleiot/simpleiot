@@ -306,6 +306,36 @@ func (st *Store) reportPointError(nodeID string, err error) {
 	}
 }
 
+// hashPassPoints replaces the value of any pass point with its bcrypt hash.
+// Pass points hold user passwords, which are stored only as hashes. Hashing
+// here covers every local write path (UI, API, import, provisioning) in one
+// place; a new node's points can arrive before its edge, so this cannot key
+// off the node type. Already-hashed and empty values pass through unchanged,
+// which keeps rehashes and remote-origin data written locally idempotent. A
+// point whose value bcrypt cannot hash (over 72 bytes) is dropped and
+// reported as a point error on the node.
+func (st *Store) hashPassPoints(nodeID string, points data.Points) data.Points {
+	accepted := points[:0]
+
+	for _, p := range points {
+		if p.Type == data.PointTypePass && p.Txt() != "" &&
+			!data.PasswordIsHashed(p.Txt()) {
+			hash, err := data.HashPassword(p.Txt())
+			if err != nil {
+				err = fmt.Errorf("node %v: error hashing pass point: %w",
+					nodeID, err)
+				log.Println("Store:", err)
+				st.reportPointError(nodeID, err)
+				continue
+			}
+			p.PutString(hash)
+		}
+		accepted = append(accepted, p)
+	}
+
+	return accepted
+}
+
 func (st *Store) handleNodePoints(msg *nats.Msg) {
 	start := time.Now()
 	defer func() {
@@ -337,6 +367,12 @@ func (st *Store) handleNodePoints(msg *nats.Msg) {
 		// persistent copy (single-writer streams, ADR-7)
 		st.db.mergeRemoteNodePoints(nodeID, points, origin)
 	} else {
+		points = st.hashPassPoints(nodeID, points)
+		if len(points) == 0 {
+			st.reply(msg.Reply, errCheck)
+			return
+		}
+
 		// write points to database
 		err = st.db.nodePoints(nodeID, points)
 
@@ -535,6 +571,19 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 	}
 
 	user, err := data.NodeToUser(nodes[0].ToNode())
+
+	if user.Pass != "" && !data.PasswordIsHashed(user.Pass) {
+		// successful login against a legacy plaintext password:
+		// rewrite it as a hash through the normal point path
+		hash, hashErr := data.HashPassword(user.Pass)
+		if hashErr == nil {
+			p := data.NewPointString(data.PointTypePass, "", hash)
+			hashErr = client.SendNodePoint(st.nc, user.ID, p, false)
+		}
+		if hashErr != nil {
+			log.Println("Error rehashing legacy password:", hashErr)
+		}
+	}
 
 	token, err := st.authorizer.NewToken(user.ID)
 	if err != nil {

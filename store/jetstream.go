@@ -1047,8 +1047,10 @@ func (db *DbJetStream) userCheck(email, password string) (data.Nodes, error) {
 
 		n := ne[0].ToNode()
 		u := n.ToUser()
-		if u.Email == email && u.Pass == password {
-			users = append(users, ne...)
+		if u.Email == email {
+			if ok, _ := data.CheckPassword(u.Pass, password); ok {
+				users = append(users, ne...)
+			}
 		}
 	}
 
