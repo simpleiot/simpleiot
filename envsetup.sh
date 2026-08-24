@@ -303,92 +303,110 @@ siot_goreleaser_build() {
 	goreleaser build --snapshot --clean
 }
 
-# pushing the tag starts the Release workflow (.github/workflows/release.yml),
-# which builds the binaries and publishes the GitHub release
-# the release notes come from the CHANGELOG.md section for the version being
-# released, so move the "Next" section under a "[X.Y.Z] - <date>" heading first
-siot_release() {
-	VERSION=$1
+# --- Release -------------------------------------------------------------------
+#
+# Releasing is two steps:
+#
+#   1. move the CHANGELOG.md "[Unreleased]" entries under a
+#      "## [X.Y.Z] - <date>" heading, rebuild the frontend assets
+#      (siot_build_frontend), and commit both to master
+#   2. siot_tag
+#
+# Pushing the tag starts the Release workflow (.github/workflows/release.yml),
+# which builds the binaries and publishes the GitHub release. The release notes
+# come from the CHANGELOG.md section for the version being tagged.
+
+# Read the version to release out of CHANGELOG.md.
+#
+# The version is the first numbered section. Entries still sitting under
+# [Unreleased] mean the release commit that moves them under a version heading
+# has not been written yet, so there is nothing to tag. Empty "### Added" style
+# subheadings are the skeleton we keep in place, so they do not count as
+# entries.
+_siot_release_version() {
+	if ! grep -q '^## \[Unreleased\]' CHANGELOG.md; then
+		echo "no [Unreleased] section in CHANGELOG.md" >&2
+		return 1
+	fi
+
+	PENDING=$(sed -n '/^## \[Unreleased\]/,/^## \[[0-9]/p' CHANGELOG.md |
+		sed '1d;$d' | grep -v '^###' | tr -d '[:space:]')
+	if [ -n "$PENDING" ]; then
+		echo "CHANGELOG.md has entries under [Unreleased]; give them a version heading first" >&2
+		return 1
+	fi
+
+	VERSION=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | tr -d '#[] ')
 	if [ -z "$VERSION" ]; then
-		echo "must provide version in format vX.Y.Z"
+		echo "no released version section in CHANGELOG.md" >&2
 		return 1
 	fi
 
-	# update elm.js.gz
-	siot_build_frontend || return 1
-	git commit -m "update FE assets" frontend/public/dist/elm.js.gz || return 1
-	git push || return 1
-	git tag -f "$VERSION" || return 1
-	git push origin "$VERSION" || return 1
-	siot_deploy_docs || return 1
-	# refresh godocs site
-	wget "https://proxy.golang.org/github.com/simpleiot/simpleiot/@v/${VERSION}.info" || return 1
-	rm "${VERSION}.info"
+	printf '%s\n' "$VERSION"
 }
 
-# the version of the topmost released section of the changelog, so
-# "## [0.23.4] - 2026-08-13" yields "0.23.4". The "## [Unreleased]" heading does
-# not match because the pattern requires the section to start with a digit.
-_siot_changelog_version() {
-	sed -n 's/^## \[\([0-9][^]]*\)\].*/\1/p' CHANGELOG.md | head -1
-}
+# Everything siot_tag does while sitting on master. Split out so the caller
+# restores the original branch on every exit path, success or not.
+_siot_tag_on_master() {
+	git merge --ff-only origin/master || return 1
 
-# succeeds when the "## Next" section holds no entries, which is how we know the
-# pending changes have been moved under a version heading
-_siot_changelog_next_empty() {
-	awk '
-		/^## Next/ { next_section = 1; next }
-		next_section && /^## / { exit }
-		next_section && NF { entries = 1 }
-		END { exit entries ? 1 : 0 }
-	' CHANGELOG.md
-}
-
-# tag the current master commit with the version at the top of the changelog and
-# push the tag, which starts the Release workflow (.github/workflows/release.yml)
-siot_tag() {
-	BRANCH=$(git rev-parse --abbrev-ref HEAD) || return 1
-	if [ "$BRANCH" != "master" ]; then
-		echo "releases are tagged on master, currently on $BRANCH"
-		return 1
-	fi
-
-	if [ -n "$(git status --porcelain)" ]; then
-		echo "working tree has uncommitted changes, please commit them first"
-		return 1
-	fi
-
-	VERSION=$(_siot_changelog_version)
-	if [ -z "$VERSION" ]; then
-		echo "no version heading found in CHANGELOG.md"
-		return 1
-	fi
-	TAG="v$VERSION"
-
-	if ! _siot_changelog_next_empty; then
-		echo "the Next section of CHANGELOG.md still has entries"
-		echo "move them under a \"## [X.Y.Z] - <date>\" heading and commit first"
-		return 1
-	fi
+	TAG="v$(_siot_release_version)" || return 1
 
 	if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-		echo "$TAG already exists, please add a new version section to CHANGELOG.md"
+		echo "tag $TAG already exists locally" >&2
+		return 1
+	fi
+	if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+		echo "tag $TAG already exists on origin" >&2
 		return 1
 	fi
 
-	# --ff-only so a release tag is never placed on a merge commit the pull
-	# created; a diverged master stops here and is sorted out by hand
-	git pull --ff-only origin master || return 1
-	if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/master)" ]; then
-		echo "master and origin/master point at different commits"
-		echo "please push or pull so the tag lands on a commit that is upstream"
-		return 1
-	fi
-
-	echo "tagging $TAG"
 	git tag "$TAG" || return 1
-	git push origin "$TAG" || return 1
-	return 0
+	if ! git push origin "$TAG"; then
+		git tag -d "$TAG"
+		return 1
+	fi
+
+	echo "=== tagged and pushed $TAG ==="
+	echo "next: siot_deploy_docs, siot_refresh_godocs $TAG"
+}
+
+# Tag the version named at the top of CHANGELOG.md on master and push the tag.
+siot_tag() {
+	if ! (git diff --quiet && git diff --cached --quiet); then
+		echo "siot_tag: uncommitted changes; commit or stash them first" >&2
+		return 1
+	fi
+
+	BRANCH=$(git symbolic-ref --quiet --short HEAD)
+	if [ -z "$BRANCH" ]; then
+		echo "siot_tag: HEAD is detached; check out a branch first" >&2
+		return 1
+	fi
+
+	# Not --tags: a stale local tag that disagrees with origin makes git exit
+	# nonzero even though the fetch did its job. Nothing here reads local tag
+	# refs for the origin-side check, so only origin/master needs updating.
+	git fetch origin || return 1
+	git checkout master || return 1
+
+	_siot_tag_on_master
+	RC=$?
+
+	git checkout "$BRANCH" || return 1
+	return $RC
+}
+
+# Ask the Go module proxy to fetch the new version so pkg.go.dev picks it up.
+siot_refresh_godocs() {
+	VERSION=$1
+	if [ -z "$VERSION" ]; then
+		VERSION="v$(_siot_release_version)" || return 1
+	fi
+
+	curl -sSf -o /dev/null \
+		"https://proxy.golang.org/github.com/simpleiot/simpleiot/@v/$VERSION.info" || return 1
+	echo "=== refreshed godocs for $VERSION ==="
 }
 
 # dblab keyboard shortcuts

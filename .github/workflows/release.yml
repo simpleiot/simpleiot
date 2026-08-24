@@ -1,8 +1,9 @@
 name: Release
 
 # The UI assets embedded in the binaries come from the committed
-# frontend/public/dist/elm.js.gz, which siot_release rebuilds and commits before
-# tagging. That way the released binaries match what `go install` produces.
+# frontend/public/dist/elm.js.gz, which is rebuilt and committed as part of the
+# release commit, before siot_tag runs. That way the released binaries match
+# what `go install` produces.
 
 on:
   push:

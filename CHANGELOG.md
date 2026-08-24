@@ -13,11 +13,13 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+## [0.25.1] - 2026-08-24
+
 - **User passwords are now stored hashed, not in plaintext.** The store, sync
   streams, and exports carry only a bcrypt hash, so a copy of any of them no
   longer reveals passwords. Existing passwords convert automatically the next
-  time each user signs in, and the password field in the UI now shows blank
-  and sets a new password when typed into. See
+  time each user signs in, and the password field in the UI now shows blank and
+  sets a new password when typed into. See
   [Users/Groups](docs/user/users-groups.md).
 
 ## [0.25.0] - 2026-08-20
