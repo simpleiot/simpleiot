@@ -49,12 +49,30 @@ view o =
 
                         textInput =
                             NodeInputs.nodeTextInput opts "0"
+
+                        -- passwords are stored as bcrypt hashes; show the
+                        -- field blank instead of the stored hash, so typing
+                        -- always sets a new password
+                        blankHashedPass p =
+                            if p.typ == Point.typePass && String.startsWith "$2" p.text then
+                                { p | text = "123BLANK123" }
+
+                            else
+                                p
+
+                        node =
+                            o.node
+
+                        passInput =
+                            NodeInputs.nodeTextInput
+                                { opts | node = { node | points = List.map blankHashedPass node.points } }
+                                "0"
                     in
                     [ textInput Point.typeFirstName "First Name" ""
                     , textInput Point.typeLastName "Last Name" ""
                     , textInputLowerCase Point.typeEmail "Email/User" ""
                     , textInput Point.typePhone "Phone" ""
-                    , textInput Point.typePass "Pass" ""
+                    , passInput Point.typePass "Pass" ""
                     , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
                     ]
 

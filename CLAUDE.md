@@ -140,7 +140,7 @@ of each phase.
 ## Changelog
 
 The changelog uses [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
-format — add entries under the `## Next` section.
+format — add entries under the `## [Unreleased]` section.
 
 Keep entries concise. Start each one with a **bold summary sentence** naming
 what changed, then at most two or three sentences of detail:

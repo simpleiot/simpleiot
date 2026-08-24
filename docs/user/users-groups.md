@@ -43,5 +43,18 @@ points, because a role belongs to the connection between the user and the node
 above rather than to the user. The same user mirrored into two places can hold a
 different role in each.
 
-An export carries `pass` as it was entered, so treat a file that contains user
-nodes the way you would treat the passwords in it.
+## Passwords
+
+A password is stored as a bcrypt hash, never as the plaintext value. A `pass`
+value written through the UI, the API, an import, or a provisioning file is
+hashed before it is stored, so the store, sync streams, and exports carry only
+the hash. A password stored in plaintext by an earlier release keeps working
+and is converted to a hash the next time that user signs in.
+
+An export carries `pass` as the stored hash, which cannot be converted back to
+the password. A plaintext `pass` in an import file is hashed when it is
+applied, so a file that sets passwords should still be treated with care until
+it is applied and deleted.
+
+The password field in the UI shows blank rather than the stored hash; typing
+in it sets a new password.
