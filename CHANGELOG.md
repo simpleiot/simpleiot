@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-08-24
+
 ### Added
 
 - **Read a switch or drive a relay from a GPIO line.** A new `gpio` node reads
