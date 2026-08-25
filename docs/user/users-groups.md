@@ -48,13 +48,13 @@ different role in each.
 A password is stored as a bcrypt hash, never as the plaintext value. A `pass`
 value written through the UI, the API, an import, or a provisioning file is
 hashed before it is stored, so the store, sync streams, and exports carry only
-the hash. A password stored in plaintext by an earlier release keeps working
-and is converted to a hash the next time that user signs in.
+the hash. A password stored in plaintext by an earlier release keeps working and
+is converted to a hash the next time that user signs in.
 
 An export carries `pass` as the stored hash, which cannot be converted back to
-the password. A plaintext `pass` in an import file is hashed when it is
-applied, so a file that sets passwords should still be treated with care until
-it is applied and deleted.
+the password. A plaintext `pass` in an import file is hashed when it is applied,
+so a file that sets passwords should still be treated with care until it is
+applied and deleted.
 
-The password field in the UI shows blank rather than the stored hash; typing
-in it sets a new password.
+The password field in the UI shows blank rather than the stored hash; typing in
+it sets a new password.

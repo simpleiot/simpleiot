@@ -549,4 +549,42 @@ const (
 	PointTypeSimHeading     = "simHeading"     // starting heading, degrees true
 	PointTypeSimHeadingRate = "simHeadingRate" // max heading change, degrees/second
 	PointTypeSimReset       = "simReset"       // move the track back to the start
+
+	// GPIO client. A gpio node is one line on a Linux GPIO character device.
+	NodeTypeGPIO = "gpio"
+
+	// Line selection. Chip is a chip name ("gpiochip0"), a chip label, a full
+	// device path, or "sim" for a line with no hardware behind it. Line is a
+	// line offset ("17") or the kernel's name for the line ("FLOAT_SW").
+	PointTypeChip = "chip"
+	PointTypeLine = "line"
+
+	// Resolved line identity, published by the client
+	PointTypeLineOffset = "lineOffset"
+	PointTypeLineName   = "lineName"
+
+	PointTypeDirection = "direction"
+	PointValueInput    = "input"
+	PointValueOutput   = "output"
+
+	// Internal bias, inputs mainly. An empty value leaves the bias as-is.
+	PointTypeBias          = "bias"
+	PointValuePullUp       = "pullUp"
+	PointValuePullDown     = "pullDown"
+	PointValueBiasDisabled = "biasDisabled"
+
+	// Output drive. An empty value is push-pull.
+	PointTypeDrive       = "drive"
+	PointValuePushPull   = "pushPull"
+	PointValueOpenDrain  = "openDrain"
+	PointValueOpenSource = "openSource"
+
+	// ActiveLow inverts the line: a low line reads and drives as active
+	PointTypeActiveLow = "activeLow"
+
+	// Debounce is the kernel debounce period in ms, inputs only
+	PointTypeDebounce = "debounce"
+
+	// PointValueSim selects a simulated resource rather than a real one
+	PointValueSim = "sim"
 )

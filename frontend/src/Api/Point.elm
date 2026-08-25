@@ -27,6 +27,7 @@ module Api.Point exposing
     , switch
     , typeAction
     , typeActive
+    , typeActiveLow
     , typeAddress
     , typeAltitude
     , typeAuthToken
@@ -34,10 +35,12 @@ module Api.Point exposing
     , typeAutoReboot
     , typeBatchPeriod
     , typeBaud
+    , typeBias
     , typeBinary
     , typeBitRate
     , typeBucket
     , typeChannel
+    , typeChip
     , typeClientServer
     , typeConditionType
     , typeConnected
@@ -48,6 +51,7 @@ module Api.Point exposing
     , typeDataFormat
     , typeDate
     , typeDbType
+    , typeDebounce
     , typeDebug
     , typeDebugPort
     , typeDefaultDialogs
@@ -56,6 +60,7 @@ module Api.Point exposing
     , typeDevice
     , typeDeviceID
     , typeDialogColor
+    , typeDirection
     , typeDirectory
     , typeDisableSandbox
     , typeDisabled
@@ -63,6 +68,7 @@ module Api.Point exposing
     , typeDisplayCard
     , typeDownload
     , typeDownloadOS
+    , typeDrive
     , typeEmail
     , typeEnd
     , typeError
@@ -101,6 +107,9 @@ module Api.Point exposing
     , typeLastName
     , typeLatitude
     , typeLightSet
+    , typeLine
+    , typeLineName
+    , typeLineOffset
     , typeLog
     , typeLogConsole
     , typeLongitude
@@ -200,6 +209,7 @@ module Api.Point exposing
       --  , keyNodeID
     , updatePoints
     , valueApp
+    , valueBiasDisabled
     , valueClient
     , valueContains
     , valueEqual
@@ -211,6 +221,7 @@ module Api.Point exposing
     , valueINT16
     , valueINT32
     , valueInfluxDb
+    , valueInput
     , valueLessThan
     , valueModbusCoil
     , valueModbusDiscreteInput
@@ -221,18 +232,25 @@ module Api.Point exposing
     , valueNtfy
     , valueNumber
     , valueOnOff
+    , valueOpenDrain
+    , valueOpenSource
+    , valueOutput
     , valuePlayAudio
     , valuePointValue
     , valueProcess
     , valuePrometheus
     , valueProtocolBinary
     , valueProtocolShell
+    , valuePullDown
+    , valuePullUp
+    , valuePushPull
     , valueRTU
     , valueRandomWalk
     , valueSMTP
     , valueSchedule
     , valueServer
     , valueSetValue
+    , valueSim
     , valueSine
     , valueSquare
     , valueSystem
@@ -1408,6 +1426,100 @@ typeSimHeadingRate =
 typeSimReset : String
 typeSimReset =
     "simReset"
+
+
+
+-- GPIO client points
+
+
+typeChip : String
+typeChip =
+    "chip"
+
+
+typeLine : String
+typeLine =
+    "line"
+
+
+typeLineOffset : String
+typeLineOffset =
+    "lineOffset"
+
+
+typeLineName : String
+typeLineName =
+    "lineName"
+
+
+typeDirection : String
+typeDirection =
+    "direction"
+
+
+valueInput : String
+valueInput =
+    "input"
+
+
+valueOutput : String
+valueOutput =
+    "output"
+
+
+typeBias : String
+typeBias =
+    "bias"
+
+
+valuePullUp : String
+valuePullUp =
+    "pullUp"
+
+
+valuePullDown : String
+valuePullDown =
+    "pullDown"
+
+
+valueBiasDisabled : String
+valueBiasDisabled =
+    "biasDisabled"
+
+
+typeDrive : String
+typeDrive =
+    "drive"
+
+
+valuePushPull : String
+valuePushPull =
+    "pushPull"
+
+
+valueOpenDrain : String
+valueOpenDrain =
+    "openDrain"
+
+
+valueOpenSource : String
+valueOpenSource =
+    "openSource"
+
+
+typeActiveLow : String
+typeActiveLow =
+    "activeLow"
+
+
+typeDebounce : String
+typeDebounce =
+    "debounce"
+
+
+valueSim : String
+valueSim =
+    "sim"
 
 
 specialPoints : List String

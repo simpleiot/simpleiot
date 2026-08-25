@@ -14,6 +14,7 @@ import Components.NodeCondition as NodeCondition
 import Components.NodeDb as NodeDb
 import Components.NodeDevice as NodeDevice
 import Components.NodeFile as File
+import Components.NodeGpio as NodeGpio
 import Components.NodeGps as NodeGps
 import Components.NodeGroup as NodeGroup
 import Components.NodeMessageService as NodeMessageService
@@ -1045,6 +1046,7 @@ nodeCustomSortRules =
         , ( Node.typeRule, "E" )
         , ( Node.typeSignalGenerator, "F" )
         , ( Node.typeOneWire, "G" )
+        , ( Node.typeGpio, "G1" )
         , ( Node.typeCanBus, "H" )
         , ( Node.typeSerialDev, "I" )
         , ( Node.typeMsgService, "J" )
@@ -1342,6 +1344,9 @@ viewNode model parent node children depth =
 
                     "gps" ->
                         NodeGps.view
+
+                    "gpio" ->
+                        NodeGpio.view
 
                     "file" ->
                         File.view
@@ -1715,6 +1720,11 @@ nodeDescGps =
     row [] [ Icon.mapPin, text "GPS" ]
 
 
+nodeDescGpio : Element Msg
+nodeDescGpio =
+    row [] [ Icon.io, text "GPIO" ]
+
+
 nodeDescMqtt : Element Msg
 nodeDescMqtt =
     row [] [ Icon.mqtt, text "MQTT" ]
@@ -1744,6 +1754,7 @@ viewAddNode customNodeType parent add =
                     , Input.option Node.typeSerialDev nodeDescSerialDev
                     , Input.option Node.typeCanBus nodeDescCanBus
                     , Input.option Node.typeGps nodeDescGps
+                    , Input.option Node.typeGpio nodeDescGpio
                     , Input.option Node.typeMqtt nodeDescMqtt
                     , Input.option Node.typeMsgService nodeDescMsgService
                     , Input.option Node.typeDb nodeDescDb
@@ -1768,6 +1779,7 @@ viewAddNode customNodeType parent add =
                             , Input.option Node.typeSerialDev nodeDescSerialDev
                             , Input.option Node.typeCanBus nodeDescCanBus
                             , Input.option Node.typeGps nodeDescGps
+                            , Input.option Node.typeGpio nodeDescGpio
                             , Input.option Node.typeMqtt nodeDescMqtt
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb

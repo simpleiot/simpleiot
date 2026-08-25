@@ -11,6 +11,16 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-08-24
+
+### Added
+
+- **Read a switch or drive a relay from a GPIO line.** A new `gpio` node reads
+  or drives one line on a Linux GPIO character device, publishing `value` on
+  every change and taking `valueSet` to drive an output, so a rule can watch a
+  float switch and run a pump. Set the chip to `sim` to develop rules before the
+  hardware exists. See the [GPIO client](docs/user/gpio.md).
+
 ### Changed
 
 ## [0.25.1] - 2026-08-24
