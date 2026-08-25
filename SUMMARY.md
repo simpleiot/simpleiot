@@ -13,6 +13,7 @@
   - [CAN bus](docs/user/can.md)
   - [File](docs/user/file.md)
   - [Database](docs/user/database.md)
+  - [GPIO](docs/user/gpio.md)
   - [GPS](docs/user/gps.md)
   - [Modbus](docs/user/modbus.md)
   - [MQTT](docs/user/mqtt.md)

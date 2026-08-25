@@ -78,6 +78,9 @@ func DefaultClients(nc *nats.Conn) (*RunGroup, error) {
 	gps := NewManager(nc, NewGPSClient, nil)
 	g.Add(gps)
 
+	gpio := NewManager(nc, NewGPIOClient, nil)
+	g.Add(gpio)
+
 	browser := NewManager(nc, NewBrowserClient, nil)
 	g.Add(browser)
 

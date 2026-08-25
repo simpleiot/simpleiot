@@ -29,6 +29,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/simpleiot/canparse v0.0.0-20221213134514-84672be992d4
 	github.com/simpleiot/mdns v0.0.1
+	github.com/warthog618/go-gpiocdev v0.9.1
 	go.bug.st/serial v1.6.4
 	go.einride.tech/can v0.12.2
 	golang.org/x/crypto v0.54.0

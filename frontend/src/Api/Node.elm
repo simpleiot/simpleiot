@@ -19,6 +19,7 @@ module Api.Node exposing
     , typeDb
     , typeDevice
     , typeFile
+    , typeGpio
     , typeGps
     , typeGroup
     , typeMetrics
@@ -233,6 +234,11 @@ typeNTP =
 typeGps : String
 typeGps =
     "gps"
+
+
+typeGpio : String
+typeGpio =
+    "gpio"
 
 
 typeBrowser : String
