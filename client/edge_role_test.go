@@ -1,7 +1,9 @@
 package client_test
 
 import (
+	"log"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
@@ -325,5 +327,136 @@ func TestDeleteUnmarkedNodeUnchanged(t *testing.T) {
 
 	if n := edgeCount(t, nc, userID); n != 1 {
 		t.Errorf("expected the user to remain in 1 group, got %v edges", n)
+	}
+}
+
+// mirrorEdge adds a second edge to a node and marks it a mirror. The manager
+// tests use a node type that is not in the primary table, so the role is
+// written directly rather than through MirrorNode -- what is being tested here
+// is what the manager does with a role, not how the role gets set.
+func mirrorEdge(t *testing.T, nc *nats.Conn, id, typ, parent string) {
+	t.Helper()
+
+	err := client.SendEdgePoints(nc, id, parent, data.Points{
+		data.NewPointFloat(data.PointTypeTombstone, "", 0),
+		data.NewPointString(data.PointTypeNodeType, "", typ),
+		data.NewPointFloat(data.PointTypeMirror, "", 1),
+	}, true)
+
+	if err != nil {
+		t.Fatalf("error adding mirror edge under %v: %v", parent, err)
+	}
+}
+
+// TestManagerSkipsMirrors is the failure the whole mechanism exists for: a
+// node mirrored into a group is found by the manager scanning that group, and
+// a second client starts on hardware that already has one.
+func TestManagerSkipsMirrors(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+	defer stop()
+
+	groupID := addNode(t, nc, data.NodeTypeGroup, root.ID)
+
+	const nodeID = "ID-mirrorSkipNode"
+
+	err = client.SendNodeType(nc,
+		testNode{nodeID, root.ID, "mirror skip test", 8118, ""}, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	mirrorEdge(t, nc, nodeID, "testNode", groupID)
+
+	started := make(chan *testNodeClient, 8)
+
+	m := client.NewManager(nc, func(nc *nats.Conn, config testNode) client.Client {
+		c := newTestNodeClient(nc, config)
+		started <- c
+		return c
+	}, nil)
+
+	go func() {
+		if err := m.Run(); err != nil {
+			log.Println("manager run error:", err)
+		}
+	}()
+
+	defer m.Stop(nil)
+
+	select {
+	case <-started:
+	case <-time.After(time.Second * 5):
+		t.Fatal("no client started for the primary edge")
+	}
+
+	// the manager scans groups, so if it were going to start a client on
+	// the mirror it would have done so in the same pass
+	select {
+	case c := <-started:
+		t.Errorf("a second client started on the mirror edge under %v",
+			c.getConfig().Parent)
+	case <-time.After(time.Millisecond * 500):
+	}
+}
+
+// TestManagerStopsClientOnMirror checks that an edge that becomes a mirror
+// while its client is running stops that client, rather than waiting for a
+// restart to take effect.
+func TestManagerStopsClientOnMirror(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+	defer stop()
+
+	groupID := addNode(t, nc, data.NodeTypeGroup, root.ID)
+
+	const nodeID = "ID-mirrorStopNode"
+
+	err = client.SendNodeType(nc,
+		testNode{nodeID, groupID, "mirror stop test", 8118, ""}, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	started := make(chan *testNodeClient, 8)
+
+	m := client.NewManager(nc, func(nc *nats.Conn, config testNode) client.Client {
+		c := newTestNodeClient(nc, config)
+		started <- c
+		return c
+	}, nil)
+
+	go func() {
+		if err := m.Run(); err != nil {
+			log.Println("manager run error:", err)
+		}
+	}()
+
+	defer m.Stop(nil)
+
+	var running *testNodeClient
+
+	select {
+	case running = <-started:
+	case <-time.After(time.Second * 5):
+		t.Fatal("no client started")
+	}
+
+	err = client.SendEdgePoints(nc, nodeID, groupID, data.Points{
+		data.NewPointFloat(data.PointTypeMirror, "", 1),
+	}, true)
+
+	if err != nil {
+		t.Fatal("error marking edge a mirror: ", err)
+	}
+
+	select {
+	case <-running.stopped:
+	case <-time.After(time.Second * 5):
+		t.Error("client kept running after its edge became a mirror")
 	}
 }
