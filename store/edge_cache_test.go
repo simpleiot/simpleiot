@@ -25,6 +25,59 @@ func testEdge(ec *EdgeCache, up, down, typ string, tombstone bool) {
 	})
 }
 
+// testEdgeRole adds an edge carrying a primary or mirror role point.
+func testEdgeRole(ec *EdgeCache, up, down, typ string, role data.EdgeRole) {
+	pts := data.Points{data.NewPointFloat(data.PointTypeTombstone, "0", 0)}
+
+	switch role {
+	case data.EdgeRolePrimary:
+		pts = append(pts, data.NewPointFloat(data.PointTypePrimary, "0", 1))
+	case data.EdgeRoleMirror:
+		pts = append(pts, data.NewPointFloat(data.PointTypeMirror, "0", 1))
+	}
+
+	ec.Set(EdgeEntry{Up: up, Down: down, Type: typ, Points: pts})
+}
+
+// TestOwningBoundaryMirrorEdge covers the case the primary and mirror roles
+// were built for: a device's sensor mirrored into a group on the upstream
+// instance. The device's boundary keeps the node, because a device replicates
+// only its own boundary's streams -- if the mirror moved ownership to the root,
+// a valueSet written on the mirror would be stored where the device never reads
+// it and the hardware would never see the command.
+func TestOwningBoundaryMirrorEdge(t *testing.T) {
+	ec := NewEdgeCache()
+
+	// R (upstream root) > X (device) > S (sensor, primary)
+	// R > G (group) > S (the same sensor, mirrored for access)
+	testEdge(ec, "root", "R", data.NodeTypeDevice, false)
+	testEdge(ec, "R", "G", data.NodeTypeGroup, false)
+	testEdge(ec, "R", "X", data.NodeTypeDevice, false)
+	testEdgeRole(ec, "X", "S", data.NodeTypeGPIO, data.EdgeRolePrimary)
+	testEdgeRole(ec, "G", "S", data.NodeTypeGPIO, data.EdgeRoleMirror)
+
+	if got := ec.OwningBoundary("S", "R"); got != "X" {
+		t.Errorf("mirrored across a boundary: OwningBoundary(S) = %v, want X", got)
+	}
+
+	// a mirrored group does not claim what is under it either
+	testEdgeRole(ec, "G", "SUB", data.NodeTypeGroup, data.EdgeRoleMirror)
+	testEdge(ec, "X", "SUB", data.NodeTypeGroup, false)
+	testEdge(ec, "SUB", "S2", data.NodeTypeGPIO, false)
+
+	if got := ec.OwningBoundary("S2", "R"); got != "X" {
+		t.Errorf("under a mirrored group: OwningBoundary(S2) = %v, want X", got)
+	}
+
+	// with only mirror edges to follow, no boundary is reachable and the
+	// node falls back to the instance root
+	testEdgeRole(ec, "G", "ORPHAN", data.NodeTypeGPIO, data.EdgeRoleMirror)
+
+	if got := ec.OwningBoundary("ORPHAN", "R"); got != "R" {
+		t.Errorf("mirror-only: OwningBoundary(ORPHAN) = %v, want R", got)
+	}
+}
+
 func TestIsBoundary(t *testing.T) {
 	ec := NewEdgeCache()
 

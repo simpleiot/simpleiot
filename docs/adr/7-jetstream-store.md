@@ -663,15 +663,16 @@ Stage 3 [plan](../../plans/2026-08-06-stage3-jetstream-sync.md) tracks progress.
    device beneath another device's boundary does not yet sync.
 2. Multi-hop chaining test: each hop is independent and expected to work, but
    this is unverified.
-3. Nodes mirrored across device boundaries: a node reachable from more than one
-   boundary resolves to the instance root boundary. How mirroring should behave
-   across a sync boundary is an open design point (see the Stream Granularity
-   section). Measured symptom: after a device's node is mirrored into a group on
-   the upstream, points written on the device still reach the upstream, but
-   points written on the upstream for that node land in the upstream's own
-   boundary stream and never reach the device, because a device replicates only
-   `inst_<itsBoundary>_*`. Displaying and granting access work; controlling the
-   device through the mirror does not.
+3. Nodes mirrored across device boundaries: resolved for nodes that carry an
+   edge role. `OwningBoundary` skips mirror edges, so a device's node mirrored
+   into a group on the upstream stays owned by the device's boundary and writes
+   made on the upstream -- including a `valueSet` aimed at the hardware --
+   travel back down and are acted on there (`TestSyncMirrorAcrossBoundary`).
+   Before that, such a node became reachable from two boundaries and resolved to
+   the instance root, so upstream writes landed in a stream the device does not
+   replicate and never arrived. Still open: a node with **no** role reachable
+   from two boundaries, which has nothing to say which side owns it and still
+   resolves to the instance root.
 4. Moving a node between boundaries: requires republishing subject tips into the
    new stream and purging the old subjects. Not implemented.
 

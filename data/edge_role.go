@@ -57,10 +57,10 @@ func roleSet(edgePoints Points, typ string) bool {
 	return false
 }
 
-// edgeRole reads the role from a set of edge points. An edge carrying both
+// EdgeRoleOf reads the role from a set of edge points. An edge carrying both
 // points is treated as a mirror, because declining to run a client is the safe
 // direction to fail.
-func edgeRole(edgePoints Points) EdgeRole {
+func EdgeRoleOf(edgePoints Points) EdgeRole {
 	if roleSet(edgePoints, PointTypeMirror) {
 		return EdgeRoleMirror
 	}
@@ -74,12 +74,12 @@ func edgeRole(edgePoints Points) EdgeRole {
 
 // EdgeRole returns the role this edge plays for the node below it.
 func (n NodeEdge) EdgeRole() EdgeRole {
-	return edgeRole(n.EdgePoints)
+	return EdgeRoleOf(n.EdgePoints)
 }
 
 // Role returns the role this edge plays for the node below it.
 func (e Edge) Role() EdgeRole {
-	return edgeRole(e.Points)
+	return EdgeRoleOf(e.Points)
 }
 
 // primaryTypes own something outside the tree -- a bus, a line, a socket, this

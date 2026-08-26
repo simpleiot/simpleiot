@@ -300,23 +300,24 @@ happens: the device keeps the primary edge, the upstream group gets a mirror,
 and only the device runs a client. Access works the same way, since a mirror
 edge grants a user reach to the node exactly as any other edge does.
 
-**One limitation applies today.** A node is owned by the nearest boundary found
-walking up from it, and a node reachable from more than one boundary resolves to
-the instance root boundary instead (`EdgeCache.OwningBoundary`). Mirroring a
-device's node into a group on the upstream makes it reachable from both, so on
-the upstream it stops resolving to the device's boundary. A device replicates
-only the streams for its own boundary, so points the upstream writes to that
-node afterward land in a stream the device does not read, and never arrive.
+Control works through the mirror as well. A `valueSet` written on the mirror --
+by a rule on the upstream, or someone pressing a button in the portal UI --
+reaches the device, and the client there acts on it and reports the result back
+as `value`. Nothing about the write is special: the mirror and the primary are
+the same node, so a point written on either lands on the node itself.
 
-In practice: values still flow **up** from the device and the mirror displays
-them, but a change written **on the upstream** -- a configuration edit, or a
-`valueSet` from a rule or a button in the portal UI -- no longer reaches the
-device for that node. Mirror across a boundary to display and to grant access.
-Do not rely on it to control the device.
+What makes this work is that ownership follows the primary edge.
+`EdgeCache.OwningBoundary` walks up from a node to find the boundary that owns
+it, and it skips mirror edges. A device replicates only the streams for its own
+boundary, so if a mirror on the upstream moved the node's ownership to the
+upstream root, points the upstream wrote would be stored where the device never
+reads them and a command would never arrive. Skipping mirror edges keeps the
+node with the device that holds the hardware, which is where the client that
+acts on it runs.
 
-This is [ADR-7](../adr/7-jetstream-store.md) remaining work item 3, and closing
-it means deciding how a mirrored node should be owned when two boundaries can
-reach it.
+A node with no role that is reachable from two boundaries still resolves to the
+instance root boundary, since nothing marks which side owns it. That is
+[ADR-7](../adr/7-jetstream-store.md) remaining work item 3.
 
 ### Upgrading
 

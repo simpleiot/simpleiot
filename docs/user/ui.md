@@ -63,7 +63,9 @@ an MQTT connection) gives you a view of it rather than a second copy that runs.
 The instance where the node actually lives keeps talking to the device, and the
 mirror displays the same values wherever you put it. This is what makes it safe
 to mirror a sensor from inside a device into a group you share with someone, and
-mirrors are labeled in the tree so it is clear that nothing runs there.
+mirrors are labeled in the tree so it is clear that nothing runs there. Controls
+still work from a mirror: setting a value on one travels to the device that owns
+the node, and the result comes back.
 
 Some nodes belong under a particular parent and are found through it: a Modbus
 IO under its Modbus node, a rule condition under its rule. For these, `mirror`

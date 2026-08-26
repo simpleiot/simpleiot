@@ -24,6 +24,11 @@ func (e *EdgeEntry) IsTombstone() bool {
 	return tombstone
 }
 
+// Role returns what this edge means for the node below it.
+func (e *EdgeEntry) Role() data.EdgeRole {
+	return data.EdgeRoleOf(e.Points)
+}
+
 // EdgeCache provides fast in-memory lookups for edge relationships.
 // It is populated on startup by reading edge subject tips from each
 // node's stream and kept current as edge points arrive.
@@ -234,11 +239,20 @@ func (ec *EdgeCache) isBoundary(id, rootID string) bool {
 }
 
 // OwningBoundary returns the boundary node that owns the given node:
-// the nearest boundary reachable walking up undeleted edges. A boundary
-// node is owned by itself. A node reachable from no boundary, or from
-// more than one, is owned by the instance root boundary. The walk stops
-// at the first boundary on each path, so nodes inside a nested boundary
-// belong to the inner one. rootID is the local instance root node ID.
+// the nearest boundary reachable walking up undeleted, non-mirror edges.
+// A boundary node is owned by itself. A node reachable from no boundary,
+// or from more than one, is owned by the instance root boundary. The walk
+// stops at the first boundary on each path, so nodes inside a nested
+// boundary belong to the inner one. rootID is the local instance root
+// node ID.
+//
+// Mirror edges are skipped because a mirror displays a node that lives
+// somewhere else and does not claim it. Following one would make a
+// device's sensor, mirrored into a group on an upstream instance,
+// reachable from two boundaries and so owned by the upstream root. Points
+// the upstream wrote for that node would then be stored under a boundary
+// the device does not replicate, and a valueSet aimed at the hardware
+// would never arrive.
 func (ec *EdgeCache) OwningBoundary(id, rootID string) string {
 	ec.mu.RLock()
 	defer ec.mu.RUnlock()
@@ -254,6 +268,9 @@ func (ec *EdgeCache) OwningBoundary(id, rootID string) string {
 	walk = func(n string) {
 		for _, e := range ec.byDown[n] {
 			if e.IsTombstone() {
+				continue
+			}
+			if e.Role() == data.EdgeRoleMirror {
 				continue
 			}
 			up := e.Up
