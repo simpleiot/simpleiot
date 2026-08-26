@@ -48,31 +48,98 @@ The two points are mutually exclusive by construction through a single accessor,
 `NodeEdge.EdgeRole()`. When an edge somehow carries both, mirror wins: declining
 to run a client is the safe direction to fail.
 
-**Primary means the node owns a physical thing.** A bus, a line, a socket, a
-receiver, this host's clock or display or software image. The list:
+**Primary means the node owns something outside the tree.** The test for a given
+node type is whether the client's behavior comes from where the node sits or
+from a resource it holds. The codebase already answers this and the answer is
+greppable: a scope-driven client reads `config.Parent`. `db` walks up from each
+point to decide whether it falls under its parent (`client/db.go:717`), and
+`msgService`, `user`, and `rule` subscribe to `up.<parent>.>`
+(`client/msg-service.go:85`, `client/user.go:54`, `client/rule.go:257`). Mirror
+one of those into a second group and the second instance does a different and
+correct job, so it stays unmarked.
 
-| Primary                                                        | Owns                               |
-| -------------------------------------------------------------- | ---------------------------------- |
-| `modbus`, `modbusIo`                                           | a serial or TCP bus, a register    |
-| `oneWire`, `oneWireIO`                                         | a bus, a sensor                    |
-| `shelly`, `shellyIo`                                           | a device on the network            |
-| `gpio`                                                         | a kernel GPIO line                 |
-| `gps`                                                          | a receiver                         |
-| `serialDev`, `canBus`                                          | a port                             |
-| `particle`                                                     | a cloud device session             |
-| `networkManager`, `networkManagerDevice`, `networkManagerConn` | this host's networking             |
-| `ntp`                                                          | this host's clock                  |
-| `browser`                                                      | this host's display                |
-| `update`                                                       | this host's software               |
-| `provisioning`                                                 | this host's provisioning directory |
-| `sync`                                                         | an upstream connection             |
-| `metrics`                                                      | this host's counters               |
+Every other client keys off a chip name, a serial port, an IP address, or a URL,
+and two instances would contend for one resource. Where both apply, owning the
+resource decides: the serial client uses `config.Parent` to build its `phrup`
+subject (`client/serial.go:154`) and also holds a port, so it is primary.
 
-Everything else — `device`, `user`, `group`, `rule`, `condition`, `action`,
-`actionInactive`, `variable`, `db`, `msgService`, `file`, `signalGenerator`,
-`mqtt`, `mqttSub`, `sparkplug*`, and any custom type — is unmarked. A custom
-type a user invents is unmarked and therefore behaves as it does today, which is
-the right default for a type the system knows nothing about.
+| Primary                                                            | Owns                               |
+| ------------------------------------------------------------------ | ---------------------------------- |
+| `modbus`, `modbusIo`                                               | a serial or TCP bus, a register    |
+| `oneWire`, `oneWireIO`                                             | a bus, a sensor                    |
+| `shelly`, `shellyIo`                                               | a device on the network            |
+| `gpio`                                                             | a kernel GPIO line                 |
+| `gps`                                                              | a receiver                         |
+| `serialDev`, `canBus`                                              | a port                             |
+| `particle`                                                         | a cloud device session             |
+| `networkManager`, `networkManagerDevice`, `networkManagerConn`     | this host's networking             |
+| `ntp`                                                              | this host's clock                  |
+| `browser`                                                          | this host's display                |
+| `update`                                                           | this host's software               |
+| `provisioning`                                                     | this host's provisioning directory |
+| `sync`                                                             | an upstream connection             |
+| `metrics`                                                          | this host's counters               |
+| `signalGenerator`                                                  | a destination point stream         |
+| `mqtt`, `mqttSub`                                                  | a broker subscription              |
+| `mqttDevice`, `sparkplugGroup`, `sparkplugNode`, `sparkplugDevice` | a device publishing to the broker  |
+
+Unmarked: `device`, `user`, `group`, `rule`, `condition`, `action`,
+`actionInactive`, `variable`, `db`, `msgService`, `file`, and any custom type. A
+type a user invents is unmarked and behaves as it does today, which is the right
+default for a type the system knows nothing about.
+
+`signalGenerator` is primary even though it holds no hardware, because the thing
+it owns is a destination point stream. It reads `config.Parent` only to resolve
+where its output goes (`client/signal-generator.go:162`), and
+`Destination.Subject` (`client/subject.go:72`) resolves that to the generator's
+own node ID by default, or to an explicit `NodeID` when one is set. Both of
+those are the same destination for every edge, since a mirrored node is one node
+reached twice, so two instances would write the same waveform twice into one
+point stream at twice the sample rate. Only the `Parent` destination varies by
+edge, and that one setting is not enough to make the type as a whole
+tree-scoped. This is the case that shows why the `config.Parent` grep is a
+signal rather than a decision procedure: what matters is whether the destination
+it computes is shared.
+
+`mqtt` is primary for a stronger reason than double-writing. The client
+subscribes to broker traffic and writes points into its `mqttSub` nodes, which
+are one set of nodes reached through both edges, so two instances would double
+every point. The topic schema and Sparkplug builders then make it structural:
+`ensureNodes` in both (`client/mqtt-schema.go:288`, `client/sparkplug.go:424`)
+keeps its map of topic to node ID in memory on the client instance and mints a
+fresh `uuid.New()` for any topic it has not seen, with no lookup against what is
+already in the store. Two instances would therefore build two parallel node
+trees for the same devices under the same `mqtt` node, each writing into its own
+tree. The nodes those builders create are marked primary as well, since they
+stand for a device publishing to the broker and mirroring one into a dashboard
+group is exactly the case this plan is for. They are created through `SendNode`,
+so they pick the mark up without the builders changing.
+
+**The classification is a forced choice, not a default.** A table in
+`data/schema.go` is a second place to remember when adding a client, and nothing
+fails if it is forgotten: a new hardware type would silently come out unmarked
+and reintroduce exactly the bug this plan closes. So the two groups are two
+explicit maps rather than one map and a fallthrough, and a test parses the
+`NodeType*` constants out of `data/schema.go` and fails on any type that appears
+in neither. Adding a client without deciding then breaks the build at the moment
+the decision is due.
+
+**`SendNode` consults the table; `NewManager` cannot.** Every creation path runs
+through `client.SendNode`: the UI's add-node call (`api/nodes.go:287`),
+`siot import` (`client/apply.go:111`), and clients that discover hardware
+(`client/shelly.go:177`, `client/onewire.go:268`). `SendNode` already fills in a
+missing tombstone and node type edge point, so the role joins work it is already
+doing.
+
+Declaring the role at `NewManager` instead would read better, since a client
+author edits that line anyway and a custom client built with the SDK would get
+the behavior for free. It does not work: `siot import` runs in a bare CLI
+process that holds a NATS connection and constructs no managers, so a registry
+populated by manager construction would be empty there and imports would create
+unmarked edges. Stamping in the store on a first-edge-wins basis is the other
+option, and it covers every path including sync, but it still needs this same
+table to know that `gpio` differs from `user`. It would buy only the heuristic,
+at the cost of putting the policy in the storage layer.
 
 **"Don't allow moving of primary nodes" is implemented as a parent-type rule
 instead.** The issue proposes blocking moves of primary nodes outright, on the
@@ -147,12 +214,22 @@ const (
 func (n NodeEdge) EdgeRole() EdgeRole
 ```
 
-Add the type tables and their lookups:
+Add the two classification maps and their lookups. Both groups are listed
+explicitly so that a type belonging to neither is an omission the test catches
+rather than a silent default:
 
 ```go
+// primaryTypes own something outside the tree -- a bus, a line, a
+// socket, this host's clock -- so exactly one client may act on them.
+var primaryTypes = map[string]bool{ ... }
+
+// treeScopedTypes take their meaning from where they sit, so several
+// instances are meaningful and each one runs a client.
+var treeScopedTypes = map[string]bool{ ... }
+
 // NodeTypeIsPrimary reports whether a node of this type owns something
-// outside the tree -- a bus, a line, a socket, this host's clock --
-// so that exactly one client may act on it.
+// outside the tree. An unclassified type returns false, which leaves it
+// behaving as it does today.
 func NodeTypeIsPrimary(typ string) bool
 
 // NodeTypeOwner returns the parent type a node of this type must live
@@ -164,22 +241,45 @@ func NodeTypeOwner(typ string) string
 `NodeTypeOwner` entries: `modbusIo`→`modbus`, `oneWireIO`→`oneWire`,
 `shellyIo`→`shelly`, `mqttSub`→`mqtt`, `condition`→`rule`, `action`→`rule`,
 `actionInactive`→`rule`, `networkManagerDevice`→`networkManager`,
-`networkManagerConn`→`networkManager`, `provisioningFile`→`provisioning`.
+`networkManagerConn`→`networkManager`, `provisioningFile`→`provisioning`,
+`sparkplugGroup`→`mqtt`, `sparkplugNode`→`sparkplugGroup`,
+`sparkplugDevice`→`sparkplugNode`.
+
+`mqttDevice` gets no entry, because the topic schema builder puts it under the
+plain `group` nodes it creates for intermediate topic levels rather than
+directly under `mqtt`. The three Sparkplug entries hold: `sparkplugState`
+rebuilds its topic-to-node map by walking groups under the MQTT node, edge nodes
+under each group, and devices under each edge node
+(`client/sparkplug.go:165-204`), so breaking that chain would lose the map on
+restart.
 
 Tests cover `EdgeRole` for each of the three states and for an edge carrying
-both points, and confirm the two tables agree with the node type constants (no
-entry names a type that does not exist).
+both points. A further test parses the `NodeType\w+ = "..."` constants out of
+`data/schema.go` and asserts each value appears in exactly one of `primaryTypes`
+and `treeScopedTypes`, so adding a client without classifying its node type
+fails the build. The same test confirms no map entry names a type that does not
+exist, and that `NodeTypeOwner` entries name real types on both sides.
 
 ## Phase 2 — Setting the Points
 
 Files: `client/node.go`, `api/nodes.go`, `client/node_test.go`.
 
 **On creation.** `SendNode` already fills in a missing tombstone and node type
-edge point. Add the same treatment for the role: when the node type is primary
+edge point, and it is the one function every creation path reaches. Add the same
+treatment for the role: when `data.NodeTypeIsPrimary` holds for the node type
 and the caller supplied neither point, add `primary = 1`. A caller that supplies
 its own role point — an import restoring a mirror, `MirrorNode` below — keeps
 it. This covers every creation path, including the UI's add-node call, the
 Shelly and 1-Wire clients discovering hardware, and `siot import`.
+
+`SendNode` is also the update path, though: `ApplySend` in `client/apply.go`
+carries a `Created` flag precisely because an import sends existing nodes
+through the same call. Marking unconditionally would stamp `primary` on a node
+that had been mirrored into a group, which is the failure this plan exists to
+prevent. So the mark is applied only when the edge does not already exist, which
+costs one `GetNodes` call and only for a primary-type node with no role
+supplied. Leaving existing edges alone is also what makes the upgrade quiet: an
+edge from before this change stays unmarked rather than being guessed at.
 
 **On mirror.** `MirrorNode` reads the source edge's role. If the source is
 primary or a mirror, the new edge gets `mirror = 1`; otherwise it gets neither
@@ -195,9 +295,13 @@ the field. The frontend already tracks the source parent in `CopyMove`.
 
 **On move.** `MoveNode` returns an error when `data.NodeTypeOwner(node.Type)` is
 non-empty and the new parent is not of that type, naming both types in the
-message so the UI can show it. The role points ride along with the edge and need
-no change: a move rewrites the same role onto the new edge because it copies the
-node type and tombstone already.
+message so the UI can show it.
+
+`MoveNode` also has to carry the role across. A move writes a fresh edge under
+the new parent with a tombstone and a node type point and tombstones the old
+one, so nothing rides along on its own: a moved node would come out unmarked and
+a moved mirror would start running a client. The role of the edge under
+`oldParent` is read and rewritten onto the new edge.
 
 **On duplicate.** `duplicateNodeHelper` gives each copy a new ID, so a duplicate
 of a primary node is a new primary. It writes the node's edge points through
@@ -296,10 +400,12 @@ section, since "which edges start a client" is now a rule a contributor needs.
 
 ```markdown
 - **Mirrored hardware nodes no longer run a second client.** Mirroring a Modbus
-  IO, Shelly IO, GPIO line, or other hardware node into a group now creates a
-  view of it, so only the instance where the node actually lives talks to the
-  device. Nodes mirrored before this release keep the old behavior until the
-  mirror is re-created. See the
+  IO, Shelly IO, GPIO line, MQTT connection, or other hardware node into a group
+  now creates a view of it, so only the instance where the node actually lives
+  talks to the device. For MQTT this also stops a mirrored connection from
+  building a second copy of the node tree its topic schema creates. Nodes
+  mirrored before this release keep the old behavior until the mirror is
+  re-created. See the
   [data reference](docs/ref/data.md#primary-and-mirror-edges).
 - **Deleting a node removes its mirrors.** Mirrors of a deleted sensor or bus no
   longer linger in the groups they were mirrored into.
