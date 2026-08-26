@@ -122,6 +122,7 @@ module Api.Point exposing
     , typeMinInactive
     , typeMinIncrement
     , typeMinValue
+    , typeMirror
     , typeModbusIOType
     , typeMsgsInDb
     , typeMsgsRecvdDb
@@ -146,6 +147,7 @@ module Api.Point exposing
     , typePollPeriod
     , typePort
     , typePrefix
+    , typePrimary
     , typeProgress
     , typeProtocol
     , typeProvisionHash
@@ -949,6 +951,21 @@ typeNodeID =
 typeTombstone : String
 typeTombstone =
     "tombstone"
+
+
+{-| Edge point marking the one edge that owns a node. Its client runs here.
+-}
+typePrimary : String
+typePrimary =
+    "primary"
+
+
+{-| Edge point marking an edge that displays a node owned somewhere else. No
+client runs on a mirror.
+-}
+typeMirror : String
+typeMirror =
+    "mirror"
 
 
 valueOnOff : String

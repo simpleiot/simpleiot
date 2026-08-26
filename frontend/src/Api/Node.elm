@@ -1,15 +1,18 @@
 module Api.Node exposing
-    ( Node
+    ( EdgeRole(..)
+    , Node
     , NodeView
     , Notification
     , copy
     , delete
     , description
+    , edgeRole
     , getBestDesc
     , insert
     , list
     , move
     , notify
+    , owningParentType
     , postPoints
     , typeAction
     , typeActionInactive
@@ -166,6 +169,11 @@ typeOneWire =
     "oneWire"
 
 
+typeOneWireIO : String
+typeOneWireIO =
+    "oneWireIO"
+
+
 typeSerialDev : String
 typeSerialDev =
     "serialDev"
@@ -263,6 +271,73 @@ type alias Node =
     , points : List Point
     , edgePoints : List Point
     }
+
+
+{-| What an edge means for the node below it. A node that owns something
+outside the tree -- a bus, a line, a socket -- has one primary edge that runs
+its client, and any number of mirror edges that display it and run nothing.
+A node with no primary location, such as a user, has edges with no role.
+-}
+type EdgeRole
+    = EdgeRoleNone
+    | EdgeRolePrimary
+    | EdgeRoleMirror
+
+
+{-| Read the role of the edge a node was reached through. An edge carrying
+both points reads as a mirror, matching the backend.
+-}
+edgeRole : Node -> EdgeRole
+edgeRole node =
+    if Point.getBool node.edgePoints Point.typeMirror "" then
+        EdgeRoleMirror
+
+    else if Point.getBool node.edgePoints Point.typePrimary "" then
+        EdgeRolePrimary
+
+    else
+        EdgeRoleNone
+
+
+{-| The parent type a node of this type must live under, or "" when it may
+live anywhere. These nodes are found by walking down from their parent rather
+than from the tree root, so moving one elsewhere leaves it inert. Mirroring is
+what was wanted in that case. Mirrors the nodeTypeOwners table in Go.
+-}
+owningParentType : String -> String
+owningParentType typ =
+    if typ == typeModbusIO then
+        typeModbus
+
+    else if typ == typeOneWireIO then
+        typeOneWire
+
+    else if typ == typeShellyIO then
+        typeShelly
+
+    else if typ == typeMqttSub then
+        typeMqtt
+
+    else if typ == typeCondition || typ == typeAction || typ == typeActionInactive then
+        typeRule
+
+    else if typ == typeNetworkManagerDevice || typ == typeNetworkManagerConn then
+        typeNetworkManager
+
+    else if typ == typeProvisioningFile then
+        typeProvisioning
+
+    else if typ == typeSparkplugGroup then
+        typeMqtt
+
+    else if typ == typeSparkplugNode then
+        typeSparkplugGroup
+
+    else if typ == typeSparkplugDevice then
+        typeSparkplugNode
+
+    else
+        ""
 
 
 type alias NodeView =

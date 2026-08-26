@@ -30,7 +30,7 @@ import Components.NodeNetworkManagerConn as NodeNetworkManagerConn
 import Components.NodeNetworkManagerDevice as NodeNetworkManagerDevice
 import Components.NodeOneWire as NodeOneWire
 import Components.NodeOneWireIO as NodeOneWireIO
-import Components.NodeOptions exposing (CopyMove(..))
+import Components.NodeOptions exposing (CopyMove(..), findNode)
 import Components.NodeParticle as NodeParticle
 import Components.NodeProvisioning as NodeProvisioning
 import Components.NodeProvisioningFile as NodeProvisioningFile
@@ -118,7 +118,7 @@ type NodeOperation
     = OpNone
     | OpNodeToAdd NodeToAdd
     | OpNodeMessage NodeMessage
-    | OpNodeDelete Int String String
+    | OpNodeDelete Int String
     | OpNodePaste Int String
 
 
@@ -206,7 +206,7 @@ type Msg
     | AddNode Int String
     | MsgNode Int String String
     | PasteNode Int String
-    | DeleteNode Int String String
+    | DeleteNode Int String
     | UpdateMsg String
     | SelectAddNodeType String
     | ApiDelete String String
@@ -398,8 +398,8 @@ update shared msg model =
         PasteNode feID id ->
             ( { model | nodeOp = OpNodePaste feID id }, Effect.none )
 
-        DeleteNode feID id parent ->
-            ( { model | nodeOp = OpNodeDelete feID id parent }, Effect.none )
+        DeleteNode feID parent ->
+            ( { model | nodeOp = OpNodeDelete feID parent }, Effect.none )
 
         UpdateMsg message ->
             case model.nodeOp of
@@ -1428,7 +1428,8 @@ viewNode model parent node children depth =
                 Button.dot (ToggleExpDetail node.feID)
             , column
                 [ spacing 6, padding 6, width fill, Background.color background ]
-                [ nodeView
+                [ viewIf (Node.edgeRole node.node == Node.EdgeRoleMirror) viewMirrorBadge
+                , nodeView
                     { now = model.now
                     , zone = model.zone
                     , modified = node.mod
@@ -1533,16 +1534,16 @@ viewNode model parent node children depth =
                             else
                                 viewNodeOps
 
-                        OpNodeDelete feID id parentId ->
+                        OpNodeDelete feID parentId ->
                             if feID == node.feID then
-                                viewDeleteNode id parentId
+                                viewDeleteNode node.node parentId
 
                             else
                                 viewNodeOps
 
                         OpNodePaste feID id ->
                             if feID == node.feID then
-                                viewPasteNode feID id model.copyMove
+                                viewPasteNode model.nodes feID id node.node.typ model.copyMove
 
                             else
                                 viewNodeOps
@@ -1583,7 +1584,7 @@ viewNodeOperations node msg =
             [ viewIf showNodeAdd <|
                 Button.plusCircle (AddNode node.feID node.node.id)
             , Button.message (MsgNode node.feID node.node.id node.node.parent)
-            , Button.x (DeleteNode node.feID node.node.id node.node.parent)
+            , Button.x (DeleteNode node.feID node.node.parent)
             , Button.copy (CopyNode node.feID node.node.id node.node.parent desc)
             , Button.clipboard (PasteNode node.feID node.node.id)
             , Button.list (ToggleRaw node.feID)
@@ -1897,16 +1898,46 @@ viewMsgNode msg =
             ]
 
 
-viewDeleteNode : String -> String -> Element Msg
-viewDeleteNode id parent =
+{-| A mirror displays a node that lives somewhere else, and nothing runs here.
+Without a mark, a mirrored sensor sitting in a group looks like a sensor that
+has stopped reporting.
+-}
+viewMirrorBadge : Element Msg
+viewMirrorBadge =
+    el
+        [ Background.color colors.ltblue
+        , Font.size 12
+        , paddingXY 6 2
+        ]
+    <|
+        text "mirror"
+
+
+viewDeleteNode : Node -> String -> Element Msg
+viewDeleteNode node parent =
+    let
+        -- deleting the node where it lives takes its mirrors with it. No
+        -- count is offered, because mirrors can sit in groups this user
+        -- cannot see and a count from the visible tree would be wrong.
+        question =
+            case Node.edgeRole node of
+                Node.EdgeRolePrimary ->
+                    "Delete this node, and any mirrors of it?"
+
+                Node.EdgeRoleMirror ->
+                    "Remove this mirror? The node itself is not deleted."
+
+                Node.EdgeRoleNone ->
+                    "Delete this node?"
+    in
     el [ paddingEach { top = 10, right = 0, left = 0, bottom = 0 } ] <|
         row []
-            [ text "Delete this node?"
+            [ text question
             , Form.buttonRow
                 [ Form.button
                     { label = "yes"
                     , color = colors.red
-                    , onPress = ApiDelete id parent
+                    , onPress = ApiDelete node.id parent
                     }
                 , Form.button
                     { label = "no"
@@ -1917,9 +1948,18 @@ viewDeleteNode id parent =
             ]
 
 
-viewPasteNode : Int -> String -> CopyMove -> Element Msg
-viewPasteNode feID dest copyMove =
+viewPasteNode : List (Tree NodeView) -> Int -> String -> String -> CopyMove -> Element Msg
+viewPasteNode nodes feID dest destType copyMove =
     let
+        -- Some node types are found by walking down from their parent
+        -- rather than from the tree root, so a modbusIo dropped into a
+        -- group stops working quietly. Mirroring is what was wanted in
+        -- that case, and it is all that is offered.
+        ownerOf id =
+            findNode nodes id
+                |> Maybe.map (.typ >> Node.owningParentType)
+                |> Maybe.withDefault ""
+
         cancelButton =
             Form.buttonRow
                 [ Form.button
@@ -1974,14 +2014,39 @@ viewPasteNode feID dest copyMove =
                         ]
 
                     else
-                        [ text <| "Copy " ++ desc ++ " here?"
-                        , Form.buttonRow
-                            [ moveButton <| ApiPostMoveNode feID id src dest
-                            , mirrorButton <| ApiPutMirrorNode feID id src dest
-                            , duplicateButton <| ApiPutDuplicateNode feID id src dest
-                            , cancelButton
-                            ]
-                        ]
+                        case ownerOf id of
+                            "" ->
+                                [ text <| "Copy " ++ desc ++ " here?"
+                                , Form.buttonRow
+                                    [ moveButton <| ApiPostMoveNode feID id src dest
+                                    , mirrorButton <| ApiPutMirrorNode feID id src dest
+                                    , duplicateButton <| ApiPutDuplicateNode feID id src dest
+                                    , cancelButton
+                                    ]
+                                ]
+
+                            owner ->
+                                if owner == destType then
+                                    [ text <| "Copy " ++ desc ++ " here?"
+                                    , Form.buttonRow
+                                        [ moveButton <| ApiPostMoveNode feID id src dest
+                                        , mirrorButton <| ApiPutMirrorNode feID id src dest
+                                        , duplicateButton <| ApiPutDuplicateNode feID id src dest
+                                        , cancelButton
+                                        ]
+                                    ]
+
+                                else
+                                    [ text <|
+                                        desc
+                                            ++ " belongs under a "
+                                            ++ owner
+                                            ++ " node and stops working if moved elsewhere. Mirror it here instead?"
+                                    , Form.buttonRow
+                                        [ mirrorButton <| ApiPutMirrorNode feID id src dest
+                                        , cancelButton
+                                        ]
+                                    ]
 
 
 mergeNodesEdit : List (Tree NodeView) -> Maybe NodeEdit -> List (Tree NodeView)
