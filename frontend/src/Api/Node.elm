@@ -285,6 +285,7 @@ type alias NodeMove =
 
 type alias NodeCopy =
     { id : String
+    , oldParent : String
     , newParent : String
     , duplicate : Bool
     }
@@ -354,6 +355,7 @@ encodeNodeCopy : NodeCopy -> Encode.Value
 encodeNodeCopy nodeCopy =
     Encode.object
         [ ( "id", Encode.string nodeCopy.id )
+        , ( "oldParent", Encode.string nodeCopy.oldParent )
         , ( "newParent", Encode.string nodeCopy.newParent )
         , ( "duplicate", Encode.bool nodeCopy.duplicate )
         ]
@@ -501,6 +503,7 @@ move options =
 copy :
     { token : String
     , id : String
+    , oldParent : String
     , newParent : String
     , duplicate : Bool
     , onResponse : Data Response -> msg
@@ -514,6 +517,7 @@ copy options =
         , expect = Api.Data.expectJson options.onResponse Response.decoder
         , body =
             { id = options.id
+            , oldParent = options.oldParent
             , newParent = options.newParent
             , duplicate = options.duplicate
             }

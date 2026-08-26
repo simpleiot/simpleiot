@@ -213,8 +213,8 @@ type Msg
     | ApiPostPoints String
     | ApiPostAddNode Int
     | ApiPostMoveNode Int String String String
-    | ApiPutMirrorNode Int String String
-    | ApiPutDuplicateNode Int String String
+    | ApiPutMirrorNode Int String String String
+    | ApiPutDuplicateNode Int String String String
     | ApiPostNotificationNode
     | ApiRespList (Data (List Node))
     | ApiRespDelete (Data Response)
@@ -467,24 +467,26 @@ update shared msg model =
                     }
             )
 
-        ApiPutMirrorNode parent id dest ->
+        ApiPutMirrorNode parent id src dest ->
             ( model
             , Effect.fromCmd <|
                 Node.copy
                     { token = model.token
                     , id = id
+                    , oldParent = src
                     , newParent = dest
                     , duplicate = False
                     , onResponse = ApiRespPutMirrorNode parent
                     }
             )
 
-        ApiPutDuplicateNode parent id dest ->
+        ApiPutDuplicateNode parent id src dest ->
             ( model
             , Effect.fromCmd <|
                 Node.copy
                     { token = model.token
                     , id = id
+                    , oldParent = src
                     , newParent = dest
                     , duplicate = True
                     , onResponse = ApiRespPutDuplicateNode parent
@@ -1966,7 +1968,7 @@ viewPasteNode feID dest copyMove =
                     else if src == dest then
                         [ text <| "Copy " ++ desc ++ " here?"
                         , Form.buttonRow
-                            [ duplicateButton <| ApiPutDuplicateNode feID id dest
+                            [ duplicateButton <| ApiPutDuplicateNode feID id src dest
                             , cancelButton
                             ]
                         ]
@@ -1975,8 +1977,8 @@ viewPasteNode feID dest copyMove =
                         [ text <| "Copy " ++ desc ++ " here?"
                         , Form.buttonRow
                             [ moveButton <| ApiPostMoveNode feID id src dest
-                            , mirrorButton <| ApiPutMirrorNode feID id dest
-                            , duplicateButton <| ApiPutDuplicateNode feID id dest
+                            , mirrorButton <| ApiPutMirrorNode feID id src dest
+                            , duplicateButton <| ApiPutDuplicateNode feID id src dest
                             , cancelButton
                             ]
                         ]

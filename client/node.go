@@ -160,6 +160,38 @@ func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
 	return ret, nil
 }
 
+// shouldMarkPrimary reports whether SendNode should mark this edge primary.
+//
+// A node that owns something outside the tree runs its client on one edge
+// only, so the edge it is created with is marked primary. SendNode is the one
+// function every creation path reaches -- the add-node API, an import, and the
+// clients that discover hardware -- which is why the mark is applied there.
+//
+// Two cases are left alone. A caller that supplies its own role keeps it, so
+// MirrorNode can mark a mirror and an import can restore whatever the file
+// carries. An edge that already exists keeps whatever it has, because SendNode
+// is also the update path: an import updating a node that was mirrored into a
+// group would otherwise mark that mirror primary and start a second client on
+// it, which is the failure this whole mechanism exists to prevent. Leaving
+// existing edges alone is also what makes an upgrade quiet -- edges from
+// before this point stay unmarked rather than being guessed at.
+func shouldMarkPrimary(nc *nats.Conn, node data.NodeEdge) (bool, error) {
+	if !data.NodeTypeIsPrimary(node.Type) {
+		return false, nil
+	}
+
+	if node.EdgeRole() != data.EdgeRoleNone {
+		return false, nil
+	}
+
+	existing, err := GetNodes(nc, node.Parent, node.ID, "", true)
+	if err != nil && err != data.ErrDocumentNotFound {
+		return false, fmt.Errorf("error checking for existing edge: %w", err)
+	}
+
+	return len(existing) == 0, nil
+}
+
 // SendNode is used to send a node to a nats server. Can be
 // used to create nodes.
 func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
@@ -191,7 +223,12 @@ func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 		return errors.New("parent must be set when sending a node")
 	}
 
-	err := SendNodePoints(nc, node.ID, points, true)
+	markPrimary, err := shouldMarkPrimary(nc, node)
+	if err != nil {
+		return err
+	}
+
+	err = SendNodePoints(nc, node.ID, points, true)
 
 	if err != nil {
 		return fmt.Errorf("error sending node: %v", err)
@@ -218,6 +255,12 @@ func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 		ntPt := data.NewPointString(data.PointTypeNodeType, "", node.Type)
 		ntPt.Origin = origin
 		node.EdgePoints = append(node.EdgePoints, ntPt)
+	}
+
+	if markPrimary {
+		pPt := data.NewPointFloat(data.PointTypePrimary, "", 1)
+		pPt.Origin = origin
+		node.EdgePoints = append(node.EdgePoints, pPt)
 	}
 
 	err = SendEdgePoints(nc, node.ID, node.Parent, node.EdgePoints, true)
@@ -249,6 +292,13 @@ func duplicateNodeHelper(nc *nats.Conn, node data.NodeEdge, newParent, origin st
 	// create new ID for duplicate node
 	node.ID = uuid.New().String()
 	node.Parent = newParent
+
+	// a duplicate is a new node rather than another view of the one it was
+	// copied from, so it carries no role over. Duplicating a mirror would
+	// otherwise produce a node whose only edge is a mirror, leaving it with
+	// no primary anywhere and no client running it. SendNode marks the new
+	// edge primary when the type calls for it.
+	node.EdgePoints = clearEdgeRole(node.EdgePoints)
 
 	err = SendNode(nc, node, origin)
 	if err != nil {
@@ -291,15 +341,124 @@ func DuplicateNode(nc *nats.Conn, id, newParent, origin string) error {
 	return duplicateNodeHelper(nc, node, newParent, origin)
 }
 
-// DeleteNode removes a node from the specified parent node
+// clearEdgeRole removes any primary or mirror point from a set of edge points.
+func clearEdgeRole(points data.Points) data.Points {
+	var ret data.Points
+
+	for _, p := range points {
+		if p.Type == data.PointTypePrimary || p.Type == data.PointTypeMirror {
+			continue
+		}
+
+		ret = append(ret, p)
+	}
+
+	return ret
+}
+
+// DeleteNode removes a node from the specified parent node.
+//
+// Deleting the primary edge of a node also deletes its mirrors. A mirror of a
+// deleted sensor is an entry in someone's group with no client behind it and
+// no points arriving, and nothing in the UI to say the original is gone.
+// Deleting a mirror, or an edge with no role, removes only that edge.
 func DeleteNode(nc *nats.Conn, id, parent string, origin string) error {
-	err := SendEdgePoint(nc, id, parent, func() data.Point {
+	tombstone := func() data.Point {
 		p := data.NewPointFloat(data.PointTypeTombstone, "", 1)
 		p.Origin = origin
 		return p
-	}(), true)
+	}
 
-	return err
+	for _, m := range mirrorsOf(nc, id, parent) {
+		if err := SendEdgePoint(nc, id, m, tombstone(), true); err != nil {
+			return fmt.Errorf("error deleting mirror under %v: %w", m, err)
+		}
+	}
+
+	return SendEdgePoint(nc, id, parent, tombstone(), true)
+}
+
+// mirrorsOf returns the parents of the mirror edges that go with a primary
+// edge, and nothing when the edge named is not the primary. A failure to read
+// the tree returns nothing rather than an error, so that a delete the user
+// asked for still happens; the cost is a mirror left behind, which they can
+// remove themselves.
+func mirrorsOf(nc *nats.Conn, id, parent string) []string {
+	nodes, err := GetNodes(nc, "all", id, "", false)
+	if err != nil {
+		log.Println("Error looking up mirrors to delete:", err)
+		return nil
+	}
+
+	primary := false
+
+	for _, n := range nodes {
+		if n.Parent == parent && n.EdgeRole() == data.EdgeRolePrimary {
+			primary = true
+			break
+		}
+	}
+
+	if !primary {
+		return nil
+	}
+
+	var ret []string
+
+	for _, n := range nodes {
+		if n.Parent != parent && n.EdgeRole() == data.EdgeRoleMirror {
+			ret = append(ret, n.Parent)
+		}
+	}
+
+	return ret
+}
+
+// roleFor returns the edge point that reproduces the role of the edge under
+// oldParent, and whether there is one to write.
+func roleFor(nodes []data.NodeEdge, oldParent string) (data.Point, bool) {
+	for _, n := range nodes {
+		if n.Parent != oldParent {
+			continue
+		}
+
+		switch n.EdgeRole() {
+		case data.EdgeRolePrimary:
+			return data.NewPointFloat(data.PointTypePrimary, "", 1), true
+		case data.EdgeRoleMirror:
+			return data.NewPointFloat(data.PointTypeMirror, "", 1), true
+		}
+	}
+
+	return data.Point{}, false
+}
+
+// checkMoveParent rejects a move that would take a node out from under the
+// parent that owns it. A modbusIo is found by walking down from its modbus
+// bus rather than from the tree root, so moving one into a group leaves it
+// where nothing looks for it and it quietly stops working. Mirroring is the
+// operation that was wanted in that case, and it stays available.
+func checkMoveParent(nc *nats.Conn, typ, newParent string) error {
+	owner := data.NodeTypeOwner(typ)
+	if owner == "" {
+		return nil
+	}
+
+	parents, err := GetNodes(nc, "all", newParent, "", false)
+	if err != nil {
+		return fmt.Errorf("error fetching destination node: %w", err)
+	}
+
+	if len(parents) < 1 {
+		return errors.New("error fetching destination node to get type")
+	}
+
+	if parents[0].Type == owner {
+		return nil
+	}
+
+	return fmt.Errorf("a %v node belongs under a %v node and cannot be moved under a %v node; mirror it instead",
+		typ, owner, parents[0].Type)
 }
 
 // MoveNode moves a node from one parent to another
@@ -318,7 +477,11 @@ func MoveNode(nc *nats.Conn, id, oldParent, newParent, origin string) error {
 		return errors.New("error fetching node to get type")
 	}
 
-	err = SendEdgePoints(nc, id, newParent, data.Points{
+	if err := checkMoveParent(nc, nodes[0].Type, newParent); err != nil {
+		return err
+	}
+
+	points := data.Points{
 		func() data.Point {
 			p := data.NewPointFloat(data.PointTypeTombstone, "", 0)
 			p.Origin = origin
@@ -329,7 +492,17 @@ func MoveNode(nc *nats.Conn, id, oldParent, newParent, origin string) error {
 			p.Origin = origin
 			return p
 		}(),
-	}, true)
+	}
+
+	// a move writes a new edge rather than editing the old one, so the role
+	// has to be carried across. Without this a moved node would come out
+	// unmarked, and a moved mirror would start running a client.
+	if p, ok := roleFor(nodes, oldParent); ok {
+		p.Origin = origin
+		points = append(points, p)
+	}
+
+	err = SendEdgePoints(nc, id, newParent, points, true)
 
 	if err != nil {
 		return err
@@ -344,9 +517,19 @@ func MoveNode(nc *nats.Conn, id, oldParent, newParent, origin string) error {
 	return nil
 }
 
-// MirrorNode adds a an existing node to a new parent. A node can have
+// MirrorNode adds an existing node to a new parent. A node can have
 // multiple parents.
-func MirrorNode(nc *nats.Conn, id, newParent, origin string) error {
+//
+// When the node being mirrored has a primary edge -- it owns a bus, a line, a
+// socket -- the new edge is marked a mirror, so that it displays the node
+// without running a second client on it. oldParent names the edge being
+// mirrored from, which may itself be a mirror. Mirroring a node with no
+// primary location, such as a user into a second group, marks nothing.
+func MirrorNode(nc *nats.Conn, id, oldParent, newParent, origin string) error {
+	if newParent == oldParent {
+		return errors.New("can't mirror node to the parent it is already under")
+	}
+
 	// fetch the node because we need to know its type
 	nodes, err := GetNodes(nc, "all", id, "", true)
 	if err != nil {
@@ -357,7 +540,7 @@ func MirrorNode(nc *nats.Conn, id, newParent, origin string) error {
 		return errors.New("error fetching node to get type")
 	}
 
-	err = SendEdgePoints(nc, id, newParent, data.Points{
+	points := data.Points{
 		func() data.Point {
 			p := data.NewPointFloat(data.PointTypeTombstone, "", 0)
 			p.Origin = origin
@@ -368,9 +551,36 @@ func MirrorNode(nc *nats.Conn, id, newParent, origin string) error {
 			p.Origin = origin
 			return p
 		}(),
-	}, true)
+	}
 
-	return err
+	if mirrorRoleFor(nodes, oldParent) {
+		p := data.NewPointFloat(data.PointTypeMirror, "", 1)
+		p.Origin = origin
+		points = append(points, p)
+	}
+
+	return SendEdgePoints(nc, id, newParent, points, true)
+}
+
+// mirrorRoleFor reports whether a new edge to this node should be marked a
+// mirror. The source edge decides it, so that mirroring a mirror produces
+// another mirror. When the source edge cannot be found -- the UI copied from a
+// parent that has since gone -- any primary edge on the node is enough to say
+// the node has a primary location.
+func mirrorRoleFor(nodes []data.NodeEdge, oldParent string) bool {
+	for _, n := range nodes {
+		if n.Parent == oldParent {
+			return n.EdgeRole() != data.EdgeRoleNone
+		}
+	}
+
+	for _, n := range nodes {
+		if n.EdgeRole() != data.EdgeRoleNone {
+			return true
+		}
+	}
+
+	return false
 }
 
 // NodeWatcher creates a node watcher. update() is called any time there is an update.

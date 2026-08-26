@@ -19,9 +19,12 @@ type NodeMove struct {
 	NewParent string
 }
 
-// NodeCopy is a data structured used in the /node/:id/parents api call
+// NodeCopy is a data structured used in the /node/:id/parents api call.
+// OldParent names the edge the copy was started from, which decides whether a
+// mirror of it is marked a mirror.
 type NodeCopy struct {
 	ID        string
+	OldParent string
 	NewParent string
 	Duplicate bool
 }
@@ -193,7 +196,8 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			}
 
 			if !nodeCopy.Duplicate {
-				err := client.MirrorNode(h.nc, id, nodeCopy.NewParent, userID)
+				err := client.MirrorNode(h.nc, id, nodeCopy.OldParent,
+					nodeCopy.NewParent, userID)
 
 				if err != nil {
 					log.Println("Error mirroring node:", err)
