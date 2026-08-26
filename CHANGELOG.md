@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.26.1] - 2026-08-26
+
 ### Fixed
 
 - **Mirrored hardware nodes no longer run a second client.** Mirroring a Modbus
