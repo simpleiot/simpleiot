@@ -666,7 +666,12 @@ Stage 3 [plan](../../plans/2026-08-06-stage3-jetstream-sync.md) tracks progress.
 3. Nodes mirrored across device boundaries: a node reachable from more than one
    boundary resolves to the instance root boundary. How mirroring should behave
    across a sync boundary is an open design point (see the Stream Granularity
-   section).
+   section). Measured symptom: after a device's node is mirrored into a group on
+   the upstream, points written on the device still reach the upstream, but
+   points written on the upstream for that node land in the upstream's own
+   boundary stream and never reach the device, because a device replicates only
+   `inst_<itsBoundary>_*`. Displaying and granting access work; controlling the
+   device through the mirror does not.
 4. Moving a node between boundaries: requires republishing subject tips into the
    new stream and purging the old subjects. Not implemented.
 

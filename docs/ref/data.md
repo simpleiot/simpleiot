@@ -292,6 +292,32 @@ their parent: a `modbusIo` through its `modbus` bus, a `condition` through its
 the move is refused and mirroring is offered instead. `data.NodeTypeOwner` holds
 the table.
 
+### Across sync boundaries
+
+Mirroring a node from a device subtree into a group on an upstream instance is
+the case this mechanism was built for, and the roles are set correctly when it
+happens: the device keeps the primary edge, the upstream group gets a mirror,
+and only the device runs a client. Access works the same way, since a mirror
+edge grants a user reach to the node exactly as any other edge does.
+
+**One limitation applies today.** A node is owned by the nearest boundary found
+walking up from it, and a node reachable from more than one boundary resolves to
+the instance root boundary instead (`EdgeCache.OwningBoundary`). Mirroring a
+device's node into a group on the upstream makes it reachable from both, so on
+the upstream it stops resolving to the device's boundary. A device replicates
+only the streams for its own boundary, so points the upstream writes to that
+node afterward land in a stream the device does not read, and never arrive.
+
+In practice: values still flow **up** from the device and the mirror displays
+them, but a change written **on the upstream** -- a configuration edit, or a
+`valueSet` from a rule or a button in the portal UI -- no longer reaches the
+device for that node. Mirror across a boundary to display and to grant access.
+Do not rely on it to control the device.
+
+This is [ADR-7](../adr/7-jetstream-store.md) remaining work item 3, and closing
+it means deciding how a mirrored node should be owned when two boundaries can
+reach it.
+
 ### Upgrading
 
 Edges created before this mechanism existed carry no role, so they keep running

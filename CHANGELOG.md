@@ -19,8 +19,10 @@ For more details or to discuss releases, please visit the
   talks to the device. For MQTT this also stops a mirrored connection from
   building a second copy of the node tree its topic schema creates. Nodes
   mirrored before this release keep the old behavior until the mirror is removed
-  and created again. See the
-  [data reference](docs/ref/data.md#primary-and-mirror-edges).
+  and created again. Mirroring across a sync boundary displays the node and
+  grants access to it, but writes made on the upstream do not reach the device
+  for that node; see
+  [Across sync boundaries](docs/ref/data.md#across-sync-boundaries).
 
 ### Changed
 
