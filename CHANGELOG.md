@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.26.3] - 2026-08-27
+
 ### Added
 
 - **Analog IO through the Linux IIO subsystem.** A new `iio` client reads ADCs,
@@ -20,6 +22,8 @@ For more details or to discuss releases, please visit the
   `value` point in volts, amps, or degrees Celsius. `minChange` sets how far a
   reading must move before it is published, which keeps ADC noise out of the
   store. See the [IIO documentation](docs/user/iio.md).
+
+  _iio client not tested on real hardware yet, working on setup ..._
 
 ## [0.26.2] - 2026-08-27
 
