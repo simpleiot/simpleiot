@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/simpleiot/simpleiot/data"
@@ -318,5 +319,22 @@ func TestShellyHost(t *testing.T) {
 				t.Errorf("id: exp %v, got %v", test.id, got)
 			}
 		})
+	}
+}
+
+// A device binds its notifications to the name a connection registers under and
+// never notifies a later connection that reuses a name still held, so no two
+// connections may register the same one.
+func TestShellyWatchSrcIsUnique(t *testing.T) {
+	seen := map[string]bool{}
+	for i := 0; i < 100; i++ {
+		src := shellyWatchSrc()
+		if !strings.HasPrefix(src, shellyRPCSrc+"-") {
+			t.Errorf("src %q does not identify Simple IoT", src)
+		}
+		if seen[src] {
+			t.Fatalf("src %q was handed out twice", src)
+		}
+		seen[src] = true
 	}
 }

@@ -38,6 +38,13 @@ For more details or to discuss releases, please visit the
   primary and the new edge as a mirror. A mirror made before this release still
   carries no role; remove it and mirror again to have both edges marked. See
   [Primary and mirror edges](docs/ref/data.md#primary-and-mirror-edges).
+- **Shelly status updates arrive right away again.** A Gen2 or later device
+  binds its pushed status to the name a connection registers under, and answers
+  a later connection that reuses a name still held without ever notifying it.
+  Every connection used the same name, so a connection the device had not yet
+  released, such as one left behind by a previous run, silenced the one after
+  it: control took effect immediately while the status it produced waited for
+  the once-a-minute read. Each connection now registers under a name of its own.
 - **Shelly discovery no longer misses devices on a busy network.** A scan
   handed each mDNS answer straight to the code that reads the device, and the
   scan discarded any answer that arrived while the previous one was still being

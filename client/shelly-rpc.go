@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -17,6 +18,19 @@ import (
 // request frame carrying a src, so this string is what starts the flow of
 // status updates as well as what the device addresses replies to.
 const shellyRPCSrc = "siot"
+
+// shellyWatchSrc returns the name one WebSocket connection registers under.
+//
+// A device binds its notifications to the name the first connection to use it
+// registered, and a later connection that registers the same name is answered
+// normally but never notified. That leaves no error to notice: the connection
+// stays open and answers pings while no status ever arrives. A connection that
+// the device has not yet released, such as one left behind by a previous run,
+// would otherwise hold the name and silence every connection after it, so each
+// one takes a name of its own.
+func shellyWatchSrc() string {
+	return shellyRPCSrc + "-" + uuid.New().String()[:8]
+}
 
 const (
 	// shellyWSReconnect is how long to wait before dialing a device again after
@@ -203,7 +217,7 @@ func (w *shellyWatcher) session() error {
 	}()
 
 	if err := w.writeJSON(conn, shellyRPCRequest{
-		ID: 1, Src: shellyRPCSrc, Method: "Shelly.GetStatus",
+		ID: 1, Src: shellyWatchSrc(), Method: "Shelly.GetStatus",
 	}); err != nil {
 		return err
 	}
