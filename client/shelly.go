@@ -3,7 +3,6 @@ package client
 import (
 	"log"
 	"regexp"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -47,15 +46,40 @@ func NewShellyClient(nc *nats.Conn, config Shelly) Client {
 func (sc *ShellyClient) Run() error {
 	log.Println("Starting shelly client:", sc.config.Description)
 
-	entriesCh := make(chan *mdns.ServiceEntry, 4)
+	entriesCh := make(chan *mdns.ServiceEntry)
 
+	// The mDNS query drops an entry whenever the channel it was given is full,
+	// so it is collected here as fast as it arrives and handed to the loop
+	// afterwards. Answering the query takes well under a second, while looking
+	// at each device takes a round trip to it, and a scan that fed the loop
+	// directly would lose most of what a busy network answers with.
 	scan := func() {
+		found := make(chan *mdns.ServiceEntry, 64)
+		var entries []*mdns.ServiceEntry
+		collected := make(chan struct{})
+		go func() {
+			defer close(collected)
+			for e := range found {
+				entries = append(entries, e)
+			}
+		}()
+
 		params := mdns.DefaultParams("_http._tcp")
 		params.DisableIPv6 = true
-		params.Entries = entriesCh
+		params.Entries = found
 		err := mdns.Query(params)
+		close(found)
+		<-collected
 		if err != nil {
 			log.Println("mdns error:", err)
+		}
+
+		for _, e := range entries {
+			select {
+			case entriesCh <- e:
+			case <-sc.stop:
+				return
+			}
 		}
 	}
 
@@ -92,92 +116,109 @@ done:
 
 		case ePtr := <-entriesCh:
 			e := *ePtr // copy to avoid data race with mdns goroutine
-			typ, id := shellyScanHost(e.Host)
-			if len(typ) > 0 {
-				found := false
+			if !shellyHost(e.Host) {
+				break
+			}
 
-				var ip string
-				if e.AddrV4 != nil {
-					ip = e.AddrV4.String()
-				} else if e.AddrV6 != nil {
-					ip = e.AddrV6.String()
-				}
+			var ip string
+			if e.AddrV4 != nil {
+				ip = e.AddrV4.String()
+			} else if e.AddrV6 != nil {
+				ip = e.AddrV6.String()
+			}
+			if ip == "" {
+				break
+			}
 
-				for i, io := range sc.config.IOs {
-					if io.DeviceID == id {
-						// already have this one
-						// must set Origin because we are sending a point to another node
-						// if we don't set origin, then the client manager will filter out
-						// points to the client that owns the node
-						found = true
-						if io.IP != ip {
-							err := SendNodePoint(sc.nc, io.ID, func() data.Point {
-								p := data.NewPointString(data.PointTypeIP, "", ip)
-								p.Origin = sc.config.ID
-								return p
-							}(), false)
+			// Ask the device what it is rather than reading its model out of
+			// the mDNS hostname. This is also what tells us the generation,
+			// and it works for a device this code has never heard of.
+			di, err := shellyGetDeviceInfo(ip)
+			if err != nil {
+				log.Println("Error getting shelly device info:", ip, err)
+				break
+			}
 
-							if err != nil {
-								log.Println("Error setting io ip:", err)
-							}
-						}
+			id := shellyDeviceID(e.Host)
+			if id == "" {
+				break
+			}
 
-						if io.Offline {
-							err := SendNodePoint(sc.nc, io.ID, func() data.Point {
-								p := data.NewPointFloat(data.PointTypeOffline, "", 0)
-								p.Origin = sc.config.ID
-								return p
-							}(), false)
-
-							if err != nil {
-								log.Println("Error setting io offline:", err)
-							} else {
-								sc.config.IOs[i].Offline = false
-							}
-						}
-						break
-					}
-				}
-				if found {
-					break
-				}
-
-				newIO := ShellyIo{
-					ID:       uuid.New().String(),
-					DeviceID: id,
-					Parent:   sc.config.ID,
-					Type:     typ,
-					IP:       ip,
-				}
-
-				ne, err := data.Encode(newIO)
-				if err != nil {
-					log.Println("Error encoding new shelly IO:", err)
+			found := false
+			for i, io := range sc.config.IOs {
+				if io.DeviceID != id {
 					continue
 				}
+				// already have this one
+				// must set Origin because we are sending a point to another node
+				// if we don't set origin, then the client manager will filter out
+				// points to the client that owns the node
+				found = true
+				if io.IP != ip {
+					err := SendNodePoint(sc.nc, io.ID, func() data.Point {
+						p := data.NewPointString(data.PointTypeIP, "", ip)
+						p.Origin = sc.config.ID
+						return p
+					}(), false)
 
-				addCompPoints := func(pType string, id int) {
-					iString := strconv.Itoa(id)
-					ne.Points = append(ne.Points, data.Point{Type: pType, Key: iString})
-				}
-
-				for _, comp := range shellyCompMap[typ] {
-					switch comp.name {
-					case "input":
-						addCompPoints(data.PointTypeInput, comp.id)
-					case "switch":
-						addCompPoints(data.PointTypeSwitch, comp.id)
-						addCompPoints(data.PointTypeSwitchSet, comp.id)
-					case "light":
-						addCompPoints(data.PointTypeLight, comp.id)
-						addCompPoints(data.PointTypeLightSet, comp.id)
+					if err != nil {
+						log.Println("Error setting io ip:", err)
 					}
 				}
 
-				err = SendNode(sc.nc, ne, sc.config.ID)
-				if err != nil {
-					log.Println("Error sending shelly IO:", err)
+				if io.Offline {
+					err := SendNodePoint(sc.nc, io.ID, func() data.Point {
+						p := data.NewPointFloat(data.PointTypeOffline, "", 0)
+						p.Origin = sc.config.ID
+						return p
+					}(), false)
+
+					if err != nil {
+						log.Println("Error setting io offline:", err)
+					} else {
+						sc.config.IOs[i].Offline = false
+					}
 				}
+				break
+			}
+			if found {
+				break
+			}
+
+			newIO := ShellyIo{
+				ID:         uuid.New().String(),
+				DeviceID:   id,
+				Parent:     sc.config.ID,
+				Type:       di.model(),
+				Generation: int(di.gen()),
+				IP:         ip,
+			}
+
+			ne, err := data.Encode(newIO)
+			if err != nil {
+				log.Println("Error encoding new shelly IO:", err)
+				continue
+			}
+
+			// Seed the node with a point per component the device reports, so
+			// the UI has something to render and a rule has something to write
+			// before the first status arrives.
+			comps, err := newIO.components()
+			if err != nil {
+				log.Println("Error reading shelly components:", ip, err)
+			}
+			for _, comp := range comps {
+				if state, ok := shellyCompStatePoint[comp.name]; ok {
+					ne.Points = append(ne.Points, data.Point{Type: state, Key: comp.id})
+				}
+				if set, ok := shellyCompSetPoint[comp.name]; ok {
+					ne.Points = append(ne.Points, data.Point{Type: set, Key: comp.id})
+				}
+			}
+
+			err = SendNode(sc.nc, ne, sc.config.ID)
+			if err != nil {
+				log.Println("Error sending shelly IO:", err)
 			}
 		}
 	}
@@ -204,13 +245,25 @@ func (sc *ShellyClient) EdgePoints(nodeID, parentID string, points []data.Point)
 	sc.newEdgePoints <- NewPoints{nodeID, parentID, points}
 }
 
-var reShellyHost = regexp.MustCompile("(?i)shelly(.*)-(.*).local")
+// A Shelly device advertises itself over mDNS with a hostname that starts with
+// "shelly" and ends with the device id, such as
+// "ShellyPlugUS-C049EF8889A0.local.". The hostname is used to recognize a
+// Shelly and to name it; what the device is comes from the device itself.
+var reShellyHost = regexp.MustCompile(`(?i)^shelly.*-([0-9a-f]+)\.local\.?$`)
 
-func shellyScanHost(host string) (string, string) {
+// shellyHost reports whether an mDNS hostname belongs to a Shelly device.
+func shellyHost(host string) bool {
+	return reShellyHost.MatchString(host)
+}
+
+// shellyDeviceID returns the serial number in the mDNS hostname, which
+// identifies a device across address changes. A Gen2 or later device also
+// reports an id of its own, but it is derived from this same serial and using
+// it would give a device already on the tree a second identity.
+func shellyDeviceID(host string) string {
 	m := reShellyHost.FindStringSubmatch(host)
-	if len(m) < 3 {
-		return "", ""
+	if len(m) < 2 {
+		return ""
 	}
-
-	return m[1], m[2]
+	return m[1]
 }

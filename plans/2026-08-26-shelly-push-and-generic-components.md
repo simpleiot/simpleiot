@@ -118,7 +118,7 @@ devices are a small part of the range. Phase 4 covers it if we want it.
 
 ## Phases
 
-### Phase 1: Read components from the device
+### Phase 1: Read components from the device — COMPLETE
 
 - Add `Shelly.GetDeviceInfo` and store `gen`, `model`, `mac` on the node.
 - Replace `shellyGenMap`, `shellyCompMap`, `shellySettableOnOff`, and
@@ -132,7 +132,7 @@ devices are a small part of the range. Phase 4 covers it if we want it.
 - Update `docs/user/shelly.md`: the supported-device list becomes a statement
   that any Gen2 or later device is read from its own component list.
 
-### Phase 2: Push updates over the RPC WebSocket
+### Phase 2: Push updates over the RPC WebSocket — COMPLETE
 
 - Add a WebSocket RPC connection to `ShellyIOClient` for Gen2+ devices: connect
   to `ws://<ip>/rpc`, send an initial `Shelly.GetStatus` carrying a `src`, then
@@ -146,19 +146,39 @@ devices are a small part of the range. Phase 4 covers it if we want it.
 - `github.com/gorilla/websocket` is already in `go.sum` as an indirect
   dependency; this promotes it to direct.
 
-### Phase 3: Components beyond switch, light, and input
+### Phase 3: Components beyond switch, light, and input — COMPLETE
 
 - Add point types and set handling for the components the generic enumeration
   now surfaces: `cover` (position, open/close/stop), `rgb` and `rgbw`, `em` and
   `em1` energy meters, `temperature`, `humidity`, `devicepower`.
 - Add formatters for the new point types in `NodeShellyIO.elm`.
 
-### Phase 4 (optional): CoIoT for Gen1
+### Phase 4 (optional): CoIoT for Gen1 — NOT DONE
 
 - Listen for CoAP status frames on 224.0.1.187:5683, decode `cit/d` into a block
   and sensor map, and merge `cit/s` updates into it.
 - Only worth doing if Gen1 devices remain in use; Phase 1 already fixes what is
-  broken about them.
+  broken about them. Gen1 is now read with one request rather than one per
+  component, so the cost of polling it is much lower than it was.
+
+## What was built
+
+Phases 1 through 3 landed together, since the component list Phase 1 produces is
+what Phase 2 pushes and Phase 3 extends.
+
+- `client/shelly-io.go` reads components and points out of a status response.
+  `shellyCompPoints` maps a component name to the function that converts it, and
+  is the only place a component type is named. The four model tables are gone.
+- `client/shelly-rpc.go` holds the JSON-RPC frames, the HTTP call, and
+  `shellyWatcher`, which keeps the WebSocket open and delivers what the device
+  pushes. Only one request goes out over the socket, the `Shelly.GetStatus` that
+  both fetches the starting status and, by carrying a `src`, tells the device to
+  start notifying.
+- `ShellyIo` holds its component state in maps keyed by component id rather than
+  in arrays, because add-on components are numbered from 100 and an array would
+  have to be that long to hold one.
+- A node created before this change carries no generation, so the client asks
+  the device for one on startup and records it along with the model.
 
 ## Testing
 

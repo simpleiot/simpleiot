@@ -468,17 +468,22 @@ const (
 	PointTypeTransition  = "transition"
 	PointTypeOffline     = "offline"
 
-	PointValueShellyTypeBulbDuo = "BulbDuo"
-	PointValueShellyTypeRGBW2   = "rgbw2"
-	PointValueShellyType1PM     = "1pm"
-	PointValueShellyTypePlugUS  = "PlugUS"
-	PointValueShellyTypePlugUK  = "PlugUK"
-	PointValueShellyTypePlugIT  = "PlugIT"
-	PointValueShellyTypePlugS   = "PlugS"
-	PointValueShellyTypeI4      = "PlusI4"
-	PointValueShellyTypePlus1   = "Plus1"
-	PointValueShellyTypePlus1PM = "Plus1PM"
-	PointValueShellyTypePlus2PM = "Plus2PM"
+	// Points a Shelly device reports beyond the on/off state of its outputs.
+	// Which ones appear depends on the components the device reports, not on
+	// its model. See the shelly client.
+	PointTypeGeneration    = "gen"
+	PointTypeModel         = "model"
+	PointTypeEnergy        = "energy"
+	PointTypeHumidity      = "humidity"
+	PointTypePosition      = "position"
+	PointTypePositionSet   = "positionSet"
+	PointTypeCoverState    = "coverState"
+	PointTypeBattery       = "battery"
+	PointTypeBatteryLevel  = "batteryLevel"
+	PointTypeExternalPower = "externalPower"
+	PointTypePowerFactor   = "powerFactor"
+	PointTypeApparentPower = "apparentPower"
+	PointTypeAlarm         = "alarm"
 
 	PointTypeTimeSync  = "timeSync"
 	PointTypeConnected = "connected"

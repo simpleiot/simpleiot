@@ -21,6 +21,53 @@ For more details or to discuss releases, please visit the
   reading must move before it is published, which keeps ADC noise out of the
   store. See the [IIO documentation](docs/user/iio.md).
 
+## [0.26.2] - 2026-08-27
+
+### Changed
+
+- **Shelly devices are read from what they report, not from a list of models.**
+  A Gen2 or later device answers with its own component list, so any such device
+  works, including ones released after this release and ones with an add-on
+  module attached. Support for cover, energy meter, temperature, humidity, and
+  battery components comes with this. Existing device nodes pick up the change
+  on restart: `type` becomes the model the device reports, such as
+  `SNPL-00116US` rather than `PlugUS`, and a new `gen` point records the
+  generation. See the [Shelly documentation](docs/user/shelly.md).
+- **Shelly status arrives by push instead of by polling.** Simple IoT holds a
+  WebSocket open to each Gen2 or later device and receives changes as they
+  happen, so a relay switched at the wall shows up right away, and a device
+  going offline is noticed when the connection drops. The whole device is still
+  read once a minute as a backstop, down from every two seconds per component.
+  Gen1 devices continue to be polled every two seconds.
+
+### Fixed
+
+- **Mirroring a hardware node created before this release now marks the roles.**
+  A GPIO line, Modbus bus, or other node that owns hardware kept no record of
+  where it lived until edge roles arrived in 0.26.1, so mirroring one onto an
+  upstream instance left both edges unmarked and a second client started on the
+  upstream. Mirroring such a node now marks the edge it was mirrored from as the
+  primary and the new edge as a mirror. A mirror made before this release still
+  carries no role; remove it and mirror again to have both edges marked. See
+  [Primary and mirror edges](docs/ref/data.md#primary-and-mirror-edges).
+- **Shelly status updates arrive right away again.** A Gen2 or later device
+  binds its pushed status to the name a connection registers under, and answers
+  a later connection that reuses a name still held without ever notifying it.
+  Every connection used the same name, so a connection the device had not yet
+  released, such as one left behind by a previous run, silenced the one after
+  it: control took effect immediately while the status it produced waited for
+  the once-a-minute read. Each connection now registers under a name of its own.
+- **Shelly discovery no longer misses devices on a busy network.** A scan handed
+  each mDNS answer straight to the code that reads the device, and the scan
+  discarded any answer that arrived while the previous one was still being read.
+  On a network with a dozen responders roughly half of them were lost each
+  minute, so a device could go unfound indefinitely. A scan now collects every
+  answer before reading any device.
+- **Shelly Plus 1PM, Plus i4, and RGBW2 devices now report correctly.** The Plus
+  1PM read as unsupported, only the first of the Plus i4's four inputs appeared,
+  and the RGBW2 reported nothing. Gen1 relay control now uses the right address
+  and works.
+
 ## [0.26.1] - 2026-08-26
 
 ### Fixed
