@@ -50,14 +50,7 @@ view o =
             "(" ++ typ ++ ")  " ++ desc
 
         valueElement =
-            case
-                typ
-            of
-                "PlusI4" ->
-                    i4ValueSummary o.node.points
-
-                _ ->
-                    defaultSummary o.node.points
+            defaultSummary o.node.points
     in
     column
         [ width fill
@@ -142,23 +135,6 @@ defaultSummary points =
         ]
 
 
-i4ValueSummary : List Point -> Element msg
-i4ValueSummary points =
-    let
-        valuePoints =
-            List.filter (\p -> p.typ == Point.typeValue) points |> List.sortBy .key
-
-        valueElements =
-            List.foldl
-                (\p ret ->
-                    List.append ret [ displayOnOff p ]
-                )
-                []
-                valuePoints
-    in
-    row [ spacing 8 ] valueElements
-
-
 displayOnOffArray : String -> List Point -> Element msg
 displayOnOffArray label pts =
     if List.length pts > 0 then
@@ -217,16 +193,9 @@ displayControls onOffInput pts =
                     [ spacing 6
                     ]
                 <|
-                    List.indexedMap
-                        (\i _ ->
-                            let
-                                key =
-                                    String.fromInt i
-
-                                label =
-                                    t ++ " " ++ String.fromInt (i + 1)
-                            in
-                            onOffInput key t tSet label
+                    List.map
+                        (\p ->
+                            onOffInput p.key t tSet (t ++ " " ++ p.key)
                         )
                         ptsFiltered
             )
@@ -312,7 +281,27 @@ metricFormaters _ =
         , ( "lightTemp", { desc = descS "Light Temperature", vf = toWhole } )
         , ( "transition", { desc = descS "Transition", vf = toWhole } )
         , ( "white", { desc = descS "White", vf = toWhole } )
+        , ( "energy", { desc = descS "Energy (Wh)", vf = \p -> Round.round 2 p.value } )
+        , ( "humidity", { desc = descS "Humidity (%)", vf = \p -> Round.round 1 p.value } )
+        , ( "position", { desc = descS "Position (%)", vf = toWhole } )
+        , ( "coverState", { desc = descS "Cover State", vf = .text } )
+        , ( "battery", { desc = descS "Battery (V)", vf = \p -> Round.round 2 p.value } )
+        , ( "batteryLevel", { desc = descS "Battery (%)", vf = toWhole } )
+        , ( "externalPower", { desc = descS "External Power", vf = onOffText } )
+        , ( "powerFactor", { desc = descS "Power Factor", vf = \p -> Round.round 2 p.value } )
+        , ( "apparentPower", { desc = descS "Apparent Power (VA)", vf = \p -> Round.round 2 p.value } )
+        , ( "frequency", { desc = descS "Frequency (Hz)", vf = \p -> Round.round 1 p.value } )
+        , ( "alarm", { desc = descS "Alarm", vf = onOffText } )
         ]
+
+
+onOffText : Point.Point -> String
+onOffText p =
+    if p.value == 0 then
+        "off"
+
+    else
+        "on"
 
 
 descS : String -> Point.Point -> String

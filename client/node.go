@@ -525,6 +525,10 @@ func MoveNode(nc *nats.Conn, id, oldParent, newParent, origin string) error {
 // without running a second client on it. oldParent names the edge being
 // mirrored from, which may itself be a mirror. Mirroring a node with no
 // primary location, such as a user into a second group, marks nothing.
+//
+// A node of an owning type whose edges carry no role -- one created before
+// edge roles existed -- has its source edge marked primary here, so that the
+// mirror is a mirror of something.
 func MirrorNode(nc *nats.Conn, id, oldParent, newParent, origin string) error {
 	if newParent == oldParent {
 		return errors.New("can't mirror node to the parent it is already under")
@@ -553,34 +557,75 @@ func MirrorNode(nc *nats.Conn, id, oldParent, newParent, origin string) error {
 		}(),
 	}
 
-	if mirrorRoleFor(nodes, oldParent) {
+	mirror, markSource := mirrorRoleFor(nodes, nodes[0].Type, oldParent)
+
+	if mirror {
 		p := data.NewPointFloat(data.PointTypeMirror, "", 1)
 		p.Origin = origin
 		points = append(points, p)
+	}
+
+	// the source edge is marked first, so that a failure part way through
+	// leaves the node with a primary edge and no mirror rather than a
+	// mirror and nothing that owns the hardware
+	if markSource {
+		p := data.NewPointFloat(data.PointTypePrimary, "", 1)
+		p.Origin = origin
+
+		if err := SendEdgePoint(nc, id, oldParent, p, true); err != nil {
+			return fmt.Errorf("error marking source edge primary: %w", err)
+		}
 	}
 
 	return SendEdgePoints(nc, id, newParent, points, true)
 }
 
 // mirrorRoleFor reports whether a new edge to this node should be marked a
-// mirror. The source edge decides it, so that mirroring a mirror produces
+// mirror, and whether the source edge has to be marked primary to go with it.
+//
+// The source edge decides the first, so that mirroring a mirror produces
 // another mirror. When the source edge cannot be found -- the UI copied from a
-// parent that has since gone -- any primary edge on the node is enough to say
-// the node has a primary location.
-func mirrorRoleFor(nodes []data.NodeEdge, oldParent string) bool {
+// parent that has since gone -- any role on the node is enough to say the node
+// has a primary location.
+//
+// A node whose edges carry no role at all is one created before edge roles
+// existed. Nothing can be guessed about which of several existing edges was
+// meant to be the primary, but a mirror being made now is a new edge, and the
+// edge it is made from is the place the node already lived. So for a node type
+// that owns something outside the tree, this marks that source edge primary
+// and the new edge a mirror. Without it, mirroring a hardware node onto an
+// upstream instance would start a second client there driving a line that
+// exists on the device.
+func mirrorRoleFor(nodes []data.NodeEdge, typ, oldParent string) (mirror, markSource bool) {
 	for _, n := range nodes {
 		if n.Parent == oldParent {
-			return n.EdgeRole() != data.EdgeRoleNone
+			if n.EdgeRole() != data.EdgeRoleNone {
+				return true, false
+			}
+
+			break
 		}
 	}
 
 	for _, n := range nodes {
 		if n.EdgeRole() != data.EdgeRoleNone {
-			return true
+			return true, false
 		}
 	}
 
-	return false
+	if !data.NodeTypeIsPrimary(typ) {
+		return false, false
+	}
+
+	// only mark the source when it is there to mark; a mirror made from an
+	// edge that has since gone leaves the roles for the next one to set
+	for _, n := range nodes {
+		if n.Parent == oldParent {
+			return true, true
+		}
+	}
+
+	return false, false
 }
 
 // NodeWatcher creates a node watcher. update() is called any time there is an update.
