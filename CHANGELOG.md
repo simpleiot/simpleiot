@@ -45,10 +45,10 @@ For more details or to discuss releases, please visit the
   released, such as one left behind by a previous run, silenced the one after
   it: control took effect immediately while the status it produced waited for
   the once-a-minute read. Each connection now registers under a name of its own.
-- **Shelly discovery no longer misses devices on a busy network.** A scan
-  handed each mDNS answer straight to the code that reads the device, and the
-  scan discarded any answer that arrived while the previous one was still being
-  read. On a network with a dozen responders roughly half of them were lost each
+- **Shelly discovery no longer misses devices on a busy network.** A scan handed
+  each mDNS answer straight to the code that reads the device, and the scan
+  discarded any answer that arrived while the previous one was still being read.
+  On a network with a dozen responders roughly half of them were lost each
   minute, so a device could go unfound indefinitely. A scan now collects every
   answer before reading any device.
 - **Shelly Plus 1PM, Plus i4, and RGBW2 devices now report correctly.** The Plus
