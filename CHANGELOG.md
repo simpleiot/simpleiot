@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.26.2] - 2026-08-27
+
 ### Changed
 
 - **Shelly devices are read from what they report, not from a list of models.**
