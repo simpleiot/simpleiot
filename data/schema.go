@@ -39,6 +39,16 @@ const (
 	PointTypeDisabled           = "disabled"
 	PointTypeControlled         = "controlled"
 
+	// Edge points that say what an edge means for the node below it.
+	// A node that owns something outside the tree -- a bus, a line, a
+	// socket -- has one primary edge that runs its client, and any
+	// number of mirror edges that exist for organization and access
+	// control and run nothing. Edges for nodes with no primary location,
+	// such as a user or a group, carry neither point. See
+	// docs/ref/data.md#primary-and-mirror-edges.
+	PointTypePrimary = "primary"
+	PointTypeMirror  = "mirror"
+
 	PointTypePeriod = "period"
 
 	// An device node describes an phyical device -- it may be the
@@ -587,4 +597,11 @@ const (
 
 	// PointValueSim selects a simulated resource rather than a real one
 	PointValueSim = "sim"
+
+	// The Particle client connects to the Particle cloud and turns the
+	// events it publishes into points.
+	NodeTypeParticle = "particle"
+
+	// The Browser client drives a browser on this host's display.
+	NodeTypeBrowser = "browser"
 )

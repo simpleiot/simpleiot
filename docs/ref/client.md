@@ -60,6 +60,27 @@ Creating a new client typically requires the following steps:
 It is easiest to copy one of the existing clients to start. The NTP client is
 relatively simple and may be a good example.
 
+## Where a client runs
+
+A node can sit in more than one place in the tree, and a client is started for
+each place the node is found. That is right for a node whose behavior comes from
+where it sits (a `db` client records the subtree under its parent, a user
+carries a role in each group), and wrong for a node that owns something outside
+the tree, where two clients would drive one bus or one line with no way to
+coordinate.
+
+So the edge carries a role. A client runs on a node's primary edge and on edges
+with no role, and never on a mirror. This is handled by the client manager, so a
+client does not check anything itself.
+
+When you add a client, decide which side its node type belongs on and add it to
+`primaryTypes` or `treeScopedTypes` in `data/edge_role.go`. The question to ask
+is whether two instances of the client would do the same work twice or different
+work: a GPIO line requested twice is a conflict, while a `db` node under two
+groups records two different subtrees. A test fails when a node type is in
+neither group, so this is not something that can be forgotten. See
+[Primary and mirror edges](data.md#primary-and-mirror-edges).
+
 ## Client life-cycle
 
 It is important the clients cleanly implement the

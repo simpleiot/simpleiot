@@ -80,7 +80,12 @@ func (m *Manager[T]) Run() error {
 		}
 
 		for _, p := range points {
-			if p.Type == data.PointTypeNodeType {
+			switch p.Type {
+			case data.PointTypeNodeType, data.PointTypePrimary,
+				data.PointTypeMirror:
+				// a role change decides whether a client runs
+				// here, so pick it up now rather than on the
+				// next periodic scan
 				m.chScan <- struct{}{}
 			}
 		}
@@ -204,6 +209,13 @@ func (m *Manager[T]) scanHelper(id string, nodes []data.NodeEdge) ([]data.NodeEd
 			return []data.NodeEdge{}, err
 		}
 		for _, p := range parentNodes {
+			// a mirror of a group displays what is under it without
+			// being a second place those nodes run, so descending
+			// into one would start a second client for every child
+			if p.EdgeRole() == data.EdgeRoleMirror {
+				continue
+			}
+
 			c, err := m.scanHelper(p.ID, nodes)
 			if err != nil {
 				return nil, err
@@ -245,6 +257,16 @@ func (m *Manager[T]) scan() error {
 
 	// create new nodes
 	for _, n := range nodes {
+		// A mirror displays a node somewhere else in the tree. Its
+		// client runs on the primary edge, so starting one here would
+		// mean two clients driving one piece of hardware with no way
+		// to coordinate. Leaving the key out of found also stops a
+		// client that is already running if its edge becomes a mirror,
+		// through the removal pass at the end of this function.
+		if n.EdgeRole() == data.EdgeRoleMirror {
+			continue
+		}
+
 		key := mapKey(n)
 		found[key] = true
 

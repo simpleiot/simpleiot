@@ -104,6 +104,12 @@ Most functionality is implemented as clients that:
 Common client types: SerialDev, CanBus, Rule, Db, SignalGenerator, Sync,
 Metrics, Modbus, OneWire, GPIO, Mqtt, Shelly, Particle, User, MsgService, etc.
 
+A node can sit in several places in the tree, and a client runs on the node's
+primary edge and on edges with no role, never on a mirror. Adding a client means
+classifying its node type in `primaryTypes` or `treeScopedTypes` in
+`data/edge_role.go`; a test fails if it is in neither. See
+[Primary and mirror edges](docs/ref/data.md#primary-and-mirror-edges).
+
 ### Frontend Architecture
 
 - **Elm SPA**: Single-page application using elm-spa framework

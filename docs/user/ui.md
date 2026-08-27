@@ -58,6 +58,28 @@ presented with the following options:
   This is useful for scenarios where you have a device or site configuration
   (perhaps a complex Modbus setup) that you want to duplicate at a new site.
 
+Mirroring a node that talks to hardware (a Modbus IO, a Shelly IO, a GPIO line,
+an MQTT connection) gives you a view of it rather than a second copy that runs.
+The instance where the node actually lives keeps talking to the device, and the
+mirror displays the same values wherever you put it. This is what makes it safe
+to mirror a sensor from inside a device into a group you share with someone, and
+mirrors are labeled in the tree so it is clear that nothing runs there. Controls
+still work from a mirror: setting a value on one travels to the device that owns
+the node, and the result comes back.
+
+Some nodes belong under a particular parent and are found through it: a Modbus
+IO under its Modbus node, a rule condition under its rule. For these, `mirror`
+is the only option offered, because moving one somewhere else would leave it
+where nothing looks for it.
+
+Deleting a node where it lives also removes its mirrors, so a deleted sensor
+does not leave entries behind in the groups it was mirrored into. Removing a
+mirror leaves the node itself alone.
+
+If you have mirrors that were created before this behavior existed, they keep
+working the way they did. To bring one up to date, remove the mirror and mirror
+it again from the node where it lives.
+
 ## Raw Node View
 
 If a node is expanded, a raw node button is available that allows you to view

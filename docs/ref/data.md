@@ -211,7 +211,9 @@ as well as points for the edge node that adds the node to the tree.
 
 ### Copy
 
-Node copies are similar to add, but only the edge points are sent.
+Node copies are similar to add, but only the edge points are sent. A copy of a
+node that has a primary location is marked a mirror; see
+[Primary and mirror edges](#primary-and-mirror-edges) below.
 
 ### Delete
 
@@ -220,12 +222,110 @@ node to true. If a node is deleted, this information needs to be recorded,
 otherwise the synchronization process will simply re-create the deleted node if
 it exists on another instance.
 
+Deleting the primary edge of a node also deletes its mirrors, because a mirror
+of a deleted node has nothing behind it.
+
 ### Move
 
-Move is just a combination of Copy and Delete.
+Move is just a combination of Copy and Delete. The role of the edge is carried
+across, so a moved node keeps the place it had. Some node types are found by
+walking down from their parent rather than from the tree root, and those cannot
+be moved out from under it (see below).
 
 If the any real-time data is lost in any of the above operations, the catch up
 synchronization will propagate any node changes.
+
+## Primary and mirror edges
+
+A node reached through two parents is one node with one set of points, and for
+most node types that is the point of mirroring: a user belongs to two groups, a
+rule is visible from two places. For a node that owns something outside the tree
+(a Modbus bus, a GPIO line, an MQTT broker connection), it is not. Two clients
+acting on one piece of hardware, possibly from two instances, have no way to
+coordinate.
+
+![primary and mirror edges](images/primary-mirror-edges.png)
+
+The edge says which is which, through two edge points:
+
+| Edge points   | Role    | Meaning                                                                     |
+| ------------- | ------- | --------------------------------------------------------------------------- |
+| `primary` = 1 | primary | the node in the place it lives; its client runs here                        |
+| `mirror` = 1  | mirror  | a view of the node for organization and access control; no client runs here |
+| neither       | no role | a node with no primary location; every edge runs a client                   |
+
+Read the role through
+[`NodeEdge.EdgeRole`](https://pkg.go.dev/github.com/simpleiot/simpleiot/data#NodeEdge.EdgeRole)
+rather than the points directly. An edge carrying both points reads as a mirror,
+because declining to run a client is the safe direction to fail.
+
+### Which node types have a primary location
+
+A node type is primary when its client's behavior comes from a resource it holds
+rather than from where the node sits: `modbus`, `modbusIo`, `oneWire`,
+`oneWireIO`, `shelly`, `shellyIo`, `gpio`, `gps`, `serialDev`, `canBus`,
+`particle`, `networkManager` and its children, `ntp`, `browser`, `update`,
+`provisioning`, `provisioningFile`, `sync`, `metrics`, `signalGenerator`,
+`mqtt`, `mqttSub`, and the `mqttDevice` and Sparkplug nodes an MQTT connection
+builds from the topics it sees.
+
+The rest take their meaning from where they sit, so several instances are
+meaningful and each one runs a client: `device`, `user`, `group`, `rule`,
+`condition`, `action`, `actionInactive`, `variable`, `db`, `msgService`, and
+`file`. A `db` client records the subtree under its parent and a `msgService`
+client sees notifications raised under its parent, so mirroring one into a
+second group gives a second client doing a different and correct job.
+
+A custom node type the system does not know carries no role and behaves as node
+types always have.
+
+The two groups are `primaryTypes` and `treeScopedTypes` in
+[`data/edge_role.go`](https://github.com/simpleiot/simpleiot/blob/master/data/edge_role.go).
+Both are listed explicitly, and a test fails when a node type is in neither, so
+adding a client means deciding which side its node type belongs on.
+
+### Nodes that belong under a particular parent
+
+Separately from the primary role, some node types are found by walking down from
+their parent: a `modbusIo` through its `modbus` bus, a `condition` through its
+`rule`. Moving one of these elsewhere leaves it where nothing looks for it, so
+the move is refused and mirroring is offered instead. `data.NodeTypeOwner` holds
+the table.
+
+### Across sync boundaries
+
+Mirroring a node from a device subtree into a group on an upstream instance is
+the case this mechanism was built for, and the roles are set correctly when it
+happens: the device keeps the primary edge, the upstream group gets a mirror,
+and only the device runs a client. Access works the same way, since a mirror
+edge grants a user reach to the node exactly as any other edge does.
+
+Control works through the mirror as well. A `valueSet` written on the mirror --
+by a rule on the upstream, or someone pressing a button in the portal UI --
+reaches the device, and the client there acts on it and reports the result back
+as `value`. Nothing about the write is special: the mirror and the primary are
+the same node, so a point written on either lands on the node itself.
+
+What makes this work is that ownership follows the primary edge.
+`EdgeCache.OwningBoundary` walks up from a node to find the boundary that owns
+it, and it skips mirror edges. A device replicates only the streams for its own
+boundary, so if a mirror on the upstream moved the node's ownership to the
+upstream root, points the upstream wrote would be stored where the device never
+reads them and a command would never arrive. Skipping mirror edges keeps the
+node with the device that holds the hardware, which is where the client that
+acts on it runs.
+
+A node with no role that is reachable from two boundaries still resolves to the
+instance root boundary, since nothing marks which side owns it. That is
+[ADR-7](../adr/7-jetstream-store.md) remaining work item 3.
+
+### Upgrading
+
+Edges created before this mechanism existed carry no role, so they keep running
+clients as they always have, including mirrors of hardware nodes. Which of
+several existing edges was meant to be the primary cannot be told after the
+fact, so nothing is guessed at. Re-creating the mirror, by removing it and
+mirroring again from the node where it lives, marks both edges correctly.
 
 ## Tracking who made changes
 

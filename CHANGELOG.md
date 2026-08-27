@@ -11,6 +11,37 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.26.1] - 2026-08-26
+
+### Fixed
+
+- **Mirrored hardware nodes no longer run a second client.** Mirroring a Modbus
+  IO, Shelly IO, GPIO line, MQTT connection, or other hardware node into a group
+  now creates a view of it, so only the instance where the node actually lives
+  talks to the device. For MQTT this also stops a mirrored connection from
+  building a second copy of the node tree its topic schema creates. Nodes
+  mirrored before this release keep the old behavior until the mirror is removed
+  and created again. See the
+  [data reference](docs/ref/data.md#primary-and-mirror-edges).
+- **Setting a value on a mirrored node reaches the device.** A node mirrored
+  from a device into a group on an upstream instance now stays owned by that
+  device, so a `valueSet` written on the mirror, by a rule or from the UI,
+  travels down and is acted on where the hardware is. Previously such a write
+  was stored on the upstream and never arrived. See
+  [Across sync boundaries](docs/ref/data.md#across-sync-boundaries).
+
+### Changed
+
+- **Deleting a node removes its mirrors.** Mirrors of a deleted sensor or bus no
+  longer linger in the groups they were mirrored into. Removing a mirror still
+  leaves the node itself alone.
+- **Nodes that belong to a parent can only be mirrored, not moved.** A Modbus
+  IO, Shelly IO, rule condition, and similar nodes are found through their
+  parent, so moving one elsewhere left it inert. The UI now offers `mirror` for
+  these instead, and says where the node belongs.
+- **Mirrored nodes are labeled in the tree**, so a node that shows values but
+  runs nothing is no longer mistaken for one that has stopped reporting.
+
 ## [0.26.0] - 2026-08-24
 
 ### Added
