@@ -102,7 +102,8 @@ Most functionality is implemented as clients that:
 - Are managed by the ClientManager system
 
 Common client types: SerialDev, CanBus, Rule, Db, SignalGenerator, Sync,
-Metrics, Modbus, OneWire, GPIO, Mqtt, Shelly, Particle, User, MsgService, etc.
+Metrics, Modbus, OneWire, GPIO, IIO, Mqtt, Shelly, Particle, User, MsgService,
+etc.
 
 A node can sit in several places in the tree, and a client runs on the node's
 primary edge and on edges with no role, never on a mirror. Adding a client means

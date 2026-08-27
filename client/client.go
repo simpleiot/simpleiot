@@ -81,6 +81,9 @@ func DefaultClients(nc *nats.Conn) (*RunGroup, error) {
 	gpio := NewManager(nc, NewGPIOClient, nil)
 	g.Add(gpio)
 
+	iio := NewManager(nc, NewIIOClient, nil)
+	g.Add(iio)
+
 	browser := NewManager(nc, NewBrowserClient, nil)
 	g.Add(browser)
 
