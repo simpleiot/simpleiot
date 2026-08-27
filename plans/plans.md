@@ -20,4 +20,4 @@
 | 2026-08-24-iio-client.md                         | **PLANNED**                                                                             | 8454edb6      |
 | 2026-08-24-security-cleanup.md                   | **IN PROGRESS** (item 1 complete)                                                       | 179d06ea      |
 | 2026-08-24-primary-mirror-edges.md               | **COMPLETE**                                                                            | fc017969      |
-| 2026-08-26-shelly-push-and-generic-components.md | **PLANNED**                                                                             | 98e0fa88      |
+| 2026-08-26-shelly-push-and-generic-components.md | **COMPLETE** (Phase 4 CoIoT for Gen1 not done)                                          | 98e0fa88      |

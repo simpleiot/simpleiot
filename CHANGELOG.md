@@ -11,6 +11,30 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Changed
+
+- **Shelly devices are read from what they report, not from a list of models.**
+  A Gen2 or later device answers with its own component list, so any such device
+  works, including ones released after this release and ones with an add-on
+  module attached. Support for cover, energy meter, temperature, humidity, and
+  battery components comes with this. Existing device nodes pick up the change
+  on restart: `type` becomes the model the device reports, such as
+  `SNPL-00116US` rather than `PlugUS`, and a new `gen` point records the
+  generation. See the [Shelly documentation](docs/user/shelly.md).
+- **Shelly status arrives by push instead of by polling.** Simple IoT holds a
+  WebSocket open to each Gen2 or later device and receives changes as they
+  happen, so a relay switched at the wall shows up right away, and a device
+  going offline is noticed when the connection drops. The whole device is still
+  read once a minute as a backstop, down from every two seconds per component.
+  Gen1 devices continue to be polled every two seconds.
+
+### Fixed
+
+- **Shelly Plus 1PM, Plus i4, and RGBW2 devices now report correctly.** The Plus
+  1PM read as unsupported, only the first of the Plus i4's four inputs appeared,
+  and the RGBW2 reported nothing. Gen1 relay control now uses the right address
+  and works.
+
 ## [0.26.1] - 2026-08-26
 
 ### Fixed
