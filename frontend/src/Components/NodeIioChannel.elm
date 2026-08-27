@@ -42,11 +42,6 @@ view o =
 
         disabled =
             Point.getBool o.node.points Point.typeDisabled ""
-
-        -- only an output channel accepts a requested value
-        isOutput =
-            Point.getText o.node.points Point.typeDirection ""
-                == Point.valueOutput
     in
     column
         [ width fill
@@ -88,6 +83,11 @@ view o =
 
                         error =
                             Point.getText o.node.points Point.typeError ""
+
+                        -- only an output channel accepts a requested value
+                        isOutput =
+                            Point.getText o.node.points Point.typeDirection ""
+                                == Point.valueOutput
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typeChannel "Channel" "in_voltage0"
