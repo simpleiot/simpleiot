@@ -324,8 +324,13 @@ instance root boundary, since nothing marks which side owns it. That is
 Edges created before this mechanism existed carry no role, so they keep running
 clients as they always have, including mirrors of hardware nodes. Which of
 several existing edges was meant to be the primary cannot be told after the
-fact, so nothing is guessed at. Re-creating the mirror, by removing it and
-mirroring again from the node where it lives, marks both edges correctly.
+fact, so nothing is guessed at for edges that are already there.
+
+Mirroring one of these nodes does mark it, because the mirror is a new edge and
+the edge it is made from is where the node already lived: for a node type with a
+primary location, the source edge becomes the primary and the new edge a mirror.
+A mirror made before the upgrade carries no role, so remove it and mirror again
+to have both edges marked.
 
 ## Tracking who made changes
 

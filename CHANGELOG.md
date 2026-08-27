@@ -30,6 +30,14 @@ For more details or to discuss releases, please visit the
 
 ### Fixed
 
+- **Mirroring a hardware node created before this release now marks the roles.**
+  A GPIO line, Modbus bus, or other node that owns hardware kept no record of
+  where it lived until edge roles arrived in 0.26.1, so mirroring one onto an
+  upstream instance left both edges unmarked and a second client started on the
+  upstream. Mirroring such a node now marks the edge it was mirrored from as the
+  primary and the new edge as a mirror. A mirror made before this release still
+  carries no role; remove it and mirror again to have both edges marked. See
+  [Primary and mirror edges](docs/ref/data.md#primary-and-mirror-edges).
 - **Shelly Plus 1PM, Plus i4, and RGBW2 devices now report correctly.** The Plus
   1PM read as unsupported, only the first of the Plus i4's four inputs appeared,
   and the RGBW2 reported nothing. Gen1 relay control now uses the right address

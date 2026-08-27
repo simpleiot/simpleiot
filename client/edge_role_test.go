@@ -330,6 +330,80 @@ func TestDeleteUnmarkedNodeUnchanged(t *testing.T) {
 	}
 }
 
+// unmarkedNode creates a node the way one existed before edge roles: an edge
+// carrying only a tombstone and a node type, with no role on it.
+func unmarkedNode(t *testing.T, nc *nats.Conn, typ, parent string) string {
+	t.Helper()
+
+	id := uuid.New().String()
+
+	err := client.SendNodePoints(nc, id, data.Points{
+		data.NewPointString(data.PointTypeDescription, "", "legacy "+typ),
+	}, true)
+
+	if err != nil {
+		t.Fatalf("error creating %v node: %v", typ, err)
+	}
+
+	err = client.SendEdgePoints(nc, id, parent, data.Points{
+		data.NewPointFloat(data.PointTypeTombstone, "", 0),
+		data.NewPointString(data.PointTypeNodeType, "", typ),
+	}, true)
+
+	if err != nil {
+		t.Fatalf("error creating edge for %v node: %v", typ, err)
+	}
+
+	if role := edgeRole(t, nc, id, parent); role != data.EdgeRoleNone {
+		t.Fatalf("legacy %v node came out with role %v, expected none", typ, role)
+	}
+
+	return id
+}
+
+// TestMirrorMarksUnmarkedNode covers a node created before edge roles existed
+// and mirrored onto an upstream instance. Nothing on it says which edge owns
+// the hardware, so without marking the source edge here the mirror would carry
+// no role either and a second client would start on it.
+func TestMirrorMarksUnmarkedNode(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+	defer stop()
+
+	groupA := addNode(t, nc, data.NodeTypeGroup, root.ID)
+
+	gpioID := unmarkedNode(t, nc, data.NodeTypeGPIO, root.ID)
+
+	if err := client.MirrorNode(nc, gpioID, root.ID, groupA, "test"); err != nil {
+		t.Fatal("error mirroring gpio node: ", err)
+	}
+
+	if role := edgeRole(t, nc, gpioID, groupA); role != data.EdgeRoleMirror {
+		t.Errorf("mirror of unmarked gpio node got role %v, expected mirror", role)
+	}
+
+	if role := edgeRole(t, nc, gpioID, root.ID); role != data.EdgeRolePrimary {
+		t.Errorf("source edge of unmarked gpio node got role %v, expected primary", role)
+	}
+
+	// a node with no primary location is still left alone
+	userID := unmarkedNode(t, nc, data.NodeTypeUser, root.ID)
+
+	if err := client.MirrorNode(nc, userID, root.ID, groupA, "test"); err != nil {
+		t.Fatal("error mirroring user: ", err)
+	}
+
+	if role := edgeRole(t, nc, userID, groupA); role != data.EdgeRoleNone {
+		t.Errorf("mirror of unmarked user got role %v, expected none", role)
+	}
+
+	if role := edgeRole(t, nc, userID, root.ID); role != data.EdgeRoleNone {
+		t.Errorf("source edge of unmarked user got role %v, expected none", role)
+	}
+}
+
 // mirrorEdge adds a second edge to a node and marks it a mirror. The manager
 // tests use a node type that is not in the primary table, so the role is
 // written directly rather than through MirrorNode -- what is being tested here
