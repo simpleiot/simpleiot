@@ -11,6 +11,16 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Added
+
+- **Analog IO through the Linux IIO subsystem.** A new `iio` client reads ADCs,
+  DACs, and the sensors the kernel presents the same way, including
+  accelerometers, pressure, humidity, and light. Add a device node naming the
+  device and its channels are detected and added as children, each publishing a
+  `value` point in volts, amps, or degrees Celsius. `minChange` sets how far a
+  reading must move before it is published, which keeps ADC noise out of the
+  store. See the [IIO documentation](docs/user/iio.md).
+
 ## [0.26.1] - 2026-08-26
 
 ### Fixed

@@ -604,4 +604,26 @@ const (
 
 	// The Browser client drives a browser on this host's display.
 	NodeTypeBrowser = "browser"
+
+	// IIO client. An iio node is one Linux Industrial I/O device -- an ADC,
+	// a DAC, or a sensor the kernel presents through the same interface --
+	// and an iioChannel node is one channel on that device.
+	NodeTypeIIO        = "iio"
+	NodeTypeIIOChannel = "iioChannel"
+
+	// Resolved device identity, published by the IIO client
+	PointTypeDeviceName = "deviceName"
+	PointTypeDevicePath = "devicePath"
+
+	// Device level IIO settings, written to sysfs when set
+	PointTypeSampleFrequency = "sampleFrequency"
+	PointTypeOversampling    = "oversampling"
+
+	// ChannelType is the measured quantity an IIO channel reports:
+	// "voltage", "current", "temp", "accel", and so on.
+	PointTypeChannelType = "channelType"
+
+	// MinChange is how far a value must move from the last published one
+	// before it is sent again, which keeps ADC noise out of the store.
+	PointTypeMinChange = "minChange"
 )
