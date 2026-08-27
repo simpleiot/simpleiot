@@ -17,6 +17,8 @@ import Components.NodeFile as File
 import Components.NodeGpio as NodeGpio
 import Components.NodeGps as NodeGps
 import Components.NodeGroup as NodeGroup
+import Components.NodeIio as NodeIio
+import Components.NodeIioChannel as NodeIioChannel
 import Components.NodeMessageService as NodeMessageService
 import Components.NodeMetrics as NodeMetrics
 import Components.NodeModbus as NodeModbus
@@ -1049,6 +1051,7 @@ nodeCustomSortRules =
         , ( Node.typeSignalGenerator, "F" )
         , ( Node.typeOneWire, "G" )
         , ( Node.typeGpio, "G1" )
+        , ( Node.typeIio, "G2" )
         , ( Node.typeCanBus, "H" )
         , ( Node.typeSerialDev, "I" )
         , ( Node.typeMsgService, "J" )
@@ -1308,6 +1311,12 @@ viewNode model parent node children depth =
                     "sparkplugDevice" ->
                         NodeSparkplugDevice.view
 
+                    "iio" ->
+                        NodeIio.view
+
+                    "iioChannel" ->
+                        NodeIioChannel.view
+
                     "oneWire" ->
                         NodeOneWire.view
 
@@ -1561,6 +1570,7 @@ nodeTypesThatHaveChildNodes =
     , Node.typeGroup
     , Node.typeModbus
     , Node.typeOneWire
+    , Node.typeIio
     , Node.typeMqtt
     , Node.typeSerialDev
     , Node.typeCanBus
@@ -1728,6 +1738,16 @@ nodeDescGpio =
     row [] [ Icon.io, text "GPIO" ]
 
 
+nodeDescIio : Element Msg
+nodeDescIio =
+    row [] [ Icon.io, text "IIO (analog IO)" ]
+
+
+nodeDescIioChannel : Element Msg
+nodeDescIioChannel =
+    row [] [ Icon.io, text "IIO Channel" ]
+
+
 nodeDescMqtt : Element Msg
 nodeDescMqtt =
     row [] [ Icon.mqtt, text "MQTT" ]
@@ -1758,6 +1778,7 @@ viewAddNode customNodeType parent add =
                     , Input.option Node.typeCanBus nodeDescCanBus
                     , Input.option Node.typeGps nodeDescGps
                     , Input.option Node.typeGpio nodeDescGpio
+                    , Input.option Node.typeIio nodeDescIio
                     , Input.option Node.typeMqtt nodeDescMqtt
                     , Input.option Node.typeMsgService nodeDescMsgService
                     , Input.option Node.typeDb nodeDescDb
@@ -1783,6 +1804,7 @@ viewAddNode customNodeType parent add =
                             , Input.option Node.typeCanBus nodeDescCanBus
                             , Input.option Node.typeGps nodeDescGps
                             , Input.option Node.typeGpio nodeDescGpio
+                            , Input.option Node.typeIio nodeDescIio
                             , Input.option Node.typeMqtt nodeDescMqtt
                             , Input.option Node.typeMsgService nodeDescMsgService
                             , Input.option Node.typeDb nodeDescDb
@@ -1798,6 +1820,12 @@ viewAddNode customNodeType parent add =
                        )
                     ++ (if parent.node.typ == Node.typeModbus then
                             [ Input.option Node.typeModbusIO nodeDescModbusIO ]
+
+                        else
+                            []
+                       )
+                    ++ (if parent.node.typ == Node.typeIio then
+                            [ Input.option Node.typeIioChannel nodeDescIioChannel ]
 
                         else
                             []
