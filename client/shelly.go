@@ -114,7 +114,7 @@ done:
 				break
 			}
 
-			id := shellyDeviceID(e.Host, di)
+			id := shellyDeviceID(e.Host)
 			if id == "" {
 				break
 			}
@@ -231,13 +231,11 @@ func shellyHost(host string) bool {
 	return reShellyHost.MatchString(host)
 }
 
-// shellyDeviceID returns the id that identifies a device across address
-// changes. A Gen2 or later device reports its own id; for Gen1 the id is the
-// serial number in the mDNS hostname.
-func shellyDeviceID(host string, di shellyDeviceInfo) string {
-	if di.ID != "" {
-		return di.ID
-	}
+// shellyDeviceID returns the serial number in the mDNS hostname, which
+// identifies a device across address changes. A Gen2 or later device also
+// reports an id of its own, but it is derived from this same serial and using
+// it would give a device already on the tree a second identity.
+func shellyDeviceID(host string) string {
 	m := reShellyHost.FindStringSubmatch(host)
 	if len(m) < 2 {
 		return ""

@@ -79,7 +79,7 @@ nodes:
         - shellyIo:
             controlled: 1
             description: Bench light
-            deviceID: shellyplusplugus-b0b21c12ad58
+            deviceID: B0B21C12AD58
             disabled: 0
             gen: 2
             ip: 192.168.1.42

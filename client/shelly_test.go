@@ -314,14 +314,8 @@ func TestShellyHost(t *testing.T) {
 			if !test.match {
 				return
 			}
-			// With no id from the device, the id comes from the hostname.
-			if got := shellyDeviceID(test.host, shellyDeviceInfo{}); got != test.id {
+			if got := shellyDeviceID(test.host); got != test.id {
 				t.Errorf("id: exp %v, got %v", test.id, got)
-			}
-			// A device that reports its own id is identified by that.
-			di := shellyDeviceInfo{ID: "shellyplusplugus-b0b21c12ad58"}
-			if got := shellyDeviceID(test.host, di); got != di.ID {
-				t.Errorf("id: exp %v, got %v", di.ID, got)
 			}
 		})
 	}
