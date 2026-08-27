@@ -15,6 +15,7 @@
   - [Database](docs/user/database.md)
   - [GPIO](docs/user/gpio.md)
   - [GPS](docs/user/gps.md)
+  - [IIO (analog IO)](docs/user/iio.md)
   - [Modbus](docs/user/modbus.md)
   - [MQTT](docs/user/mqtt.md)
   - [1-Wire](docs/user/onewire.md)
