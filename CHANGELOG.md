@@ -38,6 +38,12 @@ For more details or to discuss releases, please visit the
   primary and the new edge as a mirror. A mirror made before this release still
   carries no role; remove it and mirror again to have both edges marked. See
   [Primary and mirror edges](docs/ref/data.md#primary-and-mirror-edges).
+- **Shelly discovery no longer misses devices on a busy network.** A scan
+  handed each mDNS answer straight to the code that reads the device, and the
+  scan discarded any answer that arrived while the previous one was still being
+  read. On a network with a dozen responders roughly half of them were lost each
+  minute, so a device could go unfound indefinitely. A scan now collects every
+  answer before reading any device.
 - **Shelly Plus 1PM, Plus i4, and RGBW2 devices now report correctly.** The Plus
   1PM read as unsupported, only the first of the Plus i4's four inputs appeared,
   and the RGBW2 reported nothing. Gen1 relay control now uses the right address

@@ -46,15 +46,40 @@ func NewShellyClient(nc *nats.Conn, config Shelly) Client {
 func (sc *ShellyClient) Run() error {
 	log.Println("Starting shelly client:", sc.config.Description)
 
-	entriesCh := make(chan *mdns.ServiceEntry, 4)
+	entriesCh := make(chan *mdns.ServiceEntry)
 
+	// The mDNS query drops an entry whenever the channel it was given is full,
+	// so it is collected here as fast as it arrives and handed to the loop
+	// afterwards. Answering the query takes well under a second, while looking
+	// at each device takes a round trip to it, and a scan that fed the loop
+	// directly would lose most of what a busy network answers with.
 	scan := func() {
+		found := make(chan *mdns.ServiceEntry, 64)
+		var entries []*mdns.ServiceEntry
+		collected := make(chan struct{})
+		go func() {
+			defer close(collected)
+			for e := range found {
+				entries = append(entries, e)
+			}
+		}()
+
 		params := mdns.DefaultParams("_http._tcp")
 		params.DisableIPv6 = true
-		params.Entries = entriesCh
+		params.Entries = found
 		err := mdns.Query(params)
+		close(found)
+		<-collected
 		if err != nil {
 			log.Println("mdns error:", err)
+		}
+
+		for _, e := range entries {
+			select {
+			case entriesCh <- e:
+			case <-sc.stop:
+				return
+			}
 		}
 	}
 
