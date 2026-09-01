@@ -95,6 +95,15 @@ every minute. Enabling the credential again lets it back in with what it queued.
 
 `lastConnect` and `connected` on each credential are maintained by the upstream.
 
+### What the store checks
+
+JetStream does not record who published a message, so the permission set is the
+enforcement point and the store cannot tell a device's write from anyone else's.
+What it does check: when it finds a replica stream for a boundary that is not a
+node in its tree, it logs a warning naming the stream. That is what a write that
+got past the permissions looks like, and also what a device deleted from the
+tree while its stream remains looks like, so the stream is still consumed.
+
 ### External NATS servers
 
 The authorizer is part of the embedded server. An instance started with

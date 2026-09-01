@@ -2,8 +2,8 @@
 
 **Branch:** `cbrake/master` **Branched from:** `cbc07a67`
 
-**Status:** Phases 0 through 3 complete. See "Decisions made while implementing"
-for where the implementation departs from the design below.
+**Status:** Phases 0 through 3 and 5 complete. See "Decisions made while
+implementing" for where the implementation departs from the design below.
 
 ## Context
 
@@ -332,7 +332,7 @@ working under `--deviceAuth=optional`.
 This phase is independent of Phases 2 and 3 and can be reordered or dropped if
 the HTTP device API is retired instead.
 
-### Phase 5: Stream-side validation
+### Phase 5: Stream-side validation — DONE
 
 Defense in depth from the Stage 3 plan (section 9): the upstream store, when
 consuming a replica stream `inst_X_X`, already only persists what arrives in
