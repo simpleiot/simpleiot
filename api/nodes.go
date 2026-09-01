@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
@@ -34,21 +36,101 @@ type NodeDelete struct {
 	Parent string
 }
 
+// DeviceAuthorizer answers whether a device public key is enrolled, and for
+// which device. The NATS authorizer implements it.
+type DeviceAuthorizer interface {
+	Device(pubKey string) (deviceID string, ok bool)
+}
+
 // Nodes handles node requests
 type Nodes struct {
 	check     RequestValidator
 	nc        *nats.Conn
 	authToken string
+	// deviceAuth resolves device tokens; nil accepts none.
+	deviceAuth DeviceAuthorizer
+	// deviceAuthRequired limits the shared token to loopback, the same as
+	// the NATS side.
+	deviceAuthRequired bool
 }
 
 // NewNodesHandler returns a new node handler
 func NewNodesHandler(v RequestValidator, authToken string,
-	nc *nats.Conn) http.Handler {
-	return &Nodes{v, nc, authToken}
+	nc *nats.Conn, deviceAuth DeviceAuthorizer, deviceAuthRequired bool) http.Handler {
+	return &Nodes{check: v, nc: nc, authToken: authToken,
+		deviceAuth: deviceAuth, deviceAuthRequired: deviceAuthRequired}
+}
+
+// authenticate works out who a request is from: the shared token (full
+// access), a user (JWT from login), or a device (JWT signed with its key,
+// limited to its own subtree).
+func (h *Nodes) authenticate(req *http.Request) (validUser bool, userID, deviceID string, ok bool) {
+	header := req.Header.Get("Authorization")
+
+	if header == h.authToken {
+		if h.deviceAuthRequired && !remoteIsLoopback(req.RemoteAddr) {
+			return false, "", "", false
+		}
+		return false, "", "", true
+	}
+
+	if valid, id := h.check.Valid(req); valid {
+		return true, id, "", true
+	}
+
+	if h.deviceAuth != nil {
+		if tok, found := strings.CutPrefix(header, "Bearer "); found {
+			pubKey, err := client.VerifyDeviceJWT(tok)
+			if err == nil {
+				if id, enrolled := h.deviceAuth.Device(pubKey); enrolled {
+					return false, "", id, true
+				}
+			}
+		}
+	}
+
+	return false, "", "", false
+}
+
+func remoteIsLoopback(addr string) bool {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		host = addr
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+// underDevice reports whether node id is the device or below it, following
+// parents up the tree.
+func (h *Nodes) underDevice(id, deviceID string) bool {
+	seen := map[string]bool{}
+	frontier := []string{id}
+
+	for len(frontier) > 0 {
+		cur := frontier[0]
+		frontier = frontier[1:]
+		if cur == deviceID {
+			return true
+		}
+		if seen[cur] {
+			continue
+		}
+		seen[cur] = true
+
+		parents, err := client.GetNodes(h.nc, "all", cur, "", false)
+		if err != nil {
+			return false
+		}
+		for _, p := range parents {
+			frontier = append(frontier, p.Parent)
+		}
+	}
+
+	return false
 }
 
 // Top level handler for http requests in the coap-server process
-// TODO need to add node auth
 func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	var id string
@@ -57,17 +139,25 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 
-	var validUser bool
-	var userID string
+	validUser, userID, deviceID, ok := h.authenticate(req)
+	if !ok {
+		http.Error(res, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
-	if req.Header.Get("Authorization") != h.authToken {
-		// all requests require valid JWT or authToken validation
-		validUser, userID = h.check.Valid(req)
-
-		if !validUser {
-			http.Error(res, "Unauthorized", http.StatusUnauthorized)
+	if deviceID != "" {
+		// a device reads and writes its own subtree and nothing else
+		allowed := (head == "" && req.Method == http.MethodGet) ||
+			((head == "points" || head == "samples" || head == "not") && req.Method == http.MethodPost)
+		if id == "" || !allowed {
+			http.Error(res, "Forbidden", http.StatusForbidden)
 			return
 		}
+		if !h.underDevice(id, deviceID) {
+			http.Error(res, "Forbidden", http.StatusForbidden)
+			return
+		}
+		userID = deviceID
 	}
 
 	if id == "" {

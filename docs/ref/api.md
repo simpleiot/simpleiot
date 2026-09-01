@@ -140,6 +140,10 @@ Most APIs that do not return specific data (update/delete) return a
       [notification](https://github.com/simpleiot/simpleiot/blob/master/data/notification.go)
       point on the node, which reaches the users and messaging services in scope
       as described in the [notification documentation](./notifications.md)
+  - Device access: a request with `Authorization: Bearer <jwt>` where the JWT is
+    signed by an enrolled device key (`client.DeviceJWT`) may GET a node, POST
+    points, or POST a notification, on the device node or below it. See the
+    [security reference](security.md#http).
   - `/v1/nodes/:id/key`
     - POST: generate a key pair for `deviceCred` node `id`. The public key is
       written on the node and `{pubKey, seed}` is returned; the seed is returned

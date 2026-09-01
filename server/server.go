@@ -517,13 +517,15 @@ func (s *Server) Run() error {
 	// HTTP API
 	// ====================================
 	httpAPI := api.NewServer(api.ServerArgs{
-		Port:       o.HTTPPort,
-		NatsWSPort: o.NatsWSPort,
-		Filesystem: http.FS(feFSDecomp),
-		Debug:      o.DebugHTTP,
-		JwtAuth:    siotStore.GetAuthorizer(),
-		AuthToken:  o.AuthToken,
-		Nc:         s.nc,
+		Port:               o.HTTPPort,
+		NatsWSPort:         o.NatsWSPort,
+		Filesystem:         http.FS(feFSDecomp),
+		Debug:              o.DebugHTTP,
+		JwtAuth:            siotStore.GetAuthorizer(),
+		AuthToken:          o.AuthToken,
+		Nc:                 s.nc,
+		DeviceAuth:         auth,
+		DeviceAuthRequired: o.DeviceAuth == DeviceAuthRequired,
 	})
 
 	g.Add(func() error {

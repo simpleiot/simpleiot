@@ -23,7 +23,11 @@ For more details or to discuss releases, please visit the
   and the [security reference](docs/ref/security.md#nats).
 - **`SIOT_DEVICE_AUTH=required`** (or `--deviceAuth required`) accepts the
   shared token only from the upstream's own host, so every remote connection
-  needs a device credential.
+  needs a device credential. This applies to the HTTP device API as well.
+- **Devices can use their key on the HTTP API.** A request with a short-lived
+  token signed by an enrolled device key can read nodes and post points and
+  notifications under its own device node, and nothing else. See the
+  [security reference](docs/ref/security.md#http).
 - **Credentials can be issued from the upstream.** A **Device credential** node
   in the UI takes the device's public key or generates a key and shows the seed
   once; `siot cred add|list|enable|disable|rm` does the same from the command

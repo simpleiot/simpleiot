@@ -17,13 +17,23 @@ incoming ports can be firewalled.
 
 ## HTTP
 
-The Web UI uses JWT (JSON web tokens).
+The Web UI uses JWT (JSON web tokens) issued at login.
 
-Devices can also communicate via HTTP and use a simple auth token. Eventually
-may want to switch to JWT or something similar to what NATS uses.
+Devices can also reach the node API over HTTP, with either credential the NATS
+side accepts:
 
-NOTE, it is important to set an auth token - otherwise there is no restriction
-on accessing the device API.
+- The shared token, sent as the `Authorization` header, grants full access.
+  Under `SIOT_DEVICE_AUTH=required` it is accepted only from loopback, as on the
+  NATS side.
+- A token signed with the device key, sent as `Authorization: Bearer <jwt>`. The
+  token is a NATS-style JWT whose issuer is the device's public key and which
+  expires within five minutes; the upstream verifies the signature, looks the
+  key up among its credentials, and limits the request to the device's own
+  subtree: reading nodes, posting points, and posting notifications, on the
+  device node or anything below it. `client.DeviceJWT` builds one from a seed.
+
+NOTE, it is important to set an auth token or use device credentials; otherwise
+there is no restriction on accessing the device API.
 
 ## NATS
 

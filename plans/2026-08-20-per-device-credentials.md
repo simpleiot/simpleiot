@@ -2,8 +2,8 @@
 
 **Branch:** `cbrake/master` **Branched from:** `cbc07a67`
 
-**Status:** Phases 0 through 3 and 5 complete. See "Decisions made while
-implementing" for where the implementation departs from the design below.
+**Status:** Phases 0 through 5 complete. See "Decisions made while implementing"
+for where the implementation departs from the design below.
 
 ## Context
 
@@ -319,7 +319,7 @@ Docs: `docs/user/sync.md` (replace the planned section with the workflow),
   prints the seed, and leaves the old one enabled for the operator to disable
   after `lastConnect` moves.
 
-### Phase 4: Scope the HTTP device API
+### Phase 4: Scope the HTTP device API — DONE
 
 `api/` accepts the shared token for device HTTP access (`docs/ref/security.md`
 "HTTP"). Devices that sync use NATS, so this path is secondary, but it is a

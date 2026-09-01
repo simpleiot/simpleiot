@@ -6,9 +6,15 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nats-io/jwt/v2"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nkeys"
 )
+
+// DeviceJWTLifetime is how long a device's HTTP token is good for. A device
+// signs a fresh one per request or per few minutes; a stolen token is
+// useful for no longer than this. Tests shorten it.
+var DeviceJWTLifetime = 5 * time.Minute
 
 // Subjects the server answers for this instance's device key. The bus is
 // trusted to the same degree as the shared token: whoever can ask here can
@@ -116,4 +122,49 @@ func GenerateDeviceKey() (seed, pubKey string, err error) {
 	}
 
 	return string(s), pubKey, nil
+}
+
+// DeviceJWT signs a short-lived token with the device key for the HTTP API.
+// The upstream verifies the signature against the issuer, which is the
+// device's public key, and looks that key up the same way it does for a
+// NATS connection.
+func DeviceJWT(seed string) (string, error) {
+	kp, err := nkeys.FromSeed([]byte(seed))
+	if err != nil {
+		return "", fmt.Errorf("not a device key seed: %w", err)
+	}
+
+	pubKey, err := kp.PublicKey()
+	if err != nil {
+		return "", err
+	}
+
+	claims := jwt.NewGenericClaims(pubKey)
+	claims.Expires = time.Now().Add(DeviceJWTLifetime).Unix()
+
+	return claims.Encode(kp)
+}
+
+// VerifyDeviceJWT checks a device token's signature and expiry and returns
+// the public key that signed it. Whether that key is enrolled is the
+// caller's question.
+func VerifyDeviceJWT(token string) (pubKey string, err error) {
+	claims, err := jwt.DecodeGeneric(token)
+	if err != nil {
+		return "", err
+	}
+
+	if !nkeys.IsValidPublicUserKey(claims.Issuer) {
+		return "", errors.New("token not signed by a device key")
+	}
+
+	now := time.Now().Unix()
+	if claims.Expires == 0 || claims.Expires > now+int64(DeviceJWTLifetime.Seconds())+60 {
+		return "", errors.New("token has no expiry or expires too far out")
+	}
+	if now > claims.Expires {
+		return "", errors.New("token expired")
+	}
+
+	return claims.Issuer, nil
 }

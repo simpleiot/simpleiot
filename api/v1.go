@@ -35,7 +35,7 @@ func (h *V1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 func NewV1Handler(args ServerArgs) http.Handler {
 	return &V1{
 		NodesHandler: NewNodesHandler(args.JwtAuth,
-			args.AuthToken, args.Nc),
+			args.AuthToken, args.Nc, args.DeviceAuth, args.DeviceAuthRequired),
 		AuthHandler: NewAuthHandler(args.Nc),
 		DeviceKeyHandler: NewDeviceKeyHandler(args.JwtAuth,
 			args.AuthToken, args.Nc),

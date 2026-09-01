@@ -200,6 +200,20 @@ func (a *authorizer) checkNkey(c server.ClientAuthentication, opts *server.Clien
 	return true
 }
 
+// Device implements api.DeviceAuthorizer: the device a public key is
+// enrolled for, when it is and its credential is live.
+func (a *authorizer) Device(pubKey string) (string, bool) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	e, ok := a.creds[pubKey]
+	if !a.ready || !ok || e.disabled {
+		return "", false
+	}
+
+	return e.deviceID, true
+}
+
 // originsFor lists the origins a device may pull from, sorted so the list
 // doubles as a fingerprint of the grant. Lock must be held.
 func (a *authorizer) originsFor(deviceID string) []string {
