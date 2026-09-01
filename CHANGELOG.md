@@ -13,6 +13,8 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+## [0.26.3] - 2026-09-01
+
 - **Node replies over NATS use the binary point encoding instead of protobuf.**
   A `nodes.*.*` or `auth.user` reply is now a small frame around the existing
   point encoding, so there is one wire format to implement. This is an
