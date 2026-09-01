@@ -116,9 +116,8 @@ rotation state machine.
    without affecting enrolled devices. This is Phase 6 and can ship after the
    rest.
 
-**User passwords are out of scope but noted.** `data.User.Pass` is stored in
-plaintext today. Hashing it is a separate change that this plan does not depend
-on; it is listed under follow-ups so it is not forgotten.
+**User passwords are out of scope.** They are already stored as bcrypt hashes
+(`data/password.go`), which this plan does not touch.
 
 ## Decisions made while implementing
 
@@ -387,7 +386,6 @@ image-build notes.
 
 Follow-ups, not opened as issues yet:
 
-- Hash user passwords (`data.User.Pass` is stored in plaintext).
 - Auth-callout variant of the authorizer for an external NATS server
   (`-natsDisableServer`), which today relies on that server's own configuration.
 - An MQTT credential type scoped to topics; the authorizer already gates the
