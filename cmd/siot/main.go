@@ -818,16 +818,20 @@ func runKey(args []string) {
 // to, which is the upstream:
 //
 //	siot cred add -device ID|DESCRIPTION [-description TEXT] [-pubKey KEY]
+//	siot cred rotate -device ID|DESCRIPTION [-description TEXT]
 //	siot cred list
 //	siot cred enable ID
 //	siot cred disable ID
 //	siot cred rm ID
 //
 // add generates a key and prints the seed once, unless -pubKey gives the
-// device's own key, in which case there is no seed to deliver.
+// device's own key, in which case there is no seed to deliver. rotate is
+// add for a device that already has a credential: it leaves the old one
+// enabled for the operator to disable once lastConnect moves to the new
+// one.
 func runCred(args []string) {
 	usage := func() {
-		fmt.Println("usage: siot cred add|list|enable|disable|rm ...")
+		fmt.Println("usage: siot cred add|rotate|list|enable|disable|rm ...")
 		os.Exit(1)
 	}
 
@@ -837,7 +841,10 @@ func runCred(args []string) {
 
 	switch args[0] {
 	case "add":
-		runCredAdd(args[1:])
+		runCredAdd(args[1:], false)
+
+	case "rotate":
+		runCredAdd(args[1:], true)
 
 	case "list":
 		nc := connectCLI(args[1:])
@@ -897,11 +904,14 @@ func runCred(args []string) {
 	}
 }
 
-func runCredAdd(args []string) {
+func runCredAdd(args []string, rotate bool) {
 	flags := flag.NewFlagSet("cred add", flag.ExitOnError)
 	flagDevice := flags.String("device", "", "device node ID or description (required)")
 	flagDescription := flags.String("description", "", "credential description")
 	flagPubKey := flags.String("pubKey", "", "the device's own public key (siot key show); generates a key when blank")
+	if rotate {
+		flagPubKey = new(string)
+	}
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
 	flagAuthToken := flags.String("token", "", "Auth token")
 
@@ -947,6 +957,9 @@ func runCredAdd(args []string) {
 	if seed != "" {
 		fmt.Println("seed:      ", seed)
 		fmt.Println("The seed is shown once. Install it on the device with: siot key install", seed)
+	}
+	if rotate {
+		fmt.Println("The device's other credentials stay enabled; disable them once lastConnect moves to this one (siot cred list).")
 	}
 }
 

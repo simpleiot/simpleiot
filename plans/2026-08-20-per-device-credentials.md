@@ -2,7 +2,7 @@
 
 **Branch:** `cbrake/master` **Branched from:** `cbc07a67`
 
-**Status:** Phases 0, 1, and 2 complete. See "Decisions made while implementing"
+**Status:** Phases 0 through 3 complete. See "Decisions made while implementing"
 for where the implementation departs from the design below.
 
 ## Context
@@ -302,7 +302,7 @@ Tests:
 Docs: `docs/user/sync.md` (replace the planned section with the workflow),
 `docs/user/configuration.md` provisioning section, `docs/ref/api.md`.
 
-### Phase 3: Revocation and rotation polish
+### Phase 3: Revocation and rotation polish — DONE
 
 - Device-side behavior on refusal: `EdgeConnect` error handler distinguishes
   `nats: Authorization Violation` from network errors; the sync node shows a

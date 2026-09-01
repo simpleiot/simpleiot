@@ -29,7 +29,9 @@ For more details or to discuss releases, please visit the
   once; `siot cred add|list|enable|disable|rm` does the same from the command
   line. The device takes the seed through **Install key** on its sync node,
   `siot key install`, or a top level `deviceKey` entry in a provisioning or
-  import file.
+  import file. `siot cred rotate` issues a second credential for a device so a
+  key is rotated without downtime, and a sync node whose credential is refused
+  says so in its `error` point.
 
 ### Changed
 

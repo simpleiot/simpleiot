@@ -132,8 +132,9 @@ allows.
 Revoking access is one action: disable the credential (or delete it, or delete
 the device node) and the upstream closes the device's connection and refuses it
 from then on. Nothing else in the fleet is affected. The device keeps running on
-its own and tries again every minute, so re-enabling the credential brings it
-back with everything it queued while it was out.
+its own, shows `credential refused by upstream` on its sync node, and tries
+again every minute, so re-enabling the credential brings it back with everything
+it queued while it was out.
 
 The upstream records `lastConnect` and `connected` on each credential, which is
 how to tell whether a device has picked up a new key.
@@ -214,7 +215,10 @@ cloning an instance in full.
 A device node may carry more than one credential, so a key is rotated without
 downtime: generate a new key, add a second `deviceCred` with its public key,
 install the seed on the device, wait for `lastConnect` on the new credential,
-then disable the old one.
+then disable the old one. `siot cred rotate -device "Gateway 42"` does the first
+two steps and prints the seed; the old credential stays enabled until you
+disable it. Messages the device publishes during the switch are not lost, since
+the replication consumer resumes where it left off.
 
 ## Videos
 

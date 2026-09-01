@@ -23,7 +23,11 @@ type Sync struct {
 	// PubKey is this instance's device key, shown so it can be enrolled on
 	// the upstream. The client maintains it; the key is used whenever no
 	// AuthToken is set.
-	PubKey         string `point:"pubKey"`
+	PubKey string `point:"pubKey"`
+	// Error says why the upstream is not connected when the reason is not
+	// going to fix itself, such as a refused credential. The client
+	// maintains it.
+	Error          string `point:"error"`
 	Disabled       bool   `point:"disabled"`
 	SyncCount      int    `point:"syncCount"`
 	SyncCountReset bool   `point:"syncCountReset"`
@@ -65,6 +69,10 @@ type SyncClient struct {
 // syncPullScanPeriod is how often the pull side rescans the upstream
 // for new origin streams in this instance's boundary.
 const syncPullScanPeriod = 2 * time.Second
+
+// SyncErrorRefused is the sync node's error when the upstream refuses its
+// credential: the key is not enrolled, or its credential is disabled.
+const SyncErrorRefused = "credential refused by upstream"
 
 // SyncRefusedRetry is how long to wait before connecting again after the
 // upstream closed the connection for good, which is what happens when it
@@ -114,6 +122,7 @@ done:
 		case conn := <-up.chConnected:
 			if conn && !connected {
 				connected = true
+				up.setError("")
 				up.startSession()
 			} else if !conn && connected {
 				connected = false
@@ -126,8 +135,11 @@ done:
 			// revoked); keep running standalone and try again later
 			connected = false
 			up.stopSession()
+			if up.ncRemote != nil && errors.Is(up.ncRemote.LastError(), nats.ErrAuthorization) {
+				up.setError(SyncErrorRefused)
+			}
 			up.disconnect()
-			log.Printf("Sync %v: upstream refused the connection, retrying in %v\n",
+			log.Printf("Sync %v: upstream closed the connection, retrying in %v\n",
 				up.config.Description, SyncRefusedRetry)
 			connectTimer.Reset(SyncRefusedRetry)
 
@@ -256,6 +268,20 @@ func (up *SyncClient) connect() error {
 	}
 
 	return nil
+}
+
+// setError records why the upstream is not connected, or clears it, on
+// the sync node.
+func (up *SyncClient) setError(msg string) {
+	if up.config.Error == msg {
+		return
+	}
+	up.config.Error = msg
+	err := SendNodePoint(up.nc, up.config.ID,
+		data.NewPointString(data.PointTypeError, "", msg), false)
+	if err != nil {
+		log.Println("Error sending sync error:", err)
+	}
 }
 
 func (up *SyncClient) disconnect() {

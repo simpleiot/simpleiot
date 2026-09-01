@@ -238,6 +238,10 @@ func TestSyncCredentialWrongDevice(t *testing.T) {
 // TestSyncCredentialUnknownKey checks that a key the upstream has never
 // seen is refused outright and the device keeps running.
 func TestSyncCredentialUnknownKey(t *testing.T) {
+	old := client.SyncRefusedRetry
+	client.SyncRefusedRetry = 2 * time.Second
+	defer func() { client.SyncRefusedRetry = old }()
+
 	ncU, _, optsU, stopU := credUpstream(t)
 	defer stopU()
 
@@ -259,10 +263,25 @@ func TestSyncCredentialUnknownKey(t *testing.T) {
 		t.Fatal("device got in with an unknown key")
 	}
 
-	// the device is still serving locally
+	// the device is still serving locally, and says why it is not synced
 	if _, err := client.GetRootNode(ncD); err != nil {
 		t.Fatal("device not serving after refusal:", err)
 	}
+	waitFor(t, 10*time.Second, "sync node does not report the refusal", func() bool {
+		syncs, err := client.GetNodesType[client.Sync](ncD, "all", "sync-id")
+		return err == nil && len(syncs) > 0 && syncs[0].Error == client.SyncErrorRefused
+	})
+
+	// enrolling the key clears the error once it connects
+	rootU, err := client.GetRootNode(ncU)
+	if err != nil {
+		t.Fatal(err)
+	}
+	enrollDevice(t, ncU, rootU, rootD.ID, "cred-1", devicePubKey(t, ncD))
+	waitFor(t, 90*time.Second, "device did not connect once enrolled", func() bool {
+		syncs, err := client.GetNodesType[client.Sync](ncD, "all", "sync-id")
+		return err == nil && len(syncs) > 0 && syncs[0].Error == ""
+	})
 }
 
 // TestSyncCredentialDetachedDevice deletes the device node on the upstream
