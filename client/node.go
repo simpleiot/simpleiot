@@ -50,7 +50,7 @@ func GetNodes(nc *nats.Conn, parent, id, typ string, includeDel bool) ([]data.No
 		return []data.NodeEdge{}, err
 	}
 
-	nodes, err := data.PbDecodeNodesRequest(nodeMsg.Data)
+	nodes, err := data.DecodeNodes(nodeMsg.Data)
 
 	if err != nil {
 		return []data.NodeEdge{}, err

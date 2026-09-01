@@ -13,8 +13,6 @@ import (
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/internal/pb"
-	"google.golang.org/protobuf/proto"
 )
 
 var reportMetricsPeriod = time.Minute
@@ -460,8 +458,7 @@ func (st *Store) handleNodesRequest(msg *nats.Msg) {
 		}
 	}()
 
-	resp := &pb.NodesRequest{}
-	var err error
+	var respErr error
 	var parent string
 	var nodeID string
 	var includeDel bool
@@ -470,7 +467,7 @@ func (st *Store) handleNodesRequest(msg *nats.Msg) {
 
 	chunks := strings.Split(msg.Subject, ".")
 	if len(chunks) < 3 {
-		resp.Error = fmt.Sprintf("Error in message subject: %v", msg.Subject)
+		respErr = fmt.Errorf("error in message subject: %v", msg.Subject)
 		goto handleNodeDone
 	}
 
@@ -480,7 +477,7 @@ func (st *Store) handleNodesRequest(msg *nats.Msg) {
 	if len(msg.Data) > 0 {
 		pts, err := data.DecodePoints(msg.Data)
 		if err != nil {
-			resp.Error = fmt.Sprintf("Error decoding points %v", err)
+			respErr = fmt.Errorf("error decoding points %v", err)
 			goto handleNodeDone
 		}
 
@@ -494,29 +491,13 @@ func (st *Store) handleNodesRequest(msg *nats.Msg) {
 		}
 	}
 
-	nodes, err = st.db.getNodes(nil, parent, nodeID, nodeType, includeDel)
-
-	if err != nil {
-		if err != data.ErrDocumentNotFound {
-			resp.Error = fmt.Sprintf("NATS handler: Error getting node %v from db: %v\n", nodeID, err)
-		} else {
-			resp.Error = data.ErrDocumentNotFound.Error()
-		}
+	nodes, respErr = st.db.getNodes(nil, parent, nodeID, nodeType, includeDel)
+	if respErr != nil && respErr != data.ErrDocumentNotFound {
+		respErr = fmt.Errorf("NATS handler: Error getting node %v from db: %v", nodeID, respErr)
 	}
 
 handleNodeDone:
-	resp.Nodes, err = nodes.ToPbNodes()
-	if err != nil {
-		resp.Error = fmt.Sprintf("Error pb encoding node: %v\n", err)
-	}
-
-	data, err := proto.Marshal(resp)
-	if err != nil {
-		log.Println("marshal error:", err)
-		return
-	}
-
-	err = st.nc.Publish(msg.Reply, data)
+	err := st.nc.Publish(msg.Reply, data.EncodeNodes(nodes, respErr))
 	if err != nil {
 		log.Println("NATS: Error publishing response to node request:", err)
 	}
@@ -526,7 +507,6 @@ handleNodeDone:
 func (st *Store) handleAuthUser(msg *nats.Msg) {
 	var points data.Points
 	var err error
-	resp := &pb.NodesRequest{}
 
 	returnNothing := func() {
 		err = st.nc.Publish(msg.Reply, nil)
@@ -599,16 +579,9 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 		},
 	})
 
-	resp.Nodes, err = nodes.ToPbNodes()
+	err = st.nc.Publish(msg.Reply, data.EncodeNodes(nodes, nil))
 	if err != nil {
-		resp.Error = fmt.Sprintf("Error pb encoding node: %v\n", err)
-	}
-
-	data, err := proto.Marshal(resp)
-
-	err = st.nc.Publish(msg.Reply, data)
-	if err != nil {
-		log.Println("NATS: Error publishing response to node request:", err)
+		log.Println("NATS: Error publishing response to auth.user request:", err)
 	}
 }
 

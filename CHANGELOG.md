@@ -11,6 +11,17 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Changed
+
+- **Node replies over NATS use the binary point encoding instead of protobuf.**
+  A `nodes.*.*` or `auth.user` reply is now a small frame around the existing
+  point encoding, so there is one wire format to implement. This is an
+  incompatible wire change: an older instance cannot read replies from a newer
+  one or the reverse, so upgrade every instance and device that sync with each
+  other at the same time. An external NATS client that reads node replies needs
+  the new decoder, and node replies no longer carry a hash. See the
+  [API reference](docs/ref/api.md#nats).
+
 ## [0.26.2] - 2026-08-27
 
 ### Changed

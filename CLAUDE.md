@@ -190,6 +190,8 @@ by `git commit --amend`.
 - NATS JetStream stores all application data (one stream per boundary/origin
   pair; see ADR-7)
 - System supports TLS with certificates via `siot_mkcert` and `siot_run_tls`
-- Protocol buffers used for efficient data serialization (`siot_protobuf`)
+- Points and node replies use the binary encoding in `data/point.go` and
+  `data/node.go`; protocol buffers (`siot_protobuf`) remain only for Sparkplug B
+  and file transfer
 - Cross-platform support (Linux, macOS, Windows with ARM variants)
 - Embedded systems focus - minimal dependencies and binary size optimization
