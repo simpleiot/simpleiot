@@ -8,9 +8,14 @@ The following are currently defined:
 - **General**
   - `SIOT_HTTP_PORT`: HTTP network port the SIOT server attaches to (default
     is 8118)
-  - `SIOT_DATA`: directory where any data is stored
+  - `SIOT_DATA`: directory where any data is stored, including the instance's
+    device key in `device.nkey`
   - `SIOT_AUTH_TOKEN`: auth token used for NATS and HTTP device API, default is
     blank (no auth)
+  - `SIOT_DEVICE_AUTH`: `optional` (the default) accepts the auth token from
+    anywhere; `required` accepts it only from this host, so remote devices need
+    a [device credential](sync.md#device-credentials). See the
+    [security reference](../ref/security.md#nats).
   - `OS_VERSION_FIELD`: the field in `/etc/os-release` used to extract the OS
     version information. Default is `VERSION`, which is common in most distros.
     The Yoe Distribution populates `VERSION_ID` with the update version, which

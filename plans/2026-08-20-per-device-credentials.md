@@ -2,6 +2,9 @@
 
 **Branch:** `cbrake/master` **Branched from:** `cbc07a67`
 
+**Status:** Phases 0 and 1 complete. See "Decisions made while implementing" for
+where the implementation departs from the design below.
+
 ## Context
 
 Every device that syncs to an upstream today presents the same shared token
@@ -117,27 +120,69 @@ rotation state machine.
 plaintext today. Hashing it is a separate change that this plan does not depend
 on; it is listed under follow-ups so it is not forgotten.
 
+## Decisions made while implementing
+
+- **The seed is a file, not a point.** Every point on a device is part of its
+  origin stream and replicates to the upstream, so a seed stored as `nkeySeed`
+  on the sync node would land in the upstream store and contradict "the upstream
+  holds only the public key". Each instance instead keeps one key in
+  `SIOT_DATA/device.nkey`, generated on first start, and the server answers
+  `auth.deviceKey` and `auth.installDeviceKey` on the local bus for the sync
+  client, the CLI (`siot key show|gen|install`), and later the provisioning
+  path. The sync node carries the public key as a read-only `pubKey` point so it
+  can be read off the device. A sync node uses the key whenever `authToken` is
+  blank; a token, when set, wins. This resolves open question 3.
+- **Pull permissions are enumerated per origin.** A JetStream stream name is a
+  single subject token, so `$JS.API.CONSUMER.CREATE.inst_X_*` cannot be
+  expressed. The authorizer tracks which origins have a stream in each boundary
+  (initial listing plus `$JS.EVENT.ADVISORY.STREAM.*` advisories), always
+  includes the upstream's own root, and closes a device's connection when its
+  boundary gains a stream so it reconnects with the new grant.
+- **Discovery uses `$JS.API.STREAM.NAMES`, not `STREAM.LIST`.** The sync client
+  now lists names with a subject filter and derives the origin from the name.
+  Names of every stream on the upstream are visible to a credentialed device
+  (instance IDs, nothing more); documented as a known boundary. This resolves
+  open question 1. The upstream does not pre-create `inst_X_X` (open question
+  2); the device keeps `STREAM.CREATE` on its own stream only.
+- **An open instance (no shared token) accepts an unknown key with full
+  access**, the same as a connection with no credentials, so a device with no
+  token keeps working against an open upstream. A known key is scoped even on an
+  open instance.
+- **Index maintenance rereads from the store.** Rather than mirroring tombstone
+  and parent semantics in memory, every change touching a credential (a point on
+  it, a new `deviceCred` edge, an edge change on a device that has credentials)
+  rereads that credential and its device from the store on a worker goroutine,
+  and `enforce` reconciles live connections against the index. Detached devices
+  (Phase 3) fell out of this for free.
+- **Refusal backoff on the device.** nats.go gives up after the same server
+  refuses it twice; the sync client then waits `SyncRefusedRetry` (one minute)
+  before connecting again, which is the "longer backoff" Phase 3 asked for.
+- **A new store query.** `nodes.all.all` with a `nodeType` point returns every
+  edge of that type, which is how the authorizer loads credentials without
+  walking the tree.
+
 ## Compatibility
 
 - `SIOT_AUTH_TOKEN` continues to work exactly as today and grants full access. A
   deployment that sets nothing still runs open, as today, with the existing
   warning.
-- A sync node with only `authToken` set behaves as before. A sync node with
-  `nkeySeed` set uses the NKey and ignores `authToken` for the NATS connection.
+- A sync node with `authToken` set behaves as before. A sync node with no
+  `authToken` presents the device key; against an open upstream that is accepted
+  as before, against one with a token the device needs a credential.
 - A new server flag/env `--deviceAuth=required` (`SIOT_DEVICE_AUTH`) refuses the
   shared token from non-local clients so an operator can finish a migration by
   turning the token off for devices while keeping it for the server's own client
   and the CLI. Default is `optional`.
 - The wire format, stream layout, and node schema of existing nodes do not
-  change. `deviceCred` is a new node type; `nkeySeed` is a new point on sync
-  nodes.
+  change. `deviceCred` is a new node type; `pubKey` is a new read-only point on
+  sync nodes.
 
 ## Phases
 
 Commit after each phase. Each phase updates `CHANGELOG.md` and the docs it
 affects.
 
-### Phase 0: Spike (no product code)
+### Phase 0: Spike (no product code) — DONE
 
 Goal: prove the four things the design depends on before building on them. Lives
 in `server/auth_spike_test.go`, kept as a regression test once green.
@@ -160,7 +205,7 @@ in `server/auth_spike_test.go`, kept as a regression test once green.
 Also confirm the WebSocket listener routes through the custom authenticator and
 that the MQTT listener (when the MQTT plan lands) does as well.
 
-### Phase 1: Authorizer and credential nodes
+### Phase 1: Authorizer and credential nodes — DONE
 
 - `data/schema.go`: `NodeTypeDeviceCred = "deviceCred"`, point types `pubKey`,
   `lastConnect`, `connected`, `nkeySeed`, `deviceAuth`.
@@ -215,6 +260,12 @@ permission table), `docs/user/configuration.md` (`SIOT_DEVICE_AUTH`),
 `docs/user/sync.md` schema section (`nkeySeed`).
 
 ### Phase 2: Upstream-issued credential workflow
+
+Adjusted for the file-based seed: the sync node has no `nkeySeed`, so "deliver
+the seed to the device" means `siot key install`, shipping `device.nkey`, or a
+top-level `deviceKey` entry in a provisioning or import file that `client.Apply`
+installs through `auth.installDeviceKey`. Export writes `deviceKey` only with
+`--secrets`.
 
 - UI (`frontend/src/Components/NodeDeviceCred.elm`, and an "Add credential"
   entry on device nodes): shows `pubKey`, `disabled`, `lastConnect`, and

@@ -11,7 +11,26 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Added
+
+- **Per-device credentials for sync.** Every instance now has a device key,
+  generated on first start in `SIOT_DATA/device.nkey`, and a sync node with no
+  `authToken` connects with it. An upstream accepts the key when a `deviceCred`
+  node under the device's node carries its public key, and limits the connection
+  to that device's own data. Disabling the credential closes the device's
+  connection at once. `siot key show`, `siot key gen`, and `siot key install`
+  manage the key. See [device credentials](docs/user/sync.md#device-credentials)
+  and the [security reference](docs/ref/security.md#nats).
+- **`SIOT_DEVICE_AUTH=required`** (or `--deviceAuth required`) accepts the
+  shared token only from the upstream's own host, so every remote connection
+  needs a device credential.
+
 ### Changed
+
+- **A sync node with no `authToken` now presents the device key instead of
+  nothing.** Against an upstream that has no token this changes nothing, since
+  an open instance accepts an unknown key with full access. Against an upstream
+  with a token, add a credential for the device before clearing its token.
 
 ## [0.26.4] - 2026-09-01
 

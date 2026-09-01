@@ -21,6 +21,7 @@ import (
 	"time"
 
 	yaml "github.com/goccy/go-yaml"
+	"github.com/nats-io/nats.go"
 	"github.com/oklog/run"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
@@ -53,6 +54,7 @@ func main() {
 		fmt.Println("  - export (export nodes to YAML file)")
 		fmt.Println("  - dump (describe a running instance for troubleshooting)")
 		fmt.Println("  - provision (check provisioning files, or print what they would do)")
+		fmt.Println("  - key (show, generate, or install this instance's device key)")
 		fmt.Println("  - update (update to the latest release)")
 	}
 
@@ -95,6 +97,8 @@ func main() {
 		runDump(args[1:])
 	case "provision":
 		runProvision(args[1:])
+	case "key":
+		runKey(args[1:])
 	case "update":
 		runUpdate(args[1:], version)
 	default:
@@ -751,6 +755,93 @@ func runProvision(args []string) {
 
 // provisioningFiles lists the YAML files in a directory, in the order
 // provisioning applies them.
+// runKey handles the device key:
+//
+//	siot key show           print this instance's public key
+//	siot key gen            print a new seed and public key (nothing is installed)
+//	siot key install SEED   replace this instance's key with an issued one
+//
+// An instance generates its own key on first start, so show is enough to
+// enroll it on an upstream. gen and install are for keys issued by the
+// upstream.
+func runKey(args []string) {
+	usage := func() {
+		fmt.Println("usage: siot key show | gen | install SEED")
+		os.Exit(1)
+	}
+
+	if len(args) < 1 {
+		usage()
+	}
+
+	switch args[0] {
+	case "gen":
+		seed, pubKey, err := client.GenerateDeviceKey()
+		if err != nil {
+			log.Fatal("Error generating key: ", err)
+		}
+		fmt.Printf("seed:   %v\n", seed)
+		fmt.Printf("pubKey: %v\n", pubKey)
+
+	case "show":
+		nc := connectCLI(args[1:])
+		_, pubKey, err := client.GetDeviceKey(nc)
+		if err != nil {
+			log.Fatal("Error getting device key: ", err)
+		}
+		fmt.Println(pubKey)
+
+	case "install":
+		if len(args) < 2 {
+			usage()
+		}
+		nc := connectCLI(args[2:])
+		pubKey, err := client.InstallDeviceKey(nc, args[1])
+		if err != nil {
+			log.Fatal("Error installing device key: ", err)
+		}
+		fmt.Println("installed, public key:", pubKey)
+
+	default:
+		usage()
+	}
+}
+
+// connectCLI connects a command to the local instance using the usual
+// -natsServer and -token flags and environment.
+func connectCLI(args []string) *nats.Conn {
+	flags := flag.NewFlagSet("key", flag.ExitOnError)
+	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
+	flagAuthToken := flags.String("token", "", "Auth token")
+
+	if err := flags.Parse(args); err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	natsServer := *flagNatsServer
+	if natsServer == defaultNatsServer {
+		if e := os.Getenv("SIOT_NATS_SERVER"); e != "" {
+			natsServer = e
+		}
+	}
+
+	authToken := *flagAuthToken
+	if authToken == "" {
+		authToken = os.Getenv("SIOT_AUTH_TOKEN")
+	}
+
+	nc, err := client.EdgeConnect(client.EdgeOptions{
+		URI:       natsServer,
+		AuthToken: authToken,
+		NoEcho:    true,
+	})
+	if err != nil {
+		log.Fatal("Error connecting to NATS server: ", err)
+	}
+
+	return nc
+}
+
 func provisioningFiles(dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {

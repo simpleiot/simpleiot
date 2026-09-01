@@ -18,8 +18,9 @@ IP addresses can also be used for the server name.
 Auth token is optional and needs to be
 [configured in an environment variable](configuration.md) for the upstream
 server. If your upstream is on the public internet, you should use an auth
-token. If both devices are on an internal network, then you may not need an auth
-token.
+token, or better, a [device credential](#device-credentials), which limits each
+device to its own data and can be revoked on its own. If both devices are on an
+internal network, then you may not need either.
 
 Typically, `wss` are simplest for servers that are fronted by a web server like
 Caddy that has TLS certs. For internal connections, `nats` or `ws` connections
@@ -96,8 +97,10 @@ nodes:
 ```
 
 `uri` is the upstream connection, written as one of the forms described above.
-`authToken` matches `SIOT_AUTH_TOKEN` on the upstream server and is left out
-when the upstream needs no token.
+`authToken` matches `SIOT_AUTH_TOKEN` on the upstream server. Leave it out to
+connect with the instance's [device key](#device-credentials) instead; the
+client then writes the public key on the node as `pubKey`, which is why an
+export of a running node carries one.
 
 A sync node belongs on the root node of the downstream instance, so a file that
 carries one leaves `parent` out and it attaches to the device node this instance
@@ -109,43 +112,70 @@ sync nodes the way you would treat the token itself.
 The count of synchronizations is a point the client maintains, so an export of a
 running node carries it as well.
 
-## Per-device credentials (planned)
+## Device credentials
 
-Today every device that syncs to an upstream presents the same shared auth
-token. That keeps setup simple, but it means one token protects the whole fleet:
-if a device is lost, sold, or compromised, the only way to lock it out is to
-rotate the token and update every other device.
+Every instance has a device key, generated the first time it starts and kept in
+`device.nkey` under `SIOT_DATA`. The key is the instance's identity when it
+connects to an upstream: a sync node with no `authToken` signs the upstream's
+connection challenge with it, so the secret never leaves the device. The public
+half is shown on the sync node as `pubKey`, and `siot key show` prints it.
 
-The plan is to give each device its own credential so access can be granted and
-revoked one device at a time. The intended behavior:
+An upstream accepts a device key when a `deviceCred` node under the device's
+node carries the matching `pubKey`. The credential limits the connection to that
+one device: it can push its own data and pull the configuration written for it,
+and nothing else. A device cannot publish as another device or read another
+device's configuration, and the upstream holds only public keys, so an export or
+a copy of its store gives away nothing that could impersonate a device. The
+[security reference](../ref/security.md#nats) lists exactly what a credential
+allows.
 
-- **Each device gets its own credential.** When a device is added on the
-  upstream (or connects for the first time and is approved), the upstream issues
-  a credential that identifies that one device. The credential replaces the
-  shared `authToken` on the device's sync node.
-- **Revoking access is a single action.** Disabling or deleting the device's
-  credential on the upstream closes its connection and rejects further
-  connections from it. No other device is affected and nothing needs to be
-  redeployed.
-- **A device can only touch its own data.** A credential is scoped so the device
-  can write to its own subtree and read the configuration meant for it, and
-  nothing else. A compromised device cannot publish data as another device or
-  read another device's configuration.
-- **Rotation without downtime.** A new credential can be issued while the old
-  one is still valid, pushed to the device through sync, and the old one retired
-  once the device has reconnected with the new one.
-- **Works the same on every transport.** The same credential applies whether the
-  device connects over `nats://`, `ws://`, or `wss://`, and the same model is
-  intended for devices that speak [MQTT](plc.md#mqtt-planned) to the built-in
-  broker.
+Revoking access is one action: disable the credential (or delete it, or delete
+the device node) and the upstream closes the device's connection and refuses it
+from then on. Nothing else in the fleet is affected. The device keeps running on
+its own and tries again every minute, so re-enabling the credential brings it
+back with everything it queued while it was out.
 
-Under the hood this builds on the NATS security model: per-device permissions
-are issued at connect time and limited to the streams that belong to the device,
-which the [one-stream-per-device store layout](../ref/store.md) makes
-straightforward. The shared auth token will continue to work so existing
-deployments are not disrupted, but once per-device credentials are available
-they are the recommended setup for any fleet on the public internet. See the
-[security reference](../ref/security.md) for the current state.
+The upstream records `lastConnect` and `connected` on each credential, which is
+how to tell whether a device has picked up a new key.
+
+### Enrolling a device
+
+1. Let the device sync once with the shared `authToken`, which creates its
+   device node on the upstream, or create the device node some other way.
+2. On the upstream, add a `deviceCred` node under the device's node with the
+   device's public key. Read the key off the device's sync node, or run
+   `siot key show` on it. As a provisioning or import file:
+
+   ```yaml
+   nodes:
+     - deviceCred:
+         parent: Gateway 42
+         description: gateway 42
+         pubKey: UBXF3PJZPNL5CW35ECS2U3XG5EODFUUQ6XRNEZTJA3EFNP33K7Z54UCM
+   ```
+
+3. Clear `authToken` on the device's sync node. The device reconnects with its
+   key.
+4. Once every device has a credential, set `SIOT_DEVICE_AUTH=required` on the
+   upstream so the shared token is accepted only from the upstream's own host.
+   See [configuration](configuration.md#environment-variables).
+
+### Keys issued by the upstream
+
+A key can also be made on the upstream and delivered to the device, which suits
+building images and bench setup. `siot key gen` prints a new seed and public
+key. Enroll the public key as above, and give the device the seed with
+`siot key install SEED` on the device, or by shipping it as
+`SIOT_DATA/device.nkey`. A running instance switches to the installed key
+straight away. Treat the seed as you would the shared token: it is the device's
+identity.
+
+### Rotating a key
+
+A device node may carry more than one credential, so a key is rotated without
+downtime: generate a new key, add a second `deviceCred` with its public key,
+install the seed on the device, wait for `lastConnect` on the new credential,
+then disable the old one.
 
 ## Videos
 

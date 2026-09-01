@@ -273,6 +273,17 @@ const (
 
 	NodeTypeSync = "sync"
 
+	// NodeTypeDeviceCred is a credential for one device. It sits under the
+	// device node on the upstream and holds only the public key; the
+	// authorizer scopes a connection presenting the matching seed to that
+	// device's data. The seed stays in a file on the device (never a point,
+	// since a device's points replicate upstream) and the device's sync
+	// nodes carry the public key so it can be read off the device. See
+	// docs/ref/security.md.
+	NodeTypeDeviceCred   = "deviceCred"
+	PointTypePubKey      = "pubKey"
+	PointTypeLastConnect = "lastConnect"
+
 	PointTypeMetricNatsCycleNodePoint          = "metricNatsCycleNodePoint"
 	PointTypeMetricNatsCycleNodeEdgePoint      = "metricNatsCycleNodeEdgePoint"
 	PointTypeMetricNatsCycleNode               = "metricNatsCycleNode"

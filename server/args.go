@@ -32,6 +32,8 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	flagStore := flags.String("store", "siot.sqlite", "store file, default siot.sqlite")
 	flagResetStore := flags.Bool("resetStore", false, "permanently wipe data in store at start-up")
 	flagAuthToken := flags.String("token", "", "auth token")
+	flagDeviceAuth := flags.String("deviceAuth", "",
+		"'optional' (default) accepts the shared token from anywhere; 'required' accepts it only from this host, so remote devices need a credential")
 	flagSyslog := flags.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDev := flags.Bool("dev", false, "run server in development mode")
 	flagCustomUIDir := flags.String("customUIDir", "", "pass custom UI directory")
@@ -147,6 +149,19 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	authToken := os.Getenv("SIOT_AUTH_TOKEN")
 	if *flagAuthToken != "" {
 		authToken = *flagAuthToken
+	}
+
+	deviceAuth := *flagDeviceAuth
+	if deviceAuth == "" {
+		deviceAuth = os.Getenv("SIOT_DEVICE_AUTH")
+	}
+
+	switch deviceAuth {
+	case "", DeviceAuthOptional, DeviceAuthRequired:
+	default:
+		log.Printf("Error parsing device auth %q: expected %q or %q",
+			deviceAuth, DeviceAuthOptional, DeviceAuthRequired)
+		os.Exit(-1)
 	}
 
 	if *flagSyslog {
@@ -273,6 +288,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 		NatsTLSKey:        natsTLSKey,
 		NatsTLSTimeout:    natsTLSTimeout,
 		AuthToken:         authToken,
+		DeviceAuth:        deviceAuth,
 		ParticleAPIKey:    particleAPIKey,
 		OSVersionField:    osVersionField,
 		Dev:               *flagDev,

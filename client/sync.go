@@ -15,11 +15,15 @@ import (
 
 // Sync represents a sync node config
 type Sync struct {
-	ID             string `node:"id"`
-	Parent         string `node:"parent"`
-	Description    string `point:"description"`
-	URI            string `point:"uri"`
-	AuthToken      string `point:"authToken"`
+	ID          string `node:"id"`
+	Parent      string `node:"parent"`
+	Description string `point:"description"`
+	URI         string `point:"uri"`
+	AuthToken   string `point:"authToken"`
+	// PubKey is this instance's device key, shown so it can be enrolled on
+	// the upstream. The client maintains it; the key is used whenever no
+	// AuthToken is set.
+	PubKey         string `point:"pubKey"`
 	Disabled       bool   `point:"disabled"`
 	SyncCount      int    `point:"syncCount"`
 	SyncCountReset bool   `point:"syncCountReset"`
@@ -48,6 +52,7 @@ type SyncClient struct {
 	newPoints     chan NewPoints
 	newEdgePoints chan NewPoints
 	chConnected   chan bool
+	chClosed      chan struct{}
 
 	rootLocal data.NodeEdge
 	ncRemote  *nats.Conn
@@ -61,6 +66,12 @@ type SyncClient struct {
 // for new origin streams in this instance's boundary.
 const syncPullScanPeriod = 2 * time.Second
 
+// SyncRefusedRetry is how long to wait before connecting again after the
+// upstream closed the connection for good, which is what happens when it
+// refuses the credential twice. A refused key is not going to start
+// working by trying faster. Tests shorten it.
+var SyncRefusedRetry = time.Minute
+
 // NewSyncClient constructor
 func NewSyncClient(nc *nats.Conn, config Sync) Client {
 	return &SyncClient{
@@ -70,6 +81,7 @@ func NewSyncClient(nc *nats.Conn, config Sync) Client {
 		newPoints:     make(chan NewPoints),
 		newEdgePoints: make(chan NewPoints),
 		chConnected:   make(chan bool),
+		chClosed:      make(chan struct{}, 1),
 	}
 }
 
@@ -108,6 +120,17 @@ done:
 				up.stopSession()
 			}
 
+		case <-up.chClosed:
+			// the client gave up reconnecting (the upstream refused
+			// it twice, typically because the credential was
+			// revoked); keep running standalone and try again later
+			connected = false
+			up.stopSession()
+			up.disconnect()
+			log.Printf("Sync %v: upstream refused the connection, retrying in %v\n",
+				up.config.Description, SyncRefusedRetry)
+			connectTimer.Reset(SyncRefusedRetry)
+
 		case pts := <-up.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &up.config)
 			if err != nil {
@@ -118,7 +141,8 @@ done:
 				switch p.Type {
 				case data.PointTypeURI,
 					data.PointTypeAuthToken,
-					data.PointTypeDisabled:
+					data.PointTypeDisabled,
+					data.PointTypePubKey:
 					// we need to restart the sync connection
 					connected = false
 					up.stopSession()
@@ -198,7 +222,30 @@ func (up *SyncClient) connect() error {
 		},
 		Closed: func() {
 			log.Printf("Sync: %v: Remote Closed\n", up.config.Description)
+			select {
+			case up.chClosed <- struct{}{}:
+			default:
+			}
 		},
+	}
+
+	if up.config.AuthToken == "" {
+		// no token: connect with this instance's device key
+		seed, pubKey, err := GetDeviceKey(up.nc)
+		if err != nil {
+			log.Printf("Sync %v: no device key, connecting without credentials: %v",
+				up.config.Description, err)
+		} else {
+			opts.NkeySeed = seed
+			if pubKey != up.config.PubKey {
+				up.config.PubKey = pubKey
+				err := SendNodePoint(up.nc, up.config.ID,
+					data.NewPointString(data.PointTypePubKey, "", pubKey), false)
+				if err != nil {
+					log.Println("Error sending sync pubKey:", err)
+				}
+			}
+		}
 	}
 
 	var err error
@@ -215,6 +262,12 @@ func (up *SyncClient) disconnect() {
 	if up.ncRemote != nil {
 		up.ncRemote.Close()
 		up.ncRemote = nil
+	}
+
+	// a close we asked for is not a refusal
+	select {
+	case <-up.chClosed:
+	default:
 	}
 }
 
@@ -331,32 +384,37 @@ func (up *SyncClient) runSession(ctx context.Context, ncRemote *nats.Conn) error
 }
 
 // scanPulls discovers upstream-origin streams for our boundary and
-// starts a pull pump for each new one.
+// starts a pull pump for each new one. It asks for names rather than
+// configurations, which is the one JetStream listing a device credential
+// allows (see server/auth.go); every stream in our boundary is named
+// inst_<boundary>_<origin>, so the origin is the rest of the name.
 func (up *SyncClient) scanPulls(ctx context.Context, jsLocal, jsRemote jetstream.JetStream,
 	boundary string, pulls map[string]pumpStopper) {
 
-	lister := jsRemote.ListStreams(ctx,
+	lister := jsRemote.StreamNames(ctx,
 		jetstream.WithStreamListSubject(fmt.Sprintf("inst.%v.>", boundary)))
 
-	for si := range lister.Info() {
-		b, o, ok := streamBoundaryOrigin(si.Config)
-		if !ok || b != boundary || o == boundary {
+	prefix := fmt.Sprintf("inst_%v_", boundary)
+
+	for name := range lister.Name() {
+		o, ok := strings.CutPrefix(name, prefix)
+		if !ok || o == "" || o == boundary {
 			continue
 		}
-		if _, running := pulls[si.Config.Name]; running {
+		if _, running := pulls[name]; running {
 			continue
 		}
 
-		cc, err := runPump(ctx, jsRemote, jsLocal, b, o, boundary)
+		cc, err := runPump(ctx, jsRemote, jsLocal, boundary, o, boundary)
 		if err != nil {
 			log.Printf("Sync %v: error starting pull replication %v: %v\n",
-				up.config.Description, si.Config.Name, err)
+				up.config.Description, name, err)
 			continue
 		}
 
 		log.Printf("Sync %v: replicating %v from upstream\n",
-			up.config.Description, si.Config.Name)
-		pulls[si.Config.Name] = cc
+			up.config.Description, name)
+		pulls[name] = cc
 	}
 	if err := lister.Err(); err != nil && ctx.Err() == nil {
 		log.Printf("Sync %v: error listing upstream streams: %v\n",
@@ -364,9 +422,9 @@ func (up *SyncClient) scanPulls(ctx context.Context, jsLocal, jsRemote jetstream
 	}
 }
 
-// streamBoundaryOrigin extracts the boundary and origin IDs from a
+// StreamBoundaryOrigin extracts the boundary and origin IDs from a
 // boundary-origin stream's capture subject ("inst.<b>.<o>.>").
-func streamBoundaryOrigin(cfg jetstream.StreamConfig) (boundary, origin string, ok bool) {
+func StreamBoundaryOrigin(cfg jetstream.StreamConfig) (boundary, origin string, ok bool) {
 	if len(cfg.Subjects) != 1 {
 		return "", "", false
 	}
