@@ -10,8 +10,10 @@ import (
 // DeviceKeyResponse is the reply to key requests. Seed is present only when a
 // key was generated, and is never stored.
 type DeviceKeyResponse struct {
-	PubKey string `json:"pubKey"`
+	PubKey string `json:"pubKey,omitempty"`
 	Seed   string `json:"seed,omitempty"`
+	// Token is present when an enrollment token was generated, once.
+	Token string `json:"token,omitempty"`
 }
 
 // DeviceKeyInstall is the body of a key install.

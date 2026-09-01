@@ -210,6 +210,42 @@ as you would the shared token: it is the device's identity.
 the top of the file; `siot export -secrets` includes both, for backing up or
 cloning an instance in full.
 
+### Devices that enroll themselves
+
+For a fleet built from one image, no unit can carry its own key in advance, and
+reading each unit's key off it does not scale. An _enrollment token_ lets every
+unit ask for its own credential:
+
+1. On the upstream, add an **Enrollment token** node under the root and press
+   **Generate token**, or run `siot cred token -description fleet`. The token is
+   shown once; only its hash is stored. **Approve enrolled devices
+   automatically** (`-autoApprove`) skips the approval step, and an expiry
+   (`-expires 720h`) limits how long the token works.
+2. Put the token on each device's sync node as `enrollToken`, with no
+   `authToken`. In an image that is one line in the provisioning file:
+
+   ```yaml
+   nodes:
+     - sync:
+         description: Cloud
+         uri: wss://myserver.com
+         enrollToken: ETXXXX...
+   ```
+
+3. When the upstream refuses the device's key, the device connects with the
+   token, which allows exactly one thing, and asks for a credential for its key.
+   The upstream creates the device node if it is new and a credential under it
+   marked **pending approval**; the device's sync node says
+   `enrollment pending approval on upstream` and keeps trying every minute.
+4. Approve the credential: uncheck **Pending approval** on it, or run
+   `siot cred approve ID` (`siot cred list` shows pending ones). The device
+   connects on its next try.
+
+Revoking the enrollment token, by disabling or deleting its node, stops new
+enrollments and does not affect devices already enrolled. A device that enrolls
+again with a different key gets a second, pending credential; the approved one
+is never replaced without an operator.
+
 ### Rotating a key
 
 A device node may carry more than one credential, so a key is rotated without

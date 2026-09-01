@@ -411,6 +411,11 @@ func (h *Nodes) generateKey(res http.ResponseWriter, id, userID string) {
 		return
 	}
 
+	if nodes[0].Type == data.NodeTypeEnrollToken {
+		h.generateEnrollToken(res, id, userID)
+		return
+	}
+
 	if nodes[0].Type != data.NodeTypeDeviceCred {
 		http.Error(res, "not a device credential node", http.StatusBadRequest)
 		return
@@ -430,6 +435,27 @@ func (h *Nodes) generateKey(res http.ResponseWriter, id, userID string) {
 	}
 
 	if err := encode(res, DeviceKeyResponse{PubKey: pubKey, Seed: seed}); err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// generateEnrollToken makes a token for an enrollToken node: the hash is
+// written on the node and the token is returned once.
+func (h *Nodes) generateEnrollToken(res http.ResponseWriter, id, userID string) {
+	token, hash, err := client.GenerateEnrollToken()
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	p := data.NewPointString(data.PointTypeTokenHash, "", hash)
+	p.Origin = userID
+	if err := client.SendNodePoint(h.nc, id, p, true); err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := encode(res, DeviceKeyResponse{Token: token}); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 }

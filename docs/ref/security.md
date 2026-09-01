@@ -61,6 +61,12 @@ NATS accounts file to manage. Two kinds of credential are accepted:
   connection arriving through a reverse proxy on the same host looks local, so
   `required` limits the token only on ports that are reached directly.
 
+An **enrollment token** is a third, narrower credential: a connection presenting
+one may publish to `enroll.request` and subscribe to its reply inbox, and
+nothing else. It exists so a device with no credential can ask for one; see
+[Devices that enroll themselves](../user/sync.md#devices-that-enroll-themselves).
+Only a hash of the token is stored, in an `enrollToken` node.
+
 ### What a device credential allows
 
 A device with root ID `X`, connecting to an upstream with root ID `R`, is

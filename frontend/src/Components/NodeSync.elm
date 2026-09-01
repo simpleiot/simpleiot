@@ -60,6 +60,7 @@ view o =
                     , textInput Point.typeURI "URI" "nats://myserver:4222, ws://myserver"
                     , textInput Point.typeAuthToken "Auth Token" ""
                     , viewIf (authToken == "") <| viewDeviceKey o pubKey
+                    , viewIf (authToken == "") <| textInput Point.typeEnrollToken "Enroll Token" "optional, from the upstream"
                     , checkboxInput Point.typeDisabled "Disabled"
                     , counterWithReset Point.typeSyncCount Point.typeSyncCountReset "Sync Count"
                     ]

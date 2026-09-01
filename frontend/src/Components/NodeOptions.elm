@@ -21,6 +21,7 @@ type alias GeneratedKey =
     { id : String
     , pubKey : String
     , seed : String
+    , token : String
     }
 
 

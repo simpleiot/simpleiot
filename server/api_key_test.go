@@ -9,32 +9,44 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 )
 
-// apiLogin logs the default admin user in and returns the JWT.
+// apiLogin logs the default admin user in and returns the JWT. The admin
+// user is created shortly after the store starts, so a login right after
+// start-up is retried.
 func apiLogin(t *testing.T, base string) string {
 	t.Helper()
 
-	resp, err := http.PostForm(base+"/v1/auth",
-		url.Values{"email": {"admin"}, "password": {"admin"}})
-	if err != nil {
-		t.Fatal("login:", err)
-	}
-	defer resp.Body.Close()
+	deadline := time.Now().Add(10 * time.Second)
+	var last string
 
-	var auth data.Auth
-	if err := json.NewDecoder(resp.Body).Decode(&auth); err != nil {
-		t.Fatal("decode login:", err)
-	}
-	if auth.Token == "" {
-		t.Fatal("no token from login")
+	for time.Now().Before(deadline) {
+		resp, err := http.PostForm(base+"/v1/auth",
+			url.Values{"email": {"admin"}, "password": {"admin"}})
+		if err != nil {
+			t.Fatal("login:", err)
+		}
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		var auth data.Auth
+		if resp.StatusCode == http.StatusOK &&
+			json.Unmarshal(body, &auth) == nil && auth.Token != "" {
+			return auth.Token
+		}
+
+		last = fmt.Sprintf("%v: %s", resp.StatusCode, body)
+		http.DefaultClient.CloseIdleConnections()
+		time.Sleep(200 * time.Millisecond)
 	}
 
-	return auth.Token
+	t.Fatal("login never succeeded, last reply:", last)
+	return ""
 }
 
 func apiDo(t *testing.T, method, url, token string, body any) (int, []byte) {
@@ -77,6 +89,9 @@ func TestAPIDeviceKey(t *testing.T) {
 	defer stop()
 
 	base := "http://localhost:" + TestServerOptions.HTTPPort
+	// a keep-alive connection to a previous test's server would reach a
+	// server whose NATS client is closed
+	http.DefaultClient.CloseIdleConnections()
 	token := apiLogin(t, base)
 
 	// ---- generating a key for a credential node

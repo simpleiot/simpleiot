@@ -819,6 +819,8 @@ func runKey(args []string) {
 //
 //	siot cred add -device ID|DESCRIPTION [-description TEXT] [-pubKey KEY]
 //	siot cred rotate -device ID|DESCRIPTION [-description TEXT]
+//	siot cred approve ID
+//	siot cred token [-description TEXT] [-autoApprove] [-expires DURATION]
 //	siot cred list
 //	siot cred enable ID
 //	siot cred disable ID
@@ -831,7 +833,7 @@ func runKey(args []string) {
 // one.
 func runCred(args []string) {
 	usage := func() {
-		fmt.Println("usage: siot cred add|rotate|list|enable|disable|rm ...")
+		fmt.Println("usage: siot cred add|rotate|approve|token|list|enable|disable|rm ...")
 		os.Exit(1)
 	}
 
@@ -845,6 +847,21 @@ func runCred(args []string) {
 
 	case "rotate":
 		runCredAdd(args[1:], true)
+
+	case "approve":
+		if len(args) < 2 {
+			usage()
+		}
+		nc := connectCLI(args[2:])
+		p := data.NewPointFloat(data.PointTypePending, "", 0)
+		p.Origin = "cli"
+		if err := client.SendNodePoint(nc, args[1], p, true); err != nil {
+			log.Fatal("Error approving credential: ", err)
+		}
+		fmt.Println("approved", args[1])
+
+	case "token":
+		runCredToken(args[1:])
 
 	case "list":
 		nc := connectCLI(args[1:])
@@ -862,6 +879,9 @@ func runCred(args []string) {
 			state := "enabled"
 			if cred.Disabled {
 				state = "disabled"
+			}
+			if cred.Pending {
+				state = "pending"
 			}
 			if cred.Connected {
 				state += "*"
@@ -961,6 +981,52 @@ func runCredAdd(args []string, rotate bool) {
 	if rotate {
 		fmt.Println("The device's other credentials stay enabled; disable them once lastConnect moves to this one (siot cred list).")
 	}
+}
+
+// runCredToken creates an enrollment token under the root and prints it
+// once.
+func runCredToken(args []string) {
+	flags := flag.NewFlagSet("cred token", flag.ExitOnError)
+	flagDescription := flags.String("description", "", "token description")
+	flagAutoApprove := flags.Bool("autoApprove", false, "approve enrolled credentials straight away")
+	flagExpires := flags.Duration("expires", 0, "refuse the token after this long (for example 720h); zero never expires")
+	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
+	flagAuthToken := flags.String("token", "", "Auth token")
+
+	if err := flags.Parse(args); err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	nc := connectCLI([]string{"-natsServer", *flagNatsServer, "-token", *flagAuthToken})
+
+	root, err := client.GetRootNode(nc)
+	if err != nil {
+		log.Fatal("Error getting root node: ", err)
+	}
+
+	token, hash, err := client.GenerateEnrollToken()
+	if err != nil {
+		log.Fatal("Error generating token: ", err)
+	}
+
+	et := client.EnrollToken{
+		ID:          uuid.New().String(),
+		Parent:      root.ID,
+		Description: *flagDescription,
+		TokenHash:   hash,
+		AutoApprove: *flagAutoApprove,
+	}
+	if *flagExpires > 0 {
+		et.Expires = float64(time.Now().Add(*flagExpires).Unix())
+	}
+
+	if err := client.SendNodeType(nc, et, "cli"); err != nil {
+		log.Fatal("Error creating enrollment token: ", err)
+	}
+
+	fmt.Println("enrollment token node:", et.ID)
+	fmt.Println("token:", token)
+	fmt.Println("The token is shown once. Put it on each device's sync node as enrollToken.")
 }
 
 // findDevice resolves a device node by ID, or by description when exactly

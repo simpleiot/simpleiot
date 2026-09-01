@@ -25,6 +25,7 @@ module Api.Node exposing
     , typeDb
     , typeDevice
     , typeDeviceCred
+    , typeEnrollToken
     , typeFile
     , typeGpio
     , typeGps
@@ -78,6 +79,11 @@ typeDevice =
 typeDeviceCred : String
 typeDeviceCred =
     "deviceCred"
+
+
+typeEnrollToken : String
+typeEnrollToken =
+    "enrollToken"
 
 
 typeGroup : String
@@ -537,23 +543,27 @@ insert options =
 
 
 {-| DeviceKey is the reply to key requests. The seed is present only when a
-key was generated, and is shown once.
+key was generated, the token only when an enrollment token was; both are
+shown once.
 -}
 type alias DeviceKey =
     { pubKey : String
     , seed : String
+    , token : String
     }
 
 
 decodeDeviceKey : Decode.Decoder DeviceKey
 decodeDeviceKey =
     Decode.succeed DeviceKey
-        |> required "pubKey" Decode.string
+        |> optional "pubKey" Decode.string ""
         |> optional "seed" Decode.string ""
+        |> optional "token" Decode.string ""
 
 
-{-| generateKey makes a key for a deviceCred node. The public key is stored on
-the node; the seed comes back once for the operator to carry to the device.
+{-| generateKey makes a key for a deviceCred node, or a token for an
+enrollToken node. What is stored on the node is the public key or the hash;
+the seed or token comes back once.
 -}
 generateKey :
     { token : String

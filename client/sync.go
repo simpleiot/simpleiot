@@ -24,6 +24,9 @@ type Sync struct {
 	// the upstream. The client maintains it; the key is used whenever no
 	// AuthToken is set.
 	PubKey string `point:"pubKey"`
+	// EnrollToken lets an instance whose key is not enrolled ask the
+	// upstream for a credential; see docs/user/sync.md.
+	EnrollToken string `point:"enrollToken"`
 	// Error says why the upstream is not connected when the reason is not
 	// going to fix itself, such as a refused credential. The client
 	// maintains it.
@@ -69,6 +72,10 @@ type SyncClient struct {
 // syncPullScanPeriod is how often the pull side rescans the upstream
 // for new origin streams in this instance's boundary.
 const syncPullScanPeriod = 2 * time.Second
+
+// SyncErrorPending is the sync node's error while an enrollment waits for
+// approval on the upstream.
+const SyncErrorPending = "enrollment pending approval on upstream"
 
 // SyncErrorRefused is the sync node's error when the upstream refuses its
 // credential: the key is not enrolled, or its credential is disabled.
@@ -135,13 +142,22 @@ done:
 			// revoked); keep running standalone and try again later
 			connected = false
 			up.stopSession()
-			if up.ncRemote != nil && errors.Is(up.ncRemote.LastError(), nats.ErrAuthorization) {
-				up.setError(SyncErrorRefused)
-			}
+			refused := up.ncRemote != nil &&
+				errors.Is(up.ncRemote.LastError(), nats.ErrAuthorization)
 			up.disconnect()
+			retry := SyncRefusedRetry
+			if refused {
+				up.setError(SyncErrorRefused)
+				if up.config.AuthToken == "" && up.config.EnrollToken != "" {
+					if up.enroll() {
+						// approved: connect again straight away
+						retry = 10 * time.Millisecond
+					}
+				}
+			}
 			log.Printf("Sync %v: upstream closed the connection, retrying in %v\n",
-				up.config.Description, SyncRefusedRetry)
-			connectTimer.Reset(SyncRefusedRetry)
+				up.config.Description, retry)
+			connectTimer.Reset(retry)
 
 		case pts := <-up.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &up.config)
@@ -153,6 +169,7 @@ done:
 				switch p.Type {
 				case data.PointTypeURI,
 					data.PointTypeAuthToken,
+					data.PointTypeEnrollToken,
 					data.PointTypeDisabled,
 					data.PointTypePubKey:
 					// we need to restart the sync connection
@@ -268,6 +285,38 @@ func (up *SyncClient) connect() error {
 	}
 
 	return nil
+}
+
+// enroll asks the upstream for a credential for this instance's key using
+// the sync node's enrollment token, and reports whether it was approved.
+func (up *SyncClient) enroll() bool {
+	_, pubKey, err := GetDeviceKey(up.nc)
+	if err != nil {
+		up.setError("enrollment failed: no device key")
+		return false
+	}
+
+	desc, _ := up.rootLocal.Points.Text(data.PointTypeDescription, "")
+
+	reply, err := Enroll(up.config.URI, EnrollRequest{
+		Token:       up.config.EnrollToken,
+		DeviceID:    up.rootLocal.ID,
+		PubKey:      pubKey,
+		Description: desc,
+	})
+	if err != nil {
+		log.Printf("Sync %v: enrollment failed: %v\n", up.config.Description, err)
+		up.setError("enrollment failed: " + err.Error())
+		return false
+	}
+
+	log.Printf("Sync %v: enrollment %v\n", up.config.Description, reply.Status)
+	if reply.Status == EnrollApproved {
+		return true
+	}
+
+	up.setError(SyncErrorPending)
+	return false
 }
 
 // setError records why the upstream is not connected, or clears it, on

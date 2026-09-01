@@ -361,7 +361,14 @@ func (s *Server) Run() error {
 				return fmt.Errorf("error starting device auth: %v", err)
 			}
 
+			enr := &enroller{}
+			if err := enr.start(s.nc, auth); err != nil {
+				logLS("LS: Exited: device auth")
+				return err
+			}
+
 			<-cancelAuth
+			enr.stop()
 			auth.stopIndex()
 			logLS("LS: Exited: device auth")
 			return nil

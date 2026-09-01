@@ -1,6 +1,10 @@
 package client
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base32"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -44,6 +48,103 @@ type DeviceCred struct {
 	Disabled    bool    `point:"disabled"`
 	LastConnect float64 `point:"lastConnect"`
 	Connected   bool    `point:"connected"`
+	// Pending is set on a credential a device enrolled itself with, until
+	// an operator approves it.
+	Pending bool `point:"pending"`
+}
+
+// EnrollToken lets devices that hold the token ask an upstream for a
+// credential. Only a hash of the token is stored.
+type EnrollToken struct {
+	ID          string `node:"id"`
+	Parent      string `node:"parent"`
+	Description string `point:"description"`
+	TokenHash   string `point:"tokenHash"`
+	Disabled    bool   `point:"disabled"`
+	// AutoApprove creates enrolled credentials live rather than pending.
+	AutoApprove bool `point:"autoApprove"`
+	// Expires is a Unix time after which the token is refused; zero never
+	// expires.
+	Expires float64 `point:"expires"`
+}
+
+// SubjectEnrollRequest is where a device asks for a credential. A
+// connection made with an enrollment token may publish here and nowhere
+// else.
+const SubjectEnrollRequest = "enroll.request"
+
+// EnrollRequest is what a device sends to enroll.
+type EnrollRequest struct {
+	Token       string `json:"token"`
+	DeviceID    string `json:"deviceID"`
+	PubKey      string `json:"pubKey"`
+	Description string `json:"description,omitempty"`
+}
+
+// Enrollment outcomes.
+const (
+	EnrollApproved = "approved"
+	EnrollPending  = "pending"
+)
+
+// EnrollReply is the upstream's answer.
+type EnrollReply struct {
+	Status string `json:"status,omitempty"`
+	Error  string `json:"error,omitempty"`
+}
+
+// GenerateEnrollToken makes a new enrollment token and its hash.
+func GenerateEnrollToken() (token, hash string, err error) {
+	var b [20]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return "", "", err
+	}
+
+	token = "ET" + base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(b[:])
+
+	return token, HashEnrollToken(token), nil
+}
+
+// HashEnrollToken is what an enrollToken node stores.
+func HashEnrollToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
+
+// Enroll connects to an upstream with an enrollment token and asks for a
+// credential for this device's key.
+func Enroll(uri string, req EnrollRequest) (EnrollReply, error) {
+	uri, err := sanitizeURI(uri)
+	if err != nil {
+		return EnrollReply{}, err
+	}
+
+	nc, err := nats.Connect(uri, nats.Token(req.Token), nats.Timeout(30*time.Second),
+		nats.NoReconnect())
+	if err != nil {
+		return EnrollReply{}, fmt.Errorf("error connecting with enrollment token: %w", err)
+	}
+	defer nc.Close()
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return EnrollReply{}, err
+	}
+
+	msg, err := nc.Request(SubjectEnrollRequest, body, 30*time.Second)
+	if err != nil {
+		return EnrollReply{}, fmt.Errorf("enrollment request: %w", err)
+	}
+
+	var reply EnrollReply
+	if err := json.Unmarshal(msg.Data, &reply); err != nil {
+		return EnrollReply{}, err
+	}
+	if reply.Error != "" {
+		return reply, errors.New(reply.Error)
+	}
+
+	return reply, nil
 }
 
 // GetDeviceKey returns this instance's device key.

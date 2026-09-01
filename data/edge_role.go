@@ -145,6 +145,7 @@ var treeScopedTypes = map[string]bool{
 	NodeTypeVariable:       true,
 	NodeTypeFile:           true,
 	NodeTypeDeviceCred:     true,
+	NodeTypeEnrollToken:    true,
 }
 
 // nodeTypeOwners names the parent type a node type must live under. A node

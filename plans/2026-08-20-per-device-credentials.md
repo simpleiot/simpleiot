@@ -2,7 +2,7 @@
 
 **Branch:** `cbrake/master` **Branched from:** `cbc07a67`
 
-**Status:** Phases 0 through 5 complete. See "Decisions made while implementing"
+**Status:** Phases 0 through 6 complete. See "Decisions made while implementing"
 for where the implementation departs from the design below.
 
 ## Context
@@ -344,7 +344,15 @@ stream whose boundary is not a known device, and log at warning when a replica
 stream's message subject does not match its boundary. Small phase; mostly tests
 and a log line.
 
-### Phase 6: Device-initiated enrollment
+### Phase 6: Device-initiated enrollment — DONE
+
+Adjusted: the enrolling device generates nothing new, since every instance
+already has a key; it enrolls that key. Pending enrollments are `deviceCred`
+nodes with `pending: 1` under a live device node (created when new), rather than
+a tombstoned device node, so they show up in the tree where the operator looks
+and need no separate list. The request carries the token so the handler can tell
+which token (and whether it auto-approves) without connection identity, in
+addition to the connection itself having been made with it.
 
 - `enrollToken` node under the upstream root: `token` (random, shown once,
   stored hashed), `disabled`, `autoApprove`, `expires`, optional `parent` (where

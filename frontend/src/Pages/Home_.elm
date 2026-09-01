@@ -14,6 +14,7 @@ import Components.NodeCondition as NodeCondition
 import Components.NodeDb as NodeDb
 import Components.NodeDevice as NodeDevice
 import Components.NodeDeviceCred as NodeDeviceCred
+import Components.NodeEnrollToken as NodeEnrollToken
 import Components.NodeFile as File
 import Components.NodeGpio as NodeGpio
 import Components.NodeGps as NodeGps
@@ -296,7 +297,7 @@ update shared msg model =
         ApiRespGenerateKey id resp ->
             case resp of
                 Data.Success k ->
-                    ( { model | generatedKey = Just { id = id, pubKey = k.pubKey, seed = k.seed } }
+                    ( { model | generatedKey = Just { id = id, pubKey = k.pubKey, seed = k.seed, token = k.token } }
                     , updateNodes model
                     )
 
@@ -1399,6 +1400,9 @@ viewNode model parent node children depth =
                     "deviceCred" ->
                         NodeDeviceCred.view
 
+                    "enrollToken" ->
+                        NodeEnrollToken.view
+
                     "msgService" ->
                         NodeMessageService.view
 
@@ -1746,6 +1750,11 @@ nodeDescDeviceCred =
     row [] [ Icon.key, text "Device credential" ]
 
 
+nodeDescEnrollToken : Element Msg
+nodeDescEnrollToken =
+    row [] [ Icon.key, text "Enrollment token" ]
+
+
 nodeDescCondition : Element Msg
 nodeDescCondition =
     row [] [ Icon.check, text "Condition" ]
@@ -1852,6 +1861,7 @@ viewAddNode customNodeType parent add =
                     , Input.option Node.typeFile nodeDescFile
                     , Input.option Node.typeSync nodeDescSync
                     , Input.option Node.typeDeviceCred nodeDescDeviceCred
+                    , Input.option Node.typeEnrollToken nodeDescEnrollToken
                     , Input.option Node.typeMetrics nodeDescMetrics
                     , Input.option Node.typeUpdate nodeDescUpdate
                     ]

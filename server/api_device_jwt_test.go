@@ -25,6 +25,9 @@ func TestAPIDeviceJWT(t *testing.T) {
 	defer stop()
 
 	base := "http://localhost:" + opts.HTTPPort
+	// a keep-alive connection to a previous test's server would reach a
+	// server whose NATS client is closed
+	http.DefaultClient.CloseIdleConnections()
 
 	// device X with a variable under it, and an unrelated node
 	seed, pubKey, err := client.GenerateDeviceKey()

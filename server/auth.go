@@ -52,6 +52,18 @@ type credEntry struct {
 	connected bool
 }
 
+// enrollEntry is what the authorizer knows about one enrollment token.
+type enrollEntry struct {
+	nodeID      string
+	disabled    bool
+	autoApprove bool
+	expires     int64
+}
+
+// enrollUserPrefix names an enrollment-token connection in the server's
+// connection list, so enforce can find it when the token is revoked.
+const enrollUserPrefix = "enroll:"
+
 // authConn records what a device connection was granted, so a later
 // change to the index or to the streams in its boundary can be enforced by
 // closing it.
@@ -83,6 +95,10 @@ type authorizer struct {
 	credIDs map[string]string
 	// devices maps a device ID to the credential IDs under it.
 	devices map[string]map[string]bool
+	// enroll indexes enrollment tokens by hash, and enrollIDs maps the
+	// node ID back to the hash.
+	enroll    map[string]*enrollEntry
+	enrollIDs map[string]string
 	// origins lists, for each boundary, the origins that have a stream on
 	// this instance. Permissions for the pull side are enumerated from it.
 	origins map[string]map[string]bool
@@ -112,6 +128,8 @@ func newAuthorizer(token, deviceAuth string) *authorizer {
 		creds:      make(map[string]*credEntry),
 		credIDs:    make(map[string]string),
 		devices:    make(map[string]map[string]bool),
+		enroll:     make(map[string]*enrollEntry),
+		enrollIDs:  make(map[string]string),
 		origins:    make(map[string]map[string]bool),
 		conns:      make(map[uint64]authConn),
 		work:       make(chan func(), 1024),
@@ -133,13 +151,21 @@ func (a *authorizer) Check(c server.ClientAuthentication) bool {
 }
 
 // checkToken accepts the shared token, or anything at all when no token is
-// configured, which is how an instance has always run.
+// configured, which is how an instance has always run. An enrollment token
+// is accepted with permission to ask for a credential and nothing else.
 func (a *authorizer) checkToken(c server.ClientAuthentication, opts *server.ClientOpts) bool {
 	if a.token == "" {
 		return true
 	}
 
 	if opts.Token != a.token {
+		if id, ok := a.enrollNode(opts.Token); ok {
+			c.RegisterUser(&server.User{
+				Username:    enrollUserPrefix + id,
+				Permissions: enrollPermissions(),
+			})
+			return true
+		}
 		return false
 	}
 
@@ -198,6 +224,57 @@ func (a *authorizer) checkNkey(c server.ClientAuthentication, opts *server.Clien
 	}
 
 	return true
+}
+
+// root is this instance's root node ID.
+func (a *authorizer) root() string {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.rootID
+}
+
+// enrollNode returns the node ID of the live enrollment token a value
+// matches, if any.
+func (a *authorizer) enrollNode(token string) (string, bool) {
+	if token == "" {
+		return "", false
+	}
+
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	e, ok := a.enroll[client.HashEnrollToken(token)]
+	if !a.ready || !ok || !e.live() {
+		return "", false
+	}
+
+	return e.nodeID, true
+}
+
+func (e *enrollEntry) live() bool {
+	return !e.disabled && (e.expires == 0 || time.Now().Unix() < e.expires)
+}
+
+// EnrollToken reports whether an enrollment token is live and whether
+// credentials it enrolls are approved straight away.
+func (a *authorizer) EnrollToken(token string) (autoApprove, ok bool) {
+	id, ok := a.enrollNode(token)
+	if !ok {
+		return false, false
+	}
+
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	return a.enroll[a.enrollIDs[id]].autoApprove, true
+}
+
+// enrollPermissions is all an enrollment token allows: one request.
+func enrollPermissions() *server.Permissions {
+	return &server.Permissions{
+		Publish:   &server.SubjectPermission{Allow: []string{client.SubjectEnrollRequest}},
+		Subscribe: &server.SubjectPermission{Allow: []string{"_INBOX.>"}},
+	}
 }
 
 // Device implements api.DeviceAuthorizer: the device a public key is
@@ -363,6 +440,20 @@ func (a *authorizer) start(nc *nats.Conn, ns *server.Server) error {
 		a.refreshCred(c.ID)
 	}
 
+	tokens, err := client.GetNodes(nc, "all", "all", data.NodeTypeEnrollToken, true)
+	if err != nil && !errors.Is(err, data.ErrDocumentNotFound) {
+		return fmt.Errorf("error loading enrollment tokens: %w", err)
+	}
+
+	seen = map[string]bool{}
+	for _, t := range tokens {
+		if seen[t.ID] {
+			continue
+		}
+		seen[t.ID] = true
+		a.refreshEnroll(t.ID)
+	}
+
 	a.mu.Lock()
 	a.ready = true
 	n := len(a.creds)
@@ -422,11 +513,14 @@ func (a *authorizer) handleUp(msg *nats.Msg) {
 	a.mu.RLock()
 	_, isCred := a.credIDs[nodeID]
 	_, isDevice := a.devices[nodeID]
+	_, isEnroll := a.enrollIDs[nodeID]
 	a.mu.RUnlock()
 
 	switch {
 	case isCred:
 		a.enqueue(func() { a.refreshCred(nodeID) })
+	case isEnroll:
+		a.enqueue(func() { a.refreshEnroll(nodeID) })
 	case isDevice:
 		a.enqueue(func() { a.refreshDevice(nodeID) })
 	case len(tok) == 6 && tok[4] == data.PointTypeNodeType:
@@ -435,12 +529,62 @@ func (a *authorizer) handleUp(msg *nats.Msg) {
 			return
 		}
 		for _, p := range pts {
-			if p.Txt() == data.NodeTypeDeviceCred {
+			switch p.Txt() {
+			case data.NodeTypeDeviceCred:
 				a.enqueue(func() { a.refreshCred(nodeID) })
+				return
+			case data.NodeTypeEnrollToken:
+				a.enqueue(func() { a.refreshEnroll(nodeID) })
 				return
 			}
 		}
 	}
+}
+
+// refreshEnroll rereads one enrollment token from the store.
+func (a *authorizer) refreshEnroll(nodeID string) {
+	edges, err := client.GetNodes(a.nc, "all", nodeID, "", true)
+	if err != nil && !errors.Is(err, data.ErrDocumentNotFound) {
+		log.Printf("NATS auth: error reading enrollment token %v: %v", nodeID, err)
+		return
+	}
+
+	var t client.EnrollToken
+	found, live := false, false
+	for _, e := range edges {
+		if e.Type != data.NodeTypeEnrollToken {
+			continue
+		}
+		found = true
+		if err := data.Decode(data.NodeEdgeChildren{NodeEdge: e}, &t); err != nil {
+			log.Printf("NATS auth: error decoding enrollment token %v: %v", nodeID, err)
+			return
+		}
+		if ts, _ := e.IsTombstone(); !ts {
+			live = true
+		}
+	}
+
+	if !found {
+		return
+	}
+
+	a.mu.Lock()
+	if old, ok := a.enrollIDs[nodeID]; ok && old != t.TokenHash {
+		delete(a.enroll, old)
+	}
+	a.enrollIDs[nodeID] = t.TokenHash
+	if t.TokenHash != "" {
+		a.enroll[t.TokenHash] = &enrollEntry{
+			nodeID:      nodeID,
+			disabled:    t.Disabled || !live,
+			autoApprove: t.AutoApprove,
+			expires:     int64(t.Expires),
+		}
+	}
+	a.mu.Unlock()
+
+	a.enforce()
 }
 
 // run serializes index maintenance, status updates, and enforcement.
@@ -487,6 +631,11 @@ func (a *authorizer) refreshCred(credID string) {
 		pubKey, _ = e.Points.Text(data.PointTypePubKey, "")
 		disabled, _ = e.Points.ValueBool(data.PointTypeDisabled, "")
 		connected, _ = e.Points.ValueBool(data.PointTypeConnected, "")
+		// a credential a device enrolled itself with authorizes nothing
+		// until an operator approves it
+		if pending, _ := e.Points.ValueBool(data.PointTypePending, ""); pending {
+			disabled = true
+		}
 		if ts, _ := e.IsTombstone(); !ts {
 			parents = append(parents, e.Parent)
 		}
@@ -650,7 +799,8 @@ func (a *authorizer) liveConns() map[uint64]string {
 			return live
 		}
 		for _, c := range cz.Conns {
-			if nkeys.IsValidPublicUserKey(c.AuthorizedUser) {
+			if nkeys.IsValidPublicUserKey(c.AuthorizedUser) ||
+				strings.HasPrefix(c.AuthorizedUser, enrollUserPrefix) {
 				live[c.Cid] = c.AuthorizedUser
 			}
 		}
@@ -673,6 +823,13 @@ func (a *authorizer) enforce() {
 	a.mu.Lock()
 	var closeIDs []uint64
 	for cid, pub := range live {
+		if id, isEnroll := strings.CutPrefix(pub, enrollUserPrefix); isEnroll {
+			e, ok := a.enroll[a.enrollIDs[id]]
+			if !ok || !e.live() {
+				closeIDs = append(closeIDs, cid)
+			}
+			continue
+		}
 		e, ok := a.creds[pub]
 		if !ok || e.disabled {
 			closeIDs = append(closeIDs, cid)
