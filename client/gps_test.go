@@ -417,8 +417,19 @@ func TestGPSFixZeroValuesPublished(t *testing.T) {
 	}
 }
 
+// gpsMustFix returns the fix, failing the test if no NMEA cycle completed, so
+// tests can use the fix without a nil check of their own
+func gpsMustFix(t *testing.T, fix *gpsFix) *gpsFix {
+	t.Helper()
+
+	if fix == nil {
+		t.Fatal("expected a completed fix")
+	}
+	return fix
+}
+
 // gpsFeed pushes sentences through an accumulator and returns the last
-// completed fix, or nil if no cycle completed
+// completed fix
 func gpsFeed(t *testing.T, a *gpsNMEAAccumulator, sentences ...string) *gpsFix {
 	t.Helper()
 
@@ -432,7 +443,7 @@ func gpsFeed(t *testing.T, a *gpsNMEAAccumulator, sentences ...string) *gpsFix {
 			last = fix
 		}
 	}
-	return last
+	return gpsMustFix(t, last)
 }
 
 func TestGPSNMEAParseGGA(t *testing.T) {
@@ -444,9 +455,6 @@ func TestGPSNMEAParseGGA(t *testing.T) {
 
 	// the second GGA closes the first cycle
 	fix := gpsFeed(t, a, gga, gga)
-	if fix == nil {
-		t.Fatal("expected a completed fix after a repeated sentence type")
-	}
 
 	if fix.Latitude == nil || math.Abs(*fix.Latitude-(-33.9410833)) > 1e-6 {
 		t.Errorf("expected latitude -33.9410833, got %v", fix.Latitude)
@@ -475,9 +483,6 @@ func TestGPSNMEAParseRMC(t *testing.T) {
 		"GNRMC,220516,A,5133.82,N,00042.24,W,173.8,231.8,130694,004.2,W")
 
 	fix := gpsFeed(t, a, rmc, rmc)
-	if fix == nil {
-		t.Fatal("expected a completed fix")
-	}
 
 	// NMEA reports speed in knots, SIOT publishes meters/second
 	expSpeed := 173.8 * gpsKnotsToMPS
@@ -510,9 +515,6 @@ func TestGPSNMEAParseGSA(t *testing.T) {
 	gsa := gpsTestSentence("GNGSA,A,3,80,71,73,79,69,,,,,,,,1.83,1.09,1.47")
 
 	fix := gpsFeed(t, a, gsa, gsa)
-	if fix == nil {
-		t.Fatal("expected a completed fix")
-	}
 
 	if fix.FixType == nil || *fix.FixType != 3 {
 		t.Errorf("expected a 3D fix type, got %v", fix.FixType)
@@ -527,9 +529,6 @@ func TestGPSNMEAGSANoFixMapsToZero(t *testing.T) {
 	gsa := gpsTestSentence("GPGSA,A,1,,,,,,,,,,,,,,,")
 
 	fix := gpsFeed(t, a, gsa, gsa)
-	if fix == nil {
-		t.Fatal("expected a completed fix")
-	}
 
 	if fix.FixType == nil || *fix.FixType != 0 {
 		t.Errorf("expected fix type 0 for a NMEA fix type of 1, got %v",
@@ -543,9 +542,6 @@ func TestGPSNMEAParseVTG(t *testing.T) {
 	vtg := gpsTestSentence("GPVTG,45.5,T,67.5,M,30.45,N,56.40,K")
 
 	fix := gpsFeed(t, a, vtg, vtg)
-	if fix == nil {
-		t.Fatal("expected a completed fix")
-	}
 
 	expSpeed := 30.45 * gpsKnotsToMPS
 	if fix.Speed == nil || math.Abs(*fix.Speed-expSpeed) > 1e-6 {
@@ -566,9 +562,6 @@ func TestGPSNMEARMCPrefersRMCOverVTG(t *testing.T) {
 	vtg := gpsTestSentence("GPVTG,45.5,T,67.5,M,30.45,N,56.40,K")
 
 	fix := gpsFeed(t, a, rmc, vtg, rmc)
-	if fix == nil {
-		t.Fatal("expected a completed fix")
-	}
 
 	expSpeed := 10.0 * gpsKnotsToMPS
 	if fix.Speed == nil || math.Abs(*fix.Speed-expSpeed) > 1e-6 {
@@ -589,9 +582,6 @@ func TestGPSNMEAInvalidRMCRejected(t *testing.T) {
 		"GNRMC,220516,V,5133.82,N,00042.24,W,173.8,231.8,130694,004.2,W")
 
 	fix := gpsFeed(t, a, rmc, rmc)
-	if fix == nil {
-		t.Fatal("expected a completed fix")
-	}
 
 	if fix.Latitude != nil || fix.Longitude != nil {
 		t.Errorf("expected no position from an invalid RMC, got %v, %v",
@@ -624,9 +614,7 @@ func TestGPSNMEANoFixNoPosition(t *testing.T) {
 	if err != nil {
 		t.Fatalf("a no-fix GGA should not be a parse error, got: %v", err)
 	}
-	if fix == nil {
-		t.Fatal("expected a completed fix")
-	}
+	fix = gpsMustFix(t, fix)
 
 	if fix.FixQuality == nil || *fix.FixQuality != 0 {
 		t.Errorf("expected fix quality 0 with no fix, got %v", fix.FixQuality)
@@ -646,9 +634,6 @@ func TestGPSNMEANoFixKeepsSatelliteCount(t *testing.T) {
 	gga := gpsTestSentence("GPGGA,123519,,,,,0,03,,,M,,M,,")
 
 	fix := gpsFeed(t, a, gga, gga)
-	if fix == nil {
-		t.Fatal("expected a completed fix")
-	}
 
 	if fix.NumSat == nil || *fix.NumSat != 3 {
 		t.Errorf("expected 3 satellites without a fix, got %v", fix.NumSat)
@@ -672,9 +657,6 @@ func TestGPSNMEAInvalidRMCKeepsGGAQuality(t *testing.T) {
 	rmc := gpsTestSentence("GNRMC,220516,V,,,,,,,130694,,")
 
 	fix := gpsFeed(t, a, gga, rmc, gga)
-	if fix == nil {
-		t.Fatal("expected a completed fix")
-	}
 
 	if fix.FixQuality == nil || *fix.FixQuality != 4 {
 		t.Errorf("expected the GGA RTK fixed quality to survive, got %v",
@@ -741,9 +723,7 @@ func TestGPSNMEACycleMerge(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if fix == nil {
-		t.Fatal("expected the cycle to complete on the repeated GGA")
-	}
+	fix = gpsMustFix(t, fix)
 
 	// altitude and fix quality come from GGA, fix type from GSA, speed and
 	// heading from RMC -- all in one fix
@@ -797,9 +777,7 @@ func TestGPSNMEAIgnoresUnconsumedSentences(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if fix == nil {
-		t.Fatal("expected the cycle to complete on the repeated GGA")
-	}
+	gpsMustFix(t, fix)
 }
 
 // gpsdDecode is a test helper that decodes one gpsd report into fix
