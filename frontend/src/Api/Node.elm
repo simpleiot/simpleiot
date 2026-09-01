@@ -1,5 +1,6 @@
 module Api.Node exposing
-    ( EdgeRole(..)
+    ( DeviceKey
+    , EdgeRole(..)
     , Node
     , NodeView
     , Notification
@@ -7,8 +8,10 @@ module Api.Node exposing
     , delete
     , description
     , edgeRole
+    , generateKey
     , getBestDesc
     , insert
+    , installDeviceKey
     , list
     , move
     , notify
@@ -21,6 +24,7 @@ module Api.Node exposing
     , typeCondition
     , typeDb
     , typeDevice
+    , typeDeviceCred
     , typeFile
     , typeGpio
     , typeGps
@@ -69,6 +73,11 @@ import Url.Builder
 typeDevice : String
 typeDevice =
     "device"
+
+
+typeDeviceCred : String
+typeDeviceCred =
+    "deviceCred"
 
 
 typeGroup : String
@@ -522,6 +531,64 @@ insert options =
         , url = Url.Builder.absolute [ "v1", "nodes", options.node.id ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
         , body = options.node |> encode |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+{-| DeviceKey is the reply to key requests. The seed is present only when a
+key was generated, and is shown once.
+-}
+type alias DeviceKey =
+    { pubKey : String
+    , seed : String
+    }
+
+
+decodeDeviceKey : Decode.Decoder DeviceKey
+decodeDeviceKey =
+    Decode.succeed DeviceKey
+        |> required "pubKey" Decode.string
+        |> optional "seed" Decode.string ""
+
+
+{-| generateKey makes a key for a deviceCred node. The public key is stored on
+the node; the seed comes back once for the operator to carry to the device.
+-}
+generateKey :
+    { token : String
+    , id : String
+    , onResponse : Data DeviceKey -> msg
+    }
+    -> Cmd msg
+generateKey options =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "key" ] []
+        , expect = Api.Data.expectJson options.onResponse decodeDeviceKey
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+{-| installDeviceKey replaces this instance's device key with a seed issued by
+an upstream. The seed goes straight to the key file and is never a point.
+-}
+installDeviceKey :
+    { token : String
+    , seed : String
+    , onResponse : Data DeviceKey -> msg
+    }
+    -> Cmd msg
+installDeviceKey options =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "deviceKey" ] []
+        , expect = Api.Data.expectJson options.onResponse decodeDeviceKey
+        , body = Http.jsonBody <| Encode.object [ ( "seed", Encode.string options.seed ) ]
         , timeout = Nothing
         , tracker = Nothing
         }

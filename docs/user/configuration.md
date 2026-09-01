@@ -225,6 +225,10 @@ usable as a provisioning file:
   point is written as the description of the node it points at.
 - Points that carry no value are left out, as is the origin recording which
   client last wrote each point.
+- Secrets are left out: `authToken` points and the instance's
+  [device key](sync.md#device-credentials). A comment at the top of the file
+  says so. `siot export -secrets` includes them, and a file made that way should
+  be handled like the secrets themselves.
 
 Two nodes that share a parent and a description cannot be told apart by a file,
 so `siot export` reports that rather than writing a file that would do the wrong
@@ -299,6 +303,10 @@ nodes:
             description: var 1
             value: 10
 ```
+
+A file can also carry a top level `deviceKey` entry, a seed for the instance's
+[device key](sync.md#device-credentials), which applying the file installs. It
+is never written into the tree.
 
 ## Configuration provisioning
 

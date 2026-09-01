@@ -33,9 +33,13 @@ func nodeKeyReserved(k string) bool {
 // NodeFile is a file of nodes: what siot export writes, and what siot import
 // and provisioning read.
 type NodeFile struct {
-	APIVersion int        `yaml:"apiVersion,omitempty"`
-	Nodes      []NodeYAML `yaml:"nodes,omitempty"`
-	Delete     []NodeYAML `yaml:"delete,omitempty"`
+	APIVersion int `yaml:"apiVersion,omitempty"`
+	// DeviceKey is a seed for this instance's device key, which applying
+	// the file installs. It is kept out of the tree on purpose: a point
+	// would replicate to the upstream. A file that carries one is a secret.
+	DeviceKey string     `yaml:"deviceKey,omitempty"`
+	Nodes     []NodeYAML `yaml:"nodes,omitempty"`
+	Delete    []NodeYAML `yaml:"delete,omitempty"`
 }
 
 // NodeFileAPIVersion is the format version this build writes and understands.

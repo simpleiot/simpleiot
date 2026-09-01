@@ -226,6 +226,15 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			http.Error(res, "invalid method", http.StatusMethodNotAllowed)
 		}
 
+	case "key":
+		if req.Method == http.MethodPost {
+			h.generateKey(res, id, userID)
+			return
+		}
+
+		http.Error(res, "only POST allowed", http.StatusMethodNotAllowed)
+		return
+
 	case "not":
 		switch req.Method {
 		case http.MethodPost:
@@ -299,6 +308,39 @@ func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request, userID st
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusNotFound)
 		return
+	}
+}
+
+// generateKey makes a key pair for a deviceCred node: the public key is
+// written on the node and the seed is returned once, for the operator to
+// carry to the device. Nothing stores the seed.
+func (h *Nodes) generateKey(res http.ResponseWriter, id, userID string) {
+	nodes, err := client.GetNodes(h.nc, "all", id, "", false)
+	if err != nil || len(nodes) == 0 {
+		http.Error(res, "node not found", http.StatusNotFound)
+		return
+	}
+
+	if nodes[0].Type != data.NodeTypeDeviceCred {
+		http.Error(res, "not a device credential node", http.StatusBadRequest)
+		return
+	}
+
+	seed, pubKey, err := client.GenerateDeviceKey()
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	p := data.NewPointString(data.PointTypePubKey, "", pubKey)
+	p.Origin = userID
+	if err := client.SendNodePoint(h.nc, id, p, true); err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := encode(res, DeviceKeyResponse{PubKey: pubKey, Seed: seed}); err != nil {
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 }
 

@@ -11,6 +11,8 @@ type V1 struct {
 	NodesHandler  http.Handler
 	AuthHandler   http.Handler
 	MsgHandler    http.Handler
+	// DeviceKeyHandler serves this instance's device key.
+	DeviceKeyHandler http.Handler
 }
 
 // Top level handler for http requests in the coap-server process
@@ -22,6 +24,8 @@ func (h *V1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		h.NodesHandler.ServeHTTP(res, req)
 	case "auth":
 		h.AuthHandler.ServeHTTP(res, req)
+	case "deviceKey":
+		h.DeviceKeyHandler.ServeHTTP(res, req)
 	default:
 		http.Error(res, "Not Found", http.StatusNotFound)
 	}
@@ -33,5 +37,7 @@ func NewV1Handler(args ServerArgs) http.Handler {
 		NodesHandler: NewNodesHandler(args.JwtAuth,
 			args.AuthToken, args.Nc),
 		AuthHandler: NewAuthHandler(args.Nc),
+		DeviceKeyHandler: NewDeviceKeyHandler(args.JwtAuth,
+			args.AuthToken, args.Nc),
 	}
 }

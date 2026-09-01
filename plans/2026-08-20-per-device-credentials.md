@@ -2,8 +2,8 @@
 
 **Branch:** `cbrake/master` **Branched from:** `cbc07a67`
 
-**Status:** Phases 0 and 1 complete. See "Decisions made while implementing" for
-where the implementation departs from the design below.
+**Status:** Phases 0, 1, and 2 complete. See "Decisions made while implementing"
+for where the implementation departs from the design below.
 
 ## Context
 
@@ -259,7 +259,7 @@ Docs: `docs/ref/security.md` (move the planned section to present tense, add the
 permission table), `docs/user/configuration.md` (`SIOT_DEVICE_AUTH`),
 `docs/user/sync.md` schema section (`nkeySeed`).
 
-### Phase 2: Upstream-issued credential workflow
+### Phase 2: Upstream-issued credential workflow — DONE
 
 Adjusted for the file-based seed: the sync node has no `nkeySeed`, so "deliver
 the seed to the device" means `siot key install`, shipping `device.nkey`, or a

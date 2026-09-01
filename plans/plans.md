@@ -15,7 +15,7 @@
 | 2026-08-19-notifications.md                      | **COMPLETE** (notification display in UI deferred)                                      | d2bbb2a3      |
 | 2026-08-20-mqtt.md                               | **COMPLETE**                                                                            | 9032d3c3      |
 | 2026-08-20-rule-timing-and-actions.md            | **COMPLETE**                                                                            | 9032d3c3      |
-| 2026-08-20-per-device-credentials.md             | **IN PROGRESS** (Phases 0 and 1 complete)                                               | cbc07a67      |
+| 2026-08-20-per-device-credentials.md             | **IN PROGRESS** (Phases 0, 1, and 2 complete)                                           | cbc07a67      |
 | 2026-08-24-linux-gpio-client.md                  | **COMPLETE** (Phase 4 pulse counting deferred)                                          | 179d06ea      |
 | 2026-08-24-iio-client.md                         | **COMPLETE**                                                                            | 8454edb6      |
 | 2026-08-24-security-cleanup.md                   | **IN PROGRESS** (item 1 complete)                                                       | 179d06ea      |

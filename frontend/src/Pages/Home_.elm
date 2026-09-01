@@ -13,6 +13,7 @@ import Components.NodeCanBus as NodeCanBus
 import Components.NodeCondition as NodeCondition
 import Components.NodeDb as NodeDb
 import Components.NodeDevice as NodeDevice
+import Components.NodeDeviceCred as NodeDeviceCred
 import Components.NodeFile as File
 import Components.NodeGpio as NodeGpio
 import Components.NodeGps as NodeGps
@@ -32,7 +33,7 @@ import Components.NodeNetworkManagerConn as NodeNetworkManagerConn
 import Components.NodeNetworkManagerDevice as NodeNetworkManagerDevice
 import Components.NodeOneWire as NodeOneWire
 import Components.NodeOneWireIO as NodeOneWireIO
-import Components.NodeOptions exposing (CopyMove(..), findNode)
+import Components.NodeOptions exposing (CopyMove(..), GeneratedKey, findNode)
 import Components.NodeParticle as NodeParticle
 import Components.NodeProvisioning as NodeProvisioning
 import Components.NodeProvisioningFile as NodeProvisioningFile
@@ -106,6 +107,7 @@ type alias Model =
     , scratch : String
     , nodeMsg : Maybe NodeMsg
     , token : String
+    , generatedKey : Maybe GeneratedKey
     }
 
 
@@ -162,6 +164,7 @@ defaultModel =
         ""
         Nothing
         ""
+        Nothing
 
 
 init : Shared.Model -> ( Model, Effect Msg )
@@ -199,6 +202,10 @@ type Msg
     | EditNodePoint Int (List Point)
     | EditScratch String
     | UploadFile String Bool
+    | GenerateKey String
+    | ApiRespGenerateKey String (Data Node.DeviceKey)
+    | InstallDeviceKey String
+    | ApiRespInstallDeviceKey (Data Node.DeviceKey)
     | UploadSelected String Bool File.File
     | UploadContents String File.File String
     | ToggleExpChildren Int
@@ -275,6 +282,51 @@ update shared msg model =
 
         UploadFile id binary ->
             ( model, Effect.fromCmd <| File.Select.file [ "" ] (UploadSelected id binary) )
+
+        GenerateKey id ->
+            ( model
+            , Effect.fromCmd <|
+                Node.generateKey
+                    { token = model.token
+                    , id = id
+                    , onResponse = ApiRespGenerateKey id
+                    }
+            )
+
+        ApiRespGenerateKey id resp ->
+            case resp of
+                Data.Success k ->
+                    ( { model | generatedKey = Just { id = id, pubKey = k.pubKey, seed = k.seed } }
+                    , updateNodes model
+                    )
+
+                Data.Failure err ->
+                    ( popError "Error generating key" err model, Effect.none )
+
+                _ ->
+                    ( model, Effect.none )
+
+        InstallDeviceKey seed ->
+            ( model
+            , Effect.fromCmd <|
+                Node.installDeviceKey
+                    { token = model.token
+                    , seed = String.trim seed
+                    , onResponse = ApiRespInstallDeviceKey
+                    }
+            )
+
+        ApiRespInstallDeviceKey resp ->
+            case resp of
+                Data.Success _ ->
+                    -- the seed was typed into the scratch field; nothing keeps it
+                    ( { model | scratch = "" }, updateNodes model )
+
+                Data.Failure err ->
+                    ( popError "Error installing key" err model, Effect.none )
+
+                _ ->
+                    ( model, Effect.none )
 
         UploadSelected id binary file ->
             let
@@ -1344,6 +1396,9 @@ viewNode model parent node children depth =
                     "device" ->
                         NodeDevice.view
 
+                    "deviceCred" ->
+                        NodeDeviceCred.view
+
                     "msgService" ->
                         NodeMessageService.view
 
@@ -1449,6 +1504,9 @@ viewNode model parent node children depth =
                     , expDetail = node.expDetail
                     , onEditNodePoint = EditNodePoint node.feID
                     , onUploadFile = UploadFile node.node.id
+                    , onGenerateKey = GenerateKey node.node.id
+                    , onInstallDeviceKey = InstallDeviceKey
+                    , generatedKey = model.generatedKey
                     , copy = model.copyMove
                     , scratch = model.scratch
                     , onEditScratch = EditScratch
@@ -1683,6 +1741,11 @@ nodeDescSync =
     row [] [ Icon.sync, text "sync" ]
 
 
+nodeDescDeviceCred : Element Msg
+nodeDescDeviceCred =
+    row [] [ Icon.key, text "Device credential" ]
+
+
 nodeDescCondition : Element Msg
 nodeDescCondition =
     row [] [ Icon.check, text "Condition" ]
@@ -1788,6 +1851,7 @@ viewAddNode customNodeType parent add =
                     , Input.option Node.typeSignalGenerator nodeDescSignalGenerator
                     , Input.option Node.typeFile nodeDescFile
                     , Input.option Node.typeSync nodeDescSync
+                    , Input.option Node.typeDeviceCred nodeDescDeviceCred
                     , Input.option Node.typeMetrics nodeDescMetrics
                     , Input.option Node.typeUpdate nodeDescUpdate
                     ]

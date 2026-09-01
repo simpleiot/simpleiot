@@ -24,9 +24,19 @@ For more details or to discuss releases, please visit the
 - **`SIOT_DEVICE_AUTH=required`** (or `--deviceAuth required`) accepts the
   shared token only from the upstream's own host, so every remote connection
   needs a device credential.
+- **Credentials can be issued from the upstream.** A **Device credential** node
+  in the UI takes the device's public key or generates a key and shows the seed
+  once; `siot cred add|list|enable|disable|rm` does the same from the command
+  line. The device takes the seed through **Install key** on its sync node,
+  `siot key install`, or a top level `deviceKey` entry in a provisioning or
+  import file.
 
 ### Changed
 
+- **`siot export` leaves secrets out.** `authToken` points are dropped and a
+  comment at the top says so; `siot export -secrets` includes them along with
+  the device key. A script that relied on an export carrying tokens needs the
+  flag.
 - **A sync node with no `authToken` now presents the device key instead of
   nothing.** Against an upstream that has no token this changes nothing, since
   an open instance accepts an unknown key with full access. Against an upstream

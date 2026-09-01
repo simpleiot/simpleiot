@@ -142,17 +142,22 @@ how to tell whether a device has picked up a new key.
 
 1. Let the device sync once with the shared `authToken`, which creates its
    device node on the upstream, or create the device node some other way.
-2. On the upstream, add a `deviceCred` node under the device's node with the
-   device's public key. Read the key off the device's sync node, or run
-   `siot key show` on it. As a provisioning or import file:
+2. On the upstream, add a credential under the device's node with the device's
+   public key. Read the key off the device's sync node, or run `siot key show`
+   on the device. Any of these does it:
+   - In the UI, add a **Device credential** node under the device node and paste
+     the key into **Public key**.
+   - `siot cred add -device "Gateway 42" -pubKey UBXF...`, where `-device` is
+     the device node's ID or description.
+   - A provisioning or import file:
 
-   ```yaml
-   nodes:
-     - deviceCred:
-         parent: Gateway 42
-         description: gateway 42
-         pubKey: UBXF3PJZPNL5CW35ECS2U3XG5EODFUUQ6XRNEZTJA3EFNP33K7Z54UCM
-   ```
+     ```yaml
+     nodes:
+       - deviceCred:
+           parent: Gateway 42
+           description: gateway 42
+           pubKey: UBXF3PJZPNL5CW35ECS2U3XG5EODFUUQ6XRNEZTJA3EFNP33K7Z54UCM
+     ```
 
 3. Clear `authToken` on the device's sync node. The device reconnects with its
    key.
@@ -160,15 +165,49 @@ how to tell whether a device has picked up a new key.
    upstream so the shared token is accepted only from the upstream's own host.
    See [configuration](configuration.md#environment-variables).
 
+`siot cred list` shows every credential with its device, state, and whether it
+is connected; `siot cred disable ID`, `siot cred enable ID`, and
+`siot cred rm ID` change one. All of them take the usual `-natsServer` and
+`-token` options, so they work against a remote upstream.
+
 ### Keys issued by the upstream
 
 A key can also be made on the upstream and delivered to the device, which suits
-building images and bench setup. `siot key gen` prints a new seed and public
-key. Enroll the public key as above, and give the device the seed with
-`siot key install SEED` on the device, or by shipping it as
-`SIOT_DATA/device.nkey`. A running instance switches to the installed key
-straight away. Treat the seed as you would the shared token: it is the device's
-identity.
+building images and bench setup. The seed is shown once and never stored:
+
+- In the UI, add a **Device credential** under the device node and press
+  **Generate key**. The public key is stored on the credential and the seed is
+  shown until you leave the page.
+- `siot cred add -device "Gateway 42"` with no `-pubKey` does the same and
+  prints the seed.
+- `siot key gen` prints a seed and public key without touching any instance, for
+  scripts that create the credential some other way.
+
+Give the device the seed one of these ways:
+
+- On the device's sync node in the UI, paste the seed into **Install key**. It
+  goes straight to the key file through the API, never through a point.
+- `siot key install SEED` on the device.
+- A provisioning or import file with a top level `deviceKey` entry, which
+  applying the file installs. A file that carries one is a secret; keep one file
+  per unit (`provisioning/<unit>.yaml`) rather than a shared one.
+
+  ```yaml
+  deviceKey: SUAB...
+  nodes:
+    - sync:
+        description: Cloud
+        uri: wss://myserver.com
+  ```
+
+- Ship it as `SIOT_DATA/device.nkey` in the image.
+
+A running instance switches to the installed key straight away. Treat the seed
+as you would the shared token: it is the device's identity.
+
+`siot export` leaves `authToken` points and the device key out and says so at
+the top of the file; `siot export -secrets` includes both, for backing up or
+cloning an instance in full.
 
 ### Rotating a key
 

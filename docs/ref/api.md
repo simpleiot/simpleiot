@@ -140,15 +140,17 @@ Most APIs that do not return specific data (update/delete) return a
       [notification](https://github.com/simpleiot/simpleiot/blob/master/data/notification.go)
       point on the node, which reaches the users and messaging services in scope
       as described in the [notification documentation](./notifications.md)
-  - `/v1/nodes/:id/credentials`
-    - POST: issue a
-      [per-device credential](../user/sync.md#issuing-a-credential) for device
-      `id`. Creates a `deviceCred` node holding the public key and returns
-      `{id, pubKey, seed}`. The seed is returned once and never stored.
-  - `/v1/nodes/:id/nkey`
-    - POST: install a credential seed for sync node `id` on this instance. The
-      body is the seed; it is written to the node's seed file and not stored as
-      a point.
+  - `/v1/nodes/:id/key`
+    - POST: generate a key pair for `deviceCred` node `id`. The public key is
+      written on the node and `{pubKey, seed}` is returned; the seed is returned
+      once and never stored. See
+      [device credentials](../user/sync.md#device-credentials).
+- Device key
+  - `/v1/deviceKey`
+    - GET: `{pubKey}`, this instance's device key.
+    - POST: install a seed issued by an upstream as this instance's device key.
+      The body is `{"seed": "..."}`; it goes to `SIOT_DATA/device.nkey` and is
+      never a point.
 - Auth
   - `/v1/auth`
     - POST: accepts `email` and `password` as form values, and returns a JWT

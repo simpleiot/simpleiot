@@ -107,6 +107,7 @@ module Api.Point exposing
     , typeIndex
     , typeInitialValue
     , typeKeyboardScale
+    , typeLastConnect
     , typeLastName
     , typeLatitude
     , typeLightSet
@@ -156,6 +157,7 @@ module Api.Point exposing
     , typeProgress
     , typeProtocol
     , typeProvisionHash
+    , typePubKey
     , typeRate
     , typeRateHR
     , typeReadOnly
@@ -1027,6 +1029,16 @@ typeDisabled =
 typeConnected : String
 typeConnected =
     "connected"
+
+
+typePubKey : String
+typePubKey =
+    "pubKey"
+
+
+typeLastConnect : String
+typeLastConnect =
+    "lastConnect"
 
 
 typeControlled : String

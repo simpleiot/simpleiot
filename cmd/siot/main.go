@@ -21,7 +21,9 @@ import (
 	"time"
 
 	yaml "github.com/goccy/go-yaml"
+	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nkeys"
 	"github.com/oklog/run"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
@@ -55,6 +57,7 @@ func main() {
 		fmt.Println("  - dump (describe a running instance for troubleshooting)")
 		fmt.Println("  - provision (check provisioning files, or print what they would do)")
 		fmt.Println("  - key (show, generate, or install this instance's device key)")
+		fmt.Println("  - cred (manage device credentials on an upstream)")
 		fmt.Println("  - update (update to the latest release)")
 	}
 
@@ -99,6 +102,8 @@ func main() {
 		runProvision(args[1:])
 	case "key":
 		runKey(args[1:])
+	case "cred":
+		runCred(args[1:])
 	case "update":
 		runUpdate(args[1:], version)
 	default:
@@ -504,6 +509,8 @@ func runExport(args []string) {
 	flagNodeID := flags.String("nodeID", "", "node ID to export. Default is root device")
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
 	flagAuthToken := flags.String("token", "", "Auth token")
+	flagSecrets := flags.Bool("secrets", false,
+		"include authToken points and the device key, which are left out by default")
 
 	if err := flags.Parse(args); err != nil {
 		log.Fatal("error: ", err)
@@ -550,7 +557,7 @@ func runExport(args []string) {
 		log.Fatal("Error connecting to NATS server: ", err)
 	}
 
-	yaml, err := client.ExportNodes(nc, *flagNodeID)
+	yaml, err := client.ExportNodes(nc, *flagNodeID, *flagSecrets)
 	if err != nil {
 		log.Fatal("Error export nodes: ", err)
 	}
@@ -804,6 +811,177 @@ func runKey(args []string) {
 
 	default:
 		usage()
+	}
+}
+
+// runCred manages device credentials on the instance the command connects
+// to, which is the upstream:
+//
+//	siot cred add -device ID|DESCRIPTION [-description TEXT] [-pubKey KEY]
+//	siot cred list
+//	siot cred enable ID
+//	siot cred disable ID
+//	siot cred rm ID
+//
+// add generates a key and prints the seed once, unless -pubKey gives the
+// device's own key, in which case there is no seed to deliver.
+func runCred(args []string) {
+	usage := func() {
+		fmt.Println("usage: siot cred add|list|enable|disable|rm ...")
+		os.Exit(1)
+	}
+
+	if len(args) < 1 {
+		usage()
+	}
+
+	switch args[0] {
+	case "add":
+		runCredAdd(args[1:])
+
+	case "list":
+		nc := connectCLI(args[1:])
+		creds, err := client.GetNodes(nc, "all", "all", data.NodeTypeDeviceCred, false)
+		if err != nil && err != data.ErrDocumentNotFound {
+			log.Fatal("Error listing credentials: ", err)
+		}
+		fmt.Printf("%-36v  %-36v  %-9v  %-56v  %v\n", "ID", "DEVICE", "STATE", "PUBKEY", "DESCRIPTION")
+		for _, c := range creds {
+			var cred client.DeviceCred
+			if err := data.Decode(data.NodeEdgeChildren{NodeEdge: c}, &cred); err != nil {
+				log.Println("Error decoding credential:", err)
+				continue
+			}
+			state := "enabled"
+			if cred.Disabled {
+				state = "disabled"
+			}
+			if cred.Connected {
+				state += "*"
+			}
+			fmt.Printf("%-36v  %-36v  %-9v  %-56v  %v\n", cred.ID, cred.Parent, state,
+				cred.PubKey, cred.Description)
+		}
+		fmt.Println("(* connected)")
+
+	case "enable", "disable":
+		if len(args) < 2 {
+			usage()
+		}
+		nc := connectCLI(args[2:])
+		p := data.NewPointFloat(data.PointTypeDisabled, "", data.BoolToFloat(args[0] == "disable"))
+		p.Origin = "cli"
+		if err := client.SendNodePoint(nc, args[1], p, true); err != nil {
+			log.Fatal("Error updating credential: ", err)
+		}
+		fmt.Println(args[0]+"d", args[1])
+
+	case "rm":
+		if len(args) < 2 {
+			usage()
+		}
+		nc := connectCLI(args[2:])
+		edges, err := client.GetNodes(nc, "all", args[1], data.NodeTypeDeviceCred, false)
+		if err != nil || len(edges) == 0 {
+			log.Fatal("Credential not found: ", args[1])
+		}
+		for _, e := range edges {
+			if err := client.DeleteNode(nc, e.ID, e.Parent, "cli"); err != nil {
+				log.Fatal("Error deleting credential: ", err)
+			}
+		}
+		fmt.Println("deleted", args[1])
+
+	default:
+		usage()
+	}
+}
+
+func runCredAdd(args []string) {
+	flags := flag.NewFlagSet("cred add", flag.ExitOnError)
+	flagDevice := flags.String("device", "", "device node ID or description (required)")
+	flagDescription := flags.String("description", "", "credential description")
+	flagPubKey := flags.String("pubKey", "", "the device's own public key (siot key show); generates a key when blank")
+	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
+	flagAuthToken := flags.String("token", "", "Auth token")
+
+	if err := flags.Parse(args); err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	if *flagDevice == "" {
+		log.Fatal("-device is required")
+	}
+
+	nc := connectCLI([]string{"-natsServer", *flagNatsServer, "-token", *flagAuthToken})
+
+	deviceID, err := findDevice(nc, *flagDevice)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	seed, pubKey := "", *flagPubKey
+	if pubKey == "" {
+		seed, pubKey, err = client.GenerateDeviceKey()
+		if err != nil {
+			log.Fatal("Error generating key: ", err)
+		}
+	} else if _, err := nkeys.FromPublicKey(pubKey); err != nil || !nkeys.IsValidPublicUserKey(pubKey) {
+		log.Fatal("Not a device public key: ", pubKey)
+	}
+
+	cred := client.DeviceCred{
+		ID:          uuid.New().String(),
+		Parent:      deviceID,
+		Description: *flagDescription,
+		PubKey:      pubKey,
+	}
+
+	if err := client.SendNodeType(nc, cred, "cli"); err != nil {
+		log.Fatal("Error creating credential: ", err)
+	}
+
+	fmt.Println("credential:", cred.ID)
+	fmt.Println("device:    ", deviceID)
+	fmt.Println("pubKey:    ", pubKey)
+	if seed != "" {
+		fmt.Println("seed:      ", seed)
+		fmt.Println("The seed is shown once. Install it on the device with: siot key install", seed)
+	}
+}
+
+// findDevice resolves a device node by ID, or by description when exactly
+// one device node matches.
+func findDevice(nc *nats.Conn, idOrDesc string) (string, error) {
+	nodes, err := client.GetNodes(nc, "all", idOrDesc, data.NodeTypeDevice, false)
+	if err == nil && len(nodes) > 0 {
+		return nodes[0].ID, nil
+	}
+
+	devices, err := client.GetNodes(nc, "all", "all", data.NodeTypeDevice, false)
+	if err != nil {
+		return "", fmt.Errorf("error listing devices: %w", err)
+	}
+
+	var matches []string
+	seen := map[string]bool{}
+	for _, d := range devices {
+		if seen[d.ID] {
+			continue
+		}
+		if desc, _ := d.Points.Text(data.PointTypeDescription, ""); desc == idOrDesc {
+			seen[d.ID] = true
+			matches = append(matches, d.ID)
+		}
+	}
+
+	switch len(matches) {
+	case 1:
+		return matches[0], nil
+	case 0:
+		return "", fmt.Errorf("no device node with ID or description %q", idOrDesc)
+	default:
+		return "", fmt.Errorf("%v device nodes are described %q, give the ID instead", len(matches), idOrDesc)
 	}
 }
 
