@@ -25,6 +25,8 @@ module Api.Node exposing
     , typeGpio
     , typeGps
     , typeGroup
+    , typeIio
+    , typeIioChannel
     , typeMetrics
     , typeModbus
     , typeModbusIO
@@ -162,6 +164,16 @@ typeMqttSub =
 typeMqttDevice : String
 typeMqttDevice =
     "mqttDevice"
+
+
+typeIio : String
+typeIio =
+    "iio"
+
+
+typeIioChannel : String
+typeIioChannel =
+    "iioChannel"
 
 
 typeOneWire : String
@@ -311,6 +323,9 @@ owningParentType typ =
 
     else if typ == typeOneWireIO then
         typeOneWire
+
+    else if typ == typeIioChannel then
+        typeIio
 
     else if typ == typeShellyIO then
         typeShelly

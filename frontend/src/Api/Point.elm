@@ -40,6 +40,7 @@ module Api.Point exposing
     , typeBitRate
     , typeBucket
     , typeChannel
+    , typeChannelType
     , typeChip
     , typeClientServer
     , typeConditionType
@@ -59,6 +60,8 @@ module Api.Point exposing
     , typeDestination
     , typeDevice
     , typeDeviceID
+    , typeDeviceName
+    , typeDevicePath
     , typeDialogColor
     , typeDirection
     , typeDirectory
@@ -119,6 +122,7 @@ module Api.Point exposing
     , typeMaxSeries
     , typeMaxValue
     , typeMinActive
+    , typeMinChange
     , typeMinInactive
     , typeMinIncrement
     , typeMinValue
@@ -138,6 +142,7 @@ module Api.Point exposing
     , typeOffset
     , typeOperator
     , typeOrg
+    , typeOversampling
     , typePass
     , typePath
     , typePeriod
@@ -163,6 +168,7 @@ module Api.Point exposing
     , typeRx
     , typeRxReset
     , typeSID
+    , typeSampleFrequency
     , typeSampleRate
     , typeScale
     , typeScreenResolution
@@ -1487,6 +1493,46 @@ valueOutput =
 typeBias : String
 typeBias =
     "bias"
+
+
+{-| IIO device identity, published by the client once the device is resolved
+-}
+typeDeviceName : String
+typeDeviceName =
+    "deviceName"
+
+
+typeDevicePath : String
+typeDevicePath =
+    "devicePath"
+
+
+{-| IIO device settings, written to sysfs when set
+-}
+typeSampleFrequency : String
+typeSampleFrequency =
+    "sampleFrequency"
+
+
+typeOversampling : String
+typeOversampling =
+    "oversampling"
+
+
+{-| The measured quantity an IIO channel reports: "voltage", "temp", "accel",
+and so on
+-}
+typeChannelType : String
+typeChannelType =
+    "channelType"
+
+
+{-| How far a value must move from the last published one before it is sent
+again, which keeps ADC noise out of the store
+-}
+typeMinChange : String
+typeMinChange =
+    "minChange"
 
 
 valuePullUp : String

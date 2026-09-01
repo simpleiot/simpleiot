@@ -92,6 +92,8 @@ var primaryTypes = map[string]bool{
 	NodeTypeShelly:               true,
 	NodeTypeShellyIo:             true,
 	NodeTypeGPIO:                 true,
+	NodeTypeIIO:                  true,
+	NodeTypeIIOChannel:           true,
 	NodeTypeGPS:                  true,
 	NodeTypeSerialDev:            true,
 	NodeTypeCanBus:               true,
@@ -150,6 +152,7 @@ var treeScopedTypes = map[string]bool{
 var nodeTypeOwners = map[string]string{
 	NodeTypeModbusIO:             NodeTypeModbus,
 	NodeTypeOneWireIO:            NodeTypeOneWire,
+	NodeTypeIIOChannel:           NodeTypeIIO,
 	NodeTypeShellyIo:             NodeTypeShelly,
 	NodeTypeMqttSub:              NodeTypeMqtt,
 	NodeTypeCondition:            NodeTypeRule,

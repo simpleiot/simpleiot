@@ -13,8 +13,6 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
-## [0.26.3] - 2026-09-01
-
 - **Node replies over NATS use the binary point encoding instead of protobuf.**
   A `nodes.*.*` or `auth.user` reply is now a small frame around the existing
   point encoding, so there is one wire format to implement. This is an
@@ -23,6 +21,20 @@ For more details or to discuss releases, please visit the
   other at the same time. An external NATS client that reads node replies needs
   the new decoder, and node replies no longer carry a hash. See the
   [API reference](docs/ref/api.md#nats).
+
+## [0.26.3] - 2026-08-27
+
+### Added
+
+- **Analog IO through the Linux IIO subsystem.** A new `iio` client reads ADCs,
+  DACs, and the sensors the kernel presents the same way, including
+  accelerometers, pressure, humidity, and light. Add a device node naming the
+  device and its channels are detected and added as children, each publishing a
+  `value` point in volts, amps, or degrees Celsius. `minChange` sets how far a
+  reading must move before it is published, which keeps ADC noise out of the
+  store. See the [IIO documentation](docs/user/iio.md).
+
+  _iio client not tested on real hardware yet, working on setup ..._
 
 ## [0.26.2] - 2026-08-27
 
