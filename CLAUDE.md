@@ -111,6 +111,18 @@ classifying its node type in `primaryTypes` or `treeScopedTypes` in
 `data/edge_role.go`; a test fails if it is in neither. See
 [Primary and mirror edges](docs/ref/data.md#primary-and-mirror-edges).
 
+### Authentication
+
+Every connection to the embedded NATS server (NATS, WebSocket, MQTT) goes
+through the authorizer in `server/auth.go`. The shared token grants full access;
+an NKey whose public key is in a `deviceCred` node is scoped to that device's
+subjects (`devicePermissions`), and an enrollment token may only publish
+`enroll.request`. Each instance keeps its own key in `SIOT_DATA/device.nkey`
+(`server/device-key.go`), never as a point, since points replicate upstream.
+`server/auth_spike_test.go` is the canary for nats-server upgrades. See
+[security](docs/ref/security.md) and
+[device credentials](docs/user/sync.md#device-credentials).
+
 ### Frontend Architecture
 
 - **Elm SPA**: Single-page application using elm-spa framework

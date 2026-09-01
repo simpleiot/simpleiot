@@ -156,10 +156,10 @@ replication resumes where it left off.
   streams themselves — is verified to work (see `store/leafnode_spike_test.go`)
   and is the intended replacement once per-instance JetStream domain
   configuration is worked out.
-- Authorization currently uses the shared auth token; per-stream permissions
-  issued via NATS auth callout are the planned tightening, and the
-  stream-per-boundary layout is what makes one-rule-per-device grants possible.
-  See [per-device credentials](../user/sync.md#per-device-credentials-planned).
+- Authorization is per device: a device credential is granted exactly its own
+  boundary's streams, which the stream-per-boundary layout makes a one-rule
+  grant. See [per-device credentials](../user/sync.md#device-credentials) and
+  the [security reference](security.md#nats).
 
 See the
 [Stage 3 plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-08-06-stage3-jetstream-sync.md)

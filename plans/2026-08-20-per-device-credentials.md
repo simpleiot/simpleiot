@@ -2,8 +2,8 @@
 
 **Branch:** `cbrake/master` **Branched from:** `cbc07a67`
 
-**Status:** Phases 0 through 6 complete. See "Decisions made while implementing"
-for where the implementation departs from the design below.
+**Status:** COMPLETE. See "Decisions made while implementing" for where the
+implementation departs from the design below.
 
 ## Context
 
@@ -380,13 +380,20 @@ a different key is held as pending and does not replace the approved key.
 Docs: `docs/user/sync.md` enrollment section, `docs/user/installation.md`
 image-build notes.
 
-### Phase 7: Wrap-up
+### Phase 7: Wrap-up — DONE
 
 - `plans/plans.md` status, `CLAUDE.md` note on the authorizer, changelog review.
 - Mark the docs planned sections as current.
-- Open follow-ups as issues: hash user passwords; auth-callout variant for
-  external NATS; MQTT credentials share the authorizer (tracked in
-  `2026-08-20-mqtt.md`).
+
+Follow-ups, not opened as issues yet:
+
+- Hash user passwords (`data.User.Pass` is stored in plaintext).
+- Auth-callout variant of the authorizer for an external NATS server
+  (`-natsDisableServer`), which today relies on that server's own configuration.
+- An MQTT credential type scoped to topics; the authorizer already gates the
+  MQTT listener, and MQTT clients present the shared token as their password.
+- A UI list of pending enrollments on the root node; today they are found as
+  credentials marked pending under each device node, or with `siot cred list`.
 
 ## Testing Strategy
 
