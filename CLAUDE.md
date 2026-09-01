@@ -119,12 +119,15 @@ classifying its node type in `primaryTypes` or `treeScopedTypes` in
 
 ## Design Priorities
 
-Simplicity and correctness come before backwards compatibility at this stage of
-the project. The user base is still small, so prefer the clean fix over one that
-preserves an existing wire format, schema, or API shape. Changing a subject
-format, renaming a point type, or reshaping stored data is acceptable when it
-makes the system simpler or more correct. Note the change in `CHANGELOG.md` and
-in any affected documentation so users upgrading know what to expect.
+The project is pre-1.0, so there is no backwards compatibility. Make the clean
+change and do not add compatibility shims, fallbacks, transition modes, or flags
+whose only purpose is to keep an older client, wire format, schema, or
+deployment working. Changing a subject format, renaming a point type, or
+reshaping stored data is fine when it makes the system simpler or more correct.
+When a change is incompatible with an existing deployment, say so in the
+`CHANGELOG.md` entry and in any affected documentation so users upgrading know
+what to expect. Plans list the incompatibilities to note in the changelog rather
+than a compatibility section.
 
 ## Development Workflow
 
