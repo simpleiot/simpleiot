@@ -186,9 +186,9 @@ own:
    ```
 
 4. When the upstream refuses the device's key, the device connects with the
-   token, which allows exactly one thing, and asks for a credential for its key.
-   The upstream creates the device node if it is new and a credential under it
-   marked **pending approval**; the device's sync node says
+   token and that key, which together allow exactly one thing, and asks for a
+   credential for it. The upstream creates the device node if it is new and a
+   credential under it marked **pending approval**; the device's sync node says
    `enrollment pending approval on upstream` and keeps trying every minute.
 5. Approve the credential: uncheck **Pending** on it, or run
    `siot cred approve ID` (`siot cred list` shows pending ones). The device

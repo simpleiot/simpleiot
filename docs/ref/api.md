@@ -124,6 +124,12 @@ names -- should pass them through `data.SubjectSafeToken` first.
       at each place it sits in the tree (without the password hash), so the
       `parent` of each is an anchor the connection may reach. The browser calls
       this after connecting to learn what to fetch.
+  - `enroll.request`
+    - Request with a device ID, public key, and description. An instance with no
+      credential asks the upstream for one here. The connection presents an
+      enrollment token together with the key being enrolled, and this subject
+      plus its own reply inbox is all it may reach. See
+      [devices that enroll themselves](../user/sync.md#2-devices-that-enroll-themselves).
 - Admin
   - `admin.error` (not implemented yet)
     - Any errors that occur are sent to this subject
