@@ -17,7 +17,12 @@ incoming ports can be firewalled.
 
 ## HTTP
 
-The Web UI uses JWT (JSON web tokens) issued at login.
+The web UI signs in with `POST /v1/auth` and receives a JWT (JSON web token). It
+uses the JWT for the node operations that stay on HTTP (add, delete, move,
+mirror, duplicate, notify) and as its NATS credential for everything else; see
+[Browser](#browser) below. The HTTP node routes check that the JWT is valid but
+not which nodes the user may reach; that is tracked in the security cleanup
+plan.
 
 Devices can also reach the node API over HTTP, with either credential the NATS
 side accepts:
@@ -39,7 +44,7 @@ there is no restriction on accessing the device API.
 
 The embedded NATS server authenticates every connection on every listener (NATS,
 WebSocket, and MQTT) through one authorizer inside Simple IoT, so there is no
-NATS accounts file to manage. Two kinds of credential are accepted:
+NATS accounts file to manage. Three kinds of credential are accepted:
 
 - **The shared token** (`SIOT_AUTH_TOKEN`) grants full access. The server's own
   client, the `siot` command line tools, and MQTT clients (which send it as the
@@ -54,6 +59,9 @@ NATS accounts file to manage. Two kinds of credential are accepted:
   authorizes nothing, and a credential marked `pending` (one a device enrolled
   itself with) authorizes nothing until an operator clears it. See
   [Device credentials](../user/sync.md#device-credentials) for the workflow.
+- **A user's sign-in JWT**, presented with the user's node ID as the NATS user
+  and password, grants the groups that user belongs to and nothing else. This is
+  how the web UI connects; see [Browser](#browser).
 
 `SIOT_DEVICE_AUTH` (or `--deviceAuth`) selects how the two combine:
 
@@ -180,9 +188,10 @@ The authorizer is part of the embedded server. An instance started with
 `-natsDisableServer` against an external NATS server relies on that server's own
 configuration for both tokens and device credentials.
 
-Long term we plan to leverage more of the NATS
-[security model](https://docs.nats.io/nats-concepts/security) for user
-authentication:
+The authorizer covers devices, enrollment, and users in process. If a fleet
+grows to where connect rate or multi-tenancy calls for it, the NATS
+[security model](https://docs.nats.io/nats-concepts/security) (accounts,
+decentralized auth) is the escalation path:
 
 - [NATS authentication](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_intro)
 - [NATS authorization](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization)
