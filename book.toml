@@ -6,6 +6,12 @@ language = "en"
 src = "."
 title = "Simple IoT"
 
+[build]
+# Output goes beside the source root rather than inside it. With src = "."
+# the default build directory sits inside the source tree, and mdbook serve
+# then sees its own output as a change and rebuilds without end.
+build-dir = "../siot-docs"
+
 #[preprocessor.toc]
 
 [output.html]
