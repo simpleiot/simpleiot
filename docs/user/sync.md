@@ -184,7 +184,7 @@ own:
    The upstream creates the device node if it is new and a credential under it
    marked **pending approval**; the device's sync node says
    `enrollment pending approval on upstream` and keeps trying every minute.
-4. Approve the credential: uncheck **Pending approval** on it, or run
+4. Approve the credential: uncheck **Pending** on it, or run
    `siot cred approve ID` (`siot cred list` shows pending ones). The device
    connects on its next try.
 

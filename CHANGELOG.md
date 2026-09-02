@@ -29,9 +29,9 @@ For more details or to discuss releases, please visit the
   upstream (or `siot cred token`) makes a fleet-wide token that lets a device
   ask for its own credential. Put it on the device's sync node as `enrollToken`;
   the upstream creates the device node and a credential marked pending, and
-  `siot cred approve` or unchecking **Pending approval** lets the device in.
-  Tokens can auto-approve and expire, and revoking one does not affect enrolled
-  devices. See
+  `siot cred approve` or unchecking **Pending** lets the device in. Tokens can
+  auto-approve and expire, and revoking one does not affect enrolled devices.
+  See
   [devices that enroll themselves](docs/user/sync.md#2-devices-that-enroll-themselves).
 - **Devices can use their key on the HTTP API.** A request with a short-lived
   token signed by an enrolled device key can read nodes and post points and

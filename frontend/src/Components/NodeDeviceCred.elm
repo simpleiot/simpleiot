@@ -60,7 +60,8 @@ view o =
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typePubKey "Public key" "from siot key show on the device"
                     , checkboxInput Point.typeDisabled "Disabled"
-                    , viewIf pending <| checkboxInput Point.typePending "Pending approval (uncheck to approve)"
+                    , viewIf pending <| checkboxInput Point.typePending "Pending"
+                    , viewIf pending <| text "Uncheck Pending to approve this device."
                     , text <| "Last connect: " ++ formatLastConnect o.zone lastConnect
                     ]
 
