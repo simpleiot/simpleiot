@@ -38,8 +38,11 @@ represents a SIOT instance:
   instance.
 
 Every node is owned by the nearest boundary found walking up the tree through
-undeleted edges. A node reachable from no boundary, or from more than one, is
-owned by the instance root boundary. Boundaries align with the natural units of
+undeleted edges, skipping mirror edges. A node reachable from the instance root
+and one device boundary belongs to the device, since every node hangs off the
+root and only the device boundary says where the node lives. A node reachable
+from no boundary, or from two device boundaries, is owned by the instance root
+boundary. Boundaries align with the natural units of
 synchronization and authorization: a device's subtree syncs as a unit, and
 permissions are typically granted at device or group level.
 

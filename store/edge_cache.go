@@ -240,11 +240,20 @@ func (ec *EdgeCache) isBoundary(id, rootID string) bool {
 
 // OwningBoundary returns the boundary node that owns the given node:
 // the nearest boundary reachable walking up undeleted, non-mirror edges.
-// A boundary node is owned by itself. A node reachable from no boundary,
-// or from more than one, is owned by the instance root boundary. The walk
-// stops at the first boundary on each path, so nodes inside a nested
-// boundary belong to the inner one. rootID is the local instance root
-// node ID.
+// A boundary node is owned by itself. The walk stops at the first boundary
+// on each path, so nodes inside a nested boundary belong to the inner one.
+// rootID is the local instance root node ID.
+//
+// A node reachable from no boundary is owned by the instance root boundary.
+// So is a node reachable from two device boundaries, since nothing says
+// which of them holds it. Reaching the instance root alongside a device
+// boundary is not that case: every node in the tree hangs off the instance
+// root, so the root says only that the node is somewhere in this instance,
+// while the device boundary is a claim about where the node lives. The
+// device boundary wins, which is what makes a node in a device subtree that
+// is also mirrored into a group on the upstream -- neither edge carrying a
+// role, as a variable or a user has none -- stay owned by the device, so
+// points the upstream writes reach it.
 //
 // Mirror edges are skipped because a mirror displays a node that lives
 // somewhere else and does not claim it. Following one would make a
@@ -294,6 +303,13 @@ func (ec *EdgeCache) OwningBoundary(id, rootID string) string {
 	}
 	walk(id)
 
+	if len(boundaries) == 1 {
+		for b := range boundaries {
+			return b
+		}
+	}
+
+	delete(boundaries, rootID)
 	if len(boundaries) == 1 {
 		for b := range boundaries {
 			return b

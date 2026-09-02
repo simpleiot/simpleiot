@@ -40,6 +40,15 @@ For more details or to discuss releases, please visit the
   The protobuf-based API of 1.x is gone. See the
   [frontend reference](docs/ref/frontend.md#siot-javascript-library-using-nats-over-websockets).
 
+### Fixed
+
+- **A node mirrored onto an upstream keeps syncing to its device.** Mirroring a
+  node with no primary location -- a variable, a user -- from a device subtree
+  into the upstream tree moved the node's ownership to the upstream root, so
+  values written on the upstream were stored where the device never reads them
+  and never arrived. Ownership now stays with the device. See
+  [primary and mirror edges](docs/ref/data.md#primary-and-mirror-edges).
+
 ### Removed
 
 - **`GET /v1/nodes` is gone.** It returned every node a user could see in one

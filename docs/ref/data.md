@@ -315,9 +315,13 @@ reads them and a command would never arrive. Skipping mirror edges keeps the
 node with the device that holds the hardware, which is where the client that
 acts on it runs.
 
-A node with no role that is reachable from two boundaries still resolves to the
-instance root boundary, since nothing marks which side owns it. That is
-[ADR-7](../adr/7-jetstream-store.md) remaining work item 3.
+A node with no role works the same way without any marking. Every node hangs off
+the instance root, so reaching the root alongside a device boundary says only
+that the node is somewhere in this instance's tree, and the device boundary is
+the one that says where the node lives. A variable on a device that is also
+mirrored onto the upstream therefore stays owned by the device, and a value
+written on the upstream reaches it. A node reachable from two device boundaries
+has nothing to choose between them and resolves to the instance root.
 
 ### Upgrading
 

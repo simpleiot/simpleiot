@@ -148,15 +148,30 @@ func TestOwningBoundaryMultiParent(t *testing.T) {
 	ec := NewEdgeCache()
 
 	// S is mirrored under device X and under group G (root boundary):
-	// reachable from two boundaries, so the root boundary owns it
+	// the root is reachable from every node in the tree, so the device
+	// boundary is the one that says where S lives and it keeps S. This is
+	// what a variable on a device mirrored into a group on the upstream
+	// looks like -- neither edge carries a role, since a variable has no
+	// primary location -- and the device replicates only its own
+	// boundary, so upstream writes reach it only this way.
 	testEdge(ec, "root", "R", data.NodeTypeDevice, false)
 	testEdge(ec, "R", "G", data.NodeTypeGroup, false)
 	testEdge(ec, "R", "X", data.NodeTypeDevice, false)
 	testEdge(ec, "X", "S", data.NodeTypeVariable, false)
 	testEdge(ec, "G", "S", data.NodeTypeVariable, false)
 
-	if got := ec.OwningBoundary("S", "R"); got != "R" {
-		t.Errorf("multi-boundary: OwningBoundary(S) = %v, want R", got)
+	if got := ec.OwningBoundary("S", "R"); got != "X" {
+		t.Errorf("root plus one device boundary: OwningBoundary(S) = %v, want X", got)
+	}
+
+	// S2 is under two device boundaries: nothing says which one holds
+	// it, so it falls back to the instance root
+	testEdge(ec, "R", "X2", data.NodeTypeDevice, false)
+	testEdge(ec, "X", "S2", data.NodeTypeVariable, false)
+	testEdge(ec, "X2", "S2", data.NodeTypeVariable, false)
+
+	if got := ec.OwningBoundary("S2", "R"); got != "R" {
+		t.Errorf("two device boundaries: OwningBoundary(S2) = %v, want R", got)
 	}
 
 	// M is mirrored under two groups that both resolve to the root
