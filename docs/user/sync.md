@@ -187,6 +187,13 @@ own:
 4. Approve the credential: uncheck **Pending** on it, or run
    `siot cred approve ID` (`siot cred list` shows pending ones). The device
    connects on its next try.
+5. Once every device is enrolled, stop accepting the shared token from devices.
+   Set `SIOT_DEVICE_AUTH=required` in the upstream's environment, or start it
+   with `siot serve -deviceAuth required`. The upstream then accepts
+   `SIOT_AUTH_TOKEN` only from its own host, where its own client and the `siot`
+   commands still use it, and every remote connection needs a credential. A
+   device still carrying an `authToken` is refused from then on, so clear that
+   first. See [configuration](configuration.md#environment-variables).
 
 Revoking the enrollment token, by disabling or deleting its node, stops new
 enrollments and does not affect devices already enrolled. A device that enrolls
