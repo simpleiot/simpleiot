@@ -155,11 +155,6 @@ device out means changing the token everywhere. This suits a handful of devices
 on a private network. For a fleet on the public internet, use one of the next
 two.
 
-Once every device has a credential, set `SIOT_DEVICE_AUTH=required` on the
-upstream so the shared token is accepted only from the upstream's own host,
-where the `siot` command line tools still use it. See
-[configuration](configuration.md#environment-variables).
-
 ### 2. Keys issued by the upstream
 
 A key is made on the upstream and delivered to the device, which suits bench
