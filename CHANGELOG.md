@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-09-02
+
 ### Added
 
 - **Per-device credentials for sync.** Every instance now has a device key,
@@ -37,7 +39,7 @@ For more details or to discuss releases, please visit the
   token signed by an enrolled device key can read nodes and post points and
   notifications under its own device node, and nothing else. See the
   [security reference](docs/ref/security.md#http).
-- **Credentials are managed from the command line too.**
+- **Credentials can also be managed from the command line.**
   `siot cred list|approve|enable|disable|rm` work on a remote upstream with the
   usual `-natsServer` and `-token` options, and `siot cred add -pubKey` enrolls
   a device's key by hand.
