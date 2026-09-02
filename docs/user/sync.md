@@ -137,52 +137,46 @@ again every minute, so re-enabling the credential brings it back with everything
 it queued while it was out.
 
 The upstream records `lastConnect` and `connected` on each credential, which is
-how to tell whether a device has picked up a new key.
+how to tell whether a device has picked up a new key. `siot cred list` shows
+every credential with its device and state; `siot cred disable ID`,
+`siot cred enable ID`, and `siot cred rm ID` change one. All of the `siot cred`
+commands take the usual `-natsServer` and `-token` options, so they work against
+a remote upstream.
 
-### Enrolling a device
+There are three ways to get a device connected. Pick one per fleet.
 
-1. Let the device sync once with the shared `authToken`, which creates its
-   device node on the upstream, or create the device node some other way.
-2. On the upstream, add a credential under the device's node with the device's
-   public key. Read the key off the device's sync node, or run `siot key show`
-   on the device. Any of these does it:
-   - In the UI, add a **Device credential** node under the device node and paste
-     the key into **Public key**.
-   - `siot cred add -device "Gateway 42" -pubKey UBXF...`, where `-device` is
-     the device node's ID or description.
-   - A provisioning or import file:
+### SIOT_AUTH_TOKEN
 
-     ```yaml
-     nodes:
-       - deviceCred:
-           parent: Gateway 42
-           description: gateway 42
-           pubKey: UBXF3PJZPNL5CW35ECS2U3XG5EODFUUQ6XRNEZTJA3EFNP33K7Z54UCM
-     ```
+The simplest setup is one shared token: set `SIOT_AUTH_TOKEN` on the upstream
+and put the same value in `authToken` on every device's sync node. Nothing has
+to be created per device. The trade-off is that the token grants full access to
+the upstream, so every device can read and write everything, and locking one
+device out means changing the token everywhere. This suits a handful of devices
+on a private network. For a fleet on the public internet, use one of the next
+two.
 
-3. Clear `authToken` on the device's sync node. The device reconnects with its
-   key.
-4. Once every device has a credential, set `SIOT_DEVICE_AUTH=required` on the
-   upstream so the shared token is accepted only from the upstream's own host.
-   See [configuration](configuration.md#environment-variables).
-
-`siot cred list` shows every credential with its device, state, and whether it
-is connected; `siot cred disable ID`, `siot cred enable ID`, and
-`siot cred rm ID` change one. All of them take the usual `-natsServer` and
-`-token` options, so they work against a remote upstream.
+Once every device has a credential, set `SIOT_DEVICE_AUTH=required` on the
+upstream so the shared token is accepted only from the upstream's own host,
+where the `siot` command line tools still use it. See
+[configuration](configuration.md#environment-variables).
 
 ### Keys issued by the upstream
 
-A key can also be made on the upstream and delivered to the device, which suits
-building images and bench setup. The seed is shown once and never stored:
+A key is made on the upstream and delivered to the device, which suits bench
+setup and small fleets where each unit is set up by hand. The seed is shown once
+and never stored:
 
 - In the UI, add a **Device credential** under the device node and press
   **Generate key**. The public key is stored on the credential and the seed is
   shown until you leave the page.
-- `siot cred add -device "Gateway 42"` with no `-pubKey` does the same and
-  prints the seed.
+- `siot cred add -device "Gateway 42"` does the same and prints the seed.
+  `-device` is the device node's ID or description.
 - `siot key gen` prints a seed and public key without touching any instance, for
   scripts that create the credential some other way.
+
+The device node has to exist on the upstream first, with the device's instance
+ID (the root node ID that `siot dump` prints on the device), since that is the
+identity the credential is granted for.
 
 Give the device the seed one of these ways:
 
@@ -206,15 +200,21 @@ Give the device the seed one of these ways:
 A running instance switches to the installed key straight away. Treat the seed
 as you would the shared token: it is the device's identity.
 
+A device node may carry more than one credential, so a key is rotated without
+downtime: `siot cred rotate -device "Gateway 42"` issues a second credential and
+prints its seed; install the seed on the device, wait for `lastConnect` on the
+new credential, then disable the old one. Messages the device publishes during
+the switch are not lost, since the replication consumer resumes where it left
+off.
+
 `siot export` leaves `authToken` points and the device key out and says so at
 the top of the file; `siot export -secrets` includes both, for backing up or
 cloning an instance in full.
 
 ### Devices that enroll themselves
 
-For a fleet built from one image, no unit can carry its own key in advance, and
-reading each unit's key off it does not scale. An _enrollment token_ lets every
-unit ask for its own credential:
+For a fleet built from one image, no unit can carry its own key in advance. An
+_enrollment token_ lets every unit ask for its own credential:
 
 1. On the upstream, add an **Enrollment token** node under the root and press
    **Generate token**, or run `siot cred token -description fleet`. The token is
@@ -245,16 +245,6 @@ Revoking the enrollment token, by disabling or deleting its node, stops new
 enrollments and does not affect devices already enrolled. A device that enrolls
 again with a different key gets a second, pending credential; the approved one
 is never replaced without an operator.
-
-### Rotating a key
-
-A device node may carry more than one credential, so a key is rotated without
-downtime: generate a new key, add a second `deviceCred` with its public key,
-install the seed on the device, wait for `lastConnect` on the new credential,
-then disable the old one. `siot cred rotate -device "Gateway 42"` does the first
-two steps and prints the seed; the old credential stays enabled until you
-disable it. Messages the device publishes during the switch are not lost, since
-the replication consumer resumes where it left off.
 
 ## Videos
 
