@@ -40,7 +40,7 @@ view o =
             :: (if o.expDetail then
                     let
                         opts =
-                            oToInputO o 100
+                            oToInputO o 180
 
                         textInput =
                             NodeInputs.nodeTextInput opts "0"
