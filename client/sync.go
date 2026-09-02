@@ -15,11 +15,22 @@ import (
 
 // Sync represents a sync node config
 type Sync struct {
-	ID             string `node:"id"`
-	Parent         string `node:"parent"`
-	Description    string `point:"description"`
-	URI            string `point:"uri"`
-	AuthToken      string `point:"authToken"`
+	ID          string `node:"id"`
+	Parent      string `node:"parent"`
+	Description string `point:"description"`
+	URI         string `point:"uri"`
+	AuthToken   string `point:"authToken"`
+	// PubKey is this instance's device key, shown so it can be enrolled on
+	// the upstream. The client maintains it; the key is used whenever no
+	// AuthToken is set.
+	PubKey string `point:"pubKey"`
+	// EnrollToken lets an instance whose key is not enrolled ask the
+	// upstream for a credential; see docs/user/sync.md.
+	EnrollToken string `point:"enrollToken"`
+	// Error says why the upstream is not connected when the reason is not
+	// going to fix itself, such as a refused credential. The client
+	// maintains it.
+	Error          string `point:"error"`
 	Disabled       bool   `point:"disabled"`
 	SyncCount      int    `point:"syncCount"`
 	SyncCountReset bool   `point:"syncCountReset"`
@@ -48,6 +59,7 @@ type SyncClient struct {
 	newPoints     chan NewPoints
 	newEdgePoints chan NewPoints
 	chConnected   chan bool
+	chClosed      chan struct{}
 
 	rootLocal data.NodeEdge
 	ncRemote  *nats.Conn
@@ -61,6 +73,20 @@ type SyncClient struct {
 // for new origin streams in this instance's boundary.
 const syncPullScanPeriod = 2 * time.Second
 
+// SyncErrorPending is the sync node's error while an enrollment waits for
+// approval on the upstream.
+const SyncErrorPending = "enrollment pending approval on upstream"
+
+// SyncErrorRefused is the sync node's error when the upstream refuses its
+// credential: the key is not enrolled, or its credential is disabled.
+const SyncErrorRefused = "credential refused by upstream"
+
+// SyncRefusedRetry is how long to wait before connecting again after the
+// upstream closed the connection for good, which is what happens when it
+// refuses the credential twice. A refused key is not going to start
+// working by trying faster. Tests shorten it.
+var SyncRefusedRetry = time.Minute
+
 // NewSyncClient constructor
 func NewSyncClient(nc *nats.Conn, config Sync) Client {
 	return &SyncClient{
@@ -70,6 +96,7 @@ func NewSyncClient(nc *nats.Conn, config Sync) Client {
 		newPoints:     make(chan NewPoints),
 		newEdgePoints: make(chan NewPoints),
 		chConnected:   make(chan bool),
+		chClosed:      make(chan struct{}, 1),
 	}
 }
 
@@ -102,11 +129,35 @@ done:
 		case conn := <-up.chConnected:
 			if conn && !connected {
 				connected = true
+				up.setError("")
 				up.startSession()
 			} else if !conn && connected {
 				connected = false
 				up.stopSession()
 			}
+
+		case <-up.chClosed:
+			// the client gave up reconnecting (the upstream refused
+			// it twice, typically because the credential was
+			// revoked); keep running standalone and try again later
+			connected = false
+			up.stopSession()
+			refused := up.ncRemote != nil &&
+				errors.Is(up.ncRemote.LastError(), nats.ErrAuthorization)
+			up.disconnect()
+			retry := SyncRefusedRetry
+			if refused {
+				up.setError(SyncErrorRefused)
+				if up.config.AuthToken == "" && up.config.EnrollToken != "" {
+					if up.enroll() {
+						// approved: connect again straight away
+						retry = 10 * time.Millisecond
+					}
+				}
+			}
+			log.Printf("Sync %v: upstream closed the connection, retrying in %v\n",
+				up.config.Description, retry)
+			connectTimer.Reset(retry)
 
 		case pts := <-up.newPoints:
 			err := data.MergePoints(pts.ID, pts.Points, &up.config)
@@ -118,7 +169,9 @@ done:
 				switch p.Type {
 				case data.PointTypeURI,
 					data.PointTypeAuthToken,
-					data.PointTypeDisabled:
+					data.PointTypeEnrollToken,
+					data.PointTypeDisabled,
+					data.PointTypePubKey:
 					// we need to restart the sync connection
 					connected = false
 					up.stopSession()
@@ -198,7 +251,30 @@ func (up *SyncClient) connect() error {
 		},
 		Closed: func() {
 			log.Printf("Sync: %v: Remote Closed\n", up.config.Description)
+			select {
+			case up.chClosed <- struct{}{}:
+			default:
+			}
 		},
+	}
+
+	if up.config.AuthToken == "" {
+		// no token: connect with this instance's device key
+		seed, pubKey, err := GetDeviceKey(up.nc)
+		if err != nil {
+			log.Printf("Sync %v: no device key, connecting without credentials: %v",
+				up.config.Description, err)
+		} else {
+			opts.NkeySeed = seed
+			if pubKey != up.config.PubKey {
+				up.config.PubKey = pubKey
+				err := SendNodePoint(up.nc, up.config.ID,
+					data.NewPointString(data.PointTypePubKey, "", pubKey), false)
+				if err != nil {
+					log.Println("Error sending sync pubKey:", err)
+				}
+			}
+		}
 	}
 
 	var err error
@@ -211,10 +287,62 @@ func (up *SyncClient) connect() error {
 	return nil
 }
 
+// enroll asks the upstream for a credential for this instance's key using
+// the sync node's enrollment token, and reports whether it was approved.
+func (up *SyncClient) enroll() bool {
+	_, pubKey, err := GetDeviceKey(up.nc)
+	if err != nil {
+		up.setError("enrollment failed: no device key")
+		return false
+	}
+
+	desc, _ := up.rootLocal.Points.Text(data.PointTypeDescription, "")
+
+	reply, err := Enroll(up.config.URI, EnrollRequest{
+		Token:       up.config.EnrollToken,
+		DeviceID:    up.rootLocal.ID,
+		PubKey:      pubKey,
+		Description: desc,
+	})
+	if err != nil {
+		log.Printf("Sync %v: enrollment failed: %v\n", up.config.Description, err)
+		up.setError("enrollment failed: " + err.Error())
+		return false
+	}
+
+	log.Printf("Sync %v: enrollment %v\n", up.config.Description, reply.Status)
+	if reply.Status == EnrollApproved {
+		return true
+	}
+
+	up.setError(SyncErrorPending)
+	return false
+}
+
+// setError records why the upstream is not connected, or clears it, on
+// the sync node.
+func (up *SyncClient) setError(msg string) {
+	if up.config.Error == msg {
+		return
+	}
+	up.config.Error = msg
+	err := SendNodePoint(up.nc, up.config.ID,
+		data.NewPointString(data.PointTypeError, "", msg), false)
+	if err != nil {
+		log.Println("Error sending sync error:", err)
+	}
+}
+
 func (up *SyncClient) disconnect() {
 	if up.ncRemote != nil {
 		up.ncRemote.Close()
 		up.ncRemote = nil
+	}
+
+	// a close we asked for is not a refusal
+	select {
+	case <-up.chClosed:
+	default:
 	}
 }
 
@@ -331,32 +459,37 @@ func (up *SyncClient) runSession(ctx context.Context, ncRemote *nats.Conn) error
 }
 
 // scanPulls discovers upstream-origin streams for our boundary and
-// starts a pull pump for each new one.
+// starts a pull pump for each new one. It asks for names rather than
+// configurations, which is the one JetStream listing a device credential
+// allows (see server/auth.go); every stream in our boundary is named
+// inst_<boundary>_<origin>, so the origin is the rest of the name.
 func (up *SyncClient) scanPulls(ctx context.Context, jsLocal, jsRemote jetstream.JetStream,
 	boundary string, pulls map[string]pumpStopper) {
 
-	lister := jsRemote.ListStreams(ctx,
+	lister := jsRemote.StreamNames(ctx,
 		jetstream.WithStreamListSubject(fmt.Sprintf("inst.%v.>", boundary)))
 
-	for si := range lister.Info() {
-		b, o, ok := streamBoundaryOrigin(si.Config)
-		if !ok || b != boundary || o == boundary {
+	prefix := fmt.Sprintf("inst_%v_", boundary)
+
+	for name := range lister.Name() {
+		o, ok := strings.CutPrefix(name, prefix)
+		if !ok || o == "" || o == boundary {
 			continue
 		}
-		if _, running := pulls[si.Config.Name]; running {
+		if _, running := pulls[name]; running {
 			continue
 		}
 
-		cc, err := runPump(ctx, jsRemote, jsLocal, b, o, boundary)
+		cc, err := runPump(ctx, jsRemote, jsLocal, boundary, o, boundary)
 		if err != nil {
 			log.Printf("Sync %v: error starting pull replication %v: %v\n",
-				up.config.Description, si.Config.Name, err)
+				up.config.Description, name, err)
 			continue
 		}
 
 		log.Printf("Sync %v: replicating %v from upstream\n",
-			up.config.Description, si.Config.Name)
-		pulls[si.Config.Name] = cc
+			up.config.Description, name)
+		pulls[name] = cc
 	}
 	if err := lister.Err(); err != nil && ctx.Err() == nil {
 		log.Printf("Sync %v: error listing upstream streams: %v\n",
@@ -364,9 +497,9 @@ func (up *SyncClient) scanPulls(ctx context.Context, jsLocal, jsRemote jetstream
 	}
 }
 
-// streamBoundaryOrigin extracts the boundary and origin IDs from a
+// StreamBoundaryOrigin extracts the boundary and origin IDs from a
 // boundary-origin stream's capture subject ("inst.<b>.<o>.>").
-func streamBoundaryOrigin(cfg jetstream.StreamConfig) (boundary, origin string, ok bool) {
+func StreamBoundaryOrigin(cfg jetstream.StreamConfig) (boundary, origin string, ok bool) {
 	if len(cfg.Subjects) != 1 {
 		return "", "", false
 	}

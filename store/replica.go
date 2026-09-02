@@ -58,6 +58,12 @@ type replicaManager struct {
 	db      *DbJetStream
 	mu      sync.Mutex
 	running map[string]jetstream.ConsumeContext
+	// unknown records replica streams whose boundary is not a node this
+	// instance knows, so each is reported once. The permission set is what
+	// keeps a device inside its own boundary; this is the store noticing
+	// when something got past it, or when a device was removed from the
+	// tree and its stream is still here.
+	unknown map[string]bool
 	stop    chan struct{}
 	done    chan struct{}
 }
@@ -69,6 +75,7 @@ const replicaScanPeriod = 3 * time.Second
 func (db *DbJetStream) runReplicaManager() *replicaManager {
 	rm := &replicaManager{
 		db:      db,
+		unknown: make(map[string]bool),
 		running: make(map[string]jetstream.ConsumeContext),
 		stop:    make(chan struct{}),
 		done:    make(chan struct{}),
@@ -111,10 +118,12 @@ func (rm *replicaManager) scan() {
 
 	lister := rm.db.js.ListStreams(ctx, jetstream.WithStreamListSubject("inst.>"))
 	for si := range lister.Info() {
-		_, origin, ok := streamBoundaryOrigin(si.Config)
+		boundary, origin, ok := streamBoundaryOrigin(si.Config)
 		if !ok || origin == self {
 			continue
 		}
+
+		rm.checkBoundary(si.Config.Name, boundary)
 
 		rm.mu.Lock()
 		_, already := rm.running[si.Config.Name]
@@ -142,6 +151,27 @@ func (rm *replicaManager) scan() {
 	if err := lister.Err(); err != nil {
 		log.Println("STORE: error listing replica streams:", err)
 	}
+}
+
+// checkBoundary reports, once, a replica stream for a boundary that is not
+// a node in this instance's tree. The stream is still consumed: a device
+// that was deleted and restored must not lose what it sent in between, and
+// the edge that makes a boundary known can arrive after its data.
+func (rm *replicaManager) checkBoundary(name, boundary string) {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+
+	if rm.unknown[name] || boundary == rm.db.meta.RootID {
+		return
+	}
+
+	if len(rm.db.edgeCache.Parents(boundary)) > 0 {
+		return
+	}
+
+	rm.unknown[name] = true
+	log.Printf("STORE: replica stream %v is for boundary %v, which is not a node in this tree",
+		name, boundary)
 }
 
 // applyPolicy brings a replica stream's per-subject retention and file

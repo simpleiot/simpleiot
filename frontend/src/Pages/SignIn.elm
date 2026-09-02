@@ -143,7 +143,11 @@ view model =
         el [ centerX, centerY, Form.onEnter SignIn ] <|
             column
                 [ spacing 32 ]
-                [ viewError model.error
+                [ image [ centerX, height (px 40) ]
+                    { src = "/siot-logo.svg"
+                    , description = "Simple IoT"
+                    }
+                , viewError model.error
                 , el [ Font.size 24, Font.semiBold ]
                     (text "Sign in")
                 , column [ spacing 16 ]

@@ -111,6 +111,18 @@ classifying its node type in `primaryTypes` or `treeScopedTypes` in
 `data/edge_role.go`; a test fails if it is in neither. See
 [Primary and mirror edges](docs/ref/data.md#primary-and-mirror-edges).
 
+### Authentication
+
+Every connection to the embedded NATS server (NATS, WebSocket, MQTT) goes
+through the authorizer in `server/auth.go`. The shared token grants full access;
+an NKey whose public key is in a `deviceCred` node is scoped to that device's
+subjects (`devicePermissions`), and an enrollment token may only publish
+`enroll.request`. Each instance keeps its own key in `SIOT_DATA/device.nkey`
+(`server/device-key.go`), never as a point, since points replicate upstream.
+`server/auth_spike_test.go` is the canary for nats-server upgrades. See
+[security](docs/ref/security.md) and
+[device credentials](docs/user/sync.md#device-credentials).
+
 ### Frontend Architecture
 
 - **Elm SPA**: Single-page application using elm-spa framework
@@ -120,12 +132,15 @@ classifying its node type in `primaryTypes` or `treeScopedTypes` in
 
 ## Design Priorities
 
-Simplicity and correctness come before backwards compatibility at this stage of
-the project. The user base is still small, so prefer the clean fix over one that
-preserves an existing wire format, schema, or API shape. Changing a subject
-format, renaming a point type, or reshaping stored data is acceptable when it
-makes the system simpler or more correct. Note the change in `CHANGELOG.md` and
-in any affected documentation so users upgrading know what to expect.
+The project is pre-1.0, so there is no backwards compatibility. Make the clean
+change and do not add compatibility shims, fallbacks, transition modes, or flags
+whose only purpose is to keep an older client, wire format, schema, or
+deployment working. Changing a subject format, renaming a point type, or
+reshaping stored data is fine when it makes the system simpler or more correct.
+When a change is incompatible with an existing deployment, say so in the
+`CHANGELOG.md` entry and in any affected documentation so users upgrading know
+what to expect. Plans list the incompatibilities to note in the changelog rather
+than a compatibility section.
 
 ## Development Workflow
 
@@ -188,6 +203,8 @@ by `git commit --amend`.
 - NATS JetStream stores all application data (one stream per boundary/origin
   pair; see ADR-7)
 - System supports TLS with certificates via `siot_mkcert` and `siot_run_tls`
-- Protocol buffers used for efficient data serialization (`siot_protobuf`)
+- Points and node replies use the binary encoding in `data/point.go` and
+  `data/node.go`; protocol buffers (`siot_protobuf`) remain only for Sparkplug B
+  and file transfer
 - Cross-platform support (Linux, macOS, Windows with ARM variants)
 - Embedded systems focus - minimal dependencies and binary size optimization

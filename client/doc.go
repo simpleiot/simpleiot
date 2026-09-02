@@ -12,7 +12,7 @@ See [Client] and [NewManager] for ideas on how to get started with your own clie
 When debugging client test code, it can be very useful to dump the node tree for inspection.
 This can be done with the following code:
 
-	nodes, err := client.ExportNodes(nc, "root")
+	nodes, err := client.ExportNodes(nc, "root", false)
 	if err != nil {
 		t.Fatal("Error exporting nodes: ", err)
 	}

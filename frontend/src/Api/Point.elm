@@ -31,6 +31,7 @@ module Api.Point exposing
     , typeAddress
     , typeAltitude
     , typeAuthToken
+    , typeAutoApprove
     , typeAutoDownload
     , typeAutoReboot
     , typeBatchPeriod
@@ -74,6 +75,7 @@ module Api.Point exposing
     , typeDrive
     , typeEmail
     , typeEnd
+    , typeEnrollToken
     , typeError
     , typeErrorCount
     , typeErrorCountCRC
@@ -85,6 +87,7 @@ module Api.Point exposing
     , typeErrorCountResetHR
     , typeExceptionURL
     , typeExpandKeyLabels
+    , typeExpires
     , typeFallbackServer
     , typeFilePath
     , typeFirstName
@@ -107,6 +110,7 @@ module Api.Point exposing
     , typeIndex
     , typeInitialValue
     , typeKeyboardScale
+    , typeLastConnect
     , typeLastName
     , typeLatitude
     , typeLightSet
@@ -145,6 +149,7 @@ module Api.Point exposing
     , typeOversampling
     , typePass
     , typePath
+    , typePending
     , typePeriod
     , typePhone
     , typePointKey
@@ -156,6 +161,7 @@ module Api.Point exposing
     , typeProgress
     , typeProtocol
     , typeProvisionHash
+    , typePubKey
     , typeRate
     , typeRateHR
     , typeReadOnly
@@ -194,6 +200,7 @@ module Api.Point exposing
     , typeTag
     , typeTagPointType
     , typeTimeout
+    , typeTokenHash
     , typeTombstone
     , typeTopic
     , typeTopicSchema
@@ -1027,6 +1034,41 @@ typeDisabled =
 typeConnected : String
 typeConnected =
     "connected"
+
+
+typePubKey : String
+typePubKey =
+    "pubKey"
+
+
+typeLastConnect : String
+typeLastConnect =
+    "lastConnect"
+
+
+typePending : String
+typePending =
+    "pending"
+
+
+typeTokenHash : String
+typeTokenHash =
+    "tokenHash"
+
+
+typeAutoApprove : String
+typeAutoApprove =
+    "autoApprove"
+
+
+typeExpires : String
+typeExpires =
+    "expires"
+
+
+typeEnrollToken : String
+typeEnrollToken =
+    "enrollToken"
 
 
 typeControlled : String

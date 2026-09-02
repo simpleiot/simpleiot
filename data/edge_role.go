@@ -144,6 +144,8 @@ var treeScopedTypes = map[string]bool{
 	NodeTypeMsgService:     true,
 	NodeTypeVariable:       true,
 	NodeTypeFile:           true,
+	NodeTypeDeviceCred:     true,
+	NodeTypeEnrollToken:    true,
 }
 
 // nodeTypeOwners names the parent type a node type must live under. A node
@@ -161,6 +163,9 @@ var nodeTypeOwners = map[string]string{
 	NodeTypeNetworkManagerDevice: NodeTypeNetworkManager,
 	NodeTypeNetworkManagerConn:   NodeTypeNetworkManager,
 	NodeTypeProvisioningFile:     NodeTypeProvisioning,
+	// A credential authorizes the device it sits under, so one that is
+	// moved elsewhere authorizes nothing.
+	NodeTypeDeviceCred: NodeTypeDevice,
 	// The Sparkplug client rebuilds its topic map by walking groups under
 	// the MQTT node, edge nodes under each group, and devices under each
 	// edge node, so the chain has to hold.

@@ -442,7 +442,9 @@ siot_mdbook_image_ensure() {
 # run mdbook in the documentation image. book.toml sets src = ".", so mdbook
 # treats the whole repo as book source and copies every file it walks into the
 # output. Mounting only the files the book is built from keeps the output to
-# documentation alone. Arguments are appended to the docker command line, so
+# documentation alone. book.toml puts the output in ../siot-docs, outside the
+# source tree so mdbook serve does not watch its own output; it is mounted from
+# ./book on the host. Arguments are appended to the docker command line, so
 # they start with any further docker options and end with the mdbook command.
 siot_mdbook_run() {
 	siot_mdbook_image_ensure || return 1
@@ -452,12 +454,23 @@ siot_mdbook_run() {
 		-v "$(pwd)/SUMMARY.md":/book/SUMMARY.md:ro \
 		-v "$(pwd)/README.md":/book/README.md:ro \
 		-v "$(pwd)/docs":/book/docs:ro \
-		-v "$(pwd)/book":/book/book \
+		-v "$(pwd)/book":/siot-docs \
 		"$@"
 }
 
+# serve the documentation at http://localhost:3333. The container is named so a
+# second copy cannot start while one is running and "docker stop siot-mdbook"
+# ends it from anywhere. --init runs mdbook under an init process that forwards
+# signals, and -it (when a terminal is present) sends Ctrl-C to the container
+# rather than only detaching the docker client, so the server stops with the
+# shell command that started it.
 siot_mdbook() {
-	siot_mdbook_run -p 3333:3000 $MDBOOK_IMAGE serve -n 0.0.0.0
+	MDBOOK_TTY=""
+	if [ -t 0 ] && [ -t 1 ]; then
+		MDBOOK_TTY="-it"
+	fi
+	siot_mdbook_run --name siot-mdbook --init $MDBOOK_TTY \
+		-p 3333:3000 $MDBOOK_IMAGE serve -n 0.0.0.0
 }
 
 siot_mdbook_build() {

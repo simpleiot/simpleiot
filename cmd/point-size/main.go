@@ -2,29 +2,18 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/simpleiot/simpleiot/data"
-	"google.golang.org/protobuf/proto"
 )
 
 func main() {
 	sizeEncodedPoint := func(p data.Point) int {
-		pE, err := p.ToPb()
-
-		if err != nil {
-			log.Fatal("Error encoding: ", err)
-		}
-
-		buf, err := proto.Marshal(&pE)
-
-		if err != nil {
-			log.Fatal("Marshal error: ", err)
-		}
-
-		return len(buf)
+		buf := &bytes.Buffer{}
+		p.Encode(buf)
+		return buf.Len()
 	}
 
 	p := data.Point{Type: "p"}
@@ -50,10 +39,13 @@ func main() {
 	pArrayLen := len(pArrayBuf)
 	fmt.Printf("Size of 10 typical points: %v, per point: %v\n", pArrayLen, float64(pArrayLen)/10)
 
+	nodes := data.Nodes{{ID: "node-id", Type: "device", Parent: "parent-id", Points: pArray}}
+	fmt.Printf("Node with 10 typical points: %v bytes\n", len(data.EncodeNodes(nodes, nil)))
 }
 
 // This program outputs:
-// Simple: T:p V:0.000 0001-01-01T00:00:00Z -> 16 bytes
-// Add array: T:p V:0.000 0001-01-01T00:00:00Z -> 18 bytes
-// Typical point: T:value V:232.320 2022-10-04T14:57:34-04:00 -> 26 bytes
-// Size of 10 typical points: 280, per point: 28
+// Simple: T:p V:0.000  -> 22 bytes
+// Add array: T:p V:0.000  -> 26 bytes
+// Typical point: T:value V:232.320 2026-09-01T15:35:27-04:00 -> 34 bytes
+// Size of 10 typical points: 344, per point: 34.4
+// Node with 10 typical points: 383 bytes

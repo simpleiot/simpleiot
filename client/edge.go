@@ -1,17 +1,23 @@
 package client
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"time"
 
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nkeys"
 )
 
 // EdgeOptions describes options for connecting edge devices
 type EdgeOptions struct {
-	URI          string
-	AuthToken    string
+	URI       string
+	AuthToken string
+	// NkeySeed is a device credential (an NKey user seed). When set, the
+	// connection authenticates by signing the server's nonce with it and
+	// AuthToken is not sent.
+	NkeySeed     string
 	NoEcho       bool
 	Connected    func()
 	Disconnected func()
@@ -25,7 +31,22 @@ type EdgeOptions struct {
 func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 	authEnabled := "no"
 	if eo.AuthToken != "" {
-		authEnabled = "yes"
+		authEnabled = "token"
+	}
+
+	var kp nkeys.KeyPair
+	var pubKey string
+	if eo.NkeySeed != "" {
+		var err error
+		kp, err = nkeys.FromSeed([]byte(eo.NkeySeed))
+		if err != nil {
+			return nil, fmt.Errorf("error parsing device credential: %w", err)
+		}
+		pubKey, err = kp.PublicKey()
+		if err != nil {
+			return nil, fmt.Errorf("error reading device credential: %w", err)
+		}
+		authEnabled = "device credential " + pubKey
 	}
 
 	natsErrHandler := func(_ *nats.Conn, sub *nats.Subscription, natsErr error) {
@@ -65,7 +86,11 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 			return delay
 		})(o)
 
-		_ = nats.Token(eo.AuthToken)(o)
+		if kp != nil {
+			_ = nats.Nkey(pubKey, kp.Sign)(o)
+		} else {
+			_ = nats.Token(eo.AuthToken)(o)
+		}
 
 		if eo.NoEcho {
 			o.NoEcho = true

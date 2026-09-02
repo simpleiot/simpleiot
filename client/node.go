@@ -50,7 +50,7 @@ func GetNodes(nc *nats.Conn, parent, id, typ string, includeDel bool) ([]data.No
 		return []data.NodeEdge{}, err
 	}
 
-	nodes, err := data.PbDecodeNodesRequest(nodeMsg.Data)
+	nodes, err := data.DecodeNodes(nodeMsg.Data)
 
 	if err != nil {
 		return []data.NodeEdge{}, err
@@ -729,7 +729,11 @@ func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop fu
 // Exporting the root node exports what is under it rather than the node
 // itself: the root is the instance rather than configuration, and a file
 // describing it would match nothing anywhere else.
-func ExportNodes(nc *nats.Conn, id string) ([]byte, error) {
+//
+// Secrets are left out unless asked for: authToken points are dropped and a
+// comment at the top says so. With secrets, treat the file as you would the
+// token itself.
+func ExportNodes(nc *nats.Conn, id string, secrets bool) ([]byte, error) {
 	root, err := GetRootNode(nc)
 	if err != nil {
 		return nil, fmt.Errorf("error getting root node: %w", err)
@@ -801,9 +805,38 @@ func ExportNodes(nc *nats.Conn, id string) ([]byte, error) {
 		Nodes:      nodes,
 	}
 
+	var header string
+
+	if !secrets {
+		for i := range f.Nodes {
+			dropSecretPoints(&f.Nodes[i])
+		}
+		header = "# authToken points are left out; export with -secrets to include them\n"
+	}
+
 	// indent sequences so that the nesting a person reads matches the nesting
 	// of the tree
-	return yaml.MarshalWithOptions(f, yaml.IndentSequence(true))
+	out, err := yaml.MarshalWithOptions(f, yaml.IndentSequence(true))
+	if err != nil {
+		return nil, err
+	}
+
+	return append([]byte(header), out...), nil
+}
+
+// dropSecretPoints removes the points an export leaves out by default.
+func dropSecretPoints(n *data.NodeYAML) {
+	kept := n.Points[:0]
+	for _, p := range n.Points {
+		if p.Type != data.PointTypeAuthToken {
+			kept = append(kept, p)
+		}
+	}
+	n.Points = kept
+
+	for i := range n.Children {
+		dropSecretPoints(&n.Children[i])
+	}
 }
 
 // checkExportKeys makes sure the tree can be described by a file. A file finds

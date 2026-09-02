@@ -80,6 +80,10 @@ type ServerArgs struct {
 	AuthToken  string
 	NatsWSPort int
 	Nc         *nats.Conn
+	// DeviceAuth resolves device tokens on the node API; nil accepts none.
+	DeviceAuth DeviceAuthorizer
+	// DeviceAuthRequired limits the shared token to loopback.
+	DeviceAuthRequired bool
 }
 
 // Server represents the HTTP API server

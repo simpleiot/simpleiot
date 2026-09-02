@@ -27,3 +27,4 @@ local.sh
 .aider*
 /jetstream
 /test-edge
+/device.nkey

@@ -91,7 +91,7 @@ For support or to discuss this project, use one of the following options:
 - [Simple IoT community forum](https://community.tmpdir.org/c/simple-iot/5)
 - open a GitHub issue
 - [Simple IoT YouTube channel](https://www.youtube.com/@simple-iot)
-- Subscribe to our [email newsletter](https://tmpdir.ck.page/196d1fb480) for
+- Subscribe to our [email newsletter](https://bec-systems.com/newsletter/) for
   project updates.
 
 If you use this project, please let us know! It is really helpful to hear from

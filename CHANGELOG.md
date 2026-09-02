@@ -11,6 +11,63 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-09-02
+
+### Added
+
+- **Per-device credentials for sync.** Every instance now has a device key,
+  generated on first start in `SIOT_DATA/device.nkey`, and a sync node with no
+  `authToken` connects with it. An upstream accepts the key when a `deviceCred`
+  node under the device's node carries its public key, and limits the connection
+  to that device's own data. Disabling the credential closes the device's
+  connection at once, and the device's sync node says so in its `error` point.
+  `siot key show` prints the key. See
+  [device credentials](docs/user/sync.md#device-credentials) and the
+  [security reference](docs/ref/security.md#nats).
+- **`SIOT_DEVICE_AUTH=required`** (or `--deviceAuth required`) accepts the
+  shared token only from the upstream's own host, so every remote connection
+  needs a device credential. This applies to the HTTP device API as well.
+- **Devices can enroll themselves.** An **Enrollment token** node on the
+  upstream (or `siot cred token`) makes a fleet-wide token that lets a device
+  ask for its own credential. Put it on the device's sync node as `enrollToken`;
+  the upstream creates the device node and a credential marked pending, and
+  `siot cred approve` or unchecking **Pending** lets the device in. Tokens can
+  auto-approve and expire, and revoking one does not affect enrolled devices.
+  See
+  [devices that enroll themselves](docs/user/sync.md#2-devices-that-enroll-themselves).
+- **Devices can use their key on the HTTP API.** A request with a short-lived
+  token signed by an enrolled device key can read nodes and post points and
+  notifications under its own device node, and nothing else. See the
+  [security reference](docs/ref/security.md#http).
+- **Credentials can also be managed from the command line.**
+  `siot cred list|approve|enable|disable|rm` work on a remote upstream with the
+  usual `-natsServer` and `-token` options, and `siot cred add -pubKey` enrolls
+  a device's key by hand.
+
+### Changed
+
+- **The web UI now carries the `[siot]` logo and favicon from simpleiot.org.**
+  The logo appears in the page header and on the sign-in page, and the browser
+  tab shows the matching icon.
+- **`siot export` leaves secrets out.** `authToken` points are dropped and a
+  comment at the top says so; `siot export -secrets` includes them. A script
+  that relied on an export carrying tokens needs the flag.
+- **A sync node with no `authToken` now presents the device key instead of
+  nothing.** Against an upstream that has no token this changes nothing, since
+  an open instance accepts an unknown key with full access. Against an upstream
+  with a token, add a credential for the device before clearing its token.
+
+## [0.26.4] - 2026-09-01
+
+- **Node replies over NATS use the binary point encoding instead of protobuf.**
+  A `nodes.*.*` or `auth.user` reply is now a small frame around the existing
+  point encoding, so there is one wire format to implement. This is an
+  incompatible wire change: an older instance cannot read replies from a newer
+  one or the reverse, so upgrade every instance and device that sync with each
+  other at the same time. An external NATS client that reads node replies needs
+  the new decoder, and node replies no longer carry a hash. See the
+  [API reference](docs/ref/api.md#nats).
+
 ## [0.26.3] - 2026-08-27
 
 ### Added

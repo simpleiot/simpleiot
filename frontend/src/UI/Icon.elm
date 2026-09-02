@@ -14,6 +14,7 @@ module UI.Icon exposing
     , file
     , globe
     , io
+    , key
     , list
     , mapPin
     , mqtt
@@ -240,6 +241,11 @@ send =
 sync : Element msg
 sync =
     icon FeatherIcons.refreshCw
+
+
+key : Element msg
+key =
+    icon FeatherIcons.key
 
 
 database : Element msg

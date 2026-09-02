@@ -7,7 +7,7 @@
 The Simple IoT server currently provides both HTTP and NATS.io APIs. We've tried
 to keep the two APIs a similar as possible so it is easy to switch from one to
 the other. The Http API currently accepts JSON, and the NATS API uses a binary
-encoding for points and protobuf for node requests.
+encoding for points and nodes.
 
 **NOTE, the Simple IoT API is not final and will continue to be refined in the
 coming months.**
@@ -25,11 +25,13 @@ deployment model.
 The `siot` binary embeds the NATS server, so there is no need to deploy and run
 a separate NATS server.
 
-Point data uses a compact binary encoding (see `data/point.go`). Node requests
-still use protobuf, defined
-[here](https://github.com/simpleiot/simpleiot/tree/master/internal/pb). Each
-node point is sent as a single NATS message with `type` and `key` encoded in the
-subject.
+Point data uses a compact binary encoding (see `data/point.go`), and a node
+reply is a frame built from it (see `EncodeNodes` in `data/node.go`): a version
+byte, an error string, a node count, then each node as id, type, parent, points,
+and edge points. Strings carry a two-byte length, integers are little endian,
+and a frame holds at most 10,000 nodes. Protocol buffers remain only where a
+specification requires them (Sparkplug B) and for file transfer. Each node point
+is sent as a single NATS message with `type` and `key` encoded in the subject.
 
 Because the type and key become subject tokens, they may not contain a period,
 whitespace, or the NATS wildcards `*` and `>`. Listeners read the node ID and
@@ -74,6 +76,12 @@ names -- should pass them through `data.SubjectSafeToken` first.
       should not do this.
   - `up.<upstreamId>.<nodeId>.<parentId>.<type>.<key>`
     - edge points rebroadcast at every upstream node ID.
+- Sync
+  - `sync.streams.<nodeId>`
+    - Request/response -- returns the names of the streams that hold data for
+      the boundary `nodeId`, which is how a synced device learns what to pull. A
+      device credential allows this request for the device's own ID only. See
+      the [store reference](store.md) for the stream layout.
 - Legacy APIs that are being deprecated
   - `node.<id>.file` (not currently implemented)
     - Is used to transfer files to a node in chunks, which is optimized for
@@ -132,6 +140,15 @@ Most APIs that do not return specific data (update/delete) return a
       [notification](https://github.com/simpleiot/simpleiot/blob/master/data/notification.go)
       point on the node, which reaches the users and messaging services in scope
       as described in the [notification documentation](./notifications.md)
+  - Device access: a request with `Authorization: Bearer <jwt>` where the JWT is
+    signed by an enrolled device key (`client.DeviceJWT`) may GET a node, POST
+    points, or POST a notification, on the device node or below it. See the
+    [security reference](security.md#http).
+  - `/v1/nodes/:id/key`
+    - POST: generate a token for `enrollToken` node `id`. The hash is written on
+      the node and `{token}` is returned once; the token itself is never stored.
+      See
+      [devices that enroll themselves](../user/sync.md#2-devices-that-enroll-themselves).
 - Auth
   - `/v1/auth`
     - POST: accepts `email` and `password` as form values, and returns a JWT

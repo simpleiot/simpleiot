@@ -45,6 +45,9 @@ type Options struct {
 	NatsTLSKey     string
 	NatsTLSTimeout float64
 	AuthToken      string
+	// DeviceAuth is DeviceAuthOptional (the default) or DeviceAuthRequired;
+	// see server/auth.go.
+	DeviceAuth     string
 	ParticleAPIKey string
 	AppVersion     string
 	OSVersionField string
@@ -179,12 +182,15 @@ func (s *Server) Run() error {
 		jsDir = "jetstream"
 	}
 
+	auth := newAuthorizer(o.AuthToken, o.DeviceAuth)
+
 	natsOptions := natsServerOptions{
 		Port:         o.NatsPort,
 		HTTPPort:     o.NatsHTTPPort,
 		WSPort:       o.NatsWSPort,
 		MQTTPort:     o.NatsMQTTPort,
-		Auth:         o.AuthToken,
+		Auth:         auth,
+		AuthEnabled:  o.AuthToken != "",
 		TLSCert:      o.NatsTLSCert,
 		TLSKey:       o.NatsTLSKey,
 		TLSTimeout:   o.NatsTLSTimeout,
@@ -301,6 +307,76 @@ func (s *Server) Run() error {
 		siotStore.StopMetrics(err)
 		logLS("LS: Shutdown: store metrics")
 	})
+
+	// ====================================
+	// Device key and credentials
+	// ====================================
+
+	key := newDeviceKey(o.DataDir)
+	if err := key.load(); err != nil {
+		return fmt.Errorf("error loading device key: %v", err)
+	}
+
+	cancelKey := make(chan struct{})
+	storeWg.Add(1)
+	g.Add(func() error {
+		defer storeWg.Done()
+		err := siotStore.WaitStart(siotWaitCtx)
+		if err != nil {
+			logLS("LS: Exited: device key timeout waiting for store")
+			return err
+		}
+
+		if err := key.start(s.nc); err != nil {
+			logLS("LS: Exited: device key")
+			return fmt.Errorf("error starting device key: %v", err)
+		}
+
+		<-cancelKey
+		key.stop()
+		logLS("LS: Exited: device key")
+		return nil
+	}, func(_ error) {
+		close(cancelKey)
+		logLS("LS: Shutdown: device key")
+	})
+
+	if !o.NatsDisableServer {
+		// the authorizer accepts only the shared token until the store
+		// is serving, then loads the credential index and starts
+		// accepting device keys
+		cancelAuth := make(chan struct{})
+		storeWg.Add(1)
+		g.Add(func() error {
+			defer storeWg.Done()
+			err := siotStore.WaitStart(siotWaitCtx)
+			if err != nil {
+				logLS("LS: Exited: device auth timeout waiting for store")
+				return err
+			}
+
+			err = auth.start(s.nc, s.natsServer)
+			if err != nil {
+				logLS("LS: Exited: device auth")
+				return fmt.Errorf("error starting device auth: %v", err)
+			}
+
+			enr := &enroller{}
+			if err := enr.start(s.nc, auth); err != nil {
+				logLS("LS: Exited: device auth")
+				return err
+			}
+
+			<-cancelAuth
+			enr.stop()
+			auth.stopIndex()
+			logLS("LS: Exited: device auth")
+			return nil
+		}, func(_ error) {
+			close(cancelAuth)
+			logLS("LS: Shutdown: device auth")
+		})
+	}
 
 	// ====================================
 	// Version reporting
@@ -448,13 +524,15 @@ func (s *Server) Run() error {
 	// HTTP API
 	// ====================================
 	httpAPI := api.NewServer(api.ServerArgs{
-		Port:       o.HTTPPort,
-		NatsWSPort: o.NatsWSPort,
-		Filesystem: http.FS(feFSDecomp),
-		Debug:      o.DebugHTTP,
-		JwtAuth:    siotStore.GetAuthorizer(),
-		AuthToken:  o.AuthToken,
-		Nc:         s.nc,
+		Port:               o.HTTPPort,
+		NatsWSPort:         o.NatsWSPort,
+		Filesystem:         http.FS(feFSDecomp),
+		Debug:              o.DebugHTTP,
+		JwtAuth:            siotStore.GetAuthorizer(),
+		AuthToken:          o.AuthToken,
+		Nc:                 s.nc,
+		DeviceAuth:         auth,
+		DeviceAuthRequired: o.DeviceAuth == DeviceAuthRequired,
 	})
 
 	g.Add(func() error {

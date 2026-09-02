@@ -962,7 +962,12 @@ func (db *DbJetStream) getNodes(_ any, parent, id, typ string, includeDel bool) 
 			}
 		}
 	case parent == "all" && id == "all":
-		return nil, errors.New("invalid combination of parent and id")
+		// every edge for a node type, which is how the authorizer finds
+		// the credentials in a tree without walking it
+		if typ == "" {
+			return nil, errors.New("parent and id of all requires a node type")
+		}
+		edges = db.edgeCache.AllByType(typ)
 	case parent == "all":
 		edges = db.edgeCache.Parents(id)
 	case id == "all":

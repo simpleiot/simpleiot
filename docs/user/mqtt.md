@@ -453,5 +453,8 @@ collecting history you intend to keep.
 - **Schema-less discovery**, for browsing what an unfamiliar broker publishes
   under a prefix when no topic convention exists.
 - **Per-client credentials**, so each gateway authenticates individually and can
-  be restricted to its own topics.
+  be restricted to its own topics. The
+  [device credential](sync.md#device-credentials) authorizer already covers the
+  MQTT listener; what remains is a credential type scoped to topics rather than
+  to a device's sync subjects.
 - **MQTT 5**, which depends on the NATS server gaining support for it.

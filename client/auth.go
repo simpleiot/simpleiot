@@ -23,7 +23,7 @@ func UserCheck(nc *nats.Conn, email, pass string) ([]data.NodeEdge, error) {
 		return []data.NodeEdge{}, err
 	}
 
-	nodes, err := data.PbDecodeNodesRequest(nodeMsg.Data)
+	nodes, err := data.DecodeNodes(nodeMsg.Data)
 
 	if err != nil {
 		return []data.NodeEdge{}, err

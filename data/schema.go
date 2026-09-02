@@ -273,6 +273,31 @@ const (
 
 	NodeTypeSync = "sync"
 
+	// NodeTypeDeviceCred is a credential for one device. It sits under the
+	// device node on the upstream and holds only the public key; the
+	// authorizer scopes a connection presenting the matching seed to that
+	// device's data. The seed stays in a file on the device (never a point,
+	// since a device's points replicate upstream) and the device's sync
+	// nodes carry the public key so it can be read off the device. See
+	// docs/ref/security.md.
+	NodeTypeDeviceCred   = "deviceCred"
+	PointTypePubKey      = "pubKey"
+	PointTypeLastConnect = "lastConnect"
+	// PointTypePending marks a credential a device enrolled itself with
+	// that an operator has not approved yet. It authorizes nothing until
+	// cleared.
+	PointTypePending = "pending"
+
+	// NodeTypeEnrollToken is a fleet-wide token, kept under the upstream
+	// root, that lets a device with no credential ask for one. It holds
+	// only a hash of the token. A sync node carries the token itself as
+	// enrollToken.
+	NodeTypeEnrollToken  = "enrollToken"
+	PointTypeTokenHash   = "tokenHash"
+	PointTypeAutoApprove = "autoApprove"
+	PointTypeExpires     = "expires"
+	PointTypeEnrollToken = "enrollToken"
+
 	PointTypeMetricNatsCycleNodePoint          = "metricNatsCycleNodePoint"
 	PointTypeMetricNatsCycleNodeEdgePoint      = "metricNatsCycleNodeEdgePoint"
 	PointTypeMetricNatsCycleNode               = "metricNatsCycleNode"

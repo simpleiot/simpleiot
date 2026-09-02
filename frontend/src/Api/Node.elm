@@ -1,5 +1,6 @@
 module Api.Node exposing
     ( EdgeRole(..)
+    , GeneratedToken
     , Node
     , NodeView
     , Notification
@@ -7,6 +8,7 @@ module Api.Node exposing
     , delete
     , description
     , edgeRole
+    , generateKey
     , getBestDesc
     , insert
     , list
@@ -21,6 +23,8 @@ module Api.Node exposing
     , typeCondition
     , typeDb
     , typeDevice
+    , typeDeviceCred
+    , typeEnrollToken
     , typeFile
     , typeGpio
     , typeGps
@@ -69,6 +73,16 @@ import Url.Builder
 typeDevice : String
 typeDevice =
     "device"
+
+
+typeDeviceCred : String
+typeDeviceCred =
+    "deviceCred"
+
+
+typeEnrollToken : String
+typeEnrollToken =
+    "enrollToken"
 
 
 typeGroup : String
@@ -522,6 +536,41 @@ insert options =
         , url = Url.Builder.absolute [ "v1", "nodes", options.node.id ] []
         , expect = Api.Data.expectJson options.onResponse Response.decoder
         , body = options.node |> encode |> Http.jsonBody
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+{-| GeneratedToken is the reply to a key request on an enrollment token
+node. The token is shown once; only its hash is stored.
+-}
+type alias GeneratedToken =
+    { token : String
+    }
+
+
+decodeGeneratedToken : Decode.Decoder GeneratedToken
+decodeGeneratedToken =
+    Decode.succeed GeneratedToken
+        |> required "token" Decode.string
+
+
+{-| generateKey makes a token for an enrollToken node. The hash is stored on
+the node; the token comes back once.
+-}
+generateKey :
+    { token : String
+    , id : String
+    , onResponse : Data GeneratedToken -> msg
+    }
+    -> Cmd msg
+generateKey options =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
+        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "key" ] []
+        , expect = Api.Data.expectJson options.onResponse decodeGeneratedToken
+        , body = Http.emptyBody
         , timeout = Nothing
         , tracker = Nothing
         }

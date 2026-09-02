@@ -12,15 +12,18 @@ import (
 )
 
 type natsServerOptions struct {
-	Port       int
-	HTTPPort   int
-	WSPort     int
-	MQTTPort   int
-	Auth       string
-	TLSCert    string
-	TLSKey     string
-	TLSTimeout float64
-	StoreDir   string
+	Port     int
+	HTTPPort int
+	WSPort   int
+	MQTTPort int
+	// Auth authenticates every connection on every listener; see
+	// authorizer. AuthEnabled is only reported at start-up.
+	Auth        server.Authentication
+	AuthEnabled bool
+	TLSCert     string
+	TLSKey      string
+	TLSTimeout  float64
+	StoreDir    string
 	// ID is the optional instance ID; when set it makes the NATS server name
 	// stable across restarts, which MQTT sessions depend on.
 	ID string
@@ -33,12 +36,14 @@ type natsServerOptions struct {
 // newNatsServer creates a new nats server instance
 func newNatsServer(o natsServerOptions) (*server.Server, error) {
 	opts := server.Options{
-		Port:          o.Port,
-		HTTPPort:      o.HTTPPort,
-		Authorization: o.Auth,
-		NoSigs:        true,
-		JetStream:     true,
-		StoreDir:      o.StoreDir,
+		Port:                       o.Port,
+		HTTPPort:                   o.HTTPPort,
+		CustomClientAuthentication: o.Auth,
+		// device credentials sign the connection nonce
+		AlwaysEnableNonce: true,
+		NoSigs:            true,
+		JetStream:         true,
+		StoreDir:          o.StoreDir,
 	}
 
 	if o.SyncAlways {
@@ -73,7 +78,6 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 		// clients lose their sessions.
 		opts.ServerName = natsServerName(o)
 		opts.MQTT.Port = o.MQTTPort
-		opts.MQTT.Token = o.Auth
 		opts.MQTT.AuthTimeout = o.TLSTimeout
 
 		if opts.TLSConfig != nil {
@@ -84,7 +88,6 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 
 	if o.WSPort != 0 {
 		opts.Websocket.Port = o.WSPort
-		opts.Websocket.Token = o.Auth
 		opts.Websocket.AuthTimeout = o.TLSTimeout
 		opts.Websocket.NoTLS = true // will likely be fronted by Caddy anyway
 		opts.Websocket.HandshakeTimeout = time.Second * 20
@@ -98,7 +101,7 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 
 	authEnabled := "no"
 
-	if o.Auth != "" {
+	if o.AuthEnabled {
 		authEnabled = "yes"
 	}
 

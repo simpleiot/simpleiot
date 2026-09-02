@@ -8,9 +8,6 @@ import (
 	"hash/crc32"
 	"math"
 	"time"
-
-	"github.com/golang/protobuf/ptypes"
-	"github.com/simpleiot/simpleiot/internal/pb"
 )
 
 // PointOld old point struct
@@ -386,24 +383,6 @@ func (p Point) IsMatch(typ, key string) bool {
 	return true
 }
 
-// ToPb encodes point in protobuf format
-func (p Point) ToPb() (pb.Point, error) {
-	ts, err := ptypes.TimestampProto(p.Time)
-	if err != nil {
-		return pb.Point{}, err
-	}
-
-	return pb.Point{
-		Type:      p.Type,
-		Key:       p.Key,
-		Time:      ts,
-		DataType:  int32(p.DataType),
-		Data:      p.Data,
-		Tombstone: int32(p.Tombstone),
-		Origin:    p.Origin,
-	}, nil
-}
-
 // Val returns the float64 value of the point, converting from int if needed.
 // Returns 0 for non-numeric types. This is a convenience method that mirrors
 // the old Point.Value field access semantics.
@@ -677,37 +656,53 @@ func DecodePoint(data []byte, off int) (Point, int, error) {
 	return p, off, nil
 }
 
+// maxPointsPerMessage bounds the point count a decoder will accept, so a
+// corrupt or hostile count cannot make it allocate without limit.
+const maxPointsPerMessage = 10000
+
 // Encode serializes a Points array to binary format: uint32 count + repeated Point.
 func (ps *Points) Encode() []byte {
 	buf := &bytes.Buffer{}
+	ps.encode(buf)
+	return buf.Bytes()
+}
+
+// encode writes the Points array to buf in the Encode format.
+func (ps *Points) encode(buf *bytes.Buffer) {
 	c := make([]byte, 4)
 	binary.LittleEndian.PutUint32(c, uint32(len(*ps)))
 	buf.Write(c)
 	for _, p := range *ps {
 		p.Encode(buf)
 	}
-	return buf.Bytes()
 }
 
 // DecodePoints deserializes a Points array from binary data.
 func DecodePoints(data []byte) (Points, error) {
-	if len(data) < 4 {
-		return nil, fmt.Errorf("DecodePoints: not enough data for count")
+	pts, _, err := decodePointsAt(data, 0)
+	return pts, err
+}
+
+// decodePointsAt deserializes a Points array from data at offset and returns
+// the offset just past it.
+func decodePointsAt(data []byte, off int) (Points, int, error) {
+	if off+4 > len(data) {
+		return nil, off, fmt.Errorf("DecodePoints: not enough data for count")
 	}
-	count := int(binary.LittleEndian.Uint32(data[0:4]))
-	if count > 10000 {
-		return nil, fmt.Errorf("DecodePoints: count %d exceeds maximum", count)
+	count := int(binary.LittleEndian.Uint32(data[off : off+4]))
+	if count > maxPointsPerMessage {
+		return nil, off, fmt.Errorf("DecodePoints: count %d exceeds maximum", count)
 	}
-	off := 4
+	off += 4
 	pts := make(Points, count)
 	for i := 0; i < count; i++ {
 		var err error
 		pts[i], off, err = DecodePoint(data, off)
 		if err != nil {
-			return nil, fmt.Errorf("DecodePoints: error at point %d: %w", i, err)
+			return nil, off, fmt.Errorf("DecodePoints: error at point %d: %w", i, err)
 		}
 	}
-	return pts, nil
+	return pts, off, nil
 }
 
 // question -- should be using []*Point instead of []Point?
@@ -870,27 +865,6 @@ func (b ByTypeKey) Less(i, j int) bool {
 	}
 
 	return b[i].Key < b[j].Key
-}
-
-// PbToPoint converts pb point to point
-func PbToPoint(sPb *pb.Point) (Point, error) {
-
-	ts, err := ptypes.Timestamp(sPb.Time)
-	if err != nil {
-		return Point{}, err
-	}
-
-	ret := Point{
-		Type:      sPb.Type,
-		Key:       sPb.Key,
-		Time:      ts,
-		DataType:  PointDataType(sPb.DataType),
-		Data:      sPb.Data,
-		Tombstone: int(sPb.Tombstone),
-		Origin:    sPb.Origin,
-	}
-
-	return ret, nil
 }
 
 // DecodeSerialHrPayload decodes a serial high-rate payload. Payload format.

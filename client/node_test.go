@@ -27,7 +27,7 @@ func TestExportNodes(t *testing.T) {
 
 	defer stop()
 
-	y, err := client.ExportNodes(nc, root.ID)
+	y, err := client.ExportNodes(nc, root.ID, false)
 
 	if err != nil {
 		t.Fatal("Error exporting nodes: ", err)
@@ -85,7 +85,7 @@ func TestExportDuplicateDescriptions(t *testing.T) {
 		}
 	}
 
-	_, err = client.ExportNodes(nc, root.ID)
+	_, err = client.ExportNodes(nc, root.ID, false)
 	if err == nil {
 		t.Fatal("Two nodes described the same, so an export without IDs should have failed")
 	}
@@ -114,7 +114,7 @@ func TestExportImportNodes(t *testing.T) {
 		t.Fatal("Expected exactly nodes from auth request")
 	}
 
-	y, err := client.ExportNodes(nc, root.ID)
+	y, err := client.ExportNodes(nc, root.ID, false)
 
 	if err != nil {
 		t.Fatal("Error exporting nodes: ", err)
@@ -631,7 +631,7 @@ func TestExportRoundTripBetweenInstances(t *testing.T) {
 		t.Fatal("Error importing fixture: ", err)
 	}
 
-	first, err := client.ExportNodes(nc1, root1.ID)
+	first, err := client.ExportNodes(nc1, root1.ID, false)
 	if err != nil {
 		t.Fatal("Error exporting: ", err)
 	}
@@ -652,7 +652,7 @@ func TestExportRoundTripBetweenInstances(t *testing.T) {
 		t.Fatal("Import errors: ", plan.Errors)
 	}
 
-	second, err := client.ExportNodes(nc2, root2.ID)
+	second, err := client.ExportNodes(nc2, root2.ID, false)
 	if err != nil {
 		t.Fatal("Error exporting the second instance: ", err)
 	}

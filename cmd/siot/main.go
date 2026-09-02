@@ -21,6 +21,9 @@ import (
 	"time"
 
 	yaml "github.com/goccy/go-yaml"
+	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nkeys"
 	"github.com/oklog/run"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
@@ -53,6 +56,8 @@ func main() {
 		fmt.Println("  - export (export nodes to YAML file)")
 		fmt.Println("  - dump (describe a running instance for troubleshooting)")
 		fmt.Println("  - provision (check provisioning files, or print what they would do)")
+		fmt.Println("  - key (show this instance's device key)")
+		fmt.Println("  - cred (manage device credentials on an upstream)")
 		fmt.Println("  - update (update to the latest release)")
 	}
 
@@ -95,6 +100,10 @@ func main() {
 		runDump(args[1:])
 	case "provision":
 		runProvision(args[1:])
+	case "key":
+		runKey(args[1:])
+	case "cred":
+		runCred(args[1:])
 	case "update":
 		runUpdate(args[1:], version)
 	default:
@@ -500,6 +509,8 @@ func runExport(args []string) {
 	flagNodeID := flags.String("nodeID", "", "node ID to export. Default is root device")
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
 	flagAuthToken := flags.String("token", "", "Auth token")
+	flagSecrets := flags.Bool("secrets", false,
+		"include authToken points, which are left out by default")
 
 	if err := flags.Parse(args); err != nil {
 		log.Fatal("error: ", err)
@@ -546,7 +557,7 @@ func runExport(args []string) {
 		log.Fatal("Error connecting to NATS server: ", err)
 	}
 
-	yaml, err := client.ExportNodes(nc, *flagNodeID)
+	yaml, err := client.ExportNodes(nc, *flagNodeID, *flagSecrets)
 	if err != nil {
 		log.Fatal("Error export nodes: ", err)
 	}
@@ -751,6 +762,285 @@ func runProvision(args []string) {
 
 // provisioningFiles lists the YAML files in a directory, in the order
 // provisioning applies them.
+// runKey handles `siot key show`, which prints this instance's public key.
+// An instance generates its key on first start.
+func runKey(args []string) {
+	if len(args) < 1 || args[0] != "show" {
+		fmt.Println("usage: siot key show")
+		os.Exit(1)
+	}
+
+	nc := connectCLI(args[1:])
+	_, pubKey, err := client.GetDeviceKey(nc)
+	if err != nil {
+		log.Fatal("Error getting device key: ", err)
+	}
+	fmt.Println(pubKey)
+}
+
+// runCred manages device credentials on the instance the command connects
+// to, which is the upstream:
+//
+//	siot cred add -device ID|DESCRIPTION -pubKey KEY [-description TEXT]
+//	siot cred approve ID
+//	siot cred token [-description TEXT] [-autoApprove] [-expires DURATION]
+//	siot cred list
+//	siot cred enable ID
+//	siot cred disable ID
+//	siot cred rm ID
+//
+// add enrolls a device's own key (siot key show on the device) by hand;
+// enrollment tokens are the usual way.
+func runCred(args []string) {
+	usage := func() {
+		fmt.Println("usage: siot cred add|approve|token|list|enable|disable|rm ...")
+		os.Exit(1)
+	}
+
+	if len(args) < 1 {
+		usage()
+	}
+
+	switch args[0] {
+	case "add":
+		runCredAdd(args[1:])
+
+	case "approve":
+		if len(args) < 2 {
+			usage()
+		}
+		nc := connectCLI(args[2:])
+		p := data.NewPointFloat(data.PointTypePending, "", 0)
+		p.Origin = "cli"
+		if err := client.SendNodePoint(nc, args[1], p, true); err != nil {
+			log.Fatal("Error approving credential: ", err)
+		}
+		fmt.Println("approved", args[1])
+
+	case "token":
+		runCredToken(args[1:])
+
+	case "list":
+		nc := connectCLI(args[1:])
+		creds, err := client.GetNodes(nc, "all", "all", data.NodeTypeDeviceCred, false)
+		if err != nil && err != data.ErrDocumentNotFound {
+			log.Fatal("Error listing credentials: ", err)
+		}
+		fmt.Printf("%-36v  %-36v  %-9v  %-56v  %v\n", "ID", "DEVICE", "STATE", "PUBKEY", "DESCRIPTION")
+		for _, c := range creds {
+			var cred client.DeviceCred
+			if err := data.Decode(data.NodeEdgeChildren{NodeEdge: c}, &cred); err != nil {
+				log.Println("Error decoding credential:", err)
+				continue
+			}
+			state := "enabled"
+			if cred.Disabled {
+				state = "disabled"
+			}
+			if cred.Pending {
+				state = "pending"
+			}
+			if cred.Connected {
+				state += "*"
+			}
+			fmt.Printf("%-36v  %-36v  %-9v  %-56v  %v\n", cred.ID, cred.Parent, state,
+				cred.PubKey, cred.Description)
+		}
+		fmt.Println("(* connected)")
+
+	case "enable", "disable":
+		if len(args) < 2 {
+			usage()
+		}
+		nc := connectCLI(args[2:])
+		p := data.NewPointFloat(data.PointTypeDisabled, "", data.BoolToFloat(args[0] == "disable"))
+		p.Origin = "cli"
+		if err := client.SendNodePoint(nc, args[1], p, true); err != nil {
+			log.Fatal("Error updating credential: ", err)
+		}
+		fmt.Println(args[0]+"d", args[1])
+
+	case "rm":
+		if len(args) < 2 {
+			usage()
+		}
+		nc := connectCLI(args[2:])
+		edges, err := client.GetNodes(nc, "all", args[1], data.NodeTypeDeviceCred, false)
+		if err != nil || len(edges) == 0 {
+			log.Fatal("Credential not found: ", args[1])
+		}
+		for _, e := range edges {
+			if err := client.DeleteNode(nc, e.ID, e.Parent, "cli"); err != nil {
+				log.Fatal("Error deleting credential: ", err)
+			}
+		}
+		fmt.Println("deleted", args[1])
+
+	default:
+		usage()
+	}
+}
+
+func runCredAdd(args []string) {
+	flags := flag.NewFlagSet("cred add", flag.ExitOnError)
+	flagDevice := flags.String("device", "", "device node ID or description (required)")
+	flagDescription := flags.String("description", "", "credential description")
+	flagPubKey := flags.String("pubKey", "", "the device's public key, from siot key show on the device (required)")
+	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
+	flagAuthToken := flags.String("token", "", "Auth token")
+
+	if err := flags.Parse(args); err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	if *flagDevice == "" || *flagPubKey == "" {
+		log.Fatal("-device and -pubKey are required")
+	}
+
+	nc := connectCLI([]string{"-natsServer", *flagNatsServer, "-token", *flagAuthToken})
+
+	deviceID, err := findDevice(nc, *flagDevice)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pubKey := *flagPubKey
+	if _, err := nkeys.FromPublicKey(pubKey); err != nil || !nkeys.IsValidPublicUserKey(pubKey) {
+		log.Fatal("Not a device public key: ", pubKey)
+	}
+
+	cred := client.DeviceCred{
+		ID:          uuid.New().String(),
+		Parent:      deviceID,
+		Description: *flagDescription,
+		PubKey:      pubKey,
+	}
+
+	if err := client.SendNodeType(nc, cred, "cli"); err != nil {
+		log.Fatal("Error creating credential: ", err)
+	}
+
+	fmt.Println("credential:", cred.ID)
+	fmt.Println("device:    ", deviceID)
+	fmt.Println("pubKey:    ", pubKey)
+}
+
+// runCredToken creates an enrollment token under the root and prints it
+// once.
+func runCredToken(args []string) {
+	flags := flag.NewFlagSet("cred token", flag.ExitOnError)
+	flagDescription := flags.String("description", "", "token description")
+	flagAutoApprove := flags.Bool("autoApprove", false, "approve enrolled credentials straight away")
+	flagExpires := flags.Duration("expires", 0, "refuse the token after this long (for example 720h); zero never expires")
+	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
+	flagAuthToken := flags.String("token", "", "Auth token")
+
+	if err := flags.Parse(args); err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	nc := connectCLI([]string{"-natsServer", *flagNatsServer, "-token", *flagAuthToken})
+
+	root, err := client.GetRootNode(nc)
+	if err != nil {
+		log.Fatal("Error getting root node: ", err)
+	}
+
+	token, hash, err := client.GenerateEnrollToken()
+	if err != nil {
+		log.Fatal("Error generating token: ", err)
+	}
+
+	et := client.EnrollToken{
+		ID:          uuid.New().String(),
+		Parent:      root.ID,
+		Description: *flagDescription,
+		TokenHash:   hash,
+		AutoApprove: *flagAutoApprove,
+	}
+	if *flagExpires > 0 {
+		et.Expires = float64(time.Now().Add(*flagExpires).Unix())
+	}
+
+	if err := client.SendNodeType(nc, et, "cli"); err != nil {
+		log.Fatal("Error creating enrollment token: ", err)
+	}
+
+	fmt.Println("enrollment token node:", et.ID)
+	fmt.Println("token:", token)
+	fmt.Println("The token is shown once. Put it on each device's sync node as enrollToken.")
+}
+
+// findDevice resolves a device node by ID, or by description when exactly
+// one device node matches.
+func findDevice(nc *nats.Conn, idOrDesc string) (string, error) {
+	nodes, err := client.GetNodes(nc, "all", idOrDesc, data.NodeTypeDevice, false)
+	if err == nil && len(nodes) > 0 {
+		return nodes[0].ID, nil
+	}
+
+	devices, err := client.GetNodes(nc, "all", "all", data.NodeTypeDevice, false)
+	if err != nil {
+		return "", fmt.Errorf("error listing devices: %w", err)
+	}
+
+	var matches []string
+	seen := map[string]bool{}
+	for _, d := range devices {
+		if seen[d.ID] {
+			continue
+		}
+		if desc, _ := d.Points.Text(data.PointTypeDescription, ""); desc == idOrDesc {
+			seen[d.ID] = true
+			matches = append(matches, d.ID)
+		}
+	}
+
+	switch len(matches) {
+	case 1:
+		return matches[0], nil
+	case 0:
+		return "", fmt.Errorf("no device node with ID or description %q", idOrDesc)
+	default:
+		return "", fmt.Errorf("%v device nodes are described %q, give the ID instead", len(matches), idOrDesc)
+	}
+}
+
+// connectCLI connects a command to the local instance using the usual
+// -natsServer and -token flags and environment.
+func connectCLI(args []string) *nats.Conn {
+	flags := flag.NewFlagSet("key", flag.ExitOnError)
+	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
+	flagAuthToken := flags.String("token", "", "Auth token")
+
+	if err := flags.Parse(args); err != nil {
+		log.Fatal("error: ", err)
+	}
+
+	natsServer := *flagNatsServer
+	if natsServer == defaultNatsServer {
+		if e := os.Getenv("SIOT_NATS_SERVER"); e != "" {
+			natsServer = e
+		}
+	}
+
+	authToken := *flagAuthToken
+	if authToken == "" {
+		authToken = os.Getenv("SIOT_AUTH_TOKEN")
+	}
+
+	nc, err := client.EdgeConnect(client.EdgeOptions{
+		URI:       natsServer,
+		AuthToken: authToken,
+		NoEcho:    true,
+	})
+	if err != nil {
+		log.Fatal("Error connecting to NATS server: ", err)
+	}
+
+	return nc
+}
+
 func provisioningFiles(dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {

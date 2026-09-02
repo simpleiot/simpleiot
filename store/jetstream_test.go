@@ -745,6 +745,60 @@ func TestDbJetStreamReplicaPolicy(t *testing.T) {
 	}
 }
 
+// TestDbJetStreamReplicaUnknownBoundary checks that the store notices a
+// replica stream for a boundary that is not in its tree, and does not
+// complain about its own boundary.
+func TestDbJetStreamReplicaUnknownBoundary(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "siot-js-test-*")
+	if err != nil {
+		t.Fatal("Error creating temp dir:", err)
+	}
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	ns, nc := newTestNatsServer(t, tmpDir)
+	defer func() {
+		nc.Close()
+		ns.Shutdown()
+	}()
+
+	db, err := NewJetStreamDb(nc, "", JsConfig{})
+	if err != nil {
+		t.Fatal("Error creating JetStream db:", err)
+	}
+
+	ctx := context.Background()
+	for _, s := range []struct{ b, o string }{{"ghost", "ghost"}, {db.meta.RootID, "upstream"}} {
+		_, err = db.js.CreateStream(ctx, jetstream.StreamConfig{
+			Name:     streamName(s.b, s.o),
+			Subjects: []string{"inst." + s.b + "." + s.o + ".>"},
+		})
+		if err != nil {
+			t.Fatal("Error creating replica stream:", err)
+		}
+	}
+
+	rm := db.runReplicaManager()
+	defer rm.Stop()
+
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		rm.mu.Lock()
+		ghost := rm.unknown[streamName("ghost", "ghost")]
+		own := rm.unknown[streamName(db.meta.RootID, "upstream")]
+		rm.mu.Unlock()
+		if own {
+			t.Fatal("own boundary reported as unknown")
+		}
+		if ghost {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("unknown boundary never reported")
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
 // TestCompressionResolution verifies the setting resolves to what streams are
 // given, and that the startup log describes the same thing.
 func TestCompressionResolution(t *testing.T) {

@@ -1,4 +1,4 @@
-module Components.NodeOptions exposing (CopyMove(..), NodeOptions, findNode, oToInputO)
+module Components.NodeOptions exposing (CopyMove(..), GeneratedToken, NodeOptions, findNode, oToInputO)
 
 import Api.Node exposing (Node, NodeView)
 import Api.Point exposing (Point)
@@ -14,6 +14,15 @@ type CopyMove
     | Copy String String String
 
 
+{-| GeneratedToken is a token just made for an enrollment token node. It is
+shown once, on that node, until the page is left.
+-}
+type alias GeneratedToken =
+    { id : String
+    , token : String
+    }
+
+
 type alias NodeOptions msg =
     { now : Time.Posix
     , zone : Time.Zone
@@ -26,6 +35,8 @@ type alias NodeOptions msg =
     , onEditNodePoint : List Point -> msg
     , onEditScratch : String -> msg
     , onUploadFile : Bool -> msg
+    , onGenerateKey : msg
+    , generatedToken : Maybe GeneratedToken
     , copy : CopyMove
     , scratch : String
     }

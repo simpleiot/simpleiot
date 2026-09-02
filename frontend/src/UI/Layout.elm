@@ -1,7 +1,7 @@
 module UI.Layout exposing (layout)
 
 import Element exposing (..)
-import Gen.Route as Route exposing (Route)
+import Gen.Route as Route
 import UI.Form as Form
 import UI.Style as Style
 
@@ -17,7 +17,7 @@ layout options child =
     column [ spacing 32, padding 20, width (fill |> maximum 1280), height fill, centerX ]
         [ row
             [ width fill, spacing 20 ]
-            [ link ( "SIOT", Route.Home_ )
+            [ logo
             , el [ alignRight ] <|
                 case options.email of
                     Just email_ ->
@@ -35,11 +35,15 @@ layout options child =
         ]
 
 
-link : ( String, Route ) -> Element msg
-link ( label, route ) =
-    Element.link Style.link
-        { label = text label
-        , url = Route.toHref route
+logo : Element msg
+logo =
+    Element.link []
+        { label =
+            image [ height (px 32) ]
+                { src = "/siot-logo.svg"
+                , description = "Simple IoT"
+                }
+        , url = Route.toHref Route.Home_
         }
 
 

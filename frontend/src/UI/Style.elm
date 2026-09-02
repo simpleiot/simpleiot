@@ -3,7 +3,6 @@ module UI.Style exposing
     , colors
     , error
     , h2
-    , link
     )
 
 import Element exposing (..)
@@ -61,20 +60,6 @@ fonts =
         , Font.serif
         ]
     }
-
-
-link : List (Attribute msg)
-link =
-    [ Font.underline
-    , Font.color colors.blue
-    , transition
-        { property = "opacity"
-        , duration = 150
-        }
-    , mouseOver
-        [ alpha 0.6
-        ]
-    ]
 
 
 button : Color -> List (Attribute msg)
