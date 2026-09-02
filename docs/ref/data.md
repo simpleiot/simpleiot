@@ -320,8 +320,35 @@ the instance root, so reaching the root alongside a device boundary says only
 that the node is somewhere in this instance's tree, and the device boundary is
 the one that says where the node lives. A variable on a device that is also
 mirrored onto the upstream therefore stays owned by the device, and a value
-written on the upstream reaches it. A node reachable from two device boundaries
-has nothing to choose between them and resolves to the instance root.
+written on the upstream reaches it.
+
+### One node reaches one device
+
+A node belongs to a single boundary, and a device replicates only the streams
+for its own boundary, so a node cannot be mirrored into two devices. Nothing
+chooses between two device boundaries, so the node resolves to the instance
+root, which neither device replicates. Each device still receives the edge,
+since an edge is stored with its parent's boundary, so the node appears in both
+trees carrying no points. Mirroring a node into a second device also takes it
+away from the first, which owned it until then.
+
+Mirroring the other way has the same limit. A hardware node that lives on the
+upstream and is mirrored into a device's subtree keeps its points on the
+upstream, because its new edge is a mirror and ownership skips it, and the
+device sees the edge without them. A node with no role does move to the device,
+since the instance root and one device boundary resolve to the device.
+
+Behind this is the property that makes synchronization echo-free: only the
+origin instance ever appends to a stream. Copying the upstream's writes into
+both device boundaries would be mechanical, but a write made on one device lands
+in that device's own stream, which the other device does not replicate. Carrying
+it across would make the upstream a relay between two devices editing one node
+with nothing to coordinate them.
+
+To give several devices the same value, keep a node in each device's subtree and
+write them all from one place. A rule on the upstream with a `setValue` action
+per device does this, and each write lands in the boundary that device
+replicates.
 
 ### Upgrading
 

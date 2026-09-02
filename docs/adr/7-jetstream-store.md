@@ -673,42 +673,51 @@ Stage 3 [plan](../../plans/2026-08-06-stage3-jetstream-sync.md) tracks progress.
    that the node is in this instance's tree, and the device boundary wins
    (`TestSyncMirrorNoRoleAcrossBoundary`). Before both, such a node became
    reachable from two boundaries and resolved to the instance root, so upstream
-   writes landed in a stream the device does not replicate and never arrived. A
-   node reachable from two device boundaries still resolves to the instance
-   root, since nothing chooses between them.
-4. Moving a node between boundaries: requires republishing subject tips into the
+   writes landed in a stream the device does not replicate and never arrived.
+4. One node into two devices: not supported. A node belongs to a single
+   boundary, so a node reachable from two device boundaries resolves to the
+   instance root and reaches neither device, and mirroring a node into a second
+   device takes it away from the first. Making a node writable from two devices
+   would require the upstream to relay one device's writes into the other's
+   boundary, which gives up the single-writer property. Read-only fan-out is the
+   tractable form: ownership stays with one boundary, and the owning instance
+   republishes the node's point subjects into each other boundary under its own
+   origin, so the single-writer rule holds and devices never write back. That
+   covers broadcasting a setpoint or schedule to many devices, which is what
+   people usually want from it.
+5. Moving a node between boundaries: requires republishing subject tips into the
    new stream and purging the old subjects. Not implemented.
 
 **Transport**
 
-5. JetStream sourcing over leaf connections remains the intended replacement for
+6. JetStream sourcing over leaf connections remains the intended replacement for
    durable-consumer replication, pending a way to drive server domain
    configuration from instance identity (identity is known only after the store
    initializes).
-6. Chained (multi-hop) sourcing is unverified; the single-hop spike passed
+7. Chained (multi-hop) sourcing is unverified; the single-hop spike passed
    (`store/leafnode_spike_test.go`).
 
 **Security**
 
-7. AuthZ tightening: instances share a token today. The target is per-stream
+8. AuthZ tightening: instances share a token today. The target is per-stream
    JetStream permissions issued dynamically via NATS auth callout, so a device
    may replicate `inst_X_*` and export only `inst_X_X`.
-8. The filter-carrying consumer-create permission form
+9. The filter-carrying consumer-create permission form
    (`$JS.API.CONSUMER.CREATE.<stream>.<consumer>.<filter>`) is unverified on the
-   NATS version SIOT pins. Item 7 depends on it.
+   NATS version SIOT pins. Item 8 depends on it.
 
 **Operations and observability**
 
-9. Per-replica retention overrides: replica streams are currently unlimited. The
-   resolution point exists in `maxMsgsForStream`.
-10. History sinks: the Db client consumes boundary-origin streams with a durable
+10. Per-replica retention overrides: replica streams are currently unlimited.
+    The resolution point exists in `maxMsgsForStream`.
+11. History sinks: the Db client consumes boundary-origin streams with a durable
     consumer, so node points are gap-free across restarts (`client/db.go`), and
     external sinks can follow the same pattern. Remaining: edge points are
     excluded by the consumer filter and are not stored, and sink lag is not
     surfaced. High-rate (`phrup`) data stays a core NATS subscription by design.
-11. Sync status points: per-replica lag and last-delivered sequence. `SyncCount`
+12. Sync status points: per-replica lag and last-delivered sequence. `SyncCount`
     currently counts replication sessions.
-12. Frontend sync status UI: surface lag rather than the former hash and
+13. Frontend sync status UI: surface lag rather than the former hash and
     `SyncCount` values.
 
 ## Consequences
