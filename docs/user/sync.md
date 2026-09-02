@@ -176,7 +176,11 @@ any of these; the seed is shown once and never stored:
 - `siot key gen` prints a seed and public key without touching any instance, for
   scripts that create the credential some other way.
 
-**On the device**, install the seed, any of these ways:
+**On the device**, add a sync node with the upstream's `uri` and no `authToken`,
+and install the seed. The order does not matter: a sync node that exists before
+the key is installed is refused by the upstream, shows
+`credential refused by upstream`, and keeps trying, and it reconnects on its own
+once the key is in place. Install the seed any of these ways:
 
 - On the sync node in the device's UI, paste the seed into **Install key**. It
   goes straight to the key file through the API, never through a point.
