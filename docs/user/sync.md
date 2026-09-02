@@ -145,7 +145,7 @@ a remote upstream.
 
 There are three ways to get a device connected. Pick one per fleet.
 
-### SIOT_AUTH_TOKEN
+### 1. SIOT_AUTH_TOKEN
 
 The simplest setup is one shared token: set `SIOT_AUTH_TOKEN` on the upstream
 and put the same value in `authToken` on every device's sync node. Nothing has
@@ -160,7 +160,7 @@ upstream so the shared token is accepted only from the upstream's own host,
 where the `siot` command line tools still use it. See
 [configuration](configuration.md#environment-variables).
 
-### Keys issued by the upstream
+### 2. Keys issued by the upstream
 
 A key is made on the upstream and delivered to the device, which suits bench
 setup and small fleets where each unit is set up by hand. The seed is shown once
@@ -211,7 +211,7 @@ off.
 the top of the file; `siot export -secrets` includes both, for backing up or
 cloning an instance in full.
 
-### Devices that enroll themselves
+### 3. Devices that enroll themselves
 
 For a fleet built from one image, no unit can carry its own key in advance. An
 _enrollment token_ lets every unit ask for its own credential:

@@ -64,7 +64,7 @@ NATS accounts file to manage. Two kinds of credential are accepted:
 An **enrollment token** is a third, narrower credential: a connection presenting
 one may publish to `enroll.request` and subscribe to its reply inbox, and
 nothing else. It exists so a device with no credential can ask for one; see
-[Devices that enroll themselves](../user/sync.md#devices-that-enroll-themselves).
+[Devices that enroll themselves](../user/sync.md#3-devices-that-enroll-themselves).
 Only a hash of the token is stored, in an `enrollToken` node.
 
 ### What a device credential allows

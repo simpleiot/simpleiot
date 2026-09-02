@@ -108,9 +108,10 @@ An image that runs Simple IoT on many units needs each unit to end up with its
 own identity and credential. Ship a provisioning file (see
 [provisioning](configuration.md#configuration-provisioning)) with a sync node
 that carries an `enrollToken` and no `authToken`; each unit generates its own
-key on first start and [enrolls itself](sync.md#devices-that-enroll-themselves)
-with the upstream. Do not ship `device.nkey` in a shared image, since every unit
-would then be the same device.
+key on first start and
+[enrolls itself](sync.md#3-devices-that-enroll-themselves) with the upstream. Do
+not ship `device.nkey` in a shared image, since every unit would then be the
+same device.
 
 ## Yocto Linux
 

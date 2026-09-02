@@ -31,7 +31,7 @@ For more details or to discuss releases, please visit the
   `siot cred approve` or unchecking **Pending approval** lets the device in.
   Tokens can auto-approve and expire, and revoking one does not affect enrolled
   devices. See
-  [devices that enroll themselves](docs/user/sync.md#devices-that-enroll-themselves).
+  [devices that enroll themselves](docs/user/sync.md#3-devices-that-enroll-themselves).
 - **Devices can use their key on the HTTP API.** A request with a short-lived
   token signed by an enrolled device key can read nodes and post points and
   notifications under its own device node, and nothing else. See the
