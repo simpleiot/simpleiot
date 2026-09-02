@@ -47,6 +47,9 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+- **The web UI now carries the `[siot]` logo and favicon from simpleiot.org.**
+  The logo appears in the page header and on the sign-in page, and the browser
+  tab shows the matching icon.
 - **`siot export` leaves secrets out.** `authToken` points are dropped and a
   comment at the top says so; `siot export -secrets` includes them along with
   the device key. A script that relied on an export carrying tokens needs the
