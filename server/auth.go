@@ -814,11 +814,11 @@ func (a *authorizer) refreshCred(credID string) {
 // device node other than this instance's own root. A detached device must
 // not keep writing, and a credential under anything else would grant that
 // node's subjects: under the root, that is this instance's own origin
-// stream.
+// stream. The root case is not logged: every downstream holds its own
+// credential there, replicated from the upstream, so it is the normal
+// state rather than a misconfiguration.
 func (a *authorizer) deviceLive(credID, deviceID string) bool {
 	if deviceID == a.root() {
-		log.Printf("NATS auth: credential %v is under this instance's root node, authorizing nothing",
-			credID)
 		return false
 	}
 
