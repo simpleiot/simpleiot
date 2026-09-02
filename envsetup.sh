@@ -456,8 +456,19 @@ siot_mdbook_run() {
 		"$@"
 }
 
+# serve the documentation at http://localhost:3333. The container is named so a
+# second copy cannot start while one is running and "docker stop siot-mdbook"
+# ends it from anywhere. --init runs mdbook under an init process that forwards
+# signals, and -it (when a terminal is present) sends Ctrl-C to the container
+# rather than only detaching the docker client, so the server stops with the
+# shell command that started it.
 siot_mdbook() {
-	siot_mdbook_run -p 3333:3000 $MDBOOK_IMAGE serve -n 0.0.0.0
+	MDBOOK_TTY=""
+	if [ -t 0 ] && [ -t 1 ]; then
+		MDBOOK_TTY="-it"
+	fi
+	siot_mdbook_run --name siot-mdbook --init $MDBOOK_TTY \
+		-p 3333:3000 $MDBOOK_IMAGE serve -n 0.0.0.0
 }
 
 siot_mdbook_build() {
