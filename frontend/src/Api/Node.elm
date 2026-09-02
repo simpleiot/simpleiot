@@ -5,17 +5,16 @@ module Api.Node exposing
     , NodeView
     , Notification
     , copy
+    , decode
     , delete
     , description
     , edgeRole
     , generateKey
     , getBestDesc
     , insert
-    , list
     , move
     , notify
     , owningParentType
-    , postPoints
     , typeAction
     , typeActionInactive
     , typeBrowser
@@ -369,13 +368,19 @@ owningParentType typ =
         ""
 
 
+{-| NodeView is a node as the tree shows it. `anchor` is the group the
+node was fetched under, which every request about it names. `loading` is
+set while its children are being fetched.
+-}
 type alias NodeView =
     { node : Node
     , feID : Int
     , parentID : String
+    , anchor : String
     , hasChildren : Bool
     , expDetail : Bool
     , expChildren : Bool
+    , loading : Bool
     , mod : Bool
     }
 
@@ -406,11 +411,6 @@ type alias Notification =
     , subject : String
     , message : String
     }
-
-
-decodeList : Decode.Decoder (List Node)
-decodeList =
-    Decode.list decode
 
 
 decode : Decode.Decoder Node
@@ -487,23 +487,6 @@ getBestDesc n =
     Point.getBestDesc n.points
 
 
-list :
-    { token : String
-    , onResponse : Data (List Node) -> msg
-    }
-    -> Cmd msg
-list options =
-    Http.request
-        { method = "GET"
-        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
-        , url = Url.Builder.absolute [ "v1", "nodes" ] []
-        , expect = Api.Data.expectJson options.onResponse decodeList
-        , body = Http.emptyBody
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
 delete :
     { token : String
     , id : String
@@ -571,25 +554,6 @@ generateKey options =
         , url = Url.Builder.absolute [ "v1", "nodes", options.id, "key" ] []
         , expect = Api.Data.expectJson options.onResponse decodeGeneratedToken
         , body = Http.emptyBody
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-postPoints :
-    { token : String
-    , id : String
-    , points : List Point
-    , onResponse : Data Response -> msg
-    }
-    -> Cmd msg
-postPoints options =
-    Http.request
-        { method = "POST"
-        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
-        , url = Url.Builder.absolute [ "v1", "nodes", options.id, "points" ] []
-        , expect = Api.Data.expectJson options.onResponse Response.decoder
-        , body = options.points |> Point.encodeList |> Http.jsonBody
         , timeout = Nothing
         , tracker = Nothing
         }

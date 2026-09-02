@@ -12,8 +12,10 @@ directory.
 The frontend is based on [elm-spa](https://www.elm-spa.dev/), and is split into
 the following directories:
 
-- `Api`: contains core data structures and API code to communicate with backend
-  (currently REST).
+- `Api`: contains core data structures and API code to communicate with the
+  backend. `Api.Nats` is the port module the node tree is read and written
+  through; the HTTP calls in `Api.Node` and `Api.Auth` remain for sign-in and
+  node operations.
 - `Pages`: the various pages of the application
 - `Components`: each node type has a separate module that is used to render it.
   `NodeOptions.elm` contains a struct that is used to pass options into the
@@ -24,6 +26,34 @@ the following directories:
 We'd like to keep the UI
 [optimistic](https://blog.meteor.com/optimistic-ui-with-meteor-67b5a78c3fcf) if
 possible.
+
+### The node tree over NATS
+
+Elm 0.19 has no WebSocket support, so `public/main.js` owns the NATS connection
+and `Api.Nats` carries a small JSON protocol over one port pair. JavaScript owns
+the connection; Elm owns the tree.
+
+Commands from Elm: `connect {token}`, `fetch {anchor, parent, id, depth}`,
+`watch [subjects]`, `sendPoints {anchor, id, points}`, and `disconnect`. Events
+to Elm: `connected {userId, anchors}`, `disconnected`, `authFailed`,
+`nodes {anchor, parent, id, depth, nodes}`, `points [{nodeId, points}]`,
+`edgePoints [{nodeId, parentId, points}]`, and `error {message}`. Points cross
+the port in the JSON shape the HTTP API used, so `Api.Point.decode` and every
+component are unchanged.
+
+An _anchor_ is a group the user belongs to; the connection may reach the subtree
+under each of its anchors and nothing else. On `connected`, the page fetches
+each anchor with its children and grandchildren. Expanding a node fetches its
+children with their children, so each child knows whether it can be expanded,
+and collapsing keeps what is there. `Utils.NodeTree` holds the pure tree code:
+merging a fetched subtree into the tree while keeping expansion state and the
+deeper levels a reply did not reach, applying live points, and deriving the
+watch list. The watch list is every node on screen (`up.<anchor>.<id>.*.*` for
+its points and `up.<anchor>.*.<id>.*.*` for the edges of its children), sent to
+JavaScript whenever it changes; JavaScript brings its subscriptions in line and
+batches incoming points per animation frame. An edge for a child the tree does
+not have is a new node: the page fetches it. A reconnect, or a tab coming back
+into view, refetches everything loaded, since messages in between were missed.
 
 ### Creating Custom Icons
 

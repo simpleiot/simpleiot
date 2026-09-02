@@ -1,6 +1,7 @@
 module Pages.Home_ exposing (Model, Msg, NodeEdit, NodeMsg, NodeOperation, page)
 
 import Api.Data as Data exposing (Data)
+import Api.Nats as Nats
 import Api.Node as Node exposing (Node, NodeView)
 import Api.Point as Point exposing (Point)
 import Api.Port as Port
@@ -51,7 +52,6 @@ import Components.NodeSync as NodeSync
 import Components.NodeUpdate as NodeUpdate
 import Components.NodeUser as NodeUser
 import Components.NodeVariable as NodeVariable
-import Dict
 import Effect exposing (Effect)
 import Element exposing (..)
 import Element.Background as Background
@@ -61,7 +61,7 @@ import File
 import File.Select
 import Gen.Params.Home_ exposing (Params)
 import Http
-import List.Extra
+import Json.Decode as Decode
 import Page
 import Request
 import Shared
@@ -69,13 +69,13 @@ import Storage
 import Task
 import Time
 import Tree exposing (Tree)
-import Tree.Zipper as Zipper
 import UI.Button as Button
 import UI.Form as Form
 import UI.Icon as Icon
 import UI.Layout
 import UI.Style as Style exposing (colors)
 import UI.ViewIf exposing (viewIf)
+import Utils.NodeTree as NodeTree
 import View exposing (View)
 
 
@@ -109,6 +109,11 @@ type alias Model =
     , nodeMsg : Maybe NodeMsg
     , token : String
     , generatedToken : Maybe GeneratedToken
+
+    -- connected is whether the NATS connection is up; watching is the
+    -- subject list last sent to it
+    , connected : Bool
+    , watching : List String
     }
 
 
@@ -166,6 +171,8 @@ defaultModel =
         Nothing
         ""
         Nothing
+        False
+        []
 
 
 init : Shared.Model -> ( Model, Effect Msg )
@@ -187,7 +194,7 @@ init shared =
         Cmd.batch
             [ Task.perform Zone Time.here
             , Task.perform Tick Time.now
-            , Node.list { onResponse = ApiRespList, token = token }
+            , Nats.send (Nats.Connect token)
             ]
     )
 
@@ -224,9 +231,7 @@ type Msg
     | ApiPutMirrorNode Int String String String
     | ApiPutDuplicateNode Int String String String
     | ApiPostNotificationNode
-    | ApiRespList (Data (List Node))
     | ApiRespDelete (Data Response)
-    | ApiRespPostPoint (Data Response)
     | ApiRespPostAddNode Int (Data Response)
     | ApiRespPostMoveNode Int (Data Response)
     | ApiRespPutMirrorNode Int (Data Response)
@@ -238,13 +243,40 @@ type Msg
     | UpdateNewPointType String
     | UpdateNewPointKey String
     | UpdateCustomNodeType String
+    | NatsEvent (Result Decode.Error Nats.Event)
 
 
+{-| update runs the message and then, if what is on screen changed, tells
+the connection which subjects to watch.
+-}
 update : Shared.Model -> Msg -> Model -> ( Model, Effect Msg )
 update shared msg model =
+    let
+        ( new, effect ) =
+            updateInner shared msg model
+
+        subjects =
+            NodeTree.watchSubjects new.nodes
+    in
+    if new.connected && subjects /= new.watching then
+        ( { new | watching = subjects }
+        , Effect.batch [ effect, Effect.fromCmd <| Nats.send (Nats.Watch subjects) ]
+        )
+
+    else
+        ( new, effect )
+
+
+updateInner : Shared.Model -> Msg -> Model -> ( Model, Effect Msg )
+updateInner shared msg model =
     case msg of
         SignOut ->
-            ( model, Effect.fromCmd <| Storage.signOut shared.storage )
+            ( { model | connected = False }
+            , Effect.batch
+                [ Effect.fromCmd <| Nats.send Nats.Disconnect
+                , Effect.fromCmd <| Storage.signOut shared.storage
+                ]
+            )
 
         EditNodePoint feID points ->
             let
@@ -296,7 +328,7 @@ update shared msg model =
             case resp of
                 Data.Success k ->
                     ( { model | generatedToken = Just { id = id, token = k.token } }
-                    , updateNodes model
+                    , Effect.none
                     )
 
                 Data.Failure err ->
@@ -331,15 +363,7 @@ update shared msg model =
                 pointData =
                     Point Point.typeData "0" model.now 3 0 contents 0
             in
-            ( model
-            , Effect.fromCmd <|
-                Node.postPoints
-                    { token = model.token
-                    , id = id
-                    , points = [ pointName, pointData ]
-                    , onResponse = ApiRespPostPoint
-                    }
-            )
+            ( model, sendPoints model id [ pointName, pointData ] )
 
         ApiPostPoints id ->
             case model.nodeEdit of
@@ -372,13 +396,7 @@ update shared msg model =
                                 model.nodes
                     in
                     ( { model | nodeEdit = Nothing, nodes = updatedNodes }
-                    , Effect.fromCmd <|
-                        Node.postPoints
-                            { token = model.token
-                            , id = id
-                            , points = points
-                            , onResponse = ApiRespPostPoint
-                            }
+                    , sendPoints model id points
                     )
 
                 Nothing ->
@@ -393,11 +411,20 @@ update shared msg model =
             )
 
         ToggleExpChildren feID ->
-            let
-                nodes =
-                    toggleExpChildren model.nodes feID
-            in
-            ( { model | nodes = nodes }, Effect.none )
+            -- expanding fetches the children afresh, which doubles as a
+            -- refresh; collapsing keeps what is there
+            case NodeTree.findByFeID feID model.nodes of
+                Just n ->
+                    if n.expChildren then
+                        ( { model | nodes = NodeTree.setExpanded feID False model.nodes }, Effect.none )
+
+                    else
+                        ( { model | nodes = NodeTree.setExpanded feID True model.nodes }
+                        , fetchChildren n.anchor n.node.id
+                        )
+
+                Nothing ->
+                    ( model, Effect.none )
 
         ToggleExpDetail feID ->
             let
@@ -592,176 +619,100 @@ update shared msg model =
                         model.error
             in
             ( { model | now = now, nodeMsg = nodeMsg, error = error }
-            , updateNodes model
+            , Effect.none
             )
 
-        ApiRespList resp ->
+        ApiRespDelete resp ->
+            -- the tombstone arrives as a live edge point and hides the node
             case resp of
-                Data.Success nodes ->
-                    let
-                        new =
-                            nodes
-                                |> nodeListToTrees
-                                |> List.map (populateHasChildren "")
-                                |> sortNodeTrees
-                                |> populateFeID
-                                |> mergeNodeTrees model.nodes
-                    in
-                    ( { model | nodes = new }, Effect.none )
-
                 Data.Failure err ->
-                    let
-                        signOut =
-                            case err of
-                                Http.BadStatus code ->
-                                    code == 401
-
-                                _ ->
-                                    False
-                    in
-                    if signOut then
-                        ( { model | error = Just "Signed Out" }
-                        , Effect.fromCmd <| Storage.signOut shared.storage
-                        )
-
-                    else
-                        ( popError "Error getting nodes" err model
-                        , Effect.none
-                        )
+                    ( popError "Error deleting device" err model, Effect.none )
 
                 _ ->
                     ( model, Effect.none )
-
-        ApiRespDelete resp ->
-            case resp of
-                Data.Success _ ->
-                    ( model
-                    , updateNodes model
-                    )
-
-                Data.Failure err ->
-                    ( popError "Error deleting device" err model
-                    , updateNodes model
-                    )
-
-                _ ->
-                    ( model
-                    , updateNodes model
-                    )
-
-        ApiRespPostPoint resp ->
-            case resp of
-                Data.Success _ ->
-                    ( model
-                    , updateNodes model
-                    )
-
-                Data.Failure err ->
-                    ( popError "Error posting point" err model
-                    , updateNodes model
-                    )
-
-                _ ->
-                    ( model
-                    , Effect.none
-                    )
 
         ApiRespPostAddNode parentFeID resp ->
             case resp of
                 Data.Success _ ->
                     ( { model | nodes = List.map (expChildren parentFeID) model.nodes }
-                    , updateNodes model
+                    , refetchChildren model parentFeID
                     )
 
                 Data.Failure err ->
-                    ( popError "Error adding node" err model
-                    , updateNodes model
-                    )
+                    ( popError "Error adding node" err model, Effect.none )
 
                 _ ->
-                    ( model
-                    , updateNodes model
-                    )
+                    ( model, Effect.none )
 
         ApiRespPostMoveNode parent resp ->
             case resp of
                 Data.Success _ ->
-                    let
-                        nodes =
-                            List.map (expChildren parent) model.nodes
-                    in
-                    ( { model | nodeOp = OpNone, copyMove = CopyMoveNone, nodes = nodes }
-                    , updateNodes model
+                    ( { model
+                        | nodeOp = OpNone
+                        , copyMove = CopyMoveNone
+                        , nodes = List.map (expChildren parent) model.nodes
+                      }
+                    , refetchChildren model parent
                     )
 
                 Data.Failure err ->
-                    ( popError "Error moving node" err model
-                    , updateNodes model
-                    )
+                    ( popError "Error moving node" err model, Effect.none )
 
                 _ ->
-                    ( model
-                    , updateNodes model
-                    )
+                    ( model, Effect.none )
 
         ApiRespPutMirrorNode parent resp ->
             case resp of
                 Data.Success _ ->
-                    let
-                        nodes =
-                            List.map (expChildren parent) model.nodes
-                    in
-                    ( { model | nodeOp = OpNone, copyMove = CopyMoveNone, nodes = nodes }
-                    , updateNodes model
+                    ( { model
+                        | nodeOp = OpNone
+                        , copyMove = CopyMoveNone
+                        , nodes = List.map (expChildren parent) model.nodes
+                      }
+                    , refetchChildren model parent
                     )
 
                 Data.Failure err ->
-                    ( popError "Error mirroring node" err model
-                    , updateNodes model
-                    )
+                    ( popError "Error mirroring node" err model, Effect.none )
 
                 _ ->
-                    ( model
-                    , updateNodes model
-                    )
+                    ( model, Effect.none )
 
         ApiRespPutDuplicateNode parent resp ->
             case resp of
                 Data.Success _ ->
-                    let
-                        nodes =
-                            List.map (expChildren parent) model.nodes
-                    in
-                    ( { model | nodeOp = OpNone, copyMove = CopyMoveNone, nodes = nodes }
-                    , updateNodes model
+                    ( { model
+                        | nodeOp = OpNone
+                        , copyMove = CopyMoveNone
+                        , nodes = List.map (expChildren parent) model.nodes
+                      }
+                    , refetchChildren model parent
                     )
 
                 Data.Failure err ->
-                    ( popError "Error duplicating node" err model
-                    , updateNodes model
-                    )
+                    ( popError "Error duplicating node" err model, Effect.none )
 
                 _ ->
-                    ( model
-                    , updateNodes model
-                    )
+                    ( model, Effect.none )
 
         ApiRespPostNotificationNode resp ->
             case resp of
                 Data.Success _ ->
-                    ( { model | nodeOp = OpNone }
-                    , updateNodes model
-                    )
+                    ( { model | nodeOp = OpNone }, Effect.none )
 
                 Data.Failure err ->
-                    ( popError "Error messaging node" err model
-                    , updateNodes model
-                    )
+                    ( popError "Error messaging node" err model, Effect.none )
 
                 _ ->
-                    ( model
-                    , updateNodes model
-                    )
+                    ( model, Effect.none )
+
+        NatsEvent (Err err) ->
+            ( popErrorStr ("Bad message from the connection: " ++ Decode.errorToString err) model
+            , Effect.none
+            )
+
+        NatsEvent (Ok event) ->
+            updateNats shared event model
 
         CopyNode feID id src desc ->
             ( { model
@@ -832,100 +783,135 @@ update shared msg model =
             )
 
 
-mergeNodeTrees : List (Tree NodeView) -> List (Tree NodeView) -> List (Tree NodeView)
-mergeNodeTrees current new =
-    List.map
-        (\n ->
+{-| updateNats applies what the connection reports: connection state,
+fetched subtrees, and live points.
+-}
+updateNats : Shared.Model -> Nats.Event -> Model -> ( Model, Effect Msg )
+updateNats shared event model =
+    case event of
+        Nats.Connected c ->
+            -- fetch every group afresh, and every expanded node, since
+            -- points sent while the connection was down were missed
             let
-                newRootNode =
-                    Tree.label n
+                nodes =
+                    List.filter (\t -> List.member (Tree.label t).anchor c.anchors) model.nodes
+
+                fetches =
+                    List.map (\g -> fetch { anchor = g, parent = "all", id = g, depth = 2 }) c.anchors
+                        ++ List.map (\e -> fetchChildren e.anchor e.id) (NodeTree.expandedIDs nodes)
             in
-            case
-                List.Extra.find
-                    (\c ->
-                        let
-                            curRootNode =
-                                Tree.label c
-                        in
-                        newRootNode.node.id == curRootNode.node.id && newRootNode.node.parent == curRootNode.node.parent
-                    )
-                    current
-            of
-                Just cur ->
-                    mergeNodeTree cur n
-
-                Nothing ->
-                    n
-        )
-        new
-
-
-mergeNodeTree : Tree NodeView -> Tree NodeView -> Tree NodeView
-mergeNodeTree current new =
-    let
-        z =
-            Zipper.fromTree current
-    in
-    Tree.map
-        (\n ->
-            case
-                Zipper.findFromRoot
-                    (\o ->
-                        o.node.id
-                            == n.node.id
-                            && o.parentID
-                            == n.parentID
-                    )
-                    z
-            of
-                Just found ->
-                    let
-                        l =
-                            Zipper.label found
-                    in
-                    { n
-                        | expChildren = l.expChildren
-                        , expDetail = l.expDetail
-                    }
-
-                Nothing ->
-                    n
-        )
-        new
-
-
-
--- FeID stands for front-end ID. This is required because we may
--- have some duplicate nodes in the data set, so we simply give each
--- one a unique ID while we are working with them in the frontend
-
-
-populateFeID : List (Tree NodeView) -> List (Tree NodeView)
-populateFeID trees =
-    List.indexedMap
-        (\i nodes ->
-            Tree.indexedMap
-                (\j n ->
-                    { n | feID = i * 10000 + j }
-                )
-                nodes
-        )
-        trees
-
-
-toggleExpChildren : List (Tree NodeView) -> Int -> List (Tree NodeView)
-toggleExpChildren nodes feID =
-    List.map
-        (Tree.map
-            (\n ->
-                if n.feID == feID then
-                    { n | expChildren = not n.expChildren }
-
-                else
-                    n
+            ( { model | connected = True, watching = [], nodes = nodes }
+            , Effect.batch fetches
             )
-        )
-        nodes
+
+        Nats.Disconnected ->
+            ( { model | connected = False }, Effect.none )
+
+        Nats.AuthFailed ->
+            ( { model | error = Just "Signed Out" }
+            , Effect.fromCmd <| Storage.signOut shared.storage
+            )
+
+        Nats.Nodes r ->
+            let
+                nodes =
+                    if r.parent == "all" then
+                        NodeTree.replaceAnchor r.anchor r.depth r.nodes model.nodes
+
+                    else if r.id == "all" then
+                        NodeTree.replaceChildren r.anchor r.parent r.depth r.nodes model.nodes
+
+                    else
+                        NodeTree.replaceChild r.anchor r.parent r.id r.depth r.nodes model.nodes
+            in
+            ( { model | nodes = NodeTree.finish nodes }, Effect.none )
+
+        Nats.Points items ->
+            let
+                nodes =
+                    List.foldl (\i n -> NodeTree.applyPoints i.nodeId i.points n) model.nodes items
+            in
+            ( { model | nodes = NodeTree.finish nodes }, Effect.none )
+
+        Nats.EdgePoints items ->
+            -- an edge the tree does not have is a new child of a node on
+            -- screen: fetch it, with its children if the parent is open
+            let
+                ( nodes, fetches ) =
+                    List.foldl
+                        (\i ( n, f ) ->
+                            let
+                                ( n2, missing ) =
+                                    NodeTree.applyEdgePoints i.nodeId i.parentId i.points n
+
+                                deleted =
+                                    Point.getBool i.points Point.typeTombstone ""
+                            in
+                            ( n2
+                            , if deleted then
+                                f
+
+                              else
+                                f
+                                    ++ List.map
+                                        (\m ->
+                                            fetch
+                                                { anchor = m.anchor
+                                                , parent = m.parentID
+                                                , id = i.nodeId
+                                                , depth =
+                                                    if m.expanded then
+                                                        1
+
+                                                    else
+                                                        0
+                                                }
+                                        )
+                                        missing
+                            )
+                        )
+                        ( model.nodes, [] )
+                        items
+            in
+            ( { model | nodes = NodeTree.finish nodes }, Effect.batch fetches )
+
+        Nats.Error message ->
+            ( popErrorStr message { model | nodes = NodeTree.clearLoading model.nodes }
+            , Effect.none
+            )
+
+
+fetch : { anchor : String, parent : String, id : String, depth : Int } -> Effect Msg
+fetch f =
+    Effect.fromCmd <| Nats.send (Nats.Fetch f)
+
+
+{-| fetchChildren asks for the children of a node, with their children,
+so each child knows whether it can be expanded.
+-}
+fetchChildren : String -> String -> Effect Msg
+fetchChildren anchor id =
+    fetch { anchor = anchor, parent = id, id = "all", depth = 1 }
+
+
+refetchChildren : Model -> Int -> Effect Msg
+refetchChildren model feID =
+    case NodeTree.findByFeID feID model.nodes of
+        Just n ->
+            fetchChildren n.anchor n.node.id
+
+        Nothing ->
+            Effect.none
+
+
+sendPoints : Model -> String -> List Point -> Effect Msg
+sendPoints model id points =
+    case NodeTree.anchorOf id model.nodes of
+        Just anchor ->
+            Effect.fromCmd <| Nats.send (Nats.SendPoints { anchor = anchor, id = id, points = points })
+
+        Nothing ->
+            Effect.none
 
 
 expChildren : Int -> Tree NodeView -> Tree NodeView
@@ -956,235 +942,22 @@ toggleExpDetail nodes feID =
         nodes
 
 
-nodeListToTrees : List Node -> List (Tree NodeView)
-nodeListToTrees nodes =
-    List.foldr
-        (\n ret ->
-            if n.parent == "root" then
-                populateChildren nodes n :: ret
-
-            else
-                ret
-        )
-        []
-        nodes
-
-
-populateChildren : List Node -> Node -> Tree NodeView
-populateChildren nodes root =
-    Tree.replaceChildren (List.map (populateChildren nodes) (getChildren nodes root))
-        (Tree.singleton <| nodeToNodeView root)
-
-
-getChildren : List Node -> Node -> List Node
-getChildren nodes parent =
-    List.foldr
-        (\n acc ->
-            if n.parent == parent.id then
-                n :: acc
-
-            else
-                acc
-        )
-        []
-        nodes
-
-
-nodeToNodeView : Node -> NodeView
-nodeToNodeView node =
-    { node = node
-    , feID = 0
-    , parentID = ""
-    , hasChildren = False
-    , expDetail = False
-    , expChildren = False
-    , mod = False
-    }
-
-
-populateHasChildren : String -> Tree NodeView -> Tree NodeView
-populateHasChildren parentID tree =
-    let
-        children =
-            Tree.children tree
-
-        hasChildren =
-            List.foldr
-                (\child count ->
-                    let
-                        tombstone =
-                            isTombstone (Tree.label child).node
-                    in
-                    if tombstone then
-                        count
-
-                    else
-                        count + 1
-                )
-                0
-                children
-                > 0
-
-        label =
-            Tree.label tree
-
-        node =
-            { label
-                | hasChildren = hasChildren
-                , parentID = parentID
-            }
-    in
-    tree
-        |> Tree.replaceLabel node
-        |> Tree.replaceChildren
-            (List.map
-                (\c -> populateHasChildren node.node.id c)
-                children
-            )
-
-
-sortNodeTrees : List (Tree NodeView) -> List (Tree NodeView)
-sortNodeTrees trees =
-    List.sortWith nodeSort trees |> List.map sortNodeTree
-
-
-
--- sortNodeTree recursively sorts the children of the nodes
--- sort by type and then description
-
-
-sortNodeTree : Tree NodeView -> Tree NodeView
-sortNodeTree nodes =
-    let
-        children =
-            Tree.children nodes
-
-        childrenSorted =
-            List.sortWith nodeSort children
-    in
-    Tree.tree (Tree.label nodes) (List.map sortNodeTree childrenSorted)
-
-
-
--- nodeCustomSortRules struct determines how we sort nodes in the UI
-
-
-nodeCustomSortRules : Dict.Dict String String
-nodeCustomSortRules =
-    Dict.fromList
-        [ ( Node.typeDevice, "A" )
-        , ( Node.typeUser, "B" )
-        , ( Node.typeGroup, "C" )
-        , ( Node.typeModbus, "D" )
-        , ( Node.typeRule, "E" )
-        , ( Node.typeSignalGenerator, "F" )
-        , ( Node.typeOneWire, "G" )
-        , ( Node.typeGpio, "G1" )
-        , ( Node.typeIio, "G2" )
-        , ( Node.typeCanBus, "H" )
-        , ( Node.typeSerialDev, "I" )
-        , ( Node.typeMsgService, "J" )
-        , ( Node.typeFile, "K" )
-        , ( Node.typeVariable, "L" )
-        , ( Node.typeDb, "M" )
-        , ( Node.typeMetrics, "N" )
-        , ( Node.typeParticle, "O" )
-        , ( Node.typeShelly, "P" )
-        , ( Node.typeShellyIO, "Q" )
-        , ( Node.typeNetworkManager, "R" )
-        , ( Node.typeNTP, "S" )
-        , ( Node.typeUpdate, "T" )
-        , ( Node.typeBrowser, "U" )
-        , ( Node.typeGps, "V" )
-        , ( Node.typeMqtt, "W" )
-        , ( Node.typeMqttDevice, "W1" )
-        , ( Node.typeSparkplugGroup, "X" )
-        , ( Node.typeSparkplugNode, "Y" )
-        , ( Node.typeSparkplugDevice, "Z" )
-
-        -- rule subnodes
-        , ( Node.typeCondition, "A" )
-        , ( Node.typeAction, "B" )
-        , ( Node.typeActionInactive, "C" )
-        , ( Node.typeNetworkManagerDevice, "D" )
-        , ( Node.typeNetworkManagerConn, "E" )
-        ]
-
-
-nodeCustomSort : String -> String
-nodeCustomSort t =
-    case Dict.get t nodeCustomSortRules of
-        Just s ->
-            s
-
-        Nothing ->
-            t
-
-
-nodeSort : Tree NodeView -> Tree NodeView -> Order
-nodeSort a b =
-    let
-        aNode =
-            Tree.label a
-
-        bNode =
-            Tree.label b
-
-        aType =
-            nodeCustomSort aNode.node.typ
-
-        bType =
-            nodeCustomSort bNode.node.typ
-    in
-    if aType /= bType then
-        compare aType bType
-
-    else
-        let
-            aDesc =
-                String.toLower <| Point.getBestDesc aNode.node.points
-
-            bDesc =
-                String.toLower <| Point.getBestDesc bNode.node.points
-        in
-        if aDesc /= bDesc then
-            compare aDesc bDesc
-
-        else
-            let
-                aIndex =
-                    Point.getValue aNode.node.points Point.typeIndex ""
-
-                bIndex =
-                    Point.getValue bNode.node.points Point.typeIndex ""
-            in
-            if aIndex /= bIndex then
-                compare aIndex bIndex
-
-            else
-                let
-                    aID =
-                        Point.getText aNode.node.points Point.typeID ""
-
-                    bID =
-                        Point.getText bNode.node.points Point.typeID ""
-                in
-                compare aID bID
-
-
 popError : String -> Http.Error -> Model -> Model
 popError desc err model =
-    { model | error = Just (desc ++ ": " ++ Data.errorToString err), lastError = model.now }
+    popErrorStr (desc ++ ": " ++ Data.errorToString err) model
 
 
-updateNodes : Model -> Effect Msg
-updateNodes model =
-    Effect.fromCmd <| Node.list { onResponse = ApiRespList, token = model.token }
+popErrorStr : String -> Model -> Model
+popErrorStr message model =
+    { model | error = Just message, lastError = model.now }
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Time.every 4000 Tick
+    Sub.batch
+        [ Time.every 1000 Tick
+        , Nats.receive NatsEvent
+        ]
 
 
 
@@ -1200,6 +973,12 @@ view _ shared model =
             { onSignOut = SignOut
             , email = Maybe.map .email shared.storage.user
             , error = model.error
+            , badge =
+                if model.connected then
+                    Nothing
+
+                else
+                    Just "connecting..."
             }
             (viewBody model)
     }
@@ -1269,7 +1048,7 @@ viewNodesHelp depth model tree =
                     Tree.label child
 
                 tombstone =
-                    isTombstone childNode.node
+                    NodeTree.isTombstone childNode.node
             in
             if not tombstone then
                 let
@@ -1286,11 +1065,6 @@ viewNodesHelp depth model tree =
         )
         []
         children
-
-
-isTombstone : Node -> Bool
-isTombstone node =
-    Point.getBool node.edgePoints Point.typeTombstone ""
 
 
 viewNode : Model -> Maybe NodeView -> NodeView -> List NodeView -> Int -> Element Msg
@@ -1460,7 +1234,10 @@ viewNode model parent node children depth =
     <|
         row [ spacing 6 ]
             [ alignButton <|
-                if not node.hasChildren then
+                if node.loading then
+                    Icon.loader
+
+                else if not node.hasChildren then
                     Icon.blank
 
                 else if node.expChildren then

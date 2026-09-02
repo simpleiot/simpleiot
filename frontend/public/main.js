@@ -238,12 +238,42 @@ function subscribe(c, subject) {
 	})()
 }
 
+// A hidden tab drops its subscriptions so the server is not sending to a
+// page nobody is looking at, and on return the page fetches what it shows
+// afresh, as it does after a reconnect.
+document.addEventListener("visibilitychange", () => {
+	if (!conn) {
+		return
+	}
+	if (document.hidden) {
+		for (const [subject, sub] of subs) {
+			subs.delete(subject)
+			sub.unsubscribe()
+		}
+	} else {
+		announce(conn).catch((err) => console.warn("siot: visible", err))
+	}
+})
+
 // ---- batching: points are collected per node and handed to Elm once per
 // animation frame
 
 let pendingPoints = new Map() // nodeId -> points
 let pendingEdges = new Map() // nodeId|parentId -> {nodeId, parentId, points}
 let frame = null
+
+// merge keeps the latest point per type and key, so a batch never
+// carries two values for one point
+function merge(into, points) {
+	for (const p of points) {
+		const i = into.findIndex((q) => q.type === p.type && q.key === p.key)
+		if (i >= 0) {
+			into[i] = p
+		} else {
+			into.push(p)
+		}
+	}
+}
 
 function queue(m) {
 	if (m.parentId) {
@@ -253,11 +283,11 @@ function queue(m) {
 			parentId: m.parentId,
 			points: [],
 		}
-		e.points.push(...m.points)
+		merge(e.points, m.points)
 		pendingEdges.set(k, e)
 	} else {
 		const pts = pendingPoints.get(m.nodeId) || []
-		pts.push(...m.points)
+		merge(pts, m.points)
 		pendingPoints.set(m.nodeId, pts)
 	}
 	if (frame == null) {

@@ -25,6 +25,17 @@ You can expand/edit node details by clicking on the dot
 
 ![node edit](images/node-edit.png)
 
+## Live updates
+
+The page keeps one connection to the server and shows changes as they happen: a
+value a device reports, a node someone else adds, or a setting you change in
+another tab appear without a refresh. Expanding a node fetches its children, and
+the arrow shows a spinner until they arrive; expanding again after collapsing
+fetches them afresh. A `connecting...` badge next to the logo means the
+connection is down and the page is trying again; when it is back, what is on
+screen is fetched again. Being removed from a group, or a password change,
+closes the connection, and an expired sign-in returns you to the sign-in page.
+
 ## Adding nodes
 
 Child nodes can be added to a node by clicking on the dot to expand the node,

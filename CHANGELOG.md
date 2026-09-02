@@ -27,6 +27,12 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+- **The web UI updates live instead of polling.** The page keeps one NATS
+  connection over the WebSocket the HTTP port proxies, fetches nodes as you
+  expand the tree, and shows point changes for the nodes on screen as they
+  happen. A `connecting...` badge appears while the connection is down. See
+  [live updates](docs/user/ui.md#live-updates). The UI needs the WebSocket
+  listener, so `SIOT_NATS_WS_PORT=0` now disables the UI as well.
 - **`simpleiot-js` 2.0 connects as a user and speaks the binary encoding.** The
   JavaScript client in `frontend/lib` is rewritten on the point and node
   encoding the server has used since protocol buffers were dropped, connects
