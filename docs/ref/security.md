@@ -49,8 +49,11 @@ NATS accounts file to manage. Two kinds of credential are accepted:
   `SIOT_DATA/device.nkey` and signs the connection challenge with it; the
   upstream keeps only the public key, in a `deviceCred` node under the device's
   node, and grants the connection exactly the subjects that device needs to
-  sync. See [Device credentials](../user/sync.md#device-credentials) for the
-  workflow.
+  sync. The credential authorizes the one device node it sits under: one under
+  the upstream's own root node, or under any node that is not a device,
+  authorizes nothing, and a credential marked `pending` (one a device enrolled
+  itself with) authorizes nothing until an operator clears it. See
+  [Device credentials](../user/sync.md#device-credentials) for the workflow.
 
 `SIOT_DEVICE_AUTH` (or `--deviceAuth`) selects how the two combine:
 
@@ -103,11 +106,16 @@ Two things to know about the boundary of this model:
 ### Revocation
 
 The upstream keeps an index of credentials in memory, rebuilt from its tree and
-kept current as the tree changes. Disabling a credential, deleting it, moving it
-under another node, or deleting the device it sits under removes it from the
-index, and the upstream closes every connection authenticated with it. The
-device's sync client sees the refusal, keeps running standalone, and tries again
-every minute. Enabling the credential again lets it back in with what it queued.
+kept current as the tree changes. Disabling a credential, marking it pending,
+deleting it, moving it under another node, or deleting the device it sits under
+removes it from the index, and the upstream closes every connection
+authenticated with it. The device's sync client sees the refusal, records
+`credential refused by upstream` on its sync node, keeps running standalone, and
+tries again every minute. Enabling the credential again lets it back in with
+what it queued.
+
+Disabling or deleting an enrollment token closes connections made with it and
+refuses new ones; devices already enrolled are unaffected.
 
 `lastConnect` and `connected` on each credential are maintained by the upstream.
 
