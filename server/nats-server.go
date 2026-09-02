@@ -15,7 +15,10 @@ type natsServerOptions struct {
 	Port     int
 	HTTPPort int
 	WSPort   int
-	MQTTPort int
+	// WSOrigins limits which page origins may open a WebSocket; empty
+	// allows any.
+	WSOrigins []string
+	MQTTPort  int
 	// Auth authenticates every connection on every listener; see
 	// authorizer. AuthEnabled is only reported at start-up.
 	Auth        server.Authentication
@@ -91,6 +94,9 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 		opts.Websocket.AuthTimeout = o.TLSTimeout
 		opts.Websocket.NoTLS = true // will likely be fronted by Caddy anyway
 		opts.Websocket.HandshakeTimeout = time.Second * 20
+		// the HTTP server's proxy forwards the page's Origin header, so
+		// this applies to browsers arriving on either port
+		opts.Websocket.AllowedOrigins = o.WSOrigins
 	}
 
 	natsServer, err := server.NewServer(&opts)

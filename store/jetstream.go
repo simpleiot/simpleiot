@@ -1225,3 +1225,87 @@ func (db *DbJetStream) Close() error {
 func (db *DbJetStream) rootNodeID() string {
 	return db.meta.RootID
 }
+
+// isUnder reports whether a node is the anchor or sits below it, following
+// every live edge upward. Mirror edges count: a node mirrored into a group
+// is visible in that group. This is the scope check for requests in the
+// user namespace, where the anchor is a node the user sits directly under.
+func (db *DbJetStream) isUnder(id, anchor string) bool {
+	if id == "" || anchor == "" {
+		return false
+	}
+
+	visited := map[string]bool{id: true}
+	frontier := []string{id}
+
+	for len(frontier) > 0 {
+		n := frontier[0]
+		frontier = frontier[1:]
+		if n == anchor {
+			return true
+		}
+		for _, e := range db.edgeCache.Parents(n) {
+			if e.IsTombstone() || visited[e.Up] {
+				continue
+			}
+			visited[e.Up] = true
+			frontier = append(frontier, e.Up)
+		}
+	}
+
+	return false
+}
+
+// getNodesDepth is getNodes followed by the descendants of every node
+// returned, down to depth levels below it. The type filter applies to the
+// nodes named by the request only, and deleted nodes are left out of the
+// descendants unless includeDel is set. The result is flat; the parent
+// field of each node says where it goes.
+func (db *DbJetStream) getNodesDepth(parent, id, typ string, includeDel bool, depth int) ([]data.NodeEdge, error) {
+	nodes, err := db.getNodes(nil, parent, id, typ, includeDel)
+	if err != nil {
+		return nodes, err
+	}
+
+	frontier := nodes
+	for level := 0; level < depth && len(frontier) > 0; level++ {
+		var next []data.NodeEdge
+		seen := map[string]bool{}
+		for _, n := range frontier {
+			if seen[n.ID] {
+				continue
+			}
+			seen[n.ID] = true
+			children, err := db.getNodes(nil, n.ID, "all", "", includeDel)
+			if err != nil {
+				return nodes, err
+			}
+			next = append(next, children...)
+		}
+		nodes = append(nodes, next...)
+		frontier = next
+	}
+
+	return data.RemoveDuplicateNodesIDParent(nodes), nil
+}
+
+// userAnchors lists the nodes a user sits directly under: the parents of
+// its live user edges, sorted. These are the subtrees a signed-in user may
+// see, and the set the browser is granted when it connects.
+func (db *DbJetStream) userAnchors(userID string) []string {
+	set := map[string]bool{}
+	for _, e := range db.edgeCache.Parents(userID) {
+		if e.Type != data.NodeTypeUser || e.IsTombstone() || e.Up == "root" {
+			continue
+		}
+		set[e.Up] = true
+	}
+
+	anchors := make([]string, 0, len(set))
+	for a := range set {
+		anchors = append(anchors, a)
+	}
+	sort.Strings(anchors)
+
+	return anchors
+}

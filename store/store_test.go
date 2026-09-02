@@ -138,28 +138,6 @@ func TestStoreMultiplePoints(t *testing.T) {
 	}
 }
 
-func TestGetNatsURI(t *testing.T) {
-	nc, root, stop, err := server.TestServer()
-	_ = nc
-	_ = root
-
-	if err != nil {
-		t.Fatal("Error starting test server: ", err)
-	}
-
-	defer stop()
-
-	uri, _, err := client.GetNatsURI(nc)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if uri != server.TestServerOptions.NatsServer {
-		t.Fatal("Did not get expected URI: ", uri)
-	}
-}
-
 func TestDontAllowDeleteRootNode(t *testing.T) {
 	nc, root, stop, err := server.TestServer()
 	_ = root

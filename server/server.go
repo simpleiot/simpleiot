@@ -38,6 +38,10 @@ type Options struct {
 	NatsPort          int
 	NatsHTTPPort      int
 	NatsWSPort        int
+	// NatsWSOrigins lists the origins allowed to open a NATS WebSocket,
+	// such as https://siot.example.com. Empty allows any origin; the
+	// browser still has to present a user JWT.
+	NatsWSOrigins []string
 	// NatsMQTTPort enables the built-in MQTT broker on this port. Zero, the
 	// default, leaves it off.
 	NatsMQTTPort   int
@@ -188,6 +192,7 @@ func (s *Server) Run() error {
 		Port:         o.NatsPort,
 		HTTPPort:     o.NatsHTTPPort,
 		WSPort:       o.NatsWSPort,
+		WSOrigins:    o.NatsWSOrigins,
 		MQTTPort:     o.NatsMQTTPort,
 		Auth:         auth,
 		AuthEnabled:  o.AuthToken != "",
@@ -355,7 +360,7 @@ func (s *Server) Run() error {
 				return err
 			}
 
-			err = auth.start(s.nc, s.natsServer)
+			err = auth.start(s.nc, s.natsServer, siotStore)
 			if err != nil {
 				logLS("LS: Exited: device auth")
 				return fmt.Errorf("error starting device auth: %v", err)

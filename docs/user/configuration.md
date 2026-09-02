@@ -36,7 +36,13 @@ The following are currently defined:
     [documentation](https://docs.nats.io/nats-server/configuration/securing_nats/tls#tls-timeout)
     for more information.
   - `SIOT_NATS_WS_PORT`: Port to run NATS WebSocket (default is 9222, set to 0
-    to disable)
+    to disable). The web UI reaches NATS through the HTTP port, which proxies
+    WebSocket connections to this listener, so the port itself does not have to
+    be reachable by browsers. Setting it to 0 disables both, and the web UI with
+    it.
+  - `SIOT_NATS_WS_ORIGINS`: comma-separated page origins allowed to open a NATS
+    WebSocket, such as `https://siot.example.com`. Empty (the default) allows
+    any origin; a browser still has to present a user JWT to connect.
   - `SIOT_NATS_MQTT_PORT`: Port to serve MQTT on (disabled by default; 1883 is
     the conventional port). See the [MQTT page](mqtt.md).
 - **Provisioning**

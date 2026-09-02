@@ -28,7 +28,7 @@ type Store struct {
 	nc            *nats.Conn
 	subscriptions map[string]*nats.Subscription
 	db            *DbJetStream
-	authorizer    api.Authorizer
+	authorizer    api.Key
 
 	// cycle metrics track how long it takes to handle a point
 	metricCycleNodePoint     *client.Metric
@@ -102,6 +102,18 @@ func (st *Store) GetAuthorizer() api.Authorizer {
 	return st.authorizer
 }
 
+// UserFromToken returns the user a JWT was issued to and when it expires.
+// The NATS authorizer uses it to authenticate browser connections.
+func (st *Store) UserFromToken(token string) (string, time.Time, bool) {
+	return st.authorizer.TokenClaims(token)
+}
+
+// UserAnchors lists the nodes a user sits directly under, which are the
+// subtrees the user may see. Empty for a user that is not in the tree.
+func (st *Store) UserAnchors(userID string) []string {
+	return st.db.userAnchors(userID)
+}
+
 // Run connects to NATS server and set up handlers for things we are interested in
 func (st *Store) Run() error {
 	nc := st.params.Nc
@@ -124,8 +136,15 @@ func (st *Store) Run() error {
 		return fmt.Errorf("subscribe auth error: %w", err)
 	}
 
-	if st.subscriptions["auth.getNatsURI"], err = nc.Subscribe("auth.getNatsURI", st.handleAuthGetNatsURI); err != nil {
+	if st.subscriptions["auth.me"], err = nc.Subscribe("auth.me", st.handleAuthMe); err != nil {
 		return fmt.Errorf("subscribe auth error: %w", err)
+	}
+
+	// the user namespace: requests from browser connections, which the
+	// NATS server has limited to u.<anchor>.<user>.> for the anchors
+	// that user sits under
+	if st.subscriptions["user"], err = nc.Subscribe("u.*.*.>", st.handleUserRequest); err != nil {
+		return fmt.Errorf("subscribe user namespace error: %w", err)
 	}
 
 	if st.subscriptions["admin.storeVerify"], err = nc.Subscribe("admin.storeVerify", st.handleStoreVerify); err != nil {
@@ -463,6 +482,7 @@ func (st *Store) handleNodesRequest(msg *nats.Msg) {
 	var nodeID string
 	var includeDel bool
 	var nodeType string
+	var depth int
 	var nodes data.Nodes
 
 	chunks := strings.Split(msg.Subject, ".")
@@ -487,11 +507,13 @@ func (st *Store) handleNodesRequest(msg *nats.Msg) {
 				includeDel = data.FloatToBool(p.Val())
 			case data.PointTypeNodeType:
 				nodeType = p.Txt()
+			case data.PointTypeDepth:
+				depth = int(p.Val())
 			}
 		}
 	}
 
-	nodes, respErr = st.db.getNodes(nil, parent, nodeID, nodeType, includeDel)
+	nodes, respErr = st.db.getNodesDepth(parent, nodeID, nodeType, includeDel, depth)
 	if respErr != nil && respErr != data.ErrDocumentNotFound {
 		respErr = fmt.Errorf("NATS handler: Error getting node %v from db: %v", nodeID, respErr)
 	}
@@ -585,18 +607,165 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 	}
 }
 
-func (st *Store) handleAuthGetNatsURI(msg *nats.Msg) {
-	points := data.Points{
-		data.NewPointString(data.PointTypeURI, "", st.params.Server),
-		data.NewPointString(data.PointTypeToken, "", st.params.AuthToken),
+// handleAuthMe answers a browser asking who it is: the payload is the
+// user's JWT, and the reply is the user's node at each place it sits in
+// the tree, with the parent of each being an anchor the connection may
+// reach. The password hash is left out.
+func (st *Store) handleAuthMe(msg *nats.Msg) {
+	reply := func(nodes data.Nodes, err error) {
+		if e := st.nc.Publish(msg.Reply, data.EncodeNodes(nodes, err)); e != nil {
+			log.Println("NATS: Error publishing response to auth.me:", e)
+		}
 	}
 
-	d := points.Encode()
+	userID, _, ok := st.authorizer.TokenClaims(string(msg.Data))
+	if !ok {
+		reply(nil, errors.New("invalid token"))
+		return
+	}
 
-	err := st.nc.Publish(msg.Reply, d)
+	edges, err := st.db.getNodes(nil, "all", userID, data.NodeTypeUser, false)
 	if err != nil {
-		log.Println("NATS: Error publishing response to gets NATS URI request:", err)
+		reply(nil, err)
+		return
 	}
+
+	var nodes data.Nodes
+	for _, e := range edges {
+		if e.Parent == "root" {
+			continue
+		}
+		var pts data.Points
+		for _, p := range e.Points {
+			if p.Type != data.PointTypePass {
+				pts = append(pts, p)
+			}
+		}
+		e.Points = pts
+		nodes = append(nodes, e)
+	}
+
+	if len(nodes) == 0 {
+		reply(nil, errors.New("user is not in the tree"))
+		return
+	}
+
+	reply(nodes, nil)
+}
+
+// handleUserRequest dispatches a request in the user namespace,
+// u.<anchor>.<user>.<op>..., to the plain handler after checking that the
+// target sits under the anchor. The NATS server has already proven that
+// the connection may speak for this (anchor, user) pair, so the store only
+// has to prove the target is in scope. Points are stamped with the user as
+// their origin, and no header from the browser is passed on.
+//
+//	u.G.U.nodes.<parent>.<id>   the node (or the parent, when id is all) is under G
+//	u.G.U.p.<id>.<type>.<key>   the node is under G
+//	u.G.U.ep.<id>.<parent>      the parent is under G
+func (st *Store) handleUserRequest(msg *nats.Msg) {
+	tok := strings.Split(msg.Subject, ".")
+	if len(tok) < 5 {
+		st.reply(msg.Reply, fmt.Errorf("invalid subject: %v", msg.Subject))
+		return
+	}
+
+	anchor, userID, op, rest := tok[1], tok[2], tok[3], tok[4:]
+
+	refuse := func() {
+		log.Printf("Store: refusing %v, target is not under %v", msg.Subject, anchor)
+		st.reply(msg.Reply, errors.New("not in scope"))
+	}
+
+	switch op {
+	case "nodes":
+		if len(rest) != 2 {
+			st.reply(msg.Reply, fmt.Errorf("invalid subject: %v", msg.Subject))
+			return
+		}
+		parent, id := rest[0], rest[1]
+		target := id
+		if id == "all" {
+			target = parent
+		}
+		if !st.db.isUnder(target, anchor) {
+			// the reply is a node frame, so the error travels in one
+			log.Printf("Store: refusing %v, target is not under %v", msg.Subject, anchor)
+			if err := st.nc.Publish(msg.Reply, data.EncodeNodes(nil, errors.New("not in scope"))); err != nil {
+				log.Println("NATS: Error publishing response to node request:", err)
+			}
+			return
+		}
+		st.handleNodesRequest(&nats.Msg{
+			Subject: "nodes." + parent + "." + id,
+			Reply:   msg.Reply,
+			Data:    msg.Data,
+		})
+
+	case "p":
+		if len(rest) != 3 {
+			st.reply(msg.Reply, fmt.Errorf("invalid subject: %v", msg.Subject))
+			return
+		}
+		if !st.db.isUnder(rest[0], anchor) {
+			refuse()
+			return
+		}
+		payload, err := stampOrigin(msg.Data, userID)
+		if err != nil {
+			st.reply(msg.Reply, err)
+			return
+		}
+		st.handleNodePoints(&nats.Msg{
+			Subject: "p." + strings.Join(rest, "."),
+			Reply:   msg.Reply,
+			Data:    payload,
+		})
+
+	case "ep":
+		if len(rest) != 2 {
+			st.reply(msg.Reply, fmt.Errorf("invalid subject: %v", msg.Subject))
+			return
+		}
+		if !st.db.isUnder(rest[1], anchor) {
+			refuse()
+			return
+		}
+		payload, err := stampOrigin(msg.Data, userID)
+		if err != nil {
+			st.reply(msg.Reply, err)
+			return
+		}
+		st.handleEdgePoints(&nats.Msg{
+			Subject: "ep." + strings.Join(rest, "."),
+			Reply:   msg.Reply,
+			Data:    payload,
+		})
+
+	default:
+		st.reply(msg.Reply, fmt.Errorf("unknown operation: %v", op))
+	}
+}
+
+// stampOrigin re-encodes a points payload with every origin set to the
+// user, so a point written from a browser records who wrote it whatever
+// the browser said. A point with no time is given the current time, as
+// the Go client does before sending.
+func stampOrigin(payload []byte, userID string) ([]byte, error) {
+	pts, err := data.DecodePoints(payload)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding points: %w", err)
+	}
+	now := time.Now()
+	for i := range pts {
+		pts[i].Origin = userID
+		// a zero time does not survive the encoding, so anything at
+		// or before the epoch is taken as unset
+		if pts[i].Time.Unix() <= 0 {
+			pts[i].Time = now
+		}
+	}
+	return pts.Encode(), nil
 }
 
 func (st *Store) handleStoreVerify(msg *nats.Msg) {

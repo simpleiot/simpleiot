@@ -11,6 +11,26 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Added
+
+- **Browsers connect to NATS as the signed-in user.** The embedded NATS server
+  accepts a user's node ID and sign-in JWT as user and password, over the
+  WebSocket the HTTP port already proxies, and limits the connection to the
+  groups that user belongs to. Removing a user from a group, deleting the user,
+  or changing the password closes the connection within seconds, and a
+  connection is closed when its JWT expires. New subjects `u.<anchor>.<user>.>`
+  and `auth.me`, and a `depth` parameter on `nodes` requests, serve it. See the
+  [API reference](docs/ref/api.md#nats) and
+  [security reference](docs/ref/security.md#browser).
+- **`SIOT_NATS_WS_ORIGINS`** limits which page origins may open a NATS
+  WebSocket. Empty, the default, allows any.
+
+### Removed
+
+- **`auth.getNatsURI` is gone.** It handed the shared token to any connected
+  client. Nothing in the repository used it; a client that did should hold its
+  own credential.
+
 ## [0.27.0] - 2026-09-02
 
 ### Added

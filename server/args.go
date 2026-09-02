@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/simpleiot/simpleiot/assets/files"
@@ -109,6 +110,13 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 			os.Exit(-1)
 		}
 		natsWSPort = n
+	}
+
+	var natsWSOrigins []string
+	for _, o := range strings.Split(os.Getenv("SIOT_NATS_WS_ORIGINS"), ",") {
+		if o = strings.TrimSpace(o); o != "" {
+			natsWSOrigins = append(natsWSOrigins, o)
+		}
 	}
 
 	natsMQTTPort := 0
@@ -283,6 +291,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 		NatsPort:          natsPort,
 		NatsHTTPPort:      natsHTTPPort,
 		NatsWSPort:        natsWSPort,
+		NatsWSOrigins:     natsWSOrigins,
 		NatsMQTTPort:      natsMQTTPort,
 		NatsTLSCert:       natsTLSCert,
 		NatsTLSKey:        natsTLSKey,

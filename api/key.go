@@ -52,21 +52,30 @@ func (k Key) NewToken(userID string) (string, error) {
 // ValidToken returns whether the given string
 // is an authentication token signed by the Key.
 func (k Key) ValidToken(str string) (bool, string) {
+	userID, _, ok := k.TokenClaims(str)
+	return ok, userID
+}
+
+// TokenClaims returns the user ID and expiry carried by a token signed by
+// the Key. ok is false for a token that is not signed by the Key, has
+// expired, or carries no user ID.
+func (k Key) TokenClaims(str string) (userID string, expires time.Time, ok bool) {
 	token, err := jwt.Parse(str, k.keyFunc)
-	if err != nil {
-		return false, ""
+	if err != nil || !token.Valid || token.Method.Alg() != "HS256" {
+		return "", time.Time{}, false
 	}
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return false, ""
+		return "", time.Time{}, false
 	}
-	userID, ok := claims["jti"].(string)
-	if !ok {
-		return false, ""
+	userID, ok = claims["jti"].(string)
+	if !ok || userID == "" {
+		return "", time.Time{}, false
 	}
-	return (err == nil &&
-		token.Method.Alg() == "HS256" &&
-		token.Valid), userID
+	if exp, ok := claims["exp"].(float64); ok {
+		expires = time.Unix(int64(exp), 0)
+	}
+	return userID, expires, true
 }
 
 // Valid returns whether the given request

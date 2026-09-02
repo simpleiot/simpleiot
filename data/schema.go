@@ -165,6 +165,10 @@ const (
 
 	PointTypeNodeID = "nodeID"
 
+	// PointTypeDepth on a nodes request asks for descendants as well:
+	// 1 returns children with their children, and so on.
+	PointTypeDepth = "depth"
+
 	PointTypeTrigger = "trigger"
 
 	PointTypeStart   = "start"

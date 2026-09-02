@@ -64,18 +64,28 @@ type enrollEntry struct {
 // connection list, so enforce can find it when the token is revoked.
 const enrollUserPrefix = "enroll:"
 
-// authConn records what a device connection was granted, so a later
-// change to the index or to the streams in its boundary can be enforced by
-// closing it.
+// authConn records what a device or user connection was granted, so a
+// later change to the index, to the streams in a device's boundary, or to
+// a user's place in the tree can be enforced by closing it.
 type authConn struct {
 	pubKey string
+	userID string
 	grant  string
+}
+
+// userAuthority is what the authorizer needs from the store to authenticate
+// a browser: who a JWT belongs to and where that user sits in the tree.
+type userAuthority interface {
+	UserFromToken(token string) (userID string, expires time.Time, ok bool)
+	UserAnchors(userID string) []string
 }
 
 // authorizer authenticates every connection to the embedded NATS server.
 // The shared token grants full access, as it always has. An NKey whose
 // public key is in a deviceCred node grants exactly the subjects the device
-// under that node needs to sync (see devicePermissions). The index is held
+// under that node needs to sync (see devicePermissions). A user ID with the
+// user's JWT as the password grants the subtrees that user sits under (see
+// userPermissions), which is how the browser connects. The index is held
 // in memory so Check, which runs inside the server's connection handling,
 // never waits on a NATS request.
 type authorizer struct {
@@ -87,6 +97,9 @@ type authorizer struct {
 	// then only the shared token is accepted and devices retry.
 	ready  bool
 	rootID string
+	// users validates user JWTs and answers where a user sits; nil until
+	// the store is serving, and user connections are refused meanwhile.
+	users userAuthority
 	// creds indexes credentials by public key.
 	creds map[string]*credEntry
 	// credIDs maps every credential node ID seen to its public key, which
@@ -139,7 +152,10 @@ func newAuthorizer(token, deviceAuth string) *authorizer {
 	}
 }
 
-// Check implements server.Authentication.
+// Check implements server.Authentication. An NKey is a device; a user name
+// with a JWT as the password is a browser; anything else is checked against
+// the shared token. An MQTT client sends its password as the token as well,
+// so one that is not a user JWT falls through to the token check.
 func (a *authorizer) Check(c server.ClientAuthentication) bool {
 	opts := c.GetOpts()
 
@@ -147,7 +163,96 @@ func (a *authorizer) Check(c server.ClientAuthentication) bool {
 		return a.checkNkey(c, opts)
 	}
 
+	if opts.Username != "" && opts.Password != "" {
+		if ok, decided := a.checkUser(c, opts); decided {
+			return ok
+		}
+	}
+
 	return a.checkToken(c, opts)
+}
+
+// checkUser authenticates a browser connection: user is a user node ID and
+// pass is a JWT issued to that user at sign-in. decided is false when the
+// password is not a user JWT at all, so Check can go on to the token
+// check; a JWT that is present but wrong is refused outright.
+func (a *authorizer) checkUser(c server.ClientAuthentication, opts *server.ClientOpts) (ok, decided bool) {
+	a.mu.RLock()
+	users := a.users
+	a.mu.RUnlock()
+
+	if !looksLikeJWT(opts.Password) {
+		return false, false
+	}
+
+	if users == nil {
+		log.Printf("NATS auth: refusing user %v from %v, store not ready yet",
+			opts.Username, c.RemoteAddress())
+		return false, true
+	}
+
+	userID, expires, valid := users.UserFromToken(opts.Password)
+	if !valid || userID != opts.Username {
+		log.Printf("NATS auth: refusing user %v from %v, invalid token",
+			opts.Username, c.RemoteAddress())
+		return false, true
+	}
+
+	anchors := users.UserAnchors(userID)
+	if len(anchors) == 0 {
+		log.Printf("NATS auth: refusing user %v from %v, user is not in the tree",
+			userID, c.RemoteAddress())
+		return false, true
+	}
+
+	c.RegisterUser(&server.User{
+		Username:           userID,
+		Permissions:        userPermissions(userID, anchors),
+		ConnectionDeadline: expires,
+	})
+
+	a.mu.Lock()
+	a.conns[c.GetID()] = authConn{
+		userID: userID,
+		grant:  strings.Join(anchors, ","),
+	}
+	a.mu.Unlock()
+
+	return true, true
+}
+
+// looksLikeJWT reports whether a password has the shape of a JWT: three
+// dot-separated parts. It decides only which check runs, never whether a
+// connection is accepted.
+func looksLikeJWT(s string) bool {
+	return strings.Count(s, ".") == 2 && strings.HasPrefix(s, "ey")
+}
+
+// userPermissions is everything the browser needs for the subtrees a user
+// sits under, and nothing else. The anchor and user ID lead every subject
+// the connection may publish to, so the store can check the target
+// against the anchor without trusting anything else in the message. The
+// inbox prefix is the user's own, since _INBOX.> is shared by every
+// client on the server.
+func userPermissions(userID string, anchors []string) *server.Permissions {
+	pub := make([]string, 0, len(anchors)+1)
+	sub := make([]string, 0, len(anchors)+1)
+	for _, g := range anchors {
+		pub = append(pub, fmt.Sprintf("u.%v.%v.>", g, userID))
+		sub = append(sub, fmt.Sprintf("up.%v.>", g))
+	}
+	pub = append(pub, "auth.me")
+	sub = append(sub, userInboxPrefix(userID)+".>")
+
+	return &server.Permissions{
+		Publish:   &server.SubjectPermission{Allow: pub},
+		Subscribe: &server.SubjectPermission{Allow: sub},
+	}
+}
+
+// userInboxPrefix is the reply inbox prefix a browser connection uses.
+func userInboxPrefix(userID string) string {
+	return "_INBOX_" + userID
 }
 
 // checkToken accepts the shared token, or anything at all when no token is
@@ -396,9 +501,9 @@ func devicePermissions(deviceID, rootID string, origins []string) *server.Permis
 }
 
 // start loads the index from the store and begins maintaining it. It is
-// called once the store is serving requests; device connections that
-// arrive before then are refused and retry.
-func (a *authorizer) start(nc *nats.Conn, ns *server.Server) error {
+// called once the store is serving requests; device and user connections
+// that arrive before then are refused and retry.
+func (a *authorizer) start(nc *nats.Conn, ns *server.Server, users userAuthority) error {
 	a.nc = nc
 	a.ns = ns
 
@@ -409,6 +514,7 @@ func (a *authorizer) start(nc *nats.Conn, ns *server.Server) error {
 
 	a.mu.Lock()
 	a.rootID = root.ID
+	a.users = users
 	a.mu.Unlock()
 
 	// subscribe before loading so nothing is missed in between
@@ -479,6 +585,7 @@ func (a *authorizer) stopIndex() {
 
 	a.mu.Lock()
 	a.ready = false
+	a.users = nil
 	started := a.nc != nil
 	a.mu.Unlock()
 
@@ -497,8 +604,9 @@ func (a *authorizer) enqueue(f func()) {
 }
 
 // handleUp watches every point in the tree for the few that concern
-// credentials: a point on a credential node, a new deviceCred node, and an
-// edge change on a device that has credentials.
+// credentials: a point on a credential node, a new deviceCred node, an
+// edge change on a device that has credentials, and, for signed-in users,
+// an edge change or a new password on the user node.
 func (a *authorizer) handleUp(msg *nats.Msg) {
 	tok := strings.Split(msg.Subject, ".")
 
@@ -514,9 +622,15 @@ func (a *authorizer) handleUp(msg *nats.Msg) {
 	_, isCred := a.credIDs[nodeID]
 	_, isDevice := a.devices[nodeID]
 	_, isEnroll := a.enrollIDs[nodeID]
+	isUser := a.userConnected(nodeID)
 	a.mu.RUnlock()
 
 	switch {
+	case isUser && len(tok) == 6:
+		// the user's anchors may have changed; enforce recomputes them
+		a.enqueue(a.enforce)
+	case isUser && tok[3] == data.PointTypePass:
+		a.enqueue(func() { a.closeUser(nodeID) })
 	case isCred:
 		a.enqueue(func() { a.refreshCred(nodeID) })
 	case isEnroll:
@@ -804,12 +918,56 @@ func (a *authorizer) noteConnect(pubKey string) {
 	}
 }
 
-// liveConns lists the device connections the server currently holds.
+// userConnected reports whether a user has a live connection recorded.
+// Lock must be held.
+func (a *authorizer) userConnected(userID string) bool {
+	for _, c := range a.conns {
+		if c.userID == userID {
+			return true
+		}
+	}
+	return false
+}
+
+// closeUser closes every connection a user holds, which is what a password
+// change does: the JWTs issued before it stay valid until they expire, so
+// the browser is sent back to sign-in instead.
+func (a *authorizer) closeUser(userID string) {
+	live := a.liveConns()
+
+	a.mu.RLock()
+	var closeIDs []uint64
+	for cid := range live {
+		if a.conns[cid].userID == userID {
+			closeIDs = append(closeIDs, cid)
+		}
+	}
+	a.mu.RUnlock()
+
+	for _, cid := range closeIDs {
+		log.Printf("NATS auth: closing connection %v, password changed for user %v", cid, userID)
+		if err := a.ns.DisconnectClientByID(cid); err != nil {
+			log.Printf("NATS auth: error closing connection %v: %v", cid, err)
+		}
+	}
+}
+
+// liveConns lists the device, enrollment, and user connections the server
+// currently holds.
 func (a *authorizer) liveConns() map[uint64]string {
 	live := make(map[uint64]string)
 	if a.ns == nil {
 		return live
 	}
+
+	a.mu.RLock()
+	userConns := make(map[uint64]bool, len(a.conns))
+	for cid, c := range a.conns {
+		if c.userID != "" {
+			userConns[cid] = true
+		}
+	}
+	a.mu.RUnlock()
 
 	for offset := 0; ; {
 		cz, err := a.ns.Connz(&server.ConnzOptions{Username: true, Offset: offset, Limit: 1024})
@@ -819,7 +977,8 @@ func (a *authorizer) liveConns() map[uint64]string {
 		}
 		for _, c := range cz.Conns {
 			if nkeys.IsValidPublicUserKey(c.AuthorizedUser) ||
-				strings.HasPrefix(c.AuthorizedUser, enrollUserPrefix) {
+				strings.HasPrefix(c.AuthorizedUser, enrollUserPrefix) ||
+				userConns[c.Cid] {
 				live[c.Cid] = c.AuthorizedUser
 			}
 		}
@@ -835,13 +994,26 @@ func (a *authorizer) liveConns() map[uint64]string {
 // enforce closes every device connection whose credential no longer
 // authorizes what it was granted: the credential was disabled, deleted, or
 // re-keyed, its device was detached, or its boundary gained a stream it
-// should now pull.
+// should now pull. It also closes every user connection whose anchors have
+// changed, so the browser reconnects and is granted the new set, or is
+// refused if the user is gone.
 func (a *authorizer) enforce() {
 	live := a.liveConns()
 
 	a.mu.Lock()
+	users := a.users
 	var closeIDs []uint64
 	for cid, pub := range live {
+		if ac, ok := a.conns[cid]; ok && ac.userID != "" {
+			grant := ""
+			if users != nil {
+				grant = strings.Join(users.UserAnchors(ac.userID), ",")
+			}
+			if grant == "" || grant != ac.grant {
+				closeIDs = append(closeIDs, cid)
+			}
+			continue
+		}
 		if id, isEnroll := strings.CutPrefix(pub, enrollUserPrefix); isEnroll {
 			e, ok := a.enroll[a.enrollIDs[id]]
 			if !ok || !e.live() {
@@ -867,7 +1039,7 @@ func (a *authorizer) enforce() {
 	a.mu.Unlock()
 
 	for _, cid := range closeIDs {
-		log.Printf("NATS auth: closing connection %v, credential %v no longer authorizes it",
+		log.Printf("NATS auth: closing connection %v, %v no longer authorizes it",
 			cid, live[cid])
 		if err := a.ns.DisconnectClientByID(cid); err != nil {
 			log.Printf("NATS auth: error closing connection %v: %v", cid, err)
