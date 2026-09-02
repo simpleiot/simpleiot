@@ -28,6 +28,11 @@ test("round-trips points", async () => {
 	assert.deepEqual(decodePoints(encodePoints(points)), points)
 })
 
+test("reads an empty key as 0, the way the store keeps it", () => {
+	const [p] = decodePoints(encodePoints([{ type: "tombstone", key: "", value: 1 }]))
+	assert.equal(p.key, "0")
+})
+
 test("fills in a missing time", () => {
 	const before = Date.now()
 	const [p] = decodePoints(

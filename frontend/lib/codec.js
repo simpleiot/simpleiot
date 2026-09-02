@@ -269,7 +269,9 @@ function decodeValue(dataType, data) {
 
 function decodePoint(r) {
 	const type = r.string()
-	const key = r.string()
+	// the store keeps an empty key as "0", and a live point sent with an
+	// empty key has to match the stored one it replaces
+	const key = r.string() || "0"
 	const time = nanosToISO(r.i64())
 	const dataType = r.u8()
 	const data = r.bytes()
