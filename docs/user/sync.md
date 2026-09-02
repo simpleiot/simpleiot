@@ -20,7 +20,8 @@ Auth token is optional and needs to be
 server. If your upstream is on the public internet, you should use an auth
 token, or better, a [device credential](#device-credentials), which limits each
 device to its own data and can be revoked on its own. If both devices are on an
-internal network, then you may not need either.
+internal network, then you may not need either and you can connect without any
+authentication.
 
 Typically, `wss` are simplest for servers that are fronted by a web server like
 Caddy that has TLS certs. For internal connections, `nats` or `ws` connections
@@ -157,9 +158,15 @@ two.
 
 ### 2. Keys issued by the upstream
 
-A key is made on the upstream and delivered to the device, which suits bench
-setup and small fleets where each unit is set up by hand. The seed is shown once
-and never stored:
+The key is made on the upstream, the instance devices sync to, and carried to
+the device, the instance that runs the sync node. This suits bench setup and
+small fleets where each unit is set up by hand. Each step below says which
+instance it happens on.
+
+**On the upstream**, make the credential. The device node has to exist there
+first, with the device's instance ID (the root node ID that `siot dump` prints
+on the device), since that is the identity the credential is granted for. Then,
+any of these; the seed is shown once and never stored:
 
 - In the UI, add a **Device credential** under the device node and press
   **Generate key**. The public key is stored on the credential and the seed is
@@ -169,18 +176,14 @@ and never stored:
 - `siot key gen` prints a seed and public key without touching any instance, for
   scripts that create the credential some other way.
 
-The device node has to exist on the upstream first, with the device's instance
-ID (the root node ID that `siot dump` prints on the device), since that is the
-identity the credential is granted for.
+**On the device**, install the seed, any of these ways:
 
-Give the device the seed one of these ways:
-
-- On the device's sync node in the UI, paste the seed into **Install key**. It
+- On the sync node in the device's UI, paste the seed into **Install key**. It
   goes straight to the key file through the API, never through a point.
-- `siot key install SEED` on the device.
-- A provisioning or import file with a top level `deviceKey` entry, which
-  applying the file installs. A file that carries one is a secret; keep one file
-  per unit (`provisioning/<unit>.yaml`) rather than a shared one.
+- `siot key install SEED`, run on the device.
+- A provisioning or import file applied on the device with a top level
+  `deviceKey` entry. A file that carries one is a secret; keep one file per unit
+  (`provisioning/<unit>.yaml`) rather than a shared one.
 
   ```yaml
   deviceKey: SUAB...
@@ -190,21 +193,22 @@ Give the device the seed one of these ways:
         uri: wss://myserver.com
   ```
 
-- Ship it as `SIOT_DATA/device.nkey` in the image.
+- Ship it as `SIOT_DATA/device.nkey` in the device's image.
 
-A running instance switches to the installed key straight away. Treat the seed
-as you would the shared token: it is the device's identity.
+A running device switches to the installed key straight away and connects with
+it. Treat the seed as you would the shared token: it is the device's identity.
 
-A device node may carry more than one credential, so a key is rotated without
-downtime: `siot cred rotate -device "Gateway 42"` issues a second credential and
-prints its seed; install the seed on the device, wait for `lastConnect` on the
-new credential, then disable the old one. Messages the device publishes during
-the switch are not lost, since the replication consumer resumes where it left
-off.
+To rotate a key, repeat the two steps with a second credential; a device node
+may carry more than one. On the upstream,
+`siot cred rotate -device "Gateway 42"` issues the second credential and prints
+its seed. On the device, install the seed. Back on the upstream, wait for
+`lastConnect` on the new credential, then disable the old one. Messages the
+device publishes during the switch are not lost, since the replication consumer
+resumes where it left off.
 
-`siot export` leaves `authToken` points and the device key out and says so at
-the top of the file; `siot export -secrets` includes both, for backing up or
-cloning an instance in full.
+`siot export` on either instance leaves `authToken` points and the device key
+out and says so at the top of the file; `siot export -secrets` includes both,
+for backing up or cloning an instance in full.
 
 ### 3. Devices that enroll themselves
 
