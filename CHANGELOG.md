@@ -42,6 +42,8 @@ For more details or to discuss releases, please visit the
 
 ### Removed
 
+- **`GET /v1/nodes` is gone.** It returned every node a user could see in one
+  reply, and the web UI was its only caller. The other node routes stay.
 - **`auth.getNatsURI` is gone.** It handed the shared token to any connected
   client. Nothing in the repository used it; a client that did should hold its
   own credential.

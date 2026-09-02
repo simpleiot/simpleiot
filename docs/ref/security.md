@@ -128,6 +128,52 @@ node in its tree, it logs a warning naming the stream. That is what a write that
 got past the permissions looks like, and also what a device deleted from the
 tree while its stream remains looks like, so the stream is still consumed.
 
+### Browser
+
+The web UI connects to NATS over the WebSocket the HTTP port proxies (see
+[configuration](../user/configuration.md#environment-variables)), presenting the
+user's node ID and sign-in JWT as user and password. The authorizer validates
+the JWT against the store's key, confirms it was issued to that user, and grants
+the connection exactly the subtrees the user belongs to. An _anchor_ is a node
+the user sits directly under; a user in two groups has two.
+
+| Purpose                   | Subjects                                                |
+| ------------------------- | ------------------------------------------------------- |
+| Fetch nodes, write points | publish `u.<anchor>.<user>.>` for each anchor           |
+| Ask who it is             | publish `auth.me`                                       |
+| Live points               | subscribe `up.<anchor>.>` for each anchor               |
+| Replies                   | subscribe `_INBOX_<user>.>`, the connection's own inbox |
+
+Nothing else: no `p.>`, `nodes.>`, `ep.>`, `$JS.>`, `auth.user`, or `admin.>`.
+The server proves the connection may speak for the anchor and user in a `u.*`
+subject; the store proves the target of the request is the anchor or below it
+and sets the origin of every point to the user, whatever the browser sent.
+Neither side needs the other's data structures, and no header can be added or
+left out to get a different outcome. Details of the subjects are in the
+[API reference](api.md#nats).
+
+What a browser can and cannot do, compared with polling the HTTP API:
+
+| Concern                              | Before                                        | Now                                                                                                                        |
+| ------------------------------------ | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Credential on the WebSocket          | Shared token, handed out by `auth.getNatsURI` | The user's JWT; `auth.getNatsURI` is gone                                                                                  |
+| Anonymous WebSocket connection       | Accepted when no token is configured          | Refused when a token is configured; an open instance stays open                                                            |
+| Read scope                           | Any node in the instance                      | The user's anchors and below                                                                                               |
+| Write scope                          | Any subject, any origin                       | Points under the user's anchors, origin forced to the user                                                                 |
+| JetStream, admin, auth subjects      | Reachable                                     | Not in the permission set                                                                                                  |
+| A page on another origin             | Could connect with the shared token           | Cannot authenticate: the JWT lives in this origin's local storage. `SIOT_NATS_WS_ORIGINS` can refuse the handshake as well |
+| User removed from a group or deleted | Access until the JWT expires                  | Disconnected within seconds; reconnecting recomputes or refuses                                                            |
+| Password changed                     | Access until the JWT expires                  | Disconnected; the browser returns to sign-in                                                                               |
+| JWT expiry                           | Not enforced on a live connection             | The server closes the connection when the token expires                                                                    |
+
+Permissions are computed when the connection is made. The authorizer watches the
+tree and closes a user's connections when the user's edges change, so the
+browser reconnects and is granted the new set, or is refused if the user is
+gone. The HTTP node routes are unchanged and still unscoped per node; that is
+tracked in the security cleanup plan. A deployment with no shared token still
+runs open on every listener, WebSocket included; the UI presents its JWT either
+way and is scoped either way.
+
 ### External NATS servers
 
 The authorizer is part of the embedded server. An instance started with

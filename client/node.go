@@ -100,66 +100,6 @@ func GetRootNode(nc *nats.Conn) (data.NodeEdge, error) {
 	return rootNodes[0], nil
 }
 
-// GetNodesForUser gets all nodes for a user
-func GetNodesForUser(nc *nats.Conn, userID string) ([]data.NodeEdge, error) {
-	var none []data.NodeEdge
-	var ret []data.NodeEdge
-	userNodes, err := GetNodes(nc, "all", userID, "", false)
-	if err != nil {
-		return none, err
-	}
-
-	var getChildren func(id string) ([]data.NodeEdge, error)
-
-	// getNodesHelper recursively gets children of a node
-	getChildren = func(id string) ([]data.NodeEdge, error) {
-		var ret []data.NodeEdge
-
-		children, err := GetNodes(nc, id, "all", "", false)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, c := range children {
-			grands, err := getChildren(c.ID)
-			if err != nil {
-				return nil, err
-			}
-
-			ret = append(ret, grands...)
-		}
-
-		ret = append(ret, children...)
-
-		return ret, nil
-	}
-
-	// go through parents of root nodes and recursively get all children
-	for _, un := range userNodes {
-		parents, err := GetNodes(nc, "all", un.Parent, "", false)
-		if err != nil {
-			return none, fmt.Errorf("error getting root node: %v", err)
-		}
-
-		// The frontend expects the top level nodes to have Parent set
-		// to root
-		for i := range parents {
-			parents[i].Parent = "root"
-		}
-
-		ret = append(ret, parents...)
-		c, err := getChildren(un.Parent)
-		if err != nil {
-			return none, fmt.Errorf("error getting children: %v", err)
-		}
-		ret = append(ret, c...)
-	}
-
-	ret = data.RemoveDuplicateNodesIDParent(ret)
-
-	return ret, nil
-}
-
 // shouldMarkPrimary reports whether SendNode should mark this edge primary.
 //
 // A node that owns something outside the tree runs its client on one edge

@@ -144,7 +144,6 @@ Most APIs that do not return specific data (update/delete) return a
 - Nodes
   - [data structure](https://github.com/simpleiot/simpleiot/blob/master/data/node.go)
   - `/v1/nodes`
-    - GET: return a list of all nodes
     - POST: insert a new node
   - `/v1/nodes/:id`
     - GET: return info about a specific node. Body can optionally include the id

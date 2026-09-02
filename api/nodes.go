@@ -139,7 +139,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 	head, req.URL.Path = ShiftPath(req.URL.Path)
 
-	validUser, userID, deviceID, ok := h.authenticate(req)
+	_, userID, deviceID, ok := h.authenticate(req)
 	if !ok {
 		http.Error(res, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -162,30 +162,6 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	if id == "" {
 		switch req.Method {
-		case http.MethodGet:
-			if !validUser {
-				http.Error(res, "invalid user", http.StatusMethodNotAllowed)
-				return
-			}
-
-			nodes, err := client.GetNodesForUser(h.nc, userID)
-			if err != nil {
-				log.Println("Error getting nodes for user:", err)
-			}
-
-			if err != nil {
-				http.Error(res, err.Error(), http.StatusNotFound)
-				return
-			}
-			if len(nodes) > 0 {
-				en := json.NewEncoder(res)
-				err := en.Encode(nodes)
-				if err != nil {
-					http.Error(res, "encoding error", http.StatusMethodNotAllowed)
-				}
-				return
-			}
-			_, _ = res.Write([]byte("[]"))
 		case http.MethodPost:
 			// create node
 			h.insertNode(res, req, userID)

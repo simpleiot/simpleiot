@@ -1,6 +1,49 @@
 # Plan: UI over NATS
 
-**Branch:** `cbrake/master` **Branched from:** `118de673`
+**Branch:** `cbrake/master` **Branched from:** `118de673` **Status:** complete
+
+## Outcome
+
+Implemented in four commits, one per phase. What differs from the design below:
+
+- **No bundler.** `nats.ws` ships one self-contained ES module (388 KB, 78 KB
+  gzipped), so the UI loads the client as native modules with an import map.
+  `siot_build_frontend_js` copies `siot-nats.js`, `codec.js`, and `nats.js` into
+  `public/dist`; the build gzips them next to `elm.js`. esbuild was tried and
+  dropped: it would have saved about 20 KB gzipped for a dev dependency and a
+  watch process.
+- **`AllowedOrigins` works through the proxy.** `websocketproxy` forwards the
+  page's `Origin` header, so `SIOT_NATS_WS_ORIGINS` applies to both ports. Off
+  by default.
+- **Edge points require the parent under the anchor**, not "parent or id".
+  Allowing `id` under G would let a user attach a node they can see to a parent
+  they cannot, which is a write outside scope.
+- **`depth` counts levels below the requested nodes.** `nodes.all.G` with
+  `depth=2` is the anchor with children and grandchildren; `nodes.P.all` with
+  `depth=1` is the children with their children. Sign-in uses the former,
+  expansion the latter.
+- **`auth.me` replies with the user's node edges** (password hash left out), the
+  same frame `auth.user` uses; the anchors are the parents.
+- **Live events are batched lists**: `points [{nodeId, points}]` and
+  `edgePoints [{nodeId, parentId, points}]`, one message per animation frame,
+  deduplicated per point type and key. There is no `ack`; a failed write is an
+  `error` event.
+- **Every node on screen watches its children's edges**, not only expanded ones,
+  so a first child appearing under a collapsed node gets its arrow. A new child
+  is fetched (with its children if the parent is open) rather than inferred from
+  the edge.
+- **The server's own client still connects over loopback with the token** rather
+  than in process. That needs the NATS server built before the client, which
+  `NewServer` does not do today; it is not required for any goal here.
+- **Large child lists:** a variable node is about 250 bytes in a reply, so 3000
+  direct children are 745 KB and about 4000 fit the default 1 MB NATS payload.
+  No paging; revisit if a deployment needs more than that under one node.
+- **Reconnect:** nats.ws retries without limit (`maxReconnectAttempts: -1`) at
+  its default 2 s plus jitter; a closed connection is reopened after 5 s. A
+  hidden tab drops its subscriptions and refetches on return.
+- The end-to-end path was checked in headless Chromium: sign in, tree over NATS,
+  a rename from a second connection appearing live, expansion, and a node added
+  over HTTP appearing without a refresh.
 
 ## Context
 

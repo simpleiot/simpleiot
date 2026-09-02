@@ -21,4 +21,4 @@
 | 2026-08-24-security-cleanup.md                   | **IN PROGRESS** (item 1 complete)                                                       | 179d06ea      |
 | 2026-08-24-primary-mirror-edges.md               | **COMPLETE**                                                                            | fc017969      |
 | 2026-08-26-shelly-push-and-generic-components.md | **COMPLETE** (Phase 4 CoIoT for Gen1 not done)                                          | 98e0fa88      |
-| 2026-09-01-ui-over-nats.md                       | **IN PROGRESS** (Phase 1 server side complete)                                          | b373fc73      |
+| 2026-09-01-ui-over-nats.md                       | **COMPLETE** (in-process server client not done; see plan)                              | b373fc73      |
