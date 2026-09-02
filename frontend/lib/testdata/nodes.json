@@ -1,0 +1,89 @@
+[
+  {
+    "id": "node-1",
+    "type": "variable",
+    "parent": "group-1",
+    "points": [
+      {
+        "type": "value",
+        "key": "0",
+        "time": "2026-09-01T12:30:45.123Z",
+        "dataType": 1,
+        "value": 12.5,
+        "text": "",
+        "tombstone": 0,
+        "origin": ""
+      },
+      {
+        "type": "count",
+        "key": "3",
+        "time": "2026-09-01T12:30:46.123Z",
+        "dataType": 2,
+        "value": 7,
+        "text": "",
+        "tombstone": 0,
+        "origin": ""
+      },
+      {
+        "type": "big",
+        "key": "0",
+        "time": "2026-09-01T12:30:47.123Z",
+        "dataType": 2,
+        "value": 1099511627776,
+        "text": "",
+        "tombstone": 0,
+        "origin": ""
+      }
+    ],
+    "edgePoints": [
+      {
+        "type": "tombstone",
+        "key": "0",
+        "time": "2026-09-01T12:30:45.123Z",
+        "dataType": 1,
+        "value": 0,
+        "text": "",
+        "tombstone": 0,
+        "origin": ""
+      }
+    ]
+  },
+  {
+    "id": "node-2",
+    "type": "group",
+    "parent": "group-1",
+    "points": [
+      {
+        "type": "description",
+        "key": "0",
+        "time": "2026-09-01T12:30:48.123Z",
+        "dataType": 3,
+        "value": 0,
+        "text": "sensor one",
+        "tombstone": 1,
+        "origin": "user-1"
+      },
+      {
+        "type": "empty",
+        "key": "0",
+        "time": "2026-09-01T12:30:49.123Z",
+        "dataType": 0,
+        "value": 0,
+        "text": "",
+        "tombstone": 0,
+        "origin": ""
+      },
+      {
+        "type": "json",
+        "key": "0",
+        "time": "2026-09-01T12:30:50.123Z",
+        "dataType": 4,
+        "value": 0,
+        "text": "{\"a\":1}",
+        "tombstone": 0,
+        "origin": ""
+      }
+    ],
+    "edgePoints": []
+  }
+]

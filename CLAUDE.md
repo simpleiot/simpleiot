@@ -127,7 +127,9 @@ subjects (`devicePermissions`), and an enrollment token may only publish
 
 - **Elm SPA**: Single-page application using elm-spa framework
 - **Components**: Node-specific UI components in `Components/` directory
-- **API**: Communication with backend via HTTP and WebSocket
+- **API**: Nodes are read and points written over NATS WebSockets through
+  `frontend/lib` (`simpleiot-js`) and the `Api.Nats` port module; sign-in and
+  node operations (add, delete, move, mirror, duplicate, notify) use HTTP
 - **Build**: Uses elm-watch for hot reloading during development
 
 ## Design Priorities
@@ -187,19 +189,22 @@ branch, switch branches, or start a worktree unless I ask for one.
 
 ## Committing
 
-Leave `frontend/public/dist/elm.js.gz` out of commits. The frontend build
-regenerates it constantly, so it shows up as modified during normal work. It is
-committed only right before a release, in its own commit. When staging changes,
-stage the files you edited rather than using `git add -A` or `git commit -a`,
-and if the built artifact does get committed by mistake, drop it with
-`git restore --source=HEAD~1 --staged frontend/public/dist/elm.js.gz` followed
-by `git commit --amend`.
+Leave the built frontend files in `frontend/public/dist` (`elm.js.gz`,
+`siot-nats.js.gz`, `codec.js.gz`, `nats.js.gz`) out of commits. The frontend
+build regenerates them constantly, so they show up as modified during normal
+work. They are committed only right before a release, in their own commit. When
+staging changes, stage the files you edited rather than using `git add -A` or
+`git commit -a`, and if a built artifact does get committed by mistake, drop it
+with `git restore --source=HEAD~1 --staged frontend/public/dist/elm.js.gz` (or
+the file in question) followed by `git commit --amend`.
 
 ## Important Notes
 
 - Always source `envsetup.sh` before running build commands
-- Frontend build generates compressed `elm.js.gz` file (see Committing above —
-  it is not committed with regular changes)
+- Frontend build generates compressed files in `frontend/public/dist` (see
+  Committing above — they are not committed with regular changes). The
+  JavaScript there is copied from `frontend/lib` and `nats.ws`, not bundled;
+  `siot_build_frontend_js` refreshes it during development
 - NATS JetStream stores all application data (one stream per boundary/origin
   pair; see ADR-7)
 - System supports TLS with certificates via `siot_mkcert` and `siot_run_tls`

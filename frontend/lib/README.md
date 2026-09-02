@@ -1,170 +1,68 @@
 # simpleiot-js
 
-SimpleIoT JavaScript API using NATS / WebSockets
+A Simple IoT client for the browser, over NATS WebSockets. The web UI in
+`frontend/` is built on it.
 
-This package allows JavaScript clients (especially web browsers) to connect to
-SimpleIoT using [nats.ws](https://github.com/nats-io/nats.ws).
+A connection is made as a signed-in user: the user's node ID and the JWT from
+`POST /v1/auth` are the NATS user and password, and the server limits the
+connection to the groups the user belongs to. Every read and write names the
+group (the _anchor_) it is made under. See the
+[API reference](https://docs.simpleiot.org/docs/ref/api.html) for the subjects.
 
 ## Install
 
 `npm i simpleiot-js`
 
+The package is an ES module and depends on
+[nats.ws](https://github.com/nats-io/nats.ws).
+
 ## Usage
 
 ```js
 import { connect } from "simpleiot-js"
-;(async function siotConnect() {
-	try {
-		// Note: nats.ws has built-in reconnection logic by default
-		const nc = await connect({
-			servers: "localhost:9222",
-			// Pass in options as documented in nats.ws package
-		})
-		// `getServer()` is a method documented by nats.ws
-		console.log(`connected to ${nc.getServer()}`)
-		// `closed()` is a nats.ws method that returns a promise
-		// indicating the client closed
-		const done = nc.closed()
 
-		// Example: get root nodes from SimpleIoT tree
-		const n = await nc.getNodeChildren("root")
+const token = "..." // from POST /v1/auth
+const c = await connect({ url: "ws://localhost:8118/", token })
 
-		// close the connection
-		await nc.close()
-		// check if the close was OK
-		const err = await done
-		if (err) {
-			console.log(`error closing:`, err)
-		}
-	} catch (err) {
-		console.error("connection error:", err)
-	}
-})()
+const { userId, anchors } = await c.me()
+for (const anchor of anchors) {
+	const nodes = await c.getNodes(anchor, anchor, "all", { depth: 1 })
+	console.log(nodes)
+}
+
+const sub = c.subscribe(`up.${anchors[0]}.>`)
+for await (const m of sub) {
+	console.log(m.nodeId, m.points)
+}
 ```
 
 ## API
 
-The SimpleIoT package is simply a wrapper of the
-[nats.ws](https://github.com/nats-io/nats.ws) package. Any API documented in the
-nats.ws package will work. We have also added the following functions specific
-to SimpleIoT.
+- `connect({ url, token, user, ...opts })` opens a connection. `url` is the
+  WebSocket URL of the Simple IoT HTTP server, which proxies to NATS. `user`
+  defaults to the ID in the token. Other options go to nats.ws; reconnection is
+  on without limit by default.
+- `me()` returns `{ userId, anchors, nodes }`: the nodes the user sits under and
+  the user's node at each of them.
+- `getNodes(anchor, parent, id, { depth, type, includeDel })` fetches nodes the
+  way `nodes.<parent>.<id>` does. `depth` also returns descendants that many
+  levels down, in one flat array.
+- `sendNodePoints(anchor, id, points)` and
+  `sendEdgePoints(anchor, id, parent, points)` write points. An error reply is
+  thrown.
+- `subscribe(subject)` returns a nats.ws subscription whose async iterator
+  yields `{ subject, anchor, nodeId, parentId, type, key, points }`. `parentId`
+  is set for edge points. A user connection may subscribe to `up.<anchor>.>` for
+  each of its anchors.
+- `status()`, `closed()`, and `close()` are the nats.ws methods.
+- `encodePoints`, `decodePoints`, and `decodeNodes` are the codec.
 
-- `getNode(id, { parent, type, includeDel, opts } = {})`
+A point is `{ type, key, time, dataType, value, text, tombstone, origin }`, with
+`time` an ISO 8601 string. When sending, `text` makes a string point and
+otherwise a non-zero `value` makes a number point; a missing `time` is now. A
+node is `{ id, type, parent, points, edgePoints }`.
 
-  getNode sends a request to `nodes.<parent>.<id>` to retrieve an array of
-  NodeEdges for the specified Node ID.
-  - If `id` is "all" or falsy, this calls `getNodeChildren` instead (see below);
-    however, we strongly recommend using `getNodeChildren` directly
-  - If `parent` is "all" or falsy, all instances of the specified node are
-    returned
-  - If `parent` is "root", only root nodes are returned
-  - `opts` are options passed to the NATS request
+## Tests
 
-  The returned node contains the following properties:
-  - `id` - the node ID
-  - `type` - the node type
-  - `hash`
-  - `parent` - the parent ID for this node edge
-  - `pointsList` - the list of points for this node
-  - `edgepointsList` - the list of edge points for the edge between this node
-    and the specified parent
-
-  Each point contains the following properties:
-  - `time` - timestamp of the point converted to a JavaScript Date object
-  - `type`
-  - `key`
-  - `value` - numeric value of the point
-  - `text` - text value of the point
-  - `data` - data contained within the point (encoded as base64 string)
-  - `tombstone` - if tombstone value is even, the point is active; otherwise, if
-    it is odd, the point is considered deleted
-  - `origin` - the node ID of the user or other node that created this point.
-
-- `getNodeChildren(parentID, { type, includeDel, recursive, opts } = {} )`
-
-  getNodeChildren sends a request to `nodes.<parentID>.<id>` to retrieve an
-  array of child NodeEdges of the specified parent node.
-  - If `parentID` is "root", all root nodes are retrieved
-  - `type` - can be used to filter nodes of a specified type (defaults to "")
-  - `includeDel` - set to true to include deleted nodes (defaults to false)
-  - `recursive` - set to true to recursively retrieve all descendants matching
-    the criteria. In this case, each returned NodeEdge will contain a `children`
-    property, which is an array of that Node's descendant NodeEdges. Set to
-    "flat" to return a single flattened array of NodeEdges.
-
-    Note: If `type` is also set when `recursive` is truthy, `type` restricts
-    which nodes are recursively searched. If you need to search descendants that
-    do _not_ match the `type`, consider removing the `type` filter and filter
-    manually.
-
-  - `opts` are options passed to the NATS request
-
-- `getNodesForUser(userID, { type, includeDel, recursive, opts } = {})`
-
-  getNodesForUser returns the parent nodes for the given `userID` along with
-  their descendants if `recursive` is truthy.
-  - `type` - can be used to filter nodes of a specified type (defaults to "")
-  - `includeDel` - set to true to include deleted nodes (defaults to false)
-  - `recursive` - set to true to recursively retrieve all descendants matching
-    the criteria. In this case, each returned NodeEdge will contain a `children`
-    property, which is an array of that Node's descendant NodeEdges. Set to
-    "flat" to return a single flattened array of NodeEdges.
-  - `opts` are options passed to the NATS request
-
-- `subscribePoints(nodeID)`
-
-  Subscribes to `p.<nodeID>` and returns an
-  [async iterable](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols#the_async_iterator_and_async_iterable_protocols)
-  for an array of Point objects. `nodeID` can be `*` or `all`.
-
-- `subscribeEdgePoints(nodeID)`
-
-  Subscribes to `p.<nodeID>.<parentID>` and returns an
-  [async iterable](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols#the_async_iterator_and_async_iterable_protocols)
-  for an array of Point objects. `nodeID` or `parentID` can be `*` or `all`.
-
-- `subscribeUpstreamPoints(upstreamID, nodeID)`
-
-  Subscribes to `up.<upstreamID>.<nodeID>` and returns an
-  [async iterable](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols#the_async_iterator_and_async_iterable_protocols)
-  for an array of Point objects. `nodeID` can be `*` or `all`.
-
-- `subscribeUpstreamEdgePoints(upstreamID, nodeID, parentID)`
-
-  Subscribes to `up.<upstreamID>.<nodeID>.<parentID>` and returns an
-  [async iterable](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols#the_async_iterator_and_async_iterable_protocols)
-  for an array of Point objects. `nodeID` or `parentID` can be `*` or `all`.
-
-- `setUserID(userID)`
-
-  setUserID sets the user ID for this connection; any points / edge points sent
-  from this connection will have their origin set to the specified userID
-
-- `sendNodePoints(nodeID, points, { ack, opts })`
-
-  sendNodePoints sends an array of `points` for a given `nodeID`
-  - `ack` - true if function should block waiting for send acknowledgement
-    (defaults to true)
-  - `opts` are options passed to the NATS request
-
-- `sendEdgePoints(nodeID, parentID, edgePoints, { ack, opts })`
-
-  sendEdgePoints sends an array of `edgePoints` for the edge between `nodeID`
-  and `parentID`
-  - `ack` - true if function should block waiting for send acknowledgement
-    (defaults to true)
-  - `opts` are options passed to the NATS request
-
-## Deprecated API functions
-
-- `subscribeMessages(nodeID)`
-
-  subscribeMessages subscribes to `node.<nodeID>.msg` and returns an
-  [async iterable](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols#the_async_iterator_and_async_iterable_protocols)
-  for Message objects
-
-- `subscribeNotifications(nodeID)`
-
-  subscribeNotifications subscribes to `node.<nodeID>.not` and returns an
-  [async iterable](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols#the_async_iterator_and_async_iterable_protocols)
-  for Notification objects
+`npm test` checks the codec against fixtures written by the Go tests in
+`data/point_fixture_test.go`, so the two encoders cannot drift.

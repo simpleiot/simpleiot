@@ -1,12 +1,17 @@
 {
   "name": "simpleiot-js",
-  "version": "1.1.0",
-  "description": "SimpleIOT JavaScript API using NATS / WebSockets",
-  "main": "siot-nats.mjs",
+  "version": "2.0.0",
+  "description": "Simple IoT JavaScript client using NATS over WebSockets",
+  "type": "module",
+  "main": "siot-nats.js",
+  "files": [
+    "siot-nats.js",
+    "codec.js"
+  ],
   "scripts": {
-    "test": "mocha",
-    "format": "prettier --ignore-path ../.gitignore --write \"./*.{mjs,js}\"",
-    "lint": "eslint ./*.{mjs,js}"
+    "test": "node --test test.js",
+    "format": "prettier --ignore-path ../.gitignore --write \"./*.js\"",
+    "lint": "eslint ./*.js"
   },
   "author": "Blake Miner <miner.blake@gmail.com> (http://blakeminer.com)",
   "license": "MIT",
@@ -16,11 +21,6 @@
   },
   "homepage": "https://github.com/simpleiot/simpleiot/tree/master/frontend/lib#readme",
   "dependencies": {
-    "google-protobuf": "^3.20.1",
-    "nats.ws": "^1.7.2"
-  },
-  "devDependencies": {
-    "mocha": "^10.1.0",
-    "ws": "^8.11.0"
+    "nats.ws": "^1.30.3"
   }
 }

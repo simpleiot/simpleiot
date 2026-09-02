@@ -25,6 +25,15 @@ For more details or to discuss releases, please visit the
 - **`SIOT_NATS_WS_ORIGINS`** limits which page origins may open a NATS
   WebSocket. Empty, the default, allows any.
 
+### Changed
+
+- **`simpleiot-js` 2.0 connects as a user and speaks the binary encoding.** The
+  JavaScript client in `frontend/lib` is rewritten on the point and node
+  encoding the server has used since protocol buffers were dropped, connects
+  with a sign-in JWT, and names the group every read and write is made under.
+  The protobuf-based API of 1.x is gone. See the
+  [frontend reference](docs/ref/frontend.md#siot-javascript-library-using-nats-over-websockets).
+
 ### Removed
 
 - **`auth.getNatsURI` is gone.** It handed the shared token to any connected

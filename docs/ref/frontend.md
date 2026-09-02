@@ -76,30 +76,25 @@ The process by which a file is uploaded is:
 
 ## SIOT JavaScript library using NATS over WebSockets
 
-This is a JavaScript library available in the
 [`frontend/lib`](https://github.com/simpleiot/simpleiot/tree/master/frontend/lib)
-directory that can be used to interface a frontend with the SIOT backend.
+is `simpleiot-js`, the client the web UI uses to talk to the backend over NATS
+WebSockets, and it can be used by any other JavaScript frontend. It connects as
+a signed-in user with the JWT from `POST /v1/auth`, learns which groups the user
+belongs to, fetches nodes one subtree at a time, subscribes to live points, and
+writes points. The `README.md` in that directory documents the API; the subjects
+are in the [API reference](api.md#nats).
 
-Usage:
+The library has one dependency, `nats.ws`, and no build step. The web UI loads
+it as native ES modules: `siot_build_frontend_js` copies `siot-nats.js`,
+`codec.js`, and `nats.ws`'s bundle into `frontend/public/dist`, and an import
+map in `index.html` resolves `nats.ws` to that copy. `siot_build_frontend` gzips
+them alongside `elm.js`, and the server decompresses on request.
 
-```js
-import { connect } from "./lib/nats"
-
-async function connectAndGetNodes() {
-	const conn = await connect()
-	const [root] = await conn.getNode("root")
-	const children = await conn.getNodeChildren(root.id, { recursive: "flat" })
-	return [root].concat(children)
-}
-```
-
-This library is also published on NPM (in the near future).
-
-(see [#357](https://github.com/simpleiot/simpleiot/pull/357))
-
-(Note, we are not currently using this yet in the SIOT frontend we still poll
-the backend over REST and fetch the entire node tree, but we are building out
-infrastructure so we don't have to do this.)
+`codec.js` mirrors the binary point and node encoding in `data/point.go` and
+`data/node.go`. The Go test `data/point_fixture_test.go` writes fixtures into
+`frontend/lib/testdata`, and `npm test` in `frontend/lib` decodes and re-encodes
+them, so the two encoders are checked against the same bytes. Run the Go test
+with `UPDATE_FIXTURES=1` after changing the encoding.
 
 ## Custom UIs
 
