@@ -15,6 +15,12 @@ build on, so doing them first avoids rework.
 Every item below stands alone. They can land as individual commits in any order,
 though the listed order puts the highest-impact fixes first.
 
+The [UI over NATS plan](2026-09-01-ui-over-nats.md) (complete, September 2026)
+changed the ground under several items: browsers now hold a NATS connection
+scoped to the user, `auth.getNatsURI` and `GET /v1/nodes` are gone, and the
+store has a subtree check (`isUnder` in `store/jetstream.go`) that the HTTP
+routes could reuse. Each affected item says what that leaves.
+
 ## Checklist
 
 ### 1. Hash user passwords (complete)
@@ -48,16 +54,18 @@ password fails.
 - [ ] Strip secret-valued points (`pass`, `authToken`, and any future seed
       point) from node read responses.
 
-**Problem:** `GET /v1/nodes` and the `nodes.*.*` NATS subjects return all
-points, so every poll ships every user's password and the sync node's upstream
-token to the browser. Hashing (item 1) reduces the damage for `pass` but the
-sync `authToken` is still a live credential.
+**Problem:** the `nodes.*.*` NATS subjects, and the `u.<anchor>.<user>.nodes.*`
+subjects the browser reads through, return all points, so the tree a browser
+fetches carries every user's password hash and the sync node's upstream token.
+Hashing (item 1) reduces the damage for `pass` but the sync `authToken` is still
+a live credential. `auth.me` already strips `pass` from its reply; nothing else
+does. (`GET /v1/nodes`, which shipped the whole tree on every poll, is gone.)
 
 **Change:** a single redaction function applied where nodes are serialized for
-clients (HTTP node responses and the `nodes.*.*` reply path), keyed on a small
-list of secret point types. Writes are unaffected. `siot export` keeps the
-plan's `--secrets` behavior (omit by default, include on request) — implement
-the flag here if it is simpler than waiting for credentials Phase 2.
+clients (HTTP node responses, the `nodes.*.*` reply path, and the `u.*` dispatch
+in `store.handleUserRequest`, which calls the same handler), keyed on a small
+list of secret point types. Writes are unaffected. `siot export` already omits
+`authToken` unless `-secrets` is given.
 
 **Verify:** test that a node response for a user node contains no `pass` point
 value and a sync node response contains no `authToken` value; export without
@@ -68,11 +76,13 @@ value and a sync node response contains no `authToken` value; export without
 - [ ] Require a valid JWT on `/v1/nodes` routes whenever the device token check
       does not apply, and never treat an empty token as a match.
 
-**Problem:** `api/nodes.go:60-68` compares
-`req.Header.Get("Authorization") != h.authToken`. With `SIOT_AUTH_TOKEN` unset
-(the default) and no header, both sides are `""`, the JWT check is skipped, and
-every write path (`POST /v1/nodes`, `POST .../points`, `DELETE`, parent moves)
-proceeds unauthenticated.
+**Problem:** `authenticate` in `api/nodes.go` compares
+`req.Header.Get("Authorization")` with `h.authToken`. With `SIOT_AUTH_TOKEN`
+unset (the default) and no header, both sides are `""`, the JWT check is
+skipped, and every write path (`POST /v1/nodes`, `POST .../points`, `DELETE`,
+parent moves) proceeds unauthenticated. The browser no longer reads or posts
+points over HTTP, so the routes this affects are the node operations (add,
+delete, move, mirror, duplicate, notify, key) and direct API use.
 
 **Change:** the device-token branch applies only when a token is configured and
 non-empty, compared with `subtle.ConstantTimeCompare`. In all other cases the
@@ -95,20 +105,18 @@ log with clear framing. Document in `docs/user/configuration.md`.
 **Verify:** fresh data dir boot logs a generated password and `admin`/`admin`
 fails to log in.
 
-### 5. Stop serving the shared token over NATS
+### 5. Stop serving the shared token over NATS (complete)
 
-- [ ] Remove the `auth.getNatsURI` token handout.
+- [x] Remove the `auth.getNatsURI` token handout.
 
-**Problem:** `store/store.go:565` publishes `SIOT_AUTH_TOKEN` in plaintext to
-any connected client that asks, converting any foothold into the fleet
-credential.
+**Problem:** `store/store.go` published `SIOT_AUTH_TOKEN` in plaintext to any
+connected client that asked, converting any foothold into the fleet credential.
 
-**Change:** remove the token from the reply (return URI only), or remove the
-subject entirely if nothing depends on it — check `frontend/lib/siot-nats.mjs`
-and docs for callers first.
+**Change:** the subject, `client.GetNatsURI`, and its test were removed with the
+UI over NATS plan; the browser authenticates with the user's JWT instead and
+nothing else needed the handout.
 
-**Verify:** grep confirms no caller expects the token; a request to the subject
-no longer returns it.
+**Verify:** done; a request to the subject gets no responders.
 
 ### 6. Bind the NATS monitoring port to localhost (note doing for now, depend on firewall)
 
@@ -126,12 +134,16 @@ deliberately. Mention in configuration docs.
 
 - [ ] Throttle `auth.user` (NATS) and `/v1/auth` (HTTP) and log failures.
 
-**Problem:** `store/store.go:489` answers password checks for any connected
-client at full speed with no logging — an unthrottled, invisible oracle.
+**Problem:** `store/store.go` answers password checks for any connected client
+at full speed with no logging — an unthrottled, invisible oracle. The NATS
+authorizer now logs every refused user JWT with the remote address (`checkUser`
+in `server/auth.go`); `auth.user` and `/v1/auth` still log nothing.
 
 **Change:** a small in-memory limiter (per email, e.g. exponential backoff after
 N failures) shared by both entry points, and a log line on every failed attempt
-with the source. Full audit-trail-as-points is out of scope here.
+with the source. The authorizer's refusals should feed the same limiter, so a
+JWT guessed over the WebSocket counts like a password guessed over HTTP. Full
+audit-trail-as-points is out of scope here.
 
 **Verify:** test that repeated failures are delayed/refused and logged.
 
@@ -140,14 +152,21 @@ with the source. Full audit-trail-as-points is out of scope here.
 - [ ] Validate issuer and confirm the user still exists on every check, and
       shorten the token lifetime.
 
-**Problem:** `api/key.go:43-70` issues 7-day tokens, never checks the issuer
-claim, and `Valid` never confirms the user node still exists — a deleted user
-keeps access for up to a week.
+**Problem:** `api/key.go` issues 7-day tokens, never checks the issuer claim,
+and `Valid` never confirms the user node still exists — a deleted user keeps
+access for up to a week on the HTTP routes. On NATS this is already closed: the
+authorizer computes a user's groups at connect time, refuses a user with none,
+closes the user's connections when their edges or password change, and the NATS
+server closes a connection when its JWT expires (`ConnectionDeadline`).
 
 **Change:** check `Issuer == "simpleiot"`; after signature validation, confirm
-the user node exists (and is not tombstoned); reduce expiry to 24 hours as an
-interim value. Full revocation semantics (`tokenVersion`, short tokens with
-renewal) stay with the later user-authz work per `security.md` sequencing.
+the user node exists (and is not tombstoned) — `UserAnchors` on the store
+answers that; reduce expiry to 24 hours as an interim value. Shortening the
+lifetime signs a live browser tab out once a day until JWT renewal over the NATS
+connection exists (a follow-up in the UI over NATS plan), so land renewal with
+or before the shorter lifetime. Full revocation semantics (`tokenVersion`, short
+tokens with renewal) stay with the later user-authz work per `security.md`
+sequencing.
 
 **Verify:** test that a token for a deleted user is rejected; a token with a
 wrong issuer is rejected.
@@ -171,13 +190,47 @@ auth, if wanted, arrives with the credentials plan).
 **Verify:** WS listener serves TLS when certs are set; edge client with a pinned
 CA refuses a server presenting a different chain.
 
+### 10. Scope reply inboxes per connection
+
+- [ ] Give device and enrollment connections their own inbox prefix instead of
+      the shared `_INBOX.>`.
+
+**Problem:** `devicePermissions` and `enrollPermissions` in `server/auth.go`
+each grant exactly one subscribe permission, `_INBOX.>`. That is the whole
+shared inbox space rather than one connection's replies, so a credentialed
+device can subscribe to the wildcard and receive every other client's replies on
+the upstream: another device's `nodes.all.Y`, the server's own client, the CLI.
+The publish side is scoped to the device, the read side is not. An enrollment
+token is the sharper case, since a connection holding one has not been approved
+by anyone yet and can publish nothing but `enroll.request`.
+
+**Change:** the pattern already exists for the browser. `userPermissions` grants
+`userInboxPrefix(U)` (`_INBOX_<U>`) and the client sets `nats.CustomInboxPrefix`
+to match; do the same for devices. `client/edge.go` sets
+`nats.CustomInboxPrefix("_INBOX_" + X)` on the sync connection,
+`devicePermissions` grants `_INBOX_<X>.>`, and `enrollPermissions` grants the
+prefix for the key being enrolled. Factor the prefix helper so all three callers
+share it.
+
+**Verify:** a device connection subscribing to `_INBOX.>` gets a permissions
+violation; two devices making concurrent requests each receive only their own
+replies; an enrollment-token connection cannot read another connection's
+replies; sync still completes end to end with the custom prefix in place.
+
+**Docs:** `docs/ref/security.md` — the "What a device credential allows" table
+row for replies, and the "Two things to know about the boundary of this model"
+list, which today calls out the `$JS.API.STREAM.NAMES` disclosure but not this
+one.
+
 ## Deliberately excluded
 
 Tracked elsewhere, not forgotten:
 
-- **Per-node authorization on the HTTP API** (`api/nodes.go:48`) — needs the
-  `userCanAccess` primitive; that is step 3 of the `security.md` sequencing,
-  after the credentials plan.
+- **Per-node authorization on the HTTP API** (`api/nodes.go`) — needs the
+  `userCanAccess` primitive; that is step 3 of the `security.md` sequencing. The
+  NATS side of it exists: the store's `isUnder(id, anchor)` scopes every browser
+  request to a group the user belongs to, and `UserAnchors` lists those groups.
+  The HTTP routes can call the same two functions.
 - **MQTT origin/scoping** (`client/mqtt.go:40` vs `store/store.go:311`) — lands
   with the `mqttUser` per-client credential work.
 - **Connection-bound replication origin** — addressed by the per-device
@@ -185,5 +238,7 @@ Tracked elsewhere, not forgotten:
   its Phase 0 spike.
 - **Signed update/provisioning payloads** (`client/update.go`) — the
   sign-the-payload design in `server-provisioning.md`.
-- **Full JWT revocation (`tokenVersion`) and the websocket UI rework** — steps 3
-  and 4 of the `security.md` sequencing.
+- **Full JWT revocation (`tokenVersion`)** — step 3 of the `security.md`
+  sequencing. The websocket UI rework (step 4) shipped as the UI over NATS plan;
+  what remains of it is JWT renewal over the live connection and moving node
+  operations off HTTP.
