@@ -6,7 +6,6 @@ import Element exposing (..)
 import Element.Border as Border
 import Element.Font as Font
 import Time
-import UI.Form as Form
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
 import UI.Style exposing (colors)
@@ -15,9 +14,7 @@ import Utils.Iso8601 exposing (toDateTimeString)
 
 
 {-| A device credential sits under a device node on the upstream and holds
-the device's public key. The upstream keeps lastConnect and connected on it,
-and a key can be generated here for a device that does not have one yet, in
-which case the seed is shown once.
+the device's public key. The upstream keeps lastConnect and connected on it.
 -}
 view : NodeOptions msg -> Element msg
 view o =
@@ -57,43 +54,14 @@ view o =
                         checkboxInput =
                             NodeInputs.nodeCheckboxInput opts "0"
 
-                        pubKey =
-                            Point.getText o.node.points Point.typePubKey ""
-
                         lastConnect =
                             Point.getValue o.node.points Point.typeLastConnect ""
-
-                        generated =
-                            case o.generatedKey of
-                                Just k ->
-                                    if k.id == o.node.id then
-                                        Just k
-
-                                    else
-                                        Nothing
-
-                                Nothing ->
-                                    Nothing
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typePubKey "Public key" "from siot key show on the device"
                     , checkboxInput Point.typeDisabled "Disabled"
                     , viewIf pending <| checkboxInput Point.typePending "Pending approval (uncheck to approve)"
                     , text <| "Last connect: " ++ formatLastConnect o.zone lastConnect
-                    , viewIf (pubKey == "") <|
-                        Form.buttonRow
-                            [ Form.button
-                                { label = "Generate key"
-                                , color = colors.blue
-                                , onPress = o.onGenerateKey
-                                }
-                            ]
-                    , case generated of
-                        Just k ->
-                            viewSeed k.seed
-
-                        Nothing ->
-                            none
                     ]
 
                 else
@@ -108,20 +76,3 @@ formatLastConnect zone t =
 
     else
         toDateTimeString zone (Time.millisToPosix (round (t * 1000)))
-
-
-{-| viewSeed shows a generated seed once. Nothing stores it, so it is gone
-when the page is left.
--}
-viewSeed : String -> Element msg
-viewSeed seed =
-    column
-        [ spacing 6
-        , padding 10
-        , Border.width 1
-        , Border.color colors.orange
-        ]
-        [ text "Seed for the device. It is shown once and not stored here."
-        , el [ Font.family [ Font.monospace ], Font.size 14 ] <| text seed
-        , text <| "Install it on the device with: siot key install " ++ seed
-        ]

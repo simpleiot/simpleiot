@@ -18,9 +18,10 @@ For more details or to discuss releases, please visit the
   `authToken` connects with it. An upstream accepts the key when a `deviceCred`
   node under the device's node carries its public key, and limits the connection
   to that device's own data. Disabling the credential closes the device's
-  connection at once. `siot key show`, `siot key gen`, and `siot key install`
-  manage the key. See [device credentials](docs/user/sync.md#device-credentials)
-  and the [security reference](docs/ref/security.md#nats).
+  connection at once, and the device's sync node says so in its `error` point.
+  `siot key show` prints the key. See
+  [device credentials](docs/user/sync.md#device-credentials) and the
+  [security reference](docs/ref/security.md#nats).
 - **`SIOT_DEVICE_AUTH=required`** (or `--deviceAuth required`) accepts the
   shared token only from the upstream's own host, so every remote connection
   needs a device credential. This applies to the HTTP device API as well.
@@ -31,19 +32,15 @@ For more details or to discuss releases, please visit the
   `siot cred approve` or unchecking **Pending approval** lets the device in.
   Tokens can auto-approve and expire, and revoking one does not affect enrolled
   devices. See
-  [devices that enroll themselves](docs/user/sync.md#3-devices-that-enroll-themselves).
+  [devices that enroll themselves](docs/user/sync.md#2-devices-that-enroll-themselves).
 - **Devices can use their key on the HTTP API.** A request with a short-lived
   token signed by an enrolled device key can read nodes and post points and
   notifications under its own device node, and nothing else. See the
   [security reference](docs/ref/security.md#http).
-- **Credentials can be issued from the upstream.** A **Device credential** node
-  in the UI takes the device's public key or generates a key and shows the seed
-  once; `siot cred add|list|enable|disable|rm` does the same from the command
-  line. The device takes the seed through **Install key** on its sync node,
-  `siot key install`, or a top level `deviceKey` entry in a provisioning or
-  import file. `siot cred rotate` issues a second credential for a device so a
-  key is rotated without downtime, and a sync node whose credential is refused
-  says so in its `error` point.
+- **Credentials are managed from the command line too.**
+  `siot cred list|approve|enable|disable|rm` work on a remote upstream with the
+  usual `-natsServer` and `-token` options, and `siot cred add -pubKey` enrolls
+  a device's key by hand.
 
 ### Changed
 
@@ -51,9 +48,8 @@ For more details or to discuss releases, please visit the
   The logo appears in the page header and on the sign-in page, and the browser
   tab shows the matching icon.
 - **`siot export` leaves secrets out.** `authToken` points are dropped and a
-  comment at the top says so; `siot export -secrets` includes them along with
-  the device key. A script that relied on an export carrying tokens needs the
-  flag.
+  comment at the top says so; `siot export -secrets` includes them. A script
+  that relied on an export carrying tokens needs the flag.
 - **A sync node with no `authToken` now presents the device key instead of
   nothing.** Against an upstream that has no token this changes nothing, since
   an open instance accepts an unknown key with full access. Against an upstream

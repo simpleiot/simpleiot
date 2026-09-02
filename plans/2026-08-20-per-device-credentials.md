@@ -2,7 +2,15 @@
 
 **Branch:** `cbrake/master` **Branched from:** `cbc07a67`
 
-**Status:** COMPLETE. See "Decisions made while implementing" for where the
+**Status:** COMPLETE. The upstream-issued workflow (Phase 2) was removed after
+trying it: it needs the device node created on the upstream with the device's
+own ID before the credential can be added, which no UI or file path offers, and
+enrollment (Phase 6) covers the same cases without any copying. What remains of
+Phase 2 is `siot cred list|enable|disable|rm|approve|token`,
+`siot cred add -pubKey` for enrolling a key by hand, and `siot export -secrets`.
+The authorizer now also refuses a credential whose parent is not a device node,
+since one under the upstream's root would have been granted the upstream's own
+origin stream. See "Decisions made while implementing" for where the
 implementation departs from the design below.
 
 ## Context

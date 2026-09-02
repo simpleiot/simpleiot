@@ -16,8 +16,7 @@ import (
 )
 
 // deviceKeyFile is where an instance keeps its device key, relative to
-// SIOT_DATA. An image can ship the file, and an operator can replace it
-// with a key issued by an upstream.
+// SIOT_DATA. It is generated on first start, so an image must not ship one.
 const deviceKeyFile = "device.nkey"
 
 // deviceKey is this instance's identity when it connects to an upstream: an
@@ -92,12 +91,6 @@ func (k *deviceKey) start(nc *nats.Conn) error {
 	}
 	k.subs = append(k.subs, sub)
 
-	sub, err = nc.Subscribe(client.SubjectInstallDeviceKey, k.handleInstall)
-	if err != nil {
-		return err
-	}
-	k.subs = append(k.subs, sub)
-
 	k.publish()
 
 	return nil
@@ -124,34 +117,8 @@ func (k *deviceKey) handleGet(msg *nats.Msg) {
 	k.reply(msg, r)
 }
 
-func (k *deviceKey) handleInstall(msg *nats.Msg) {
-	seed := strings.TrimSpace(string(msg.Data))
-
-	pubKey, err := client.ParseDeviceKey(seed)
-	if err != nil {
-		k.reply(msg, client.DeviceKey{Error: err.Error()})
-		return
-	}
-
-	if err := k.write(seed); err != nil {
-		k.reply(msg, client.DeviceKey{Error: err.Error()})
-		return
-	}
-
-	k.mu.Lock()
-	k.seed = seed
-	k.pubKey = pubKey
-	k.mu.Unlock()
-
-	log.Println("Device key installed:", pubKey)
-
-	k.reply(msg, client.DeviceKey{PubKey: pubKey})
-	k.publish()
-}
-
 // publish puts the public key on every sync node under the root that does
-// not already show it. A sync client that uses the key sees the change and
-// reconnects with the new key.
+// not already show it.
 func (k *deviceKey) publish() {
 	k.mu.Lock()
 	pubKey := k.pubKey

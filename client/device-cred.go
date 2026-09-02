@@ -20,15 +20,10 @@ import (
 // useful for no longer than this. Tests shorten it.
 var DeviceJWTLifetime = 5 * time.Minute
 
-// Subjects the server answers for this instance's device key. The bus is
-// trusted to the same degree as the shared token: whoever can ask here can
-// also read the key file.
-const (
-	// SubjectDeviceKey replies with the key as a DeviceKey.
-	SubjectDeviceKey = "auth.deviceKey"
-	// SubjectInstallDeviceKey takes a seed and replaces the key.
-	SubjectInstallDeviceKey = "auth.installDeviceKey"
-)
+// SubjectDeviceKey is where the server answers with this instance's device
+// key, as a DeviceKey. The bus is trusted to the same degree as the shared
+// token: whoever can ask here can also read the key file.
+const SubjectDeviceKey = "auth.deviceKey"
 
 // DeviceKey is this instance's key, as answered on SubjectDeviceKey.
 type DeviceKey struct {
@@ -165,26 +160,6 @@ func GetDeviceKey(nc *nats.Conn) (seed, pubKey string, err error) {
 	return k.Seed, k.PubKey, nil
 }
 
-// InstallDeviceKey replaces this instance's device key with one issued by
-// an upstream and returns its public key. Sync nodes that use the key
-// reconnect with it.
-func InstallDeviceKey(nc *nats.Conn, seed string) (pubKey string, err error) {
-	msg, err := nc.Request(SubjectInstallDeviceKey, []byte(seed), 5*time.Second)
-	if err != nil {
-		return "", err
-	}
-
-	var k DeviceKey
-	if err := json.Unmarshal(msg.Data, &k); err != nil {
-		return "", err
-	}
-	if k.Error != "" {
-		return "", errors.New(k.Error)
-	}
-
-	return k.PubKey, nil
-}
-
 // ParseDeviceKey checks a seed and returns its public key.
 func ParseDeviceKey(seed string) (pubKey string, err error) {
 	kp, err := nkeys.FromSeed([]byte(seed))
@@ -204,8 +179,8 @@ func ParseDeviceKey(seed string) (pubKey string, err error) {
 	return pubKey, nil
 }
 
-// GenerateDeviceKey creates a new device credential and returns the seed,
-// which the device keeps, and the public key, which the upstream stores.
+// GenerateDeviceKey creates a new device key and returns the seed, which the
+// instance keeps in its key file, and the public key.
 func GenerateDeviceKey() (seed, pubKey string, err error) {
 	kp, err := nkeys.CreateUser()
 	if err != nil {

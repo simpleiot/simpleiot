@@ -55,9 +55,9 @@ view o =
                             Point.getValue o.node.points Point.typeExpires ""
 
                         generated =
-                            case o.generatedKey of
+                            case o.generatedToken of
                                 Just k ->
-                                    if k.id == o.node.id && k.token /= "" then
+                                    if k.id == o.node.id then
                                         Just k.token
 
                                     else

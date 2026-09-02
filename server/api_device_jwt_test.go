@@ -99,12 +99,6 @@ func TestAPIDeviceJWT(t *testing.T) {
 		}
 	}
 
-	// the device key endpoint is not for devices
-	code, _ = apiDo(t, http.MethodGet, base+"/v1/deviceKey", tok, nil)
-	if code != http.StatusUnauthorized {
-		t.Fatalf("device token reached the device key endpoint: %v", code)
-	}
-
 	// a key that is not enrolled, a disabled credential, and an expired
 	// token are all refused
 	strangerSeed, _, _ := client.GenerateDeviceKey()

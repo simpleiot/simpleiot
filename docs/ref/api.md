@@ -145,16 +145,10 @@ Most APIs that do not return specific data (update/delete) return a
     points, or POST a notification, on the device node or below it. See the
     [security reference](security.md#http).
   - `/v1/nodes/:id/key`
-    - POST: generate a key pair for `deviceCred` node `id`. The public key is
-      written on the node and `{pubKey, seed}` is returned; the seed is returned
-      once and never stored. See
-      [device credentials](../user/sync.md#device-credentials).
-- Device key
-  - `/v1/deviceKey`
-    - GET: `{pubKey}`, this instance's device key.
-    - POST: install a seed issued by an upstream as this instance's device key.
-      The body is `{"seed": "..."}`; it goes to `SIOT_DATA/device.nkey` and is
-      never a point.
+    - POST: generate a token for `enrollToken` node `id`. The hash is written on
+      the node and `{token}` is returned once; the token itself is never stored.
+      See
+      [devices that enroll themselves](../user/sync.md#2-devices-that-enroll-themselves).
 - Auth
   - `/v1/auth`
     - POST: accepts `email` and `password` as form values, and returns a JWT

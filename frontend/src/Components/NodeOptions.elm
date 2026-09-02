@@ -1,4 +1,4 @@
-module Components.NodeOptions exposing (CopyMove(..), GeneratedKey, NodeOptions, findNode, oToInputO)
+module Components.NodeOptions exposing (CopyMove(..), GeneratedToken, NodeOptions, findNode, oToInputO)
 
 import Api.Node exposing (Node, NodeView)
 import Api.Point exposing (Point)
@@ -14,13 +14,11 @@ type CopyMove
     | Copy String String String
 
 
-{-| GeneratedKey is a key the upstream just made for a credential node. The
-seed is shown once, on that node, until the page is left.
+{-| GeneratedToken is a token just made for an enrollment token node. It is
+shown once, on that node, until the page is left.
 -}
-type alias GeneratedKey =
+type alias GeneratedToken =
     { id : String
-    , pubKey : String
-    , seed : String
     , token : String
     }
 
@@ -38,8 +36,7 @@ type alias NodeOptions msg =
     , onEditScratch : String -> msg
     , onUploadFile : Bool -> msg
     , onGenerateKey : msg
-    , onInstallDeviceKey : String -> msg
-    , generatedKey : Maybe GeneratedKey
+    , generatedToken : Maybe GeneratedToken
     , copy : CopyMove
     , scratch : String
     }

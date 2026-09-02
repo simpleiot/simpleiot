@@ -5,8 +5,6 @@ import Components.NodeOptions exposing (NodeOptions, oToInputO)
 import Element exposing (..)
 import Element.Border as Border
 import Element.Font as Font
-import Element.Input as Input
-import UI.Form as Form
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
 import UI.Style exposing (colors)
@@ -59,7 +57,7 @@ view o =
                     [ textInput Point.typeDescription "Description" ""
                     , textInput Point.typeURI "URI" "nats://myserver:4222, ws://myserver"
                     , textInput Point.typeAuthToken "Auth Token" ""
-                    , viewIf (authToken == "") <| viewDeviceKey o pubKey
+                    , viewIf (authToken == "") <| viewDeviceKey pubKey
                     , viewIf (authToken == "") <| textInput Point.typeEnrollToken "Enroll Token" "optional, from the upstream"
                     , checkboxInput Point.typeDisabled "Disabled"
                     , counterWithReset Point.typeSyncCount Point.typeSyncCountReset "Sync Count"
@@ -71,34 +69,17 @@ view o =
 
 
 {-| viewDeviceKey shows the key this instance connects with when no token is
-set, and takes a seed issued by the upstream. The seed goes to the key file
-through the API rather than becoming a point, since points replicate upstream.
+set, which is what an upstream enrolls.
 -}
-viewDeviceKey : NodeOptions msg -> String -> Element msg
-viewDeviceKey o pubKey =
-    column [ spacing 6, paddingXY 0 6 ]
-        [ row [ spacing 6 ]
-            [ text "Device key:"
-            , el [ Font.family [ Font.monospace ], Font.size 14 ] <|
-                text <|
-                    if pubKey == "" then
-                        "(not yet reported)"
+viewDeviceKey : String -> Element msg
+viewDeviceKey pubKey =
+    row [ spacing 6, paddingXY 0 6 ]
+        [ text "Device key:"
+        , el [ Font.family [ Font.monospace ], Font.size 14 ] <|
+            text <|
+                if pubKey == "" then
+                    "(not yet reported)"
 
-                    else
-                        pubKey
-            ]
-        , text "Enroll this key on the upstream, or install a key the upstream issued:"
-        , row [ spacing 6 ]
-            [ Input.text [ width (px 560), Font.family [ Font.monospace ], Font.size 14 ]
-                { onChange = o.onEditScratch
-                , text = o.scratch
-                , placeholder = Just <| Input.placeholder [] <| text "seed from siot key gen"
-                , label = Input.labelHidden "seed"
-                }
-            , Form.button
-                { label = "Install key"
-                , color = colors.blue
-                , onPress = o.onInstallDeviceKey o.scratch
-                }
-            ]
+                else
+                    pubKey
         ]

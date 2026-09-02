@@ -56,7 +56,7 @@ func main() {
 		fmt.Println("  - export (export nodes to YAML file)")
 		fmt.Println("  - dump (describe a running instance for troubleshooting)")
 		fmt.Println("  - provision (check provisioning files, or print what they would do)")
-		fmt.Println("  - key (show, generate, or install this instance's device key)")
+		fmt.Println("  - key (show this instance's device key)")
 		fmt.Println("  - cred (manage device credentials on an upstream)")
 		fmt.Println("  - update (update to the latest release)")
 	}
@@ -510,7 +510,7 @@ func runExport(args []string) {
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
 	flagAuthToken := flags.String("token", "", "Auth token")
 	flagSecrets := flags.Bool("secrets", false,
-		"include authToken points and the device key, which are left out by default")
+		"include authToken points, which are left out by default")
 
 	if err := flags.Parse(args); err != nil {
 		log.Fatal("error: ", err)
@@ -762,63 +762,26 @@ func runProvision(args []string) {
 
 // provisioningFiles lists the YAML files in a directory, in the order
 // provisioning applies them.
-// runKey handles the device key:
-//
-//	siot key show           print this instance's public key
-//	siot key gen            print a new seed and public key (nothing is installed)
-//	siot key install SEED   replace this instance's key with an issued one
-//
-// An instance generates its own key on first start, so show is enough to
-// enroll it on an upstream. gen and install are for keys issued by the
-// upstream.
+// runKey handles `siot key show`, which prints this instance's public key.
+// An instance generates its key on first start.
 func runKey(args []string) {
-	usage := func() {
-		fmt.Println("usage: siot key show | gen | install SEED")
+	if len(args) < 1 || args[0] != "show" {
+		fmt.Println("usage: siot key show")
 		os.Exit(1)
 	}
 
-	if len(args) < 1 {
-		usage()
+	nc := connectCLI(args[1:])
+	_, pubKey, err := client.GetDeviceKey(nc)
+	if err != nil {
+		log.Fatal("Error getting device key: ", err)
 	}
-
-	switch args[0] {
-	case "gen":
-		seed, pubKey, err := client.GenerateDeviceKey()
-		if err != nil {
-			log.Fatal("Error generating key: ", err)
-		}
-		fmt.Printf("seed:   %v\n", seed)
-		fmt.Printf("pubKey: %v\n", pubKey)
-
-	case "show":
-		nc := connectCLI(args[1:])
-		_, pubKey, err := client.GetDeviceKey(nc)
-		if err != nil {
-			log.Fatal("Error getting device key: ", err)
-		}
-		fmt.Println(pubKey)
-
-	case "install":
-		if len(args) < 2 {
-			usage()
-		}
-		nc := connectCLI(args[2:])
-		pubKey, err := client.InstallDeviceKey(nc, args[1])
-		if err != nil {
-			log.Fatal("Error installing device key: ", err)
-		}
-		fmt.Println("installed, public key:", pubKey)
-
-	default:
-		usage()
-	}
+	fmt.Println(pubKey)
 }
 
 // runCred manages device credentials on the instance the command connects
 // to, which is the upstream:
 //
-//	siot cred add -device ID|DESCRIPTION [-description TEXT] [-pubKey KEY]
-//	siot cred rotate -device ID|DESCRIPTION [-description TEXT]
+//	siot cred add -device ID|DESCRIPTION -pubKey KEY [-description TEXT]
 //	siot cred approve ID
 //	siot cred token [-description TEXT] [-autoApprove] [-expires DURATION]
 //	siot cred list
@@ -826,14 +789,11 @@ func runKey(args []string) {
 //	siot cred disable ID
 //	siot cred rm ID
 //
-// add generates a key and prints the seed once, unless -pubKey gives the
-// device's own key, in which case there is no seed to deliver. rotate is
-// add for a device that already has a credential: it leaves the old one
-// enabled for the operator to disable once lastConnect moves to the new
-// one.
+// add enrolls a device's own key (siot key show on the device) by hand;
+// enrollment tokens are the usual way.
 func runCred(args []string) {
 	usage := func() {
-		fmt.Println("usage: siot cred add|rotate|approve|token|list|enable|disable|rm ...")
+		fmt.Println("usage: siot cred add|approve|token|list|enable|disable|rm ...")
 		os.Exit(1)
 	}
 
@@ -843,10 +803,7 @@ func runCred(args []string) {
 
 	switch args[0] {
 	case "add":
-		runCredAdd(args[1:], false)
-
-	case "rotate":
-		runCredAdd(args[1:], true)
+		runCredAdd(args[1:])
 
 	case "approve":
 		if len(args) < 2 {
@@ -924,14 +881,11 @@ func runCred(args []string) {
 	}
 }
 
-func runCredAdd(args []string, rotate bool) {
+func runCredAdd(args []string) {
 	flags := flag.NewFlagSet("cred add", flag.ExitOnError)
 	flagDevice := flags.String("device", "", "device node ID or description (required)")
 	flagDescription := flags.String("description", "", "credential description")
-	flagPubKey := flags.String("pubKey", "", "the device's own public key (siot key show); generates a key when blank")
-	if rotate {
-		flagPubKey = new(string)
-	}
+	flagPubKey := flags.String("pubKey", "", "the device's public key, from siot key show on the device (required)")
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
 	flagAuthToken := flags.String("token", "", "Auth token")
 
@@ -939,8 +893,8 @@ func runCredAdd(args []string, rotate bool) {
 		log.Fatal("error: ", err)
 	}
 
-	if *flagDevice == "" {
-		log.Fatal("-device is required")
+	if *flagDevice == "" || *flagPubKey == "" {
+		log.Fatal("-device and -pubKey are required")
 	}
 
 	nc := connectCLI([]string{"-natsServer", *flagNatsServer, "-token", *flagAuthToken})
@@ -950,13 +904,8 @@ func runCredAdd(args []string, rotate bool) {
 		log.Fatal(err)
 	}
 
-	seed, pubKey := "", *flagPubKey
-	if pubKey == "" {
-		seed, pubKey, err = client.GenerateDeviceKey()
-		if err != nil {
-			log.Fatal("Error generating key: ", err)
-		}
-	} else if _, err := nkeys.FromPublicKey(pubKey); err != nil || !nkeys.IsValidPublicUserKey(pubKey) {
+	pubKey := *flagPubKey
+	if _, err := nkeys.FromPublicKey(pubKey); err != nil || !nkeys.IsValidPublicUserKey(pubKey) {
 		log.Fatal("Not a device public key: ", pubKey)
 	}
 
@@ -974,13 +923,6 @@ func runCredAdd(args []string, rotate bool) {
 	fmt.Println("credential:", cred.ID)
 	fmt.Println("device:    ", deviceID)
 	fmt.Println("pubKey:    ", pubKey)
-	if seed != "" {
-		fmt.Println("seed:      ", seed)
-		fmt.Println("The seed is shown once. Install it on the device with: siot key install", seed)
-	}
-	if rotate {
-		fmt.Println("The device's other credentials stay enabled; disable them once lastConnect moves to this one (siot cred list).")
-	}
 }
 
 // runCredToken creates an enrollment token under the root and prints it

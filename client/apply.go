@@ -39,9 +39,6 @@ type ApplyDelete struct {
 type ApplyPlan struct {
 	Send   []ApplySend
 	Delete []ApplyDelete
-	// DeviceKey is the public key of the device key the file installs, when
-	// it carries one the instance does not already have.
-	DeviceKey string
 	// Errors holds per entry failures. An entry that fails is skipped along
 	// with its children; the rest of the file still applies.
 	Errors []error
@@ -49,7 +46,7 @@ type ApplyPlan struct {
 
 // Empty reports whether the plan has nothing to do.
 func (p ApplyPlan) Empty() bool {
-	return len(p.Send) == 0 && len(p.Delete) == 0 && p.DeviceKey == ""
+	return len(p.Send) == 0 && len(p.Delete) == 0
 }
 
 func (p ApplyPlan) String() string {
@@ -75,10 +72,6 @@ func (p ApplyPlan) String() string {
 
 	for _, d := range p.Delete {
 		fmt.Fprintf(&b, "delete %v %v\n", d.Type, d.Key)
-	}
-
-	if p.DeviceKey != "" {
-		fmt.Fprintf(&b, "install device key %v\n", p.DeviceKey)
 	}
 
 	for _, err := range p.Errors {
@@ -110,28 +103,8 @@ func Apply(nc *nats.Conn, f data.NodeFile, o ApplyOptions) (ApplyPlan, error) {
 
 	plan := planApply(f, tree, root.ID)
 
-	if f.DeviceKey != "" {
-		pubKey, err := ParseDeviceKey(f.DeviceKey)
-		if err != nil {
-			return plan, fmt.Errorf("error in deviceKey: %w", err)
-		}
-		_, current, err := GetDeviceKey(nc)
-		if err != nil {
-			return plan, fmt.Errorf("error getting device key: %w", err)
-		}
-		if current != pubKey {
-			plan.DeviceKey = pubKey
-		}
-	}
-
 	if o.DryRun {
 		return plan, nil
-	}
-
-	if plan.DeviceKey != "" {
-		if _, err := InstallDeviceKey(nc, f.DeviceKey); err != nil {
-			return plan, fmt.Errorf("error installing device key: %w", err)
-		}
 	}
 
 	for _, s := range plan.Send {

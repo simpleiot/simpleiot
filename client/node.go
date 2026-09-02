@@ -730,10 +730,9 @@ func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop fu
 // itself: the root is the instance rather than configuration, and a file
 // describing it would match nothing anywhere else.
 //
-// Secrets are left out unless asked for: authToken points are dropped and
-// the instance's device key is not written, and a comment at the top says so.
-// With secrets, the file carries both and can stand up an identical instance,
-// so treat it as you would the secrets themselves.
+// Secrets are left out unless asked for: authToken points are dropped and a
+// comment at the top says so. With secrets, treat the file as you would the
+// token itself.
 func ExportNodes(nc *nats.Conn, id string, secrets bool) ([]byte, error) {
 	root, err := GetRootNode(nc)
 	if err != nil {
@@ -808,17 +807,11 @@ func ExportNodes(nc *nats.Conn, id string, secrets bool) ([]byte, error) {
 
 	var header string
 
-	if secrets {
-		seed, _, err := GetDeviceKey(nc)
-		if err != nil {
-			return nil, fmt.Errorf("error getting device key: %w", err)
-		}
-		f.DeviceKey = seed
-	} else {
+	if !secrets {
 		for i := range f.Nodes {
 			dropSecretPoints(&f.Nodes[i])
 		}
-		header = "# authToken points and the device key are left out; export with -secrets to include them\n"
+		header = "# authToken points are left out; export with -secrets to include them\n"
 	}
 
 	// indent sequences so that the nesting a person reads matches the nesting
@@ -1015,7 +1008,7 @@ func ImportNodes(nc *nats.Conn, yamlData []byte, origin string, dryRun bool) (Ap
 		return ApplyPlan{}, fmt.Errorf("error parsing YAML data: %w", err)
 	}
 
-	if len(f.Nodes) < 1 && len(f.Delete) < 1 && f.DeviceKey == "" {
+	if len(f.Nodes) < 1 && len(f.Delete) < 1 {
 		return ApplyPlan{}, fmt.Errorf("error: imported data did not have any nodes")
 	}
 

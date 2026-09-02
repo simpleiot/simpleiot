@@ -649,7 +649,7 @@ func (a *authorizer) refreshCred(credID string) {
 	switch len(parents) {
 	case 1:
 		deviceID = parents[0]
-		if !a.deviceLive(deviceID) {
+		if !a.deviceLive(credID, deviceID) {
 			disabled = true
 		}
 	case 0:
@@ -696,16 +696,35 @@ func (a *authorizer) refreshCred(credID string) {
 	a.enforce()
 }
 
-// deviceLive reports whether a device node still has a live edge, so a
-// detached device cannot keep writing.
-func (a *authorizer) deviceLive(deviceID string) bool {
+// deviceLive reports whether the node a credential sits under is a live
+// device node other than this instance's own root. A detached device must
+// not keep writing, and a credential under anything else would grant that
+// node's subjects: under the root, that is this instance's own origin
+// stream.
+func (a *authorizer) deviceLive(credID, deviceID string) bool {
+	if deviceID == a.root() {
+		log.Printf("NATS auth: credential %v is under this instance's root node, authorizing nothing",
+			credID)
+		return false
+	}
+
 	edges, err := client.GetNodes(a.nc, "all", deviceID, "", false)
 	if err != nil && !errors.Is(err, data.ErrDocumentNotFound) {
 		log.Printf("NATS auth: error reading device %v: %v", deviceID, err)
 		return false
 	}
 
-	return len(edges) > 0
+	if len(edges) == 0 {
+		return false
+	}
+
+	if edges[0].Type != data.NodeTypeDevice {
+		log.Printf("NATS auth: credential %v is under a %v node, not a device, authorizing nothing",
+			credID, edges[0].Type)
+		return false
+	}
+
+	return true
 }
 
 // refreshDevice rereads every credential under a device.

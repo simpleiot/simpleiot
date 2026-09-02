@@ -34,7 +34,7 @@ import Components.NodeNetworkManagerConn as NodeNetworkManagerConn
 import Components.NodeNetworkManagerDevice as NodeNetworkManagerDevice
 import Components.NodeOneWire as NodeOneWire
 import Components.NodeOneWireIO as NodeOneWireIO
-import Components.NodeOptions exposing (CopyMove(..), GeneratedKey, findNode)
+import Components.NodeOptions exposing (CopyMove(..), GeneratedToken, findNode)
 import Components.NodeParticle as NodeParticle
 import Components.NodeProvisioning as NodeProvisioning
 import Components.NodeProvisioningFile as NodeProvisioningFile
@@ -108,7 +108,7 @@ type alias Model =
     , scratch : String
     , nodeMsg : Maybe NodeMsg
     , token : String
-    , generatedKey : Maybe GeneratedKey
+    , generatedToken : Maybe GeneratedToken
     }
 
 
@@ -204,9 +204,7 @@ type Msg
     | EditScratch String
     | UploadFile String Bool
     | GenerateKey String
-    | ApiRespGenerateKey String (Data Node.DeviceKey)
-    | InstallDeviceKey String
-    | ApiRespInstallDeviceKey (Data Node.DeviceKey)
+    | ApiRespGenerateKey String (Data Node.GeneratedToken)
     | UploadSelected String Bool File.File
     | UploadContents String File.File String
     | ToggleExpChildren Int
@@ -297,34 +295,12 @@ update shared msg model =
         ApiRespGenerateKey id resp ->
             case resp of
                 Data.Success k ->
-                    ( { model | generatedKey = Just { id = id, pubKey = k.pubKey, seed = k.seed, token = k.token } }
+                    ( { model | generatedToken = Just { id = id, token = k.token } }
                     , updateNodes model
                     )
 
                 Data.Failure err ->
-                    ( popError "Error generating key" err model, Effect.none )
-
-                _ ->
-                    ( model, Effect.none )
-
-        InstallDeviceKey seed ->
-            ( model
-            , Effect.fromCmd <|
-                Node.installDeviceKey
-                    { token = model.token
-                    , seed = String.trim seed
-                    , onResponse = ApiRespInstallDeviceKey
-                    }
-            )
-
-        ApiRespInstallDeviceKey resp ->
-            case resp of
-                Data.Success _ ->
-                    -- the seed was typed into the scratch field; nothing keeps it
-                    ( { model | scratch = "" }, updateNodes model )
-
-                Data.Failure err ->
-                    ( popError "Error installing key" err model, Effect.none )
+                    ( popError "Error generating token" err model, Effect.none )
 
                 _ ->
                     ( model, Effect.none )
@@ -1509,8 +1485,7 @@ viewNode model parent node children depth =
                     , onEditNodePoint = EditNodePoint node.feID
                     , onUploadFile = UploadFile node.node.id
                     , onGenerateKey = GenerateKey node.node.id
-                    , onInstallDeviceKey = InstallDeviceKey
-                    , generatedKey = model.generatedKey
+                    , generatedToken = model.generatedToken
                     , copy = model.copyMove
                     , scratch = model.scratch
                     , onEditScratch = EditScratch

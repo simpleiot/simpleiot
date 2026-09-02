@@ -401,9 +401,14 @@ func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request, userID st
 	}
 }
 
-// generateKey makes a key pair for a deviceCred node: the public key is
-// written on the node and the seed is returned once, for the operator to
-// carry to the device. Nothing stores the seed.
+// KeyResponse is the reply to a key request. The token is returned once and
+// never stored.
+type KeyResponse struct {
+	Token string `json:"token"`
+}
+
+// generateKey makes a token for an enrollToken node: the hash is written on
+// the node and the token is returned once.
 func (h *Nodes) generateKey(res http.ResponseWriter, id, userID string) {
 	nodes, err := client.GetNodes(h.nc, "all", id, "", false)
 	if err != nil || len(nodes) == 0 {
@@ -411,37 +416,11 @@ func (h *Nodes) generateKey(res http.ResponseWriter, id, userID string) {
 		return
 	}
 
-	if nodes[0].Type == data.NodeTypeEnrollToken {
-		h.generateEnrollToken(res, id, userID)
+	if nodes[0].Type != data.NodeTypeEnrollToken {
+		http.Error(res, "not an enrollment token node", http.StatusBadRequest)
 		return
 	}
 
-	if nodes[0].Type != data.NodeTypeDeviceCred {
-		http.Error(res, "not a device credential node", http.StatusBadRequest)
-		return
-	}
-
-	seed, pubKey, err := client.GenerateDeviceKey()
-	if err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	p := data.NewPointString(data.PointTypePubKey, "", pubKey)
-	p.Origin = userID
-	if err := client.SendNodePoint(h.nc, id, p, true); err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if err := encode(res, DeviceKeyResponse{PubKey: pubKey, Seed: seed}); err != nil {
-		http.Error(res, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-// generateEnrollToken makes a token for an enrollToken node: the hash is
-// written on the node and the token is returned once.
-func (h *Nodes) generateEnrollToken(res http.ResponseWriter, id, userID string) {
 	token, hash, err := client.GenerateEnrollToken()
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
@@ -455,7 +434,7 @@ func (h *Nodes) generateEnrollToken(res http.ResponseWriter, id, userID string) 
 		return
 	}
 
-	if err := encode(res, DeviceKeyResponse{Token: token}); err != nil {
+	if err := encode(res, KeyResponse{Token: token}); err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 	}
 }

@@ -331,10 +331,11 @@ func TestSyncCredentialDetachedDevice(t *testing.T) {
 	})
 }
 
-// TestSyncCredentialInstallKey is the upstream-issued workflow: the
-// upstream generates a key, enrolls its public half, and the seed is
-// installed on the device, which then connects with it.
-func TestSyncCredentialInstallKey(t *testing.T) {
+// TestSyncCredentialWrongParent puts credentials for the device's key under
+// the upstream's own root node and under a group node. Neither is a device
+// node, so neither authorizes anything: under the root, the grant would be
+// the upstream's own origin stream.
+func TestSyncCredentialWrongParent(t *testing.T) {
 	old := client.SyncRefusedRetry
 	client.SyncRefusedRetry = 2 * time.Second
 	defer func() { client.SyncRefusedRetry = old }()
@@ -348,39 +349,38 @@ func TestSyncCredentialInstallKey(t *testing.T) {
 	}
 	defer stopD()
 
-	seed, pubKey, err := client.GenerateDeviceKey()
-	if err != nil {
+	pubKey := devicePubKey(t, ncD)
+
+	group := client.Group{ID: "grp", Parent: rootU.ID, Description: "group"}
+	if err := client.SendNodeType(ncU, group, "test"); err != nil {
 		t.Fatal(err)
 	}
-	enrollDevice(t, ncU, rootU, rootD.ID, "cred-1", pubKey)
+	for _, c := range []client.DeviceCred{
+		{ID: "cred-root", Parent: rootU.ID, Description: "under root", PubKey: pubKey},
+		{ID: "cred-group", Parent: "grp", Description: "under group", PubKey: pubKey},
+	} {
+		if err := client.SendNodeType(ncU, c, "test"); err != nil {
+			t.Fatal(err)
+		}
+	}
 
-	// the device's own key is not enrolled, so it is refused
 	startDeviceSync(t, ncD, rootD, optsU.NatsServer)
-	time.Sleep(3 * time.Second)
-	if getCred(t, ncU, "cred-1").Connected {
-		t.Fatal("connected before the issued key was installed")
-	}
 
-	fmt.Println("**** install the issued key on the device")
-	got, err := client.InstallDeviceKey(ncD, seed)
-	if err != nil {
-		t.Fatal("Error installing key: ", err)
-	}
-	if got != pubKey {
-		t.Fatalf("installed key %v, expected %v", got, pubKey)
-	}
-
-	waitFor(t, 30*time.Second, "device did not connect with the issued key", func() bool {
-		return getCred(t, ncU, "cred-1").Connected
+	waitFor(t, 20*time.Second, "sync node does not report the refusal", func() bool {
+		syncs, err := client.GetNodesType[client.Sync](ncD, "all", "sync-id")
+		return err == nil && len(syncs) > 0 && syncs[0].Error == client.SyncErrorRefused
 	})
 
-	syncs, err := client.GetNodesType[client.Sync](ncD, "all", "sync-id")
-	if err != nil || len(syncs) == 0 || syncs[0].PubKey != pubKey {
-		t.Fatalf("sync node does not show the installed key: %+v", syncs)
+	for _, id := range []string{"cred-root", "cred-group"} {
+		if getCred(t, ncU, id).Connected {
+			t.Fatalf("%v authorized a connection", id)
+		}
 	}
-
-	// a seed that is not a user key is refused
-	if _, err := client.InstallDeviceKey(ncD, "not a seed"); err == nil {
-		t.Fatal("bad seed accepted")
+	nodes, err := client.GetNodes(ncU, "all", rootD.ID, "", true)
+	if err != nil && err != data.ErrDocumentNotFound {
+		t.Fatal(err)
+	}
+	if len(nodes) != 0 {
+		t.Fatal("device got in through a misplaced credential")
 	}
 }

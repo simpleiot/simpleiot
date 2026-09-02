@@ -1,6 +1,6 @@
 module Api.Node exposing
-    ( DeviceKey
-    , EdgeRole(..)
+    ( EdgeRole(..)
+    , GeneratedToken
     , Node
     , NodeView
     , Notification
@@ -11,7 +11,6 @@ module Api.Node exposing
     , generateKey
     , getBestDesc
     , insert
-    , installDeviceKey
     , list
     , move
     , notify
@@ -542,33 +541,27 @@ insert options =
         }
 
 
-{-| DeviceKey is the reply to key requests. The seed is present only when a
-key was generated, the token only when an enrollment token was; both are
-shown once.
+{-| GeneratedToken is the reply to a key request on an enrollment token
+node. The token is shown once; only its hash is stored.
 -}
-type alias DeviceKey =
-    { pubKey : String
-    , seed : String
-    , token : String
+type alias GeneratedToken =
+    { token : String
     }
 
 
-decodeDeviceKey : Decode.Decoder DeviceKey
-decodeDeviceKey =
-    Decode.succeed DeviceKey
-        |> optional "pubKey" Decode.string ""
-        |> optional "seed" Decode.string ""
-        |> optional "token" Decode.string ""
+decodeGeneratedToken : Decode.Decoder GeneratedToken
+decodeGeneratedToken =
+    Decode.succeed GeneratedToken
+        |> required "token" Decode.string
 
 
-{-| generateKey makes a key for a deviceCred node, or a token for an
-enrollToken node. What is stored on the node is the public key or the hash;
-the seed or token comes back once.
+{-| generateKey makes a token for an enrollToken node. The hash is stored on
+the node; the token comes back once.
 -}
 generateKey :
     { token : String
     , id : String
-    , onResponse : Data DeviceKey -> msg
+    , onResponse : Data GeneratedToken -> msg
     }
     -> Cmd msg
 generateKey options =
@@ -576,29 +569,8 @@ generateKey options =
         { method = "POST"
         , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
         , url = Url.Builder.absolute [ "v1", "nodes", options.id, "key" ] []
-        , expect = Api.Data.expectJson options.onResponse decodeDeviceKey
+        , expect = Api.Data.expectJson options.onResponse decodeGeneratedToken
         , body = Http.emptyBody
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
-{-| installDeviceKey replaces this instance's device key with a seed issued by
-an upstream. The seed goes straight to the key file and is never a point.
--}
-installDeviceKey :
-    { token : String
-    , seed : String
-    , onResponse : Data DeviceKey -> msg
-    }
-    -> Cmd msg
-installDeviceKey options =
-    Http.request
-        { method = "POST"
-        , headers = [ Http.header "Authorization" <| "Bearer " ++ options.token ]
-        , url = Url.Builder.absolute [ "v1", "deviceKey" ] []
-        , expect = Api.Data.expectJson options.onResponse decodeDeviceKey
-        , body = Http.jsonBody <| Encode.object [ ( "seed", Encode.string options.seed ) ]
         , timeout = Nothing
         , tracker = Nothing
         }
