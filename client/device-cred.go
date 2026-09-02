@@ -107,14 +107,27 @@ func HashEnrollToken(token string) string {
 }
 
 // Enroll connects to an upstream with an enrollment token and asks for a
-// credential for this device's key.
-func Enroll(uri string, req EnrollRequest) (EnrollReply, error) {
+// credential for this device's key. The connection presents the key being
+// enrolled as well as the token, so the upstream can give it an inbox of
+// its own for the reply; seed is the key's NKey seed.
+func Enroll(uri, seed string, req EnrollRequest) (EnrollReply, error) {
 	uri, err := sanitizeURI(uri)
 	if err != nil {
 		return EnrollReply{}, err
 	}
 
-	nc, err := nats.Connect(uri, nats.Token(req.Token), nats.Timeout(30*time.Second),
+	kp, err := nkeys.FromSeed([]byte(seed))
+	if err != nil {
+		return EnrollReply{}, fmt.Errorf("error parsing device key: %w", err)
+	}
+
+	pubKey, err := kp.PublicKey()
+	if err != nil {
+		return EnrollReply{}, fmt.Errorf("error reading device key: %w", err)
+	}
+
+	nc, err := nats.Connect(uri, nats.Token(req.Token), nats.Nkey(pubKey, kp.Sign),
+		nats.CustomInboxPrefix(InboxPrefix(pubKey)), nats.Timeout(30*time.Second),
 		nats.NoReconnect())
 	if err != nil {
 		return EnrollReply{}, fmt.Errorf("error connecting with enrollment token: %w", err)

@@ -88,6 +88,9 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 
 		if kp != nil {
 			_ = nats.Nkey(pubKey, kp.Sign)(o)
+			// the upstream grants this key its own inbox and nothing
+			// else, so replies have to arrive there
+			_ = nats.CustomInboxPrefix(InboxPrefix(pubKey))(o)
 		} else {
 			_ = nats.Token(eo.AuthToken)(o)
 		}

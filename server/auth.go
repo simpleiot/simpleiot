@@ -60,17 +60,16 @@ type enrollEntry struct {
 	expires     int64
 }
 
-// enrollUserPrefix names an enrollment-token connection in the server's
-// connection list, so enforce can find it when the token is revoked.
-const enrollUserPrefix = "enroll:"
-
 // authConn records what a device or user connection was granted, so a
 // later change to the index, to the streams in a device's boundary, or to
 // a user's place in the tree can be enforced by closing it.
 type authConn struct {
 	pubKey string
 	userID string
-	grant  string
+	// enrollID is the enrollment token node a connection was accepted
+	// with, set only for a connection that is enrolling a key.
+	enrollID string
+	grant    string
 }
 
 // userAuthority is what the authorizer needs from the store to authenticate
@@ -242,7 +241,7 @@ func userPermissions(userID string, anchors []string) *server.Permissions {
 		sub = append(sub, fmt.Sprintf("up.%v.>", g))
 	}
 	pub = append(pub, "auth.me")
-	sub = append(sub, userInboxPrefix(userID)+".>")
+	sub = append(sub, client.InboxPrefix(userID)+".>")
 
 	return &server.Permissions{
 		Publish:   &server.SubjectPermission{Allow: pub},
@@ -250,27 +249,16 @@ func userPermissions(userID string, anchors []string) *server.Permissions {
 	}
 }
 
-// userInboxPrefix is the reply inbox prefix a browser connection uses.
-func userInboxPrefix(userID string) string {
-	return "_INBOX_" + userID
-}
-
 // checkToken accepts the shared token, or anything at all when no token is
 // configured, which is how an instance has always run. An enrollment token
-// is accepted with permission to ask for a credential and nothing else.
+// on its own is not enough: it is presented alongside the key being
+// enrolled, and checkNkey handles it.
 func (a *authorizer) checkToken(c server.ClientAuthentication, opts *server.ClientOpts) bool {
 	if a.token == "" {
 		return true
 	}
 
 	if opts.Token != a.token {
-		if id, ok := a.enrollNode(opts.Token); ok {
-			c.RegisterUser(&server.User{
-				Username:    enrollUserPrefix + id,
-				Permissions: enrollPermissions(),
-			})
-			return true
-		}
 		return false
 	}
 
@@ -303,18 +291,32 @@ func (a *authorizer) checkNkey(c server.ClientAuthentication, opts *server.Clien
 	}
 
 	e, ok := a.creds[opts.Nkey]
-	if !ok && a.token == "" {
-		// an open instance accepts everyone; a key it does not know is
-		// no different from no credentials at all
-		return true
+	if !ok {
+		if a.token == "" {
+			// an open instance accepts everyone; a key it does not know
+			// is no different from no credentials at all
+			return true
+		}
+		// a key the instance does not know, presented with a live
+		// enrollment token, may ask to be enrolled and nothing else
+		if id, enrolling := a.enrollNodeLocked(opts.Token); enrolling {
+			c.RegisterUser(&server.User{
+				Username:    opts.Nkey,
+				Permissions: enrollPermissions(opts.Nkey),
+			})
+			a.conns[c.GetID()] = authConn{pubKey: opts.Nkey, enrollID: id}
+			return true
+		}
+		log.Printf("NATS auth: refusing unknown credential %v", opts.Nkey)
+		return false
 	}
-	if !ok || e.disabled {
-		log.Printf("NATS auth: refusing unknown or disabled credential %v", opts.Nkey)
+	if e.disabled {
+		log.Printf("NATS auth: refusing disabled credential %v", opts.Nkey)
 		return false
 	}
 
 	origins := a.originsFor(e.deviceID)
-	perms := devicePermissions(e.deviceID, a.rootID, origins)
+	perms := devicePermissions(opts.Nkey, e.deviceID, a.rootID, origins)
 
 	c.RegisterUser(&server.User{Username: opts.Nkey, Permissions: perms})
 
@@ -348,6 +350,15 @@ func (a *authorizer) enrollNode(token string) (string, bool) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
+	return a.enrollNodeLocked(token)
+}
+
+// enrollNodeLocked is enrollNode for a caller already holding the lock.
+func (a *authorizer) enrollNodeLocked(token string) (string, bool) {
+	if token == "" {
+		return "", false
+	}
+
 	e, ok := a.enroll[client.HashEnrollToken(token)]
 	if !a.ready || !ok || !e.live() {
 		return "", false
@@ -374,11 +385,12 @@ func (a *authorizer) EnrollToken(token string) (autoApprove, ok bool) {
 	return a.enroll[a.enrollIDs[id]].autoApprove, true
 }
 
-// enrollPermissions is all an enrollment token allows: one request.
-func enrollPermissions() *server.Permissions {
+// enrollPermissions is all an enrollment token allows: one request, and
+// the reply to it on the enrolling key's own inbox.
+func enrollPermissions(pubKey string) *server.Permissions {
 	return &server.Permissions{
 		Publish:   &server.SubjectPermission{Allow: []string{client.SubjectEnrollRequest}},
-		Subscribe: &server.SubjectPermission{Allow: []string{"_INBOX.>"}},
+		Subscribe: &server.SubjectPermission{Allow: []string{client.InboxPrefix(pubKey) + ".>"}},
 	}
 }
 
@@ -466,7 +478,7 @@ func isLoopback(addr net.Addr) bool {
 //
 // A device never needs p.>, up.>, auth.*, admin.*, or any other instance's
 // streams.
-func devicePermissions(deviceID, rootID string, origins []string) *server.Permissions {
+func devicePermissions(pubKey, deviceID, rootID string, origins []string) *server.Permissions {
 	X := deviceID
 	own := fmt.Sprintf("inst_%v_%v", X, X)
 
@@ -496,7 +508,7 @@ func devicePermissions(deviceID, rootID string, origins []string) *server.Permis
 
 	return &server.Permissions{
 		Publish:   &server.SubjectPermission{Allow: pub},
-		Subscribe: &server.SubjectPermission{Allow: []string{"_INBOX.>"}},
+		Subscribe: &server.SubjectPermission{Allow: []string{client.InboxPrefix(pubKey) + ".>"}},
 	}
 }
 
@@ -976,9 +988,7 @@ func (a *authorizer) liveConns() map[uint64]string {
 			return live
 		}
 		for _, c := range cz.Conns {
-			if nkeys.IsValidPublicUserKey(c.AuthorizedUser) ||
-				strings.HasPrefix(c.AuthorizedUser, enrollUserPrefix) ||
-				userConns[c.Cid] {
+			if nkeys.IsValidPublicUserKey(c.AuthorizedUser) || userConns[c.Cid] {
 				live[c.Cid] = c.AuthorizedUser
 			}
 		}
@@ -1014,8 +1024,10 @@ func (a *authorizer) enforce() {
 			}
 			continue
 		}
-		if id, isEnroll := strings.CutPrefix(pub, enrollUserPrefix); isEnroll {
-			e, ok := a.enroll[a.enrollIDs[id]]
+		if ac, ok := a.conns[cid]; ok && ac.enrollID != "" {
+			// enrolling, not yet a credential: the connection lives as
+			// long as the enrollment token it came in with
+			e, ok := a.enroll[a.enrollIDs[ac.enrollID]]
 			if !ok || !e.live() {
 				closeIDs = append(closeIDs, cid)
 			}

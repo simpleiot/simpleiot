@@ -14,6 +14,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/nats-io/nkeys"
+	"github.com/simpleiot/simpleiot/client"
 )
 
 // This file is the Phase 0 spike for per-device credentials, kept as the
@@ -83,9 +84,14 @@ func spikeAuthorizer(t *testing.T, token string) (*authorizer, nkeys.KeyPair) {
 	return a, kp
 }
 
-func nkeyOption(kp nkeys.KeyPair) nats.Option {
+// nkeyOptions is how a device connects: it signs with its key and takes
+// replies on the inbox that key is granted, not the shared _INBOX.>.
+func nkeyOptions(kp nkeys.KeyPair) []nats.Option {
 	pub, _ := kp.PublicKey()
-	return nats.Nkey(pub, kp.Sign)
+	return []nats.Option{
+		nats.Nkey(pub, kp.Sign),
+		nats.CustomInboxPrefix(client.InboxPrefix(pub)),
+	}
 }
 
 // errCollector records async NATS errors so a test can assert on a
@@ -147,14 +153,14 @@ func TestAuthSpike(t *testing.T) {
 		t.Fatal("expected bad token to be refused, got:", err)
 	}
 	stranger, _ := nkeys.CreateUser()
-	if _, err := nats.Connect(url, nkeyOption(stranger)); !errors.Is(err, nats.ErrAuthorization) {
+	if _, err := nats.Connect(url, nkeyOptions(stranger)...); !errors.Is(err, nats.ErrAuthorization) {
 		t.Fatal("expected unknown key to be refused, got:", err)
 	}
 
 	// ---- device X connects with its key; the subjects sync needs work
 	var errs errCollector
-	dev, err := nats.Connect(url, nkeyOption(kp), nats.NoReconnect(),
-		nats.ErrorHandler(errs.handler))
+	dev, err := nats.Connect(url, append(nkeyOptions(kp), nats.NoReconnect(),
+		nats.ErrorHandler(errs.handler))...)
 	if err != nil {
 		t.Fatal("device connect:", err)
 	}
@@ -290,12 +296,12 @@ func TestAuthSpike(t *testing.T) {
 	}
 
 	// ---- WebSocket goes through the same authorizer
-	ws, err := nats.Connect(wsURL, nkeyOption(kp), nats.NoReconnect())
+	ws, err := nats.Connect(wsURL, append(nkeyOptions(kp), nats.NoReconnect())...)
 	if err != nil {
 		t.Fatal("websocket connect:", err)
 	}
 	ws.Close()
-	if _, err := nats.Connect(wsURL, nkeyOption(stranger)); !errors.Is(err, nats.ErrAuthorization) {
+	if _, err := nats.Connect(wsURL, nkeyOptions(stranger)...); !errors.Is(err, nats.ErrAuthorization) {
 		t.Fatal("expected unknown key to be refused over websocket, got:", err)
 	}
 }
@@ -320,7 +326,7 @@ func TestAuthSpikeOpen(t *testing.T) {
 	// a key the instance does not know is accepted like anything else
 	// (with full access), while a known one is scoped
 	stranger, _ := nkeys.CreateUser()
-	nc, err = nats.Connect(url, nkeyOption(stranger))
+	nc, err = nats.Connect(url, nkeyOptions(stranger)...)
 	if err != nil {
 		t.Fatal("expected unknown key to be accepted on an open instance, got:", err)
 	}
@@ -330,7 +336,8 @@ func TestAuthSpikeOpen(t *testing.T) {
 	nc.Close()
 
 	var errs errCollector
-	nc, err = nats.Connect(url, nkeyOption(kp), nats.ErrorHandler(errs.handler))
+	nc, err = nats.Connect(url, append(nkeyOptions(kp),
+		nats.ErrorHandler(errs.handler))...)
 	if err != nil {
 		t.Fatal("device connect:", err)
 	}

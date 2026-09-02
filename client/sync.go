@@ -290,7 +290,7 @@ func (up *SyncClient) connect() error {
 // enroll asks the upstream for a credential for this instance's key using
 // the sync node's enrollment token, and reports whether it was approved.
 func (up *SyncClient) enroll() bool {
-	_, pubKey, err := GetDeviceKey(up.nc)
+	seed, pubKey, err := GetDeviceKey(up.nc)
 	if err != nil {
 		up.setError("enrollment failed: no device key")
 		return false
@@ -298,7 +298,7 @@ func (up *SyncClient) enroll() bool {
 
 	desc, _ := up.rootLocal.Points.Text(data.PointTypeDescription, "")
 
-	reply, err := Enroll(up.config.URI, EnrollRequest{
+	reply, err := Enroll(up.config.URI, seed, EnrollRequest{
 		Token:       up.config.EnrollToken,
 		DeviceID:    up.rootLocal.ID,
 		PubKey:      pubKey,

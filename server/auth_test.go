@@ -16,7 +16,7 @@ import (
 )
 
 func TestDevicePermissions(t *testing.T) {
-	p := devicePermissions("X", "R", []string{"R", "R2"})
+	p := devicePermissions("UKEY", "X", "R", []string{"R", "R2"})
 
 	wantPub := []string{
 		"nodes.root.all",
@@ -42,7 +42,8 @@ func TestDevicePermissions(t *testing.T) {
 		t.Errorf("publish allow:\n got %v\nwant %v", p.Publish.Allow, wantPub)
 	}
 
-	if !slices.Equal(p.Subscribe.Allow, []string{"_INBOX.>"}) {
+	// the device's own inbox, not the _INBOX.> every client shares
+	if !slices.Equal(p.Subscribe.Allow, []string{"_INBOX_UKEY.>"}) {
 		t.Errorf("subscribe allow: got %v", p.Subscribe.Allow)
 	}
 
@@ -60,7 +61,7 @@ func TestDevicePermissions(t *testing.T) {
 	}
 
 	// the device's own ID is never an origin to pull from
-	p = devicePermissions("X", "R", []string{"X", "R"})
+	p = devicePermissions("UKEY", "X", "R", []string{"X", "R"})
 	if slices.Contains(p.Publish.Allow, "$JS.API.STREAM.INFO.inst_X_X.>") {
 		t.Error("device's own stream listed as a pull origin")
 	}

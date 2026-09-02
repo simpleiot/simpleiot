@@ -190,9 +190,9 @@ auth, if wanted, arrives with the credentials plan).
 **Verify:** WS listener serves TLS when certs are set; edge client with a pinned
 CA refuses a server presenting a different chain.
 
-### 10. Scope reply inboxes per connection
+### 10. Scope reply inboxes per connection (complete)
 
-- [ ] Give device and enrollment connections their own inbox prefix instead of
+- [x] Give device and enrollment connections their own inbox prefix instead of
       the shared `_INBOX.>`.
 
 **Problem:** `devicePermissions` and `enrollPermissions` in `server/auth.go`
@@ -204,23 +204,30 @@ The publish side is scoped to the device, the read side is not. An enrollment
 token is the sharper case, since a connection holding one has not been approved
 by anyone yet and can publish nothing but `enroll.request`.
 
-**Change:** the pattern already exists for the browser. `userPermissions` grants
-`userInboxPrefix(U)` (`_INBOX_<U>`) and the client sets `nats.CustomInboxPrefix`
-to match; do the same for devices. `client/edge.go` sets
-`nats.CustomInboxPrefix("_INBOX_" + X)` on the sync connection,
-`devicePermissions` grants `_INBOX_<X>.>`, and `enrollPermissions` grants the
-prefix for the key being enrolled. Factor the prefix helper so all three callers
-share it.
+**Change:** the pattern already existed for the browser, and now serves all
+three. `client.InboxPrefix` is the one place the prefix is built;
+`devicePermissions` and `enrollPermissions` grant `_INBOX_<pubKey>.>`, and
+`client/edge.go` and `Enroll` set `nats.CustomInboxPrefix` to match.
 
-**Verify:** a device connection subscribing to `_INBOX.>` gets a permissions
-violation; two devices making concurrent requests each receive only their own
-replies; an enrollment-token connection cannot read another connection's
-replies; sync still completes end to end with the custom prefix in place.
+An enrolling connection presents only a token, so the authorizer had no identity
+to key a prefix on. It now presents the key being enrolled as well, signing the
+nonce with it, and `checkNkey` accepts an unknown key that arrives with a live
+enrollment token. That also proves the enrolling instance holds the key it is
+asking to have enrolled. An enrollment token on its own is no longer accepted,
+so the branch for it in `checkToken` is gone, along with the `enroll:` username
+marker: an enrolling connection is tracked by `authConn.enrollID` instead, which
+is what `enforce` closes on when the token is revoked.
 
-**Docs:** `docs/ref/security.md` — the "What a device credential allows" table
-row for replies, and the "Two things to know about the boundary of this model"
-list, which today calls out the `$JS.API.STREAM.NAMES` disclosure but not this
-one.
+**Verify:** done. `TestDeviceInboxScope` and `TestEnrollTokenScope` cover a
+device and an enrolling connection receiving their own replies and being refused
+`_INBOX.>`; `TestEnrollTokenScope` also covers a token presented without a key
+being refused; the existing `TestSyncCredential` and `TestSyncEnroll` round
+trips cover sync and enrollment end to end with the prefix in place.
+
+**Incompatible:** an upstream and its devices have to be upgraded together. The
+two inbox spaces share no subject prefix, so an old device against a new
+upstream, or the reverse, has every request refused and stops syncing until both
+sides move.
 
 ## Deliberately excluded
 

@@ -134,7 +134,7 @@ func TestUserOverWebSocket(t *testing.T) {
 
 	var errs errCollector
 	user, err := nats.Connect(wsURL, nats.UserInfo("U", jwt),
-		nats.CustomInboxPrefix(userInboxPrefix("U")),
+		nats.CustomInboxPrefix(client.InboxPrefix("U")),
 		nats.ErrorHandler(errs.handler), nats.NoReconnect())
 	if err != nil {
 		t.Fatal("user connect through proxy:", err)
@@ -347,7 +347,7 @@ func TestUserOverWebSocket(t *testing.T) {
 		t.Fatal("restore user:", err)
 	}
 	again, err := nats.Connect(wsURL, nats.UserInfo("U", jwt),
-		nats.CustomInboxPrefix(userInboxPrefix("U")), nats.NoReconnect())
+		nats.CustomInboxPrefix(client.InboxPrefix("U")), nats.NoReconnect())
 	if err != nil {
 		t.Fatal("reconnect after restore:", err)
 	}
@@ -361,7 +361,7 @@ func TestUserOverWebSocket(t *testing.T) {
 	waitDisconnected(t, again, "anchor added")
 
 	both, err := nats.Connect(wsURL, nats.UserInfo("U", jwt),
-		nats.CustomInboxPrefix(userInboxPrefix("U")), nats.NoReconnect())
+		nats.CustomInboxPrefix(client.InboxPrefix("U")), nats.NoReconnect())
 	if err != nil {
 		t.Fatal("reconnect with two anchors:", err)
 	}
@@ -421,7 +421,7 @@ func TestOpenInstanceWebSocket(t *testing.T) {
 
 	var errs errCollector
 	user, err := nats.Connect(wsURL, nats.UserInfo(adminID, jwt),
-		nats.CustomInboxPrefix(userInboxPrefix(adminID)),
+		nats.CustomInboxPrefix(client.InboxPrefix(adminID)),
 		nats.ErrorHandler(errs.handler), nats.NoReconnect())
 	if err != nil {
 		t.Fatal("user connect:", err)

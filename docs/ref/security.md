@@ -74,7 +74,10 @@ NATS accounts file to manage. Three kinds of credential are accepted:
 
 An **enrollment token** is a third, narrower credential: a connection presenting
 one may publish to `enroll.request` and subscribe to its reply inbox, and
-nothing else. It exists so a device with no credential can ask for one; see
+nothing else. The token is presented together with the key being enrolled, which
+signs the connection nonce, so the upstream knows which key is asking and gives
+the connection an inbox of its own. It exists so a device with no credential can
+ask for one; see
 [Devices that enroll themselves](../user/sync.md#2-devices-that-enroll-themselves).
 Only a hash of the token is stored, in an `enrollToken` node.
 
@@ -92,15 +95,18 @@ ID at connect time; nothing about them is stored or configurable.
 | Push its origin stream               | `inst.X.X.>`, `$JS.API.STREAM.INFO.inst_X_X`, `$JS.API.STREAM.CREATE.inst_X_X`                                                                                         |
 | Discover streams for its boundary    | `$JS.API.STREAM.NAMES`                                                                                                                                                 |
 | Pull each origin `o` writing into it | `$JS.API.STREAM.INFO.inst_X_o`, `$JS.API.CONSUMER.CREATE.inst_X_o.>`, `$JS.API.CONSUMER.INFO.inst_X_o.*`, `$JS.API.CONSUMER.MSG.NEXT.inst_X_o.*`, `$JS.ACK.inst_X_o.>` |
-| Receive replies                      | subscribe `_INBOX.>`                                                                                                                                                   |
+| Receive replies                      | subscribe `_INBOX_<key>.>`, the connection's own inbox                                                                                                                 |
 
 A device never needs `p.>`, `up.>`, `auth.*`, `admin.*`, or another instance's
-streams, and the permission set refuses them. Stream names are one subject token
-and cannot be matched by prefix, so the origins a device may pull from (the
-upstream itself, and any higher upstream writing configuration for the device)
-are enumerated when it connects. When a new origin stream appears for a device's
-boundary, the upstream closes the device's connection and it reconnects with the
-new stream included.
+streams, and the permission set refuses them. Replies arrive on an inbox named
+for the device's public key rather than the `_INBOX.>` every client on a server
+shares, so one device cannot read another's replies; the device sets the same
+prefix on its connection. Stream names are one subject token and cannot be
+matched by prefix, so the origins a device may pull from (the upstream itself,
+and any higher upstream writing configuration for the device) are enumerated
+when it connects. When a new origin stream appears for a device's boundary, the
+upstream closes the device's connection and it reconnects with the new stream
+included.
 
 Two things to know about the boundary of this model:
 

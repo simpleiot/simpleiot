@@ -39,6 +39,14 @@ For more details or to discuss releases, please visit the
   with a sign-in JWT, and names the group every read and write is made under.
   The protobuf-based API of 1.x is gone. See the
   [frontend reference](docs/ref/frontend.md#siot-javascript-library-using-nats-over-websockets).
+- **Devices get a reply inbox of their own.** A device credential used to be
+  granted the `_INBOX.>` space every client on a server shares, so one device
+  could read every other client's request replies. Each connection now gets an
+  inbox named for its key. A device enrolling itself presents the key it is
+  enrolling alongside the enrollment token, so it gets an inbox too; an
+  enrollment token on its own is no longer accepted. Devices and upstreams have
+  to be upgraded together, since neither inbox grant covers the other. See the
+  [security reference](docs/ref/security.md#what-a-device-credential-allows).
 
 ### Fixed
 
