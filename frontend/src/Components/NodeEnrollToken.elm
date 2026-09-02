@@ -68,7 +68,8 @@ view o =
                     in
                     [ textInput Point.typeDescription "Description" ""
                     , checkboxInput Point.typeDisabled "Disabled"
-                    , checkboxInput Point.typeAutoApprove "Approve enrolled devices automatically"
+                    , checkboxInput Point.typeAutoApprove "Auto approve"
+                    , text "Auto approve lets enrolled devices in without an operator."
                     , text <| "Expires: " ++ formatExpires o.zone expires
                     , text <|
                         if hash == "" then

@@ -165,9 +165,9 @@ own:
 
 1. On the upstream, add an **Enrollment token** node under the root and press
    **Generate token**, or run `siot cred token -description fleet`. The token is
-   shown once; only its hash is stored. **Approve enrolled devices
-   automatically** (`-autoApprove`) skips the approval step, and an expiry
-   (`-expires 720h`) limits how long the token works.
+   shown once; only its hash is stored. **Auto approve** (`-autoApprove`) skips
+   the approval step, and an expiry (`-expires 720h`) limits how long the token
+   works.
 2. Put the token on each device's sync node as `enrollToken`, with no
    `authToken`. In an image that is one line in the provisioning file:
 
