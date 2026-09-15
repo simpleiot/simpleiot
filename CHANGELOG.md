@@ -56,6 +56,10 @@ For more details or to discuss releases, please visit the
   values written on the upstream were stored where the device never reads them
   and never arrived. Ownership now stays with the device. See
   [primary and mirror edges](docs/ref/data.md#primary-and-mirror-edges).
+- **A tree with many nested groups no longer exhausts memory.** Looking for
+  nodes to run clients on counted nodes again for every group it passed
+  through, so a large tree of groups could use all of the system's memory.
+  Each node is now found once.
 
 ### Removed
 

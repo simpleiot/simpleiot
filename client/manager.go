@@ -216,11 +216,10 @@ func (m *Manager[T]) scanHelper(id string, nodes []data.NodeEdge) ([]data.NodeEd
 				continue
 			}
 
-			c, err := m.scanHelper(p.ID, nodes)
+			nodes, err = m.scanHelper(p.ID, nodes)
 			if err != nil {
 				return nil, err
 			}
-			nodes = append(nodes, c...)
 		}
 	}
 
