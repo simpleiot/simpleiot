@@ -28,3 +28,4 @@ local.sh
 /jetstream
 /test-edge
 /device.nkey
+/jetstream_/$G/streams
