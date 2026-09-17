@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-09-17
+
 ### Added
 
 - **Browsers connect to NATS as the signed-in user.** The embedded NATS server
@@ -61,9 +63,9 @@ For more details or to discuss releases, please visit the
   process exited and restarted in a loop without ever serving. The server now
   connects once the store has loaded.
 - **A tree with many nested groups no longer exhausts memory.** Looking for
-  nodes to run clients on counted nodes again for every group it passed
-  through, so a large tree of groups could use all of the system's memory.
-  Each node is now found once.
+  nodes to run clients on counted nodes again for every group it passed through,
+  so a large tree of groups could use all of the system's memory. Each node is
+  now found once.
 
 ### Removed
 
