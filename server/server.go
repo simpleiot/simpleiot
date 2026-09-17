@@ -93,15 +93,60 @@ type Server struct {
 	nc                 *nats.Conn
 	options            Options
 	natsServer         *server.Server
+	auth               *authorizer
 	clients            *client.RunGroup
 	chNatsClientClosed chan struct{}
 	chStop             chan struct{}
 	chWaitStart        chan struct{}
 }
 
-// NewServer creates a new server
+// NewServer creates a new server. It starts the embedded NATS server, which
+// loads the JetStream store, and waits for it to accept connections before
+// connecting the server side NATS client.
 func NewServer(o Options) (*Server, *nats.Conn, error) {
 	chNatsClientClosed := make(chan struct{})
+
+	auth := newAuthorizer(o.AuthToken, o.DeviceAuth)
+
+	var natsServer *server.Server
+
+	if !o.NatsDisableServer {
+		jsDir := o.DataDir
+		if jsDir == "" {
+			jsDir = "jetstream"
+		}
+
+		var err error
+		natsServer, err = newNatsServer(natsServerOptions{
+			Port:         o.NatsPort,
+			HTTPPort:     o.NatsHTTPPort,
+			WSPort:       o.NatsWSPort,
+			WSOrigins:    o.NatsWSOrigins,
+			MQTTPort:     o.NatsMQTTPort,
+			Auth:         auth,
+			AuthEnabled:  o.AuthToken != "",
+			TLSCert:      o.NatsTLSCert,
+			TLSKey:       o.NatsTLSKey,
+			TLSTimeout:   o.NatsTLSTimeout,
+			StoreDir:     jsDir,
+			ID:           o.ID,
+			SyncInterval: o.StoreSyncInterval,
+			SyncAlways:   o.StoreSyncAlways,
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("error setting up nats server: %v", err)
+		}
+
+		// Start returns once JetStream has loaded the store, which takes
+		// longer as the store grows. Connecting the client after this keeps
+		// its reconnect limit and the start-up timeouts from running out
+		// during the load.
+		natsServer.Start()
+		if !natsServer.ReadyForConnections(10 * time.Second) {
+			natsServer.Shutdown()
+			return nil, nil, fmt.Errorf("NATS server failed to start")
+		}
+	}
 
 	// start the server side nats client
 	nc, err := nats.Connect(o.NatsServer,
@@ -142,6 +187,8 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 	return &Server{
 		nc:                 nc,
 		options:            o,
+		natsServer:         natsServer,
+		auth:               auth,
 		chNatsClientClosed: chNatsClientClosed,
 		chStop:             make(chan struct{}),
 		chWaitStart:        make(chan struct{}),
@@ -181,43 +228,10 @@ func (s *Server) Run() error {
 	// ====================================
 	// Nats server
 	// ====================================
-	jsDir := o.DataDir
-	if jsDir == "" {
-		jsDir = "jetstream"
-	}
+	auth := s.auth
 
-	auth := newAuthorizer(o.AuthToken, o.DeviceAuth)
-
-	natsOptions := natsServerOptions{
-		Port:         o.NatsPort,
-		HTTPPort:     o.NatsHTTPPort,
-		WSPort:       o.NatsWSPort,
-		WSOrigins:    o.NatsWSOrigins,
-		MQTTPort:     o.NatsMQTTPort,
-		Auth:         auth,
-		AuthEnabled:  o.AuthToken != "",
-		TLSCert:      o.NatsTLSCert,
-		TLSKey:       o.NatsTLSKey,
-		TLSTimeout:   o.NatsTLSTimeout,
-		StoreDir:     jsDir,
-		ID:           o.ID,
-		SyncInterval: o.StoreSyncInterval,
-		SyncAlways:   o.StoreSyncAlways,
-	}
-
-	if !o.NatsDisableServer {
-		s.natsServer, err = newNatsServer(natsOptions)
-		if err != nil {
-			return fmt.Errorf("error setting up nats server: %v", err)
-		}
-
-		// Start NATS server immediately so JetStream is available
-		// for store initialization
-		s.natsServer.Start()
-		if !s.natsServer.ReadyForConnections(10 * time.Second) {
-			return fmt.Errorf("NATS server failed to start")
-		}
-
+	// NewServer has already started the NATS server
+	if s.natsServer != nil {
 		g.Add(func() error {
 			s.natsServer.WaitForShutdown()
 			logLS("LS: Exited: nats server")

@@ -131,7 +131,6 @@ func runServer(args []string, version string, id string) error {
 	siot, nc, err := server.NewServer(options)
 
 	if err != nil {
-		siot.Stop(nil)
 		return fmt.Errorf("error starting server: %v", err)
 	}
 
