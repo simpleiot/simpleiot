@@ -116,7 +116,7 @@ func (t *TCP) Type() TransportType {
 // delay between retries after Accept fails
 const (
 	acceptBackoffFirst = 10 * time.Millisecond
-	acceptBackoffMax = time.Second
+	acceptBackoffMax   = time.Second
 )
 
 // TCPServer listens for new connections and then starts a modbus listener
