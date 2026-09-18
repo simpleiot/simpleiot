@@ -11,28 +11,6 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-### Changed
-
-- **The security reference has a deployment checklist and a list of known
-  limitations.** A security audit found that an instance with no auth token or
-  with the default `admin` password, including on an edge device that syncs
-  upstream, is open to anyone who can reach it. See the
-  [security reference](docs/ref/security.md#deployment-checklist) before
-  exposing an instance to a network.
-- **Builds require Go 1.27.1, and releases are built with the version `go.mod`
-  names.** Release binaries were built with Go 1.25.0, the minimum the module
-  declared, rather than the version CI tested with. CI now checks dependencies
-  with `govulncheck` as well.
-
-### Fixed
-
-- **Device credentials on the upstream stay marked connected while the device is
-  connected.** A device could clear this status on its own copy of the
-  credential a few seconds after connecting, and the change synced back
-  upstream.
-
-## [0.28.0] - 2026-09-17
-
 ### Added
 
 - **Browsers connect to NATS as the signed-in user.** The embedded NATS server
@@ -69,6 +47,16 @@ For more details or to discuss releases, please visit the
   enrollment token on its own is no longer accepted. Devices and upstreams have
   to be upgraded together, since neither inbox grant covers the other. See the
   [security reference](docs/ref/security.md#what-a-device-credential-allows).
+- **The security reference has a deployment checklist and a list of known
+  limitations.** A security audit found that an instance with no auth token or
+  with the default `admin` password, including on an edge device that syncs
+  upstream, is open to anyone who can reach it. See the
+  [security reference](docs/ref/security.md#deployment-checklist) before
+  exposing an instance to a network.
+- **Builds require Go 1.27.1, and releases are built with the version `go.mod`
+  names.** Release binaries were built with Go 1.25.0, the minimum the module
+  declared, rather than the version CI tested with. CI now checks dependencies
+  with `govulncheck` as well.
 
 ### Fixed
 
@@ -86,6 +74,10 @@ For more details or to discuss releases, please visit the
   nodes to run clients on counted nodes again for every group it passed through,
   so a large tree of groups could use all of the system's memory. Each node is
   now found once.
+- **Device credentials on the upstream stay marked connected while the device is
+  connected.** A device could clear this status on its own copy of the
+  credential a few seconds after connecting, and the change synced back
+  upstream.
 
 ### Removed
 
