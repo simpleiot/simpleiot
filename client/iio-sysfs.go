@@ -85,8 +85,12 @@ func iioFind(root, device string) (iioDevice, error) {
 		return iioDevice{}, errors.New("no device set")
 	}
 
-	// a full path, or anything else with a separator in it, is used as given
-	if strings.ContainsRune(device, filepath.Separator) {
+	if err := safePath(device); err != nil {
+		return iioDevice{}, err
+	}
+
+	// a full path is used as given
+	if filepath.IsAbs(device) {
 		return iioDeviceAt(device)
 	}
 
@@ -228,6 +232,9 @@ func iioRead(dev iioDevice, ch string) (float64, error) {
 	if !ok {
 		return 0, fmt.Errorf("not an IIO channel name: %v", ch)
 	}
+	if err := safeName(ch); err != nil {
+		return 0, err
+	}
 
 	toBase := iioScaleToBase(typ)
 
@@ -261,6 +268,9 @@ func iioWrite(dev iioDevice, ch string, v float64) error {
 	typ, _, ok := iioParseChannel(ch)
 	if !ok {
 		return fmt.Errorf("not an IIO channel name: %v", ch)
+	}
+	if err := safeName(ch); err != nil {
+		return err
 	}
 
 	scale, err := iioReadConv(dev, ch, typ, "_scale", 1)

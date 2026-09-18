@@ -1043,6 +1043,11 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				processError(err)
 			}
 		case data.PointValuePlayAudio:
+			if err := safePath(a.FilePath); err != nil {
+				processError(fmt.Errorf("invalid wave file path: %w", err))
+				break
+			}
+
 			f, err := os.Open(a.FilePath)
 			if err != nil {
 				processError(fmt.Errorf("error opening wave file: %w", err))

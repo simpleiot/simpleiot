@@ -41,7 +41,17 @@ func ListenForFile(nc *nats.Conn, dir, deviceID string, callback func(path strin
 		}
 
 		if chunk.Seq == 0 {
-			// we are starting a new stream
+			// we are starting a new stream. The name must be one path
+			// element so the file lands in dir.
+			if err := safeName(chunk.FileName); err != nil {
+				log.Println("Rejecting file download:", err)
+				dl = fileDownload{}
+				err := nc.Publish(m.Reply, []byte("invalid file name"))
+				if err != nil {
+					log.Println("Error replying to file download:", err)
+				}
+				return
+			}
 			dl.name = chunk.FileName
 			dl.data = []byte{}
 			dl.seq = 0
@@ -64,6 +74,10 @@ func ListenForFile(nc *nats.Conn, dir, deviceID string, callback func(path strin
 			// reset download
 			dl = fileDownload{}
 		case pb.FileChunk_DONE:
+			if dl.name == "" {
+				// a stream that never started, or was rejected
+				return
+			}
 			filePath := path.Join(dir, dl.name)
 			err := os.WriteFile(filePath, dl.data, 0644)
 			if err != nil {
