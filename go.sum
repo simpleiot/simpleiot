@@ -164,8 +164,6 @@ github.com/kjx98/crc16 v0.0.0-20190915014410-d407ba22e1b5 h1:dL0R5jbp3CZqleXXtag
 github.com/kjx98/crc16 v0.0.0-20190915014410-d407ba22e1b5/go.mod h1:/1kXpcuIFM29L0Id//AT55Vw1otSN5Yyke3bM6lBbCo=
 github.com/klauspost/compress v1.19.0 h1:sXLILfc9jV2QYWkzFOPWStmcUVH2RHEB1JCdY2oVvCQ=
 github.com/klauspost/compress v1.19.0/go.mod h1:cwPg85FWrGar70rWktvGQj8/hthj3wpl0PGDogxkrSQ=
-github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c h1:N7A4JCA2G+j5fuFxCsJqjFU/sZe0mj8H0sSoSwbaikw=
-github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c/go.mod h1:Nn5wlyECw3iJrzi0AhIWg+AJUb4PlRQVW4/3XHH1LZA=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=

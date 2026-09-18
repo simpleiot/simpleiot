@@ -29,3 +29,28 @@ func SecretPointTypes() []string {
 	}
 	return out
 }
+
+// RedactNodes strips the value of every secret point from a set of nodes
+// before they are handed to a browser or an API client. The point stays,
+// with an empty value and its timestamp, so a UI can show that a
+// credential is set without receiving it; a write of the same point
+// replaces the stored value as usual. The server's own clients read nodes
+// on the plain NATS subject and are not affected.
+func RedactNodes(nodes []NodeEdge) []NodeEdge {
+	for i := range nodes {
+		nodes[i].Points = RedactPoints(nodes[i].Points)
+	}
+	return nodes
+}
+
+// RedactPoints is RedactNodes for one set of points.
+func RedactPoints(pts Points) Points {
+	out := make(Points, 0, len(pts))
+	for _, p := range pts {
+		if IsSecretPointType(p.Type) && p.Txt() != "" {
+			p.PutString("")
+		}
+		out = append(out, p)
+	}
+	return out
+}

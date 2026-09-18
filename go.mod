@@ -21,7 +21,6 @@ require (
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/kevinburke/twilio-go v0.0.0-20240716172313-813590983ccc
 	github.com/kjx98/crc16 v0.0.0-20190915014410-d407ba22e1b5
-	github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c
 	github.com/nats-io/jwt/v2 v2.8.2
 	github.com/nats-io/nats-server/v2 v2.14.4
 	github.com/nats-io/nats.go v1.52.0

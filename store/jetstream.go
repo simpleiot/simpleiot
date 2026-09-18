@@ -240,7 +240,9 @@ func (db *DbJetStream) loadMeta() error {
 }
 
 func (db *DbJetStream) initJwtKey() error {
-	db.meta.JWTKey = make([]byte, 20)
+	// 32 bytes, the size of the HMAC-SHA256 output the tokens are
+	// signed with
+	db.meta.JWTKey = make([]byte, 32)
 	_, err := rand.Read(db.meta.JWTKey)
 	if err != nil {
 		return fmt.Errorf("error generating JWT key: %v", err)
@@ -485,6 +487,16 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 
 	if parentID == "" {
 		parentID = "root"
+	}
+
+	// A live edge whose parent already sits at or below the child would
+	// close a loop through the tree, and every walk of the tree (scope
+	// checks, upstream fan-out, the UI's expand) would then run until it
+	// gave up. The check is here, at the one place every edge is written,
+	// so no caller can make one. Deleting an edge is always allowed, since
+	// that is how a loop that arrived some other way is taken apart.
+	if !edgeDeleted(points) && db.isUnder(parentID, nodeID) {
+		return fmt.Errorf("error: edge %v -> %v would make a cycle", parentID, nodeID)
 	}
 
 	origin := db.meta.RootID
@@ -1256,21 +1268,30 @@ func (db *DbJetStream) isUnder(id, anchor string) bool {
 	return false
 }
 
+// maxNodesDepth caps the depth a nodes request may ask for. The cap and the
+// visited set below keep a request bounded whatever the tree looks like.
+const maxNodesDepth = 64
+
 // getNodesDepth is getNodes followed by the descendants of every node
 // returned, down to depth levels below it. The type filter applies to the
 // nodes named by the request only, and deleted nodes are left out of the
 // descendants unless includeDel is set. The result is flat; the parent
-// field of each node says where it goes.
+// field of each node says where it goes. A node reached twice, through a
+// mirror or a loop, is expanded once.
 func (db *DbJetStream) getNodesDepth(parent, id, typ string, includeDel bool, depth int) ([]data.NodeEdge, error) {
 	nodes, err := db.getNodes(nil, parent, id, typ, includeDel)
 	if err != nil {
 		return nodes, err
 	}
 
+	if depth > maxNodesDepth {
+		depth = maxNodesDepth
+	}
+
 	frontier := nodes
+	seen := map[string]bool{}
 	for level := 0; level < depth && len(frontier) > 0; level++ {
 		var next []data.NodeEdge
-		seen := map[string]bool{}
 		for _, n := range frontier {
 			if seen[n.ID] {
 				continue
@@ -1287,6 +1308,49 @@ func (db *DbJetStream) getNodesDepth(parent, id, typ string, includeDel bool, de
 	}
 
 	return data.RemoveDuplicateNodesIDParent(nodes), nil
+}
+
+// edgeDeleted reports whether a set of edge points marks the edge deleted.
+func edgeDeleted(points data.Points) bool {
+	p, ok := points.Find(data.PointTypeTombstone, "")
+	return ok && p.Val() > 0
+}
+
+// hasEdges reports whether a node has any edge at all, live or deleted. A
+// node with none is new: it has no place in the tree yet, so no scope of
+// its own.
+func (db *DbJetStream) hasEdges(id string) bool {
+	return len(db.edgeCache.Parents(id)) > 0
+}
+
+// wasUnder is isUnder following deleted edges as well, so a node that was
+// deleted from a subtree still counts as belonging to it. This is what
+// lets a user restore a node they deleted, and nothing more: a node that
+// was never under the anchor is not reached.
+func (db *DbJetStream) wasUnder(id, anchor string) bool {
+	if id == "" || anchor == "" {
+		return false
+	}
+
+	visited := map[string]bool{id: true}
+	frontier := []string{id}
+
+	for len(frontier) > 0 {
+		n := frontier[0]
+		frontier = frontier[1:]
+		if n == anchor {
+			return true
+		}
+		for _, e := range db.edgeCache.Parents(n) {
+			if visited[e.Up] {
+				continue
+			}
+			visited[e.Up] = true
+			frontier = append(frontier, e.Up)
+		}
+	}
+
+	return false
 }
 
 // userAnchors lists the nodes a user sits directly under: the parents of

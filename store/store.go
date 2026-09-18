@@ -97,11 +97,6 @@ func NewStore(p Params) (*Store, error) {
 	}, nil
 }
 
-// GetAuthorizer returns a type that can be used in JWT Auth mechanisms
-func (st *Store) GetAuthorizer() api.Authorizer {
-	return st.authorizer
-}
-
 // UserFromToken returns the user a JWT was issued to and when it expires.
 // The NATS authorizer uses it to authenticate browser connections.
 func (st *Store) UserFromToken(token string) (string, time.Time, bool) {
@@ -112,6 +107,12 @@ func (st *Store) UserFromToken(token string) (string, time.Time, bool) {
 // subtrees the user may see. Empty for a user that is not in the tree.
 func (st *Store) UserAnchors(userID string) []string {
 	return st.db.userAnchors(userID)
+}
+
+// IsUnder reports whether a node is the anchor or sits below it. The HTTP
+// API uses it to keep a user's requests inside the user's groups.
+func (st *Store) IsUnder(id, anchor string) bool {
+	return st.db.isUnder(id, anchor)
 }
 
 // Run connects to NATS server and set up handlers for things we are interested in
@@ -468,6 +469,17 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 }
 
 func (st *Store) handleNodesRequest(msg *nats.Msg) {
+	nodes, respErr := st.nodesRequest(msg.Subject, msg.Data)
+
+	err := st.nc.Publish(msg.Reply, data.EncodeNodes(nodes, respErr))
+	if err != nil {
+		log.Println("NATS: Error publishing response to node request:", err)
+	}
+}
+
+// nodesRequest answers a nodes.<parent>.<id> request: the subject names
+// the nodes and the payload carries the options.
+func (st *Store) nodesRequest(subject string, payload []byte) (data.Nodes, error) {
 	start := time.Now()
 	defer func() {
 		t := time.Since(start).Milliseconds()
@@ -477,28 +489,22 @@ func (st *Store) handleNodesRequest(msg *nats.Msg) {
 		}
 	}()
 
-	var respErr error
-	var parent string
-	var nodeID string
 	var includeDel bool
 	var nodeType string
 	var depth int
-	var nodes data.Nodes
 
-	chunks := strings.Split(msg.Subject, ".")
+	chunks := strings.Split(subject, ".")
 	if len(chunks) < 3 {
-		respErr = fmt.Errorf("error in message subject: %v", msg.Subject)
-		goto handleNodeDone
+		return nil, fmt.Errorf("error in message subject: %v", subject)
 	}
 
-	parent = chunks[1]
-	nodeID = chunks[2]
+	parent := chunks[1]
+	nodeID := chunks[2]
 
-	if len(msg.Data) > 0 {
-		pts, err := data.DecodePoints(msg.Data)
+	if len(payload) > 0 {
+		pts, err := data.DecodePoints(payload)
 		if err != nil {
-			respErr = fmt.Errorf("error decoding points %v", err)
-			goto handleNodeDone
+			return nil, fmt.Errorf("error decoding points %v", err)
 		}
 
 		for _, p := range pts {
@@ -513,16 +519,12 @@ func (st *Store) handleNodesRequest(msg *nats.Msg) {
 		}
 	}
 
-	nodes, respErr = st.db.getNodesDepth(parent, nodeID, nodeType, includeDel, depth)
-	if respErr != nil && respErr != data.ErrDocumentNotFound {
-		respErr = fmt.Errorf("NATS handler: Error getting node %v from db: %v", nodeID, respErr)
+	nodes, err := st.db.getNodesDepth(parent, nodeID, nodeType, includeDel, depth)
+	if err != nil && err != data.ErrDocumentNotFound {
+		err = fmt.Errorf("NATS handler: Error getting node %v from db: %v", nodeID, err)
 	}
 
-handleNodeDone:
-	err := st.nc.Publish(msg.Reply, data.EncodeNodes(nodes, respErr))
-	if err != nil {
-		log.Println("NATS: Error publishing response to node request:", err)
-	}
+	return nodes, err
 }
 
 // TODO, maybe someday we should return error node instead of no data
@@ -688,19 +690,32 @@ func (st *Store) handleUserRequest(msg *nats.Msg) {
 		if id == "all" {
 			target = parent
 		}
+		replyNodes := func(nodes data.Nodes, err error) {
+			if e := st.nc.Publish(msg.Reply, data.EncodeNodes(nodes, err)); e != nil {
+				log.Println("NATS: Error publishing response to node request:", e)
+			}
+		}
 		if !st.db.isUnder(target, anchor) {
 			// the reply is a node frame, so the error travels in one
 			log.Printf("Store: refusing %v, target is not under %v", msg.Subject, anchor)
-			if err := st.nc.Publish(msg.Reply, data.EncodeNodes(nil, errors.New("not in scope"))); err != nil {
-				log.Println("NATS: Error publishing response to node request:", err)
-			}
+			replyNodes(nil, errors.New("not in scope"))
 			return
 		}
-		st.handleNodesRequest(&nats.Msg{
-			Subject: "nodes." + parent + "." + id,
-			Reply:   msg.Reply,
-			Data:    msg.Data,
-		})
+		nodes, err := st.nodesRequest("nodes."+parent+"."+id, msg.Data)
+		if parent == "all" {
+			// a node's parents are listed only where they are in
+			// scope, so the reply does not name nodes the user
+			// cannot see. The anchor itself is the exception: the
+			// UI needs its edge to show it at the top of the tree.
+			kept := nodes[:0]
+			for _, n := range nodes {
+				if n.ID == anchor || st.db.isUnder(n.Parent, anchor) {
+					kept = append(kept, n)
+				}
+			}
+			nodes = kept
+		}
+		replyNodes(data.RedactNodes(nodes), err)
 
 	case "p":
 		if len(rest) != 3 {
@@ -727,7 +742,18 @@ func (st *Store) handleUserRequest(msg *nats.Msg) {
 			st.reply(msg.Reply, fmt.Errorf("invalid subject: %v", msg.Subject))
 			return
 		}
-		if !st.db.isUnder(rest[1], anchor) {
+		child, parent := rest[0], rest[1]
+		if !st.db.isUnder(parent, anchor) {
+			refuse()
+			return
+		}
+		// Both ends of the edge have to be in scope before it is written,
+		// or a user could graft any node they know the ID of into their
+		// group and then reach it through the edge they just made. A new
+		// node, one with no edges yet, has no place in the tree and is
+		// allowed; a node the user deleted from their group is still
+		// theirs to restore.
+		if st.db.hasEdges(child) && !st.db.wasUnder(child, anchor) {
 			refuse()
 			return
 		}
@@ -811,29 +837,44 @@ func (st *Store) reply(subject string, err error) {
 // period -- see checkPoints, which is what keeps that true.
 func (st *Store) processPointsUpstream(upNodeID, nodeID string, points data.Points) error {
 	// at this point, the point update has already been written to the DB
-	sub := fmt.Sprintf("up.%v.%v", upNodeID, nodeID)
+	var firstErr error
+	// each ancestor is published once, so a loop in the tree, or a node
+	// mirrored in two places under one ancestor, cannot fan out forever
+	visited := map[string]bool{upNodeID: true}
+	frontier := []string{upNodeID}
 
-	err := client.SendPoints(st.nc, sub, points, false)
+	for len(frontier) > 0 {
+		up := frontier[0]
+		frontier = frontier[1:]
 
-	if err != nil {
-		return err
-	}
-
-	if upNodeID == "none" {
-		// we are at the top, stop
-		return nil
-	}
-
-	ups, err := st.db.up(upNodeID, false)
-	if err != nil {
-		return err
-	}
-
-	for _, up := range ups {
-		err = st.processPointsUpstream(up, nodeID, points)
-		if err != nil {
+		sub := fmt.Sprintf("up.%v.%v", up, nodeID)
+		if err := client.SendPoints(st.nc, sub, points, false); err != nil {
 			log.Println("Rules -- error processing upstream node:", err)
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
 		}
+
+		if up == "none" {
+			// we are at the top, stop
+			continue
+		}
+
+		ups, err := st.db.up(up, false)
+		if err != nil {
+			return err
+		}
+		for _, u := range ups {
+			if !visited[u] {
+				visited[u] = true
+				frontier = append(frontier, u)
+			}
+		}
+	}
+
+	if firstErr != nil {
+		return firstErr
 	}
 
 	/* FIXME needs to be move to client
@@ -883,30 +924,39 @@ func (st *Store) processPointsUpstream(upNodeID, nodeID string, points data.Poin
 // the parent ID as well, which is how listeners tell edge points from node
 // points -- see processPointsUpstream.
 func (st *Store) processEdgePointsUpstream(upNodeID, nodeID, parentID string, points data.Points) error {
-	sub := fmt.Sprintf("up.%v.%v.%v", upNodeID, nodeID, parentID)
+	var firstErr error
+	visited := map[string]bool{upNodeID: true}
+	frontier := []string{upNodeID}
 
-	err := client.SendPoints(st.nc, sub, points, false)
+	for len(frontier) > 0 {
+		up := frontier[0]
+		frontier = frontier[1:]
 
-	if err != nil {
-		return err
-	}
-
-	if upNodeID == "none" {
-		// we are at the top, stop
-		return nil
-	}
-
-	ups, err := st.db.up(upNodeID, true)
-	if err != nil {
-		return err
-	}
-
-	for _, up := range ups {
-		err = st.processEdgePointsUpstream(up, nodeID, parentID, points)
-		if err != nil {
+		sub := fmt.Sprintf("up.%v.%v.%v", up, nodeID, parentID)
+		if err := client.SendPoints(st.nc, sub, points, false); err != nil {
 			log.Println("Rules -- error processing upstream node:", err)
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
+		}
+
+		if up == "none" {
+			// we are at the top, stop
+			continue
+		}
+
+		ups, err := st.db.up(up, true)
+		if err != nil {
+			return err
+		}
+		for _, u := range ups {
+			if !visited[u] {
+				visited[u] = true
+				frontier = append(frontier, u)
+			}
 		}
 	}
 
-	return nil
+	return firstErr
 }

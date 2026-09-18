@@ -547,7 +547,7 @@ func (s *Server) Run() error {
 		NatsWSPort:         o.NatsWSPort,
 		Filesystem:         http.FS(feFSDecomp),
 		Debug:              o.DebugHTTP,
-		JwtAuth:            siotStore.GetAuthorizer(),
+		Users:              siotStore,
 		AuthToken:          o.AuthToken,
 		Nc:                 s.nc,
 		DeviceAuth:         auth,
