@@ -179,7 +179,8 @@ func (gc *GPSClient) runSim(config GPS, src *gpsSource) {
 	// wait a full period for the first fix
 	publishFix(sim.fix())
 
-	period := time.Duration(config.Period * float64(time.Second))
+	period := pointDuration(config.Period, time.Second,
+		gpsDefaultPeriod*time.Second, 10*time.Millisecond)
 	t := time.NewTicker(period)
 	defer t.Stop()
 

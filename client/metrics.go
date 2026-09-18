@@ -76,6 +76,13 @@ func NewMetricsClient(nc *nats.Conn, config Metrics) Client {
 	}
 }
 
+// period is the sample period, bounded so a period point of any value is
+// safe to build a ticker from
+func (m *MetricsClient) period() time.Duration {
+	return pointDuration(float64(m.config.Period), time.Second,
+		120*time.Second, time.Second)
+}
+
 // Run the main logic for this client and blocks until stopped
 func (m *MetricsClient) Run() error {
 	if m.config.Type == data.PointValueSystem {
@@ -102,7 +109,7 @@ func (m *MetricsClient) Run() error {
 		m.checkPromDefaults()
 	}
 
-	sampleTicker := time.NewTicker(time.Duration(m.config.Period) * time.Second)
+	sampleTicker := time.NewTicker(m.period())
 
 done:
 	for {
@@ -136,8 +143,7 @@ done:
 				switch p.Type {
 				case data.PointTypePeriod:
 					checkPeriod()
-					sampleTicker.Reset(time.Duration(m.config.Period) *
-						time.Second)
+					sampleTicker.Reset(m.period())
 				case data.PointTypeType:
 					switch m.config.Type {
 					case data.PointValueSystem:

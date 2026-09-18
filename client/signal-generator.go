@@ -1,10 +1,12 @@
 package client
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -17,6 +19,7 @@ type SignalGenerator struct {
 	Parent      string      `node:"parent"`
 	Description string      `point:"description"`
 	Disabled    bool        `point:"disabled"`
+	Error       string      `point:"error"`
 	Destination Destination `point:"destination"`
 	Units       string      `point:"units"`
 	// SignalType must be one of: "sine", "square", "triangle", or "random walk"
@@ -61,6 +64,11 @@ timer.
 // experience a phase shift.
 const BatchSizeLimit = 1000000
 
+// SignalGeneratorMaxSampleRate is the highest sampleRate, in Hz, a generator
+// accepts. The rate comes from a point, and a larger one is refused with an
+// error on the node rather than run.
+const SignalGeneratorMaxSampleRate = 1e6
+
 // SignalGeneratorClient for signal generator nodes
 type SignalGeneratorClient struct {
 	log           *log.Logger
@@ -104,59 +112,87 @@ func round(val, to float64) float64 {
 	return val
 }
 
+// validate checks the configuration a generator is about to run with. It
+// returns whether the generator can run and, when it cannot, why, as text for
+// the node's error point. A disabled generator is not an error.
+func (sgc *SignalGeneratorClient) validate(config SignalGenerator) (bool, string) {
+	if config.Disabled {
+		return false, ""
+	}
+
+	var problems []string
+
+	switch config.SignalType {
+	case "sine", "square", "triangle":
+		if config.Frequency <= 0 {
+			problems = append(problems, "Frequency must be set")
+		}
+	case "random walk":
+		if config.MaxIncrement <= config.MinIncrement {
+			problems = append(problems, "MaxIncrement must be larger than MinIncrement")
+		}
+	default:
+		problems = append(problems, fmt.Sprintf("Type %q is invalid", config.SignalType))
+	}
+
+	if config.MaxValue-config.MinValue <= 0 {
+		problems = append(problems,
+			fmt.Sprintf("MaxValue %v must be larger than MinValue %v", config.MaxValue, config.MinValue))
+	}
+
+	if config.SampleRate <= 0 {
+		problems = append(problems, "SampleRate must be set")
+	} else if config.SampleRate > SignalGeneratorMaxSampleRate {
+		problems = append(problems,
+			fmt.Sprintf("SampleRate must be at most %v Hz", SignalGeneratorMaxSampleRate))
+	}
+
+	if config.Destination.HighRate && config.BatchPeriod <= 0 {
+		problems = append(problems, "BatchPeriod must be set for high-rate data")
+	}
+
+	if len(problems) == 0 {
+		return true, ""
+	}
+
+	return false, strings.Join(problems, "; ")
+}
+
+// setError writes the node's error point when it changes
+func (sgc *SignalGeneratorClient) setError(errS string) {
+	if sgc.config.Error == errS {
+		return
+	}
+
+	if errS != "" {
+		sgc.log.Printf("%v: %v", sgc.config.Description, errS)
+	}
+
+	p := data.NewPointString(data.PointTypeError, "", errS)
+	if err := SendNodePoint(sgc.nc, sgc.config.ID, p, false); err != nil {
+		sgc.log.Printf("Error sending error point: %v", err)
+		return
+	}
+
+	sgc.config.Error = errS
+}
+
 // Run the main logic for this client and blocks until stopped
 func (sgc *SignalGeneratorClient) Run() error {
 	sgc.log.Printf("Starting client: %v", sgc.config.Description)
 
 	chStopGen := make(chan struct{})
 
-	generator := func(config SignalGenerator) {
-		configValid := true
+	generator := func(config SignalGenerator, configValid bool) {
 		amplitude := config.MaxValue - config.MinValue
 		lastValue := config.InitialValue
 
-		if config.Disabled {
-			sgc.log.Printf("%v: disabled\n", config.Description)
-			configValid = false
-		}
-
-		// Validate type
 		switch config.SignalType {
-		case "sine":
-			fallthrough
-		case "square":
-			fallthrough
-		case "triangle":
-			if config.Frequency <= 0 {
-				sgc.log.Printf("%v: Frequency must be set\n", config.Description)
-				configValid = false
-			}
+		case "sine", "square", "triangle":
 			// Note: lastValue is in radians; let's just sanitize it a bit
 			lastValue = math.Mod(lastValue, (2 * math.Pi))
 		case "random walk":
-			if config.MaxIncrement <= config.MinIncrement {
-				sgc.log.Printf("%v: MaxIncrement must be larger than MinIncrement\n", config.Description)
-				configValid = false
-			}
 			lastValue = clamp(config.InitialValue, config.MinValue, config.MaxValue)
-		default:
-			sgc.log.Printf("%v: Type %v is invalid\n", config.Description, config.SignalType)
-			configValid = false
-		}
-
-		if amplitude <= 0 {
-			sgc.log.Printf("%v: MaxValue %v must be larger than MinValue %v\n", config.Description, config.MaxValue, config.MinValue)
-			configValid = false
-		}
-
-		if config.SampleRate <= 0 {
-			sgc.log.Printf("%v: SampleRate must be set\n", config.Description)
-			configValid = false
-		}
-
-		if config.Destination.HighRate && config.BatchPeriod <= 0 {
-			sgc.log.Printf("%v: BatchPeriod must be set for high-rate data\n", config.Description)
-			configValid = false
 		}
 
 		natsSubject := config.Destination.Subject(config.ID, config.Parent)
@@ -177,18 +213,24 @@ func (sgc *SignalGeneratorClient) Run() error {
 		var generateBatch func(start, stop time.Time) (data.Points, time.Time)
 
 		if configValid {
+			// the sample interval is bounded so that the ticker built
+			// from it is. The number of points in a batch is limited
+			// before it becomes an int, since a large rate would
+			// overflow the conversion.
+			sampleInterval := pointDuration(1/config.SampleRate, time.Second,
+				time.Second, time.Millisecond)
+			batchSize := func(start, stop time.Time) int {
+				n := stop.Sub(start).Seconds() * config.SampleRate
+				if n > BatchSizeLimit {
+					return BatchSizeLimit
+				}
+				return int(n)
+			}
+
 			if config.SignalType == "random walk" {
-				sampleInterval := time.Duration(
-					float64(time.Second) / config.SampleRate,
-				)
 				generateBatch = func(start, stop time.Time) (data.Points, time.Time) {
-					numPoints := int(
-						stop.Sub(start).Seconds() * config.SampleRate,
-					)
+					numPoints := batchSize(start, stop)
 					endTime := start.Add(time.Duration(numPoints) * sampleInterval)
-					if numPoints > BatchSizeLimit {
-						numPoints = BatchSizeLimit
-					}
 					pts := make(data.Points, numPoints)
 					for i := 0; i < numPoints; i++ {
 						val := lastValue + config.MinIncrement + rand.Float64()*
@@ -236,17 +278,9 @@ func (sgc *SignalGeneratorClient) Run() error {
 				// dx is the change in x per point
 				// Taking SampleRate samples should give Frequency cycles
 				dx := 2 * math.Pi * config.Frequency / config.SampleRate
-				sampleInterval := time.Duration(
-					float64(time.Second) / config.SampleRate,
-				)
 				generateBatch = func(start, stop time.Time) (data.Points, time.Time) {
-					numPoints := int(
-						stop.Sub(start).Seconds() * config.SampleRate,
-					)
+					numPoints := batchSize(start, stop)
 					endTime := start.Add(time.Duration(numPoints) * sampleInterval)
-					if numPoints > BatchSizeLimit {
-						numPoints = BatchSizeLimit
-					}
 					pts := make(data.Points, numPoints)
 					for i := 0; i < numPoints; i++ {
 						// Note: lastValue is in terms of x (i.e. time)
@@ -274,12 +308,12 @@ func (sgc *SignalGeneratorClient) Run() error {
 			}
 
 			// Start batch timer
-			batchD := time.Duration(config.BatchPeriod) * time.Millisecond
-			sampleD := time.Duration(float64(time.Second) / config.SampleRate)
-			if batchD > 0 && batchD > sampleD {
+			batchD := pointDuration(float64(config.BatchPeriod), time.Millisecond,
+				0, time.Millisecond)
+			if batchD > 0 && batchD > sampleInterval {
 				t.Reset(batchD)
 			} else {
-				t.Reset(sampleD)
+				t.Reset(sampleInterval)
 			}
 		}
 
@@ -301,7 +335,20 @@ func (sgc *SignalGeneratorClient) Run() error {
 		}
 	}
 
-	go generator(sgc.config)
+	// startGen validates the current configuration, records the result
+	// on the node, and starts a generator with it. The generator always
+	// runs so that it can be stopped the same way whether or not the
+	// configuration was valid.
+	startGen := func() {
+		valid, errS := sgc.validate(sgc.config)
+		sgc.setError(errS)
+		if !valid && errS == "" {
+			sgc.log.Printf("%v: disabled\n", sgc.config.Description)
+		}
+		go generator(sgc.config, valid)
+	}
+
+	startGen()
 
 done:
 	for {
@@ -332,7 +379,7 @@ done:
 					data.PointTypeMaxIncrement:
 					// restart generator
 					chStopGen <- struct{}{}
-					go generator(sgc.config)
+					startGen()
 				}
 			}
 

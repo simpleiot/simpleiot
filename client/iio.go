@@ -212,11 +212,8 @@ func (c *IIOClient) EdgePoints(nodeID, parentID string, points []data.Point) {
 }
 
 func (c *IIOClient) pollPeriod() time.Duration {
-	if c.config.PollPeriod <= 0 {
-		return iioDefaultPollPeriod
-	}
-
-	return time.Millisecond * time.Duration(c.config.PollPeriod)
+	return pointDuration(float64(c.config.PollPeriod), time.Millisecond,
+		iioDefaultPollPeriod, 10*time.Millisecond)
 }
 
 // resolve finds the device the node names, and reports whether the client can

@@ -179,11 +179,8 @@ func (c *GPIOClient) output() bool {
 // pollPeriod returns the configured poll period, or zero when the line should
 // be driven by edge events instead
 func (c *GPIOClient) pollPeriod() time.Duration {
-	if c.config.PollPeriod <= 0 {
-		return 0
-	}
-
-	return time.Millisecond * time.Duration(c.config.PollPeriod)
+	return pointDuration(float64(c.config.PollPeriod), time.Millisecond,
+		0, time.Millisecond)
 }
 
 // idle reports whether the node is deliberately not holding a line, either
