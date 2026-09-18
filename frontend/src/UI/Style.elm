@@ -55,7 +55,7 @@ fonts =
     { sans =
         [ Font.external
             { name = "IBM Plex Sans"
-            , url = "https://fonts.googleapis.com/css?family=IBM+Plex+Sans:400,400i,600,600i&display=swap"
+            , url = "/fonts/ibm-plex-sans.css"
             }
         , Font.serif
         ]

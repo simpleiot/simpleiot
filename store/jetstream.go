@@ -1051,8 +1051,17 @@ func (db *DbJetStream) userCheck(email, password string) (data.Nodes, error) {
 	userEdges := db.edgeCache.AllByType(data.NodeTypeUser)
 
 	var users []data.NodeEdge
+	checked := false
 
 	for _, edge := range userEdges {
+		// a user replicated from a downstream instance signs in there,
+		// not here: its password is whatever that instance's operator
+		// set, and a default account on any device would otherwise be
+		// a default account on the upstream
+		if !db.userIsLocal(edge.Down) {
+			continue
+		}
+
 		ne, err := db.getNodes(nil, "all", edge.Down, "", false)
 		if err != nil {
 			log.Println("Error getting user node for id:", edge.Down)
@@ -1065,10 +1074,17 @@ func (db *DbJetStream) userCheck(email, password string) (data.Nodes, error) {
 		n := ne[0].ToNode()
 		u := n.ToUser()
 		if u.Email == email {
+			checked = true
 			if ok, _ := data.CheckPassword(u.Pass, password); ok {
 				users = append(users, ne...)
 			}
 		}
+	}
+
+	if !checked {
+		// take as long as a real check would, so the response time does
+		// not say whether the account exists
+		data.CheckPassword(noSuchUserHash(), password)
 	}
 
 	// Keep only users with a path to root, and order them by how close
@@ -1105,6 +1121,30 @@ func (db *DbJetStream) userCheck(email, password string) (data.Nodes, error) {
 	}
 
 	return ret, nil
+}
+
+// userIsLocal reports whether a user node's password was written on this
+// instance rather than replicated from another.
+func (db *DbJetStream) userIsLocal(id string) bool {
+	db.pointMu.RLock()
+	defer db.pointMu.RUnlock()
+
+	origin := db.pointOrigin[id][data.PointTypePass+"|0"]
+	return origin == "" || origin == db.meta.RootID
+}
+
+var (
+	noSuchUserOnce sync.Once
+	noSuchUserVal  string
+)
+
+// noSuchUserHash is a hash to check a password against when no account
+// matches, so the check costs the same either way.
+func noSuchUserHash() string {
+	noSuchUserOnce.Do(func() {
+		noSuchUserVal, _ = data.HashPassword("no such user")
+	})
+	return noSuchUserVal
 }
 
 // depthToRoot returns the number of edges on the shortest undeleted path

@@ -130,7 +130,8 @@ func TestSyncEnroll(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	reply, err := client.Enroll(optsU.NatsServer, otherSeed, client.EnrollRequest{
+	_, otherSign, _ := client.SeedSigner(otherSeed)
+	reply, err := client.Enroll(optsU.NatsServer, otherPub, otherSign, client.EnrollRequest{
 		Token: token, DeviceID: rootD.ID, PubKey: otherPub})
 	if err != nil || reply.Status != client.EnrollPending {
 		t.Fatalf("second enrollment: %v %v", reply, err)
@@ -151,7 +152,7 @@ func TestSyncEnroll(t *testing.T) {
 	fmt.Println("**** revoking the token does not affect the enrolled device")
 	setCred(t, ncU, "et-1", data.NewPointFloat(data.PointTypeDisabled, "", 1))
 	time.Sleep(time.Second)
-	if _, err := client.Enroll(optsU.NatsServer, otherSeed, client.EnrollRequest{
+	if _, err := client.Enroll(optsU.NatsServer, otherPub, otherSign, client.EnrollRequest{
 		Token: token, DeviceID: "another", PubKey: otherPub}); err == nil {
 		t.Fatal("revoked enrollment token accepted")
 	}
@@ -261,7 +262,8 @@ func TestEnrollTokenScope(t *testing.T) {
 	}
 
 	// the one thing it can do
-	reply, err := client.Enroll(optsU.NatsServer, seed, client.EnrollRequest{
+	_, sign, _ := client.SeedSigner(seed)
+	reply, err := client.Enroll(optsU.NatsServer, pub, sign, client.EnrollRequest{
 		Token: token, DeviceID: "unit-7", PubKey: pub, Description: "unit 7"})
 	if err != nil || reply.Status != client.EnrollPending {
 		t.Fatalf("enroll: %v %v", reply, err)

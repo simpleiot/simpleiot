@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nkeys"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 )
@@ -27,7 +28,7 @@ type deviceKey struct {
 	path string
 
 	mu     sync.Mutex
-	seed   string
+	kp     nkeys.KeyPair
 	pubKey string
 
 	nc   *nats.Conn
@@ -60,9 +61,13 @@ func (k *deviceKey) load() error {
 	if err != nil {
 		return fmt.Errorf("error in %v: %w", k.path, err)
 	}
+	kp, err := nkeys.FromSeed([]byte(seed))
+	if err != nil {
+		return fmt.Errorf("error in %v: %w", k.path, err)
+	}
 
 	k.mu.Lock()
-	k.seed = seed
+	k.kp = kp
 	k.pubKey = pubKey
 	k.mu.Unlock()
 
@@ -91,6 +96,12 @@ func (k *deviceKey) start(nc *nats.Conn) error {
 	}
 	k.subs = append(k.subs, sub)
 
+	sub, err = nc.Subscribe(client.SubjectDeviceSign, k.handleSign)
+	if err != nil {
+		return err
+	}
+	k.subs = append(k.subs, sub)
+
 	k.publish()
 
 	return nil
@@ -109,12 +120,37 @@ func (k *deviceKey) reply(msg *nats.Msg, r client.DeviceKey) {
 	}
 }
 
+// handleGet answers with the public key. The seed stays in this process:
+// the key is the instance's identity on its upstream, and a copy would
+// stay useful to whoever read it long after their access ended.
 func (k *deviceKey) handleGet(msg *nats.Msg) {
 	k.mu.Lock()
-	r := client.DeviceKey{Seed: k.seed, PubKey: k.pubKey}
+	r := client.DeviceKey{PubKey: k.pubKey}
 	k.mu.Unlock()
 
 	k.reply(msg, r)
+}
+
+// handleSign signs a nonce with the key, which is how the sync client in
+// this process authenticates to an upstream without holding the seed.
+func (k *deviceKey) handleSign(msg *nats.Msg) {
+	k.mu.Lock()
+	kp := k.kp
+	k.mu.Unlock()
+
+	var sig []byte
+	if kp != nil && len(msg.Data) > 0 {
+		var err error
+		sig, err = kp.Sign(msg.Data)
+		if err != nil {
+			log.Println("Device key: error signing:", err)
+			sig = nil
+		}
+	}
+
+	if err := k.nc.Publish(msg.Reply, sig); err != nil {
+		log.Println("Error replying to device sign request:", err)
+	}
 }
 
 // publish puts the public key on every sync node under the root that does

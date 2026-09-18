@@ -26,11 +26,16 @@ The following are currently defined:
   - `SIOT_NATS_HTTP_PORT`: Port to run NATS monitoring interface (default is
     8222). It needs no credentials and lists connections and subjects, so keep
     it off untrusted networks.
+  - `SIOT_NATS_HTTP_HOST`: address the monitoring interface binds, such as
+    `127.0.0.1`. Empty (the default) binds every interface. An installed
+    service sets it to loopback.
   - `SIOT_NATS_SERVER`: defaults to nats://127.0.0.1:4222
   - `SIOT_NATS_TLS_CERT`: points to TLS certificate file. If not set, TLS is not
-    used. These settings cover the NATS and MQTT ports only; the HTTP port and
-    the NATS WebSocket are served without TLS, so put a reverse proxy in front
-    of them.
+    used. These settings cover the NATS, MQTT, and NATS WebSocket ports; the
+    HTTP port is served without TLS, so put a reverse proxy in front of it. The
+    server's own connections over loopback, and the HTTP port's WebSocket
+    proxy, accept exactly this certificate, so it does not have to be issued
+    for `localhost`.
   - `SIOT_NATS_TLS_KEY`: points to TLS certificate key
   - `SIOT_NATS_TLS_TIMEOUT`: Configure the TLS upgrade timeout. NATS defaults to
     a 0.5 second timeout for TLS upgrade, but that is too short for some
@@ -43,6 +48,10 @@ The following are currently defined:
     WebSocket connections to this listener, so the port itself does not have to
     be reachable by browsers. Setting it to 0 disables both, and the web UI with
     it.
+  - `SIOT_NATS_WS_HOST`: address the WebSocket listener binds, such as
+    `127.0.0.1`. Empty (the default) binds every interface. Browsers reach the
+    listener through the HTTP port, so an installed service sets it to
+    loopback.
   - `SIOT_NATS_WS_ORIGINS`: comma-separated page origins allowed to open a NATS
     WebSocket, such as `https://siot.example.com`. Empty (the default) allows
     any origin. When `SIOT_AUTH_TOKEN` is set, a browser still has to present a

@@ -243,6 +243,8 @@ func (f fakeUsers) UserFromToken(token string) (string, time.Time, bool) {
 }
 
 func (f fakeUsers) UserAnchors(id string) []string { return f.anchors[id] }
+func (f fakeUsers) AuthAllowed(string) bool        { return true }
+func (f fakeUsers) AuthFailed(string, string)      {}
 
 func TestUserPermissions(t *testing.T) {
 	p := userPermissions("U", []string{"G1", "G2"})

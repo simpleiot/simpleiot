@@ -127,9 +127,18 @@ names -- should pass them through `data.SubjectSafeToken` first.
   - `enroll.request`
     - Request with a device ID, public key, and description. An instance with no
       credential asks the upstream for one here. The connection presents an
-      enrollment token together with the key being enrolled, and this subject
-      plus its own reply inbox is all it may reach. See
+      enrollment token together with the key being enrolled, the request has to
+      name that same key, and this subject plus its own reply inbox is all it
+      may reach. See
       [devices that enroll themselves](../user/sync.md#2-devices-that-enroll-themselves).
+  - `auth.deviceKey`
+    - Request/response -- returns this instance's device public key as
+      `{pubKey}`. The seed stays in the server process.
+  - `auth.deviceSign`
+    - Request with a nonce; the reply is the nonce signed with this instance's
+      device key, or empty when the instance has none. The sync client uses it
+      to authenticate to an upstream with the device key without holding the
+      seed.
 - Admin
   - `admin.error` (not implemented yet)
     - Any errors that occur are sent to this subject
@@ -146,6 +155,13 @@ have JSON tags. HTTP APIs currently return JSON payloads.
 
 Most APIs that do not return specific data (update/delete) return a
 [standard response](https://github.com/simpleiot/simpleiot/blob/master/data/api.go)
+
+Every node route needs credentials: the shared token as the `Authorization`
+header, or `Authorization: Bearer <jwt>` with a user's sign-in token or a
+device's signed token. A user's request is refused when the node in the path,
+or a parent named in the body, is outside the groups the user belongs to, and
+replies to a user or device carry secret points with an empty value. See the
+[security reference](security.md#http).
 
 - Nodes
   - [data structure](https://github.com/simpleiot/simpleiot/blob/master/data/node.go)

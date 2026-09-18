@@ -36,6 +36,7 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 
 	if len(nodes) == 0 {
+		log.Printf("HTTP auth: sign-in failed for %q from %v", email, req.RemoteAddr)
 		http.Error(res, "invalid login", http.StatusForbidden)
 		return
 	}

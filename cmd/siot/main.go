@@ -3,6 +3,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"flag"
 	"fmt"
@@ -289,7 +291,39 @@ func runCommand(cmd string) (string, error) {
 type serviceData struct {
 	SiotData      string
 	SiotPath      string
+	SiotBinDir    string
+	SiotEnv       string
 	SystemdTarget string
+	// Sandbox adds the systemd sandboxing directives, which need the
+	// privileges of a system service.
+	Sandbox bool
+}
+
+// writeServiceEnv writes the environment file the service reads its auth
+// token from, generating a token the first time. The file is readable by
+// its owner only. An existing file is kept, so reinstalling does not
+// change the token devices and tools were given.
+func writeServiceEnv(path string) error {
+	if _, err := os.Stat(path); err == nil {
+		log.Println("Keeping existing environment file:", path)
+		return nil
+	}
+
+	var b [24]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return err
+	}
+	token := base64.RawURLEncoding.EncodeToString(b[:])
+
+	content := "# Simple IoT service environment. The token grants full access to\n" +
+		"# this instance; keep this file readable by the service user only.\n" +
+		"SIOT_AUTH_TOKEN=" + token + "\n"
+
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		return err
+	}
+	log.Println("Generated auth token in:", path)
+	return nil
 }
 
 func runInstall(args []string) {
@@ -318,13 +352,20 @@ func runInstall(args []string) {
 		dataDir = "/var/lib/siot"
 	}
 
-	mkdirs := []string{serviceDir, dataDir}
+	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+		log.Fatalf("Error creating dir %v: %v\n", serviceDir, err)
+	}
+	// the data directory holds the store, the device key, and the token
+	if err := os.MkdirAll(dataDir, 0o700); err != nil {
+		log.Fatalf("Error creating dir %v: %v\n", dataDir, err)
+	}
+	if err := os.Chmod(dataDir, 0o700); err != nil {
+		log.Fatalf("Error setting permissions on %v: %v\n", dataDir, err)
+	}
 
-	for _, d := range mkdirs {
-		err := os.MkdirAll(d, 0755)
-		if err != nil {
-			log.Fatalf("Error creating dir %v: %v\n", d, err)
-		}
+	envPath := path.Join(dataDir, "siot.env")
+	if err := writeServiceEnv(envPath); err != nil {
+		log.Fatal("Error writing environment file: ", err)
 	}
 
 	servicePath := path.Join(serviceDir, "siot.service")
@@ -374,12 +415,15 @@ func runInstall(args []string) {
 
 	sd := serviceData{
 		SiotPath:      siotPath,
+		SiotBinDir:    filepath.Dir(siotPath),
 		SiotData:      dataDir,
+		SiotEnv:       envPath,
 		SystemdTarget: "default.target",
 	}
 
 	if isRoot {
 		sd.SystemdTarget = "multi-user.target"
+		sd.Sandbox = true
 	}
 
 	err = t.Execute(serviceOut, sd)
@@ -409,6 +453,7 @@ func runInstall(args []string) {
 	}
 
 	log.Println("Install success!")
+	log.Println("The auth token is in", envPath)
 	log.Println("Please update ports in service file if you want something other than defaults")
 }
 
@@ -770,7 +815,7 @@ func runKey(args []string) {
 	}
 
 	nc := connectCLI(args[1:])
-	_, pubKey, err := client.GetDeviceKey(nc)
+	pubKey, err := client.GetDeviceKey(nc)
 	if err != nil {
 		log.Fatal("Error getting device key: ", err)
 	}

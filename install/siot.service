@@ -6,11 +6,17 @@ After=network.target
 PIDFile={{ .SiotData }}/%i.pid
 Environment=SIOT_HTTP_PORT=8118
 Environment=SIOT_DATA={{ .SiotData }}
-Environment=SIOT_AUTH_TOKEN=""
 Environment=SIOT_NATS_PORT=4222
 Environment=SIOT_NATS_HTTP_PORT=8222
 Environment=SIOT_NATS_SERVER=nats://127.0.0.1:4222
 Environment=SIOT_NATS_WS_PORT=9222
+# The HTTP port proxies the WebSocket, and the monitoring port has no
+# authentication, so neither listens beyond this machine.
+Environment=SIOT_NATS_WS_HOST=127.0.0.1
+Environment=SIOT_NATS_HTTP_HOST=127.0.0.1
+# SIOT_AUTH_TOKEN, generated at install time and readable by the service
+# user only.
+EnvironmentFile={{ .SiotEnv }}
 
 ExecStart={{ .SiotPath }}
 
@@ -19,5 +25,19 @@ ExecStart={{ .SiotPath }}
 Restart=always
 RestartSec=2
 
+NoNewPrivileges=true
+{{ if .Sandbox -}}
+# The service writes only its data directory and, for self-update, the
+# directory its binary lives in. A client that needs hardware (serial,
+# GPIO, IIO, CAN) needs the device allowed here or in a drop-in; see the
+# installation documentation.
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths={{ .SiotData }} {{ .SiotBinDir }}
+{{ end }}
 [Install]
 WantedBy={{ .SystemdTarget }}

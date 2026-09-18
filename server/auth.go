@@ -77,6 +77,11 @@ type authConn struct {
 type userAuthority interface {
 	UserFromToken(token string) (userID string, expires time.Time, ok bool)
 	UserAnchors(userID string) []string
+	// AuthAllowed and AuthFailed are the sign-in limiter, shared with
+	// password checks so a token guessed here counts like a password
+	// guessed over HTTP.
+	AuthAllowed(key string) bool
+	AuthFailed(key, source string)
 }
 
 // authorizer authenticates every connection to the embedded NATS server.
@@ -190,10 +195,15 @@ func (a *authorizer) checkUser(c server.ClientAuthentication, opts *server.Clien
 		return false, true
 	}
 
+	if !users.AuthAllowed(opts.Username) {
+		log.Printf("NATS auth: refusing user %v from %v, too many failures",
+			opts.Username, c.RemoteAddress())
+		return false, true
+	}
+
 	userID, expires, valid := users.UserFromToken(opts.Password)
 	if !valid || userID != opts.Username {
-		log.Printf("NATS auth: refusing user %v from %v, invalid token",
-			opts.Username, c.RemoteAddress())
+		users.AuthFailed(opts.Username, fmt.Sprint("NATS ", c.RemoteAddress()))
 		return false, true
 	}
 

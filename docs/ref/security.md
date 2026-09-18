@@ -48,21 +48,28 @@ more information.
 
 Simple IoT Edge instances initiate all connections to upstream instances;
 therefore, no incoming connections are required on edge instances and all
-incoming ports can be firewalled. Simple IoT does not do this itself: the HTTP,
-NATS, NATS WebSocket, and NATS monitoring listeners bind every interface, and an
-edge instance usually runs with no auth token, so the firewall is what keeps the
-local network out.
+incoming ports can be firewalled. By default the HTTP, NATS, NATS WebSocket, and
+NATS monitoring listeners bind every interface, and an edge instance often runs
+with no auth token, so the firewall is what keeps the local network out.
+`SIOT_NATS_WS_HOST` and `SIOT_NATS_HTTP_HOST` bind the WebSocket and monitoring
+listeners to loopback, which `siot install` does, and the installed service is
+given a generated token; see [installation](../user/installation.md).
 
 ## HTTP
 
 The web UI signs in with `POST /v1/auth` and receives a JWT (JSON web token). It
 uses the JWT for the node operations that stay on HTTP (add, delete, move,
 mirror, duplicate, notify) and as its NATS credential for everything else; see
-[Browser](#browser) below. The HTTP node routes check that the JWT is valid but
-not which nodes the user may reach, so any signed-in user can operate on any
-node through them. The JWT is valid for seven days and is not checked against
-the tree, so it keeps working on these routes after the user is deleted. Both
-are tracked in the security cleanup plan.
+[Browser](#browser) below. Every node route resolves the request to a principal
+and refuses a node outside what that principal may reach: a user is limited to
+the groups the user belongs to, on the node named in the path and on any parent
+named in the body, so a node cannot be read, written, moved, mirrored, or
+attached from outside those groups. A user's token is refused as soon as the
+user is gone from the tree, and a token that names another issuer or was signed
+another way is refused. The token is valid for seven days.
+
+Replies to a user leave the values of secret points out and list only the
+parents the user can see; see [Secrets in node reads](#secrets-in-node-reads).
 
 Devices can also reach the node API over HTTP, with either credential the NATS
 side accepts:
@@ -77,12 +84,24 @@ side accepts:
   subtree: reading nodes, posting points, and posting notifications, on the
   device node or anything below it. `client.DeviceJWT` builds one from a seed.
 
-NOTE, it is important to set an auth token. When none is configured, a request
-with no `Authorization` header matches the empty token and is given full access
-on every node route.
+A request with no credentials is refused on every node route, whether or not a
+token is configured. An instance with no token is still open on NATS, so set
+one; see the [deployment checklist](#deployment-checklist).
 
-The HTTP server has no TLS, timeouts, or security headers of its own; a reverse
-proxy in front of it supplies them.
+Sign-in attempts are limited per account: after five failures in a row the
+account is refused for a second, doubling with each further failure up to five
+minutes, and every failure is logged with its source. The limit is shared by
+`POST /v1/auth`, the `auth.user` subject, and the NATS authorizer's check of a
+browser's token.
+
+The HTTP server closes a connection that sends no request within ten seconds
+or no complete request within thirty, limits a request body to 4 MB, and sends
+`Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, and
+`Referrer-Policy` on every response. The policy allows the UI's own scripts,
+styles, and fonts (served from the binary) and a WebSocket back to the server,
+and refuses framing. The HTTP port has no TLS of its own; a reverse proxy in
+front of it supplies that. With `-debugHttp`, the bodies of sign-in requests
+and replies are not logged.
 
 ## NATS
 
@@ -95,8 +114,10 @@ NATS accounts file to manage. Three kinds of credential are accepted:
   password) use it. When no token is configured the instance is open, as it
   always has been.
 - **A device credential** is an NKey pair. The device keeps the seed in
-  `SIOT_DATA/device.nkey` and signs the connection challenge with it; the
-  upstream keeps only the public key, in a `deviceCred` node under the device's
+  `SIOT_DATA/device.nkey`, which only the server process reads: the sync client
+  asks the server to sign the connection challenge on `auth.deviceSign`, and
+  `auth.deviceKey` answers with the public key alone. The upstream keeps only
+  the public key, in a `deviceCred` node under the device's
   node, and grants the connection exactly the subjects that device needs to
   sync. The credential authorizes the one device node it sits under: one under
   the upstream's own root node, or under any node that is not a device,
@@ -112,21 +133,25 @@ NATS accounts file to manage. Three kinds of credential are accepted:
 - `optional` (the default) accepts the shared token from anywhere.
 - `required` accepts the shared token only from loopback connections, so every
   remote connection has to present a device credential. This is the setting for
-  a fleet on the public internet once every device has a credential. A
-  connection arriving through a reverse proxy on the same host looks local, so
-  `required` limits the token only on ports that are reached directly. The HTTP
-  port's own WebSocket proxy is such a path: a NATS connection made through the
-  HTTP port reaches the authorizer from `127.0.0.1`, and the shared token is
-  accepted there from any address. Treat the shared token as a secret under
-  either setting.
+  a fleet on the public internet once every device has a credential. The HTTP
+  port's WebSocket proxy applies the same rule itself, since the NATS server
+  sees every proxied connection arrive from `127.0.0.1`: a `CONNECT` carrying a
+  token from a remote address is refused before it is forwarded. A connection
+  arriving through a reverse proxy on the same host still looks local, on the
+  HTTP routes and the WebSocket alike, so a reverse proxy has to pass the
+  client's address through or the token has to stay off that path. Treat the
+  shared token as a secret under either setting.
 
 An **enrollment token** is a third, narrower credential: a connection presenting
 one may publish to `enroll.request` and subscribe to its reply inbox, and
 nothing else. The token is presented together with a key, which signs the
 connection nonce, so the upstream gives the connection an inbox of its own. The
-device ID and the key to enroll are taken from the request body, and the key is
-not yet compared with the one that signed the connection; see
-[known limitations](#known-limitations). It exists so a device with no
+request has to name that same key, since its reply can only be delivered to
+that key's inbox; a request naming another key is refused. The device ID has
+to be usable as a subject token (no period, wildcard, or whitespace). A device
+that already has a live credential gets any further key as pending, whatever
+the token says, so a token holder cannot take over a known device; and at most
+100 devices may wait for approval at once. It exists so a device with no
 credential can ask for one; see
 [Devices that enroll themselves](../user/sync.md#2-devices-that-enroll-themselves).
 Only a hash of the token is stored, in an `enrollToken` node.
@@ -212,11 +237,16 @@ Nothing else: no `p.>`, `nodes.>`, `ep.>`, `$JS.>`, `auth.user`, or `admin.>`.
 The server proves the connection may speak for the anchor and user in a `u.*`
 subject; the store checks the target of the request against the anchor and sets
 the origin of every point to the user, whatever the browser sent. For a node
-read or a point write the target is the node. For an edge write the store checks
-the parent only, which leaves a gap described under
-[known limitations](#known-limitations). Neither side needs the other's data
-structures, and no header can be added or left out to get a different outcome.
-Details of the subjects are in the [API reference](api.md#nats).
+read or a point write the target is the node. For an edge write both ends are
+checked: the parent has to be under the anchor, and the child has to be under
+it already (or be a node new to the tree, or one the user deleted from there
+and is restoring), so a node from elsewhere cannot be attached into a group
+and reached through the new edge. The store also refuses any edge whose parent
+already sits below its child, from any writer, and bounds every walk of the
+tree, so a loop cannot be made and would not hold a request open if it were.
+Neither side needs the other's data structures, and no header can be added or
+left out to get a different outcome. Details of the subjects are in the
+[API reference](api.md#nats).
 
 What a browser can and cannot do, compared with polling the HTTP API:
 
@@ -235,22 +265,33 @@ What a browser can and cannot do, compared with polling the HTTP API:
 Permissions are computed when the connection is made. The authorizer watches the
 tree and closes a user's connections when the user's edges change, so the
 browser reconnects and is granted the new set, or is refused if the user is
-gone. The HTTP node routes are unchanged and still unscoped per node; that is
-tracked in the security cleanup plan. A deployment with no shared token still
-runs open on every listener, WebSocket included; the UI presents its JWT either
-way and is scoped either way.
+gone. The HTTP node routes apply the same scope; see [HTTP](#http). A
+deployment with no shared token still runs open on every NATS listener,
+WebSocket included; the UI presents its JWT either way and is scoped either
+way.
+
+A user signs in on the instance that holds the user's password. Sync
+replicates a device's user nodes to its upstream with the rest of the device's
+tree, and those users are not accepted at the upstream's sign-in: the
+password was set by whoever administers the device, and a device left with
+its default account would otherwise be a default account on the upstream.
 
 ### Secrets in node reads
 
-A node read returns every point on the node. A user's `pass` point holds a
-bcrypt hash, and a sync node's `authToken` holds the upstream token in the
-clear, so anyone who can read those nodes receives them. `auth.me` removes
-`pass` from its reply; the `nodes` replies do not yet. `siot export` leaves
-`authToken` out unless `-secrets` is given.
+Some points hold credentials: a user's `pass` (a bcrypt hash), the `authToken`
+of a sync, message service, database, or Particle node, a sync node's
+`enrollToken`, a Twilio `sid`, and a Wi-Fi `psk`. A node reply to a browser
+(through `u.<anchor>.<user>.nodes.>`) or to a user or device over HTTP carries
+these points with an empty value, so the UI can show that a credential is set
+without receiving it; writing the point replaces the stored value as usual. A
+reply to a browser asking for a node's parents lists only the parents inside
+the user's groups. The server's own clients read on the plain `nodes.>`
+subject, which the shared token alone reaches, and see the values. `auth.me`
+leaves `pass` out. `siot export` leaves every secret point out unless
+`-secrets` is given.
 
 The instance's own NKey seed is kept in `SIOT_DATA/device.nkey` and never as a
-point. It is, for now, also returned by the `auth.deviceKey` subject, which any
-full-access connection can request.
+point or a reply; see [NATS](#nats).
 
 ### External NATS servers
 
@@ -270,31 +311,18 @@ decentralized auth) is the escalation path:
 
 An audit at `v0.28.0` (September 2026) reviewed the HTTP API, the NATS
 authorizer, the store, the clients, the frontend, dependencies, and packaging.
-The items below are open. The numbers refer to the
+Most of what it found was closed in the release that followed; the items below
+are still open. The numbers refer to the
 [security cleanup plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-08-24-security-cleanup.md),
-which has the detail and the proposed change for each. Items marked _proven_
-were reproduced against a test server.
+which has the detail and the proposed change for each.
 
-| Area       | Limitation                                                                                                                                                                                              | Plan item    |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| Browser    | An edge write checks only the parent, so a signed-in user can attach a node from outside their groups under one of their own and then read and write it. Attaching the root stalls the store. _Proven._ | 11           |
-| HTTP       | With no token configured, a request with no `Authorization` header has full access. _Proven._                                                                                                           | 3            |
-| HTTP       | Node routes accept any valid JWT for any node. _Proven._                                                                                                                                                | 12           |
-| Users      | Users replicated from a device can sign in on the upstream, including a device's default `admin`/`admin`. _Proven._                                                                                     | 13, 4        |
-| Users      | The JWT lasts seven days, and the HTTP routes accept it after the user is deleted. Sign-in attempts are not limited or logged.                                                                          | 8, 7         |
-| Users      | Any member of a group can write any node under it, including another member's password.                                                                                                                 | 20           |
-| Enrollment | A token holder can enroll a key onto an existing device ID; with an auto-approve token it is live at once. The requested key is not tied to the connection. _Proven._                                   | 14           |
-| Devices    | Under `required`, the shared token is accepted from any address through the HTTP port's WebSocket proxy. _Proven._                                                                                      | 15           |
-| Devices    | `auth.deviceKey` returns the instance's key seed to any full-access connection.                                                                                                                         | 16           |
-| Secrets    | Node reads include password hashes and the sync `authToken`; replies to a browser list parent IDs outside the user's groups.                                                                            | 2, 20        |
-| Transport  | No TLS on the HTTP or WebSocket listeners; the NATS client cannot pin a CA; HTTP has no timeouts, body limits, or security headers; `-debugHttp` logs credentials.                                      | 9, 17        |
-| Defaults   | No token, `admin`/`admin`, all listeners on every interface, monitoring port open, installed service with no sandboxing.                                                                                | 4, 6, 19     |
-| Clients    | Writing a point can start a download and restart, run a rule action, or rewrite system files. Payloads are not signed.                                                                                  | excluded, 24 |
-| Clients    | A panic in any client ends the process, and several point values cause one at every start: an invalid key on a list setting, a zero or very large period. _Proven._                                     | 21           |
-| Clients    | A Modbus TCP server node accepts frames from any address, and an out-of-range count in one frame ends the process. _Proven._                                                                            | 22           |
-| Clients    | Rule actions, signal generator destinations, and serial destinations write to any node ID, outside the group the client sits in. _Proven._                                                              | 23           |
-| Clients    | Several clients dial addresses and open paths taken from points, the message service sends to recipients named in a point, and an `mqtt` node can subscribe to every topic.                             | 24           |
-| Releases   | Release binaries are built with the Go version in `go.mod` (1.25.0), which predates many standard-library fixes. Releases carry checksums and no signature.                                             | 18, 20       |
+| Area     | Limitation                                                                                                                                                                           | Plan item |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| Users    | Any member of a group can write any node under it, including another member's password.                                                                                              | 20        |
+| Users    | The sign-in token lasts seven days; it is refused once the user is gone, but not on a password change until the NATS connection is closed.                                            | 8         |
+| Defaults | The first account is `admin`/`admin` and nothing forces a change; the NATS monitoring port has no authentication. Both are left to the deployment checklist and the firewall.        | 4, 6      |
+| Releases | Releases carry checksums and no signature, so `siot update` trusts the release host.                                                                                                 | 20        |
+| Clients  | Update payloads are not signed; a point can still start a download and restart, from the release host, over HTTPS.                                                                   | excluded  |
 
 What the audit found sound: the binary point and node decoders bound every
 length and count; no client runs a command through a shell, disables TLS

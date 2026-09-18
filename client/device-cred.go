@@ -21,13 +21,18 @@ import (
 var DeviceJWTLifetime = 5 * time.Minute
 
 // SubjectDeviceKey is where the server answers with this instance's device
-// key, as a DeviceKey. The bus is trusted to the same degree as the shared
-// token: whoever can ask here can also read the key file.
+// public key, as a DeviceKey. The seed never leaves the server process: a
+// client that needs to authenticate with the key asks the server to sign
+// for it on SubjectDeviceSign.
 const SubjectDeviceKey = "auth.deviceKey"
+
+// SubjectDeviceSign is where the server signs a nonce with this instance's
+// device key. The request is the nonce and the reply is the signature, or
+// empty when the server has no key.
+const SubjectDeviceSign = "auth.deviceSign"
 
 // DeviceKey is this instance's key, as answered on SubjectDeviceKey.
 type DeviceKey struct {
-	Seed   string `json:"seed,omitempty"`
 	PubKey string `json:"pubKey,omitempty"`
 	Error  string `json:"error,omitempty"`
 }
@@ -109,24 +114,14 @@ func HashEnrollToken(token string) string {
 // Enroll connects to an upstream with an enrollment token and asks for a
 // credential for this device's key. The connection presents the key being
 // enrolled as well as the token, so the upstream can give it an inbox of
-// its own for the reply; seed is the key's NKey seed.
-func Enroll(uri, seed string, req EnrollRequest) (EnrollReply, error) {
+// its own for the reply; sign signs the server's nonce with that key.
+func Enroll(uri, pubKey string, sign nats.SignatureHandler, req EnrollRequest) (EnrollReply, error) {
 	uri, err := sanitizeURI(uri)
 	if err != nil {
 		return EnrollReply{}, err
 	}
 
-	kp, err := nkeys.FromSeed([]byte(seed))
-	if err != nil {
-		return EnrollReply{}, fmt.Errorf("error parsing device key: %w", err)
-	}
-
-	pubKey, err := kp.PublicKey()
-	if err != nil {
-		return EnrollReply{}, fmt.Errorf("error reading device key: %w", err)
-	}
-
-	nc, err := nats.Connect(uri, nats.Token(req.Token), nats.Nkey(pubKey, kp.Sign),
+	nc, err := nats.Connect(uri, nats.Token(req.Token), nats.Nkey(pubKey, sign),
 		nats.CustomInboxPrefix(InboxPrefix(pubKey)), nats.Timeout(30*time.Second),
 		nats.NoReconnect())
 	if err != nil {
@@ -155,22 +150,52 @@ func Enroll(uri, seed string, req EnrollRequest) (EnrollReply, error) {
 	return reply, nil
 }
 
-// GetDeviceKey returns this instance's device key.
-func GetDeviceKey(nc *nats.Conn) (seed, pubKey string, err error) {
+// GetDeviceKey returns this instance's device public key.
+func GetDeviceKey(nc *nats.Conn) (pubKey string, err error) {
 	msg, err := nc.Request(SubjectDeviceKey, nil, 5*time.Second)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 
 	var k DeviceKey
 	if err := json.Unmarshal(msg.Data, &k); err != nil {
-		return "", "", err
+		return "", err
 	}
 	if k.Error != "" {
-		return "", "", errors.New(k.Error)
+		return "", errors.New(k.Error)
 	}
 
-	return k.Seed, k.PubKey, nil
+	return k.PubKey, nil
+}
+
+// DeviceSigner returns a signature handler that has the server sign a
+// nonce with this instance's device key, for a connection made with the
+// key by a client in the same process or on the same bus.
+func DeviceSigner(nc *nats.Conn) nats.SignatureHandler {
+	return func(nonce []byte) ([]byte, error) {
+		msg, err := nc.Request(SubjectDeviceSign, nonce, 5*time.Second)
+		if err != nil {
+			return nil, fmt.Errorf("error asking server to sign with device key: %w", err)
+		}
+		if len(msg.Data) == 0 {
+			return nil, errors.New("server has no device key")
+		}
+		return msg.Data, nil
+	}
+}
+
+// SeedSigner returns the public key and a signature handler for a seed
+// held in memory, for tools and tests that hold a key of their own.
+func SeedSigner(seed string) (pubKey string, sign nats.SignatureHandler, err error) {
+	kp, err := nkeys.FromSeed([]byte(seed))
+	if err != nil {
+		return "", nil, fmt.Errorf("not a device key seed: %w", err)
+	}
+	pubKey, err = kp.PublicKey()
+	if err != nil {
+		return "", nil, err
+	}
+	return pubKey, kp.Sign, nil
 }
 
 // ParseDeviceKey checks a seed and returns its public key.

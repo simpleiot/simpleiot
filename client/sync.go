@@ -27,6 +27,9 @@ type Sync struct {
 	// EnrollToken lets an instance whose key is not enrolled ask the
 	// upstream for a credential; see docs/user/sync.md.
 	EnrollToken string `point:"enrollToken"`
+	// CACert is a PEM certificate the upstream's TLS chain has to be
+	// signed by. Empty trusts the system certificate store.
+	CACert string `point:"caCert"`
 	// Error says why the upstream is not connected when the reason is not
 	// going to fix itself, such as a refused credential. The client
 	// maintains it.
@@ -258,14 +261,18 @@ func (up *SyncClient) connect() error {
 		},
 	}
 
+	opts.CACert = up.config.CACert
+
 	if up.config.AuthToken == "" {
-		// no token: connect with this instance's device key
-		seed, pubKey, err := GetDeviceKey(up.nc)
+		// no token: connect with this instance's device key, which the
+		// server signs with on this instance's behalf
+		pubKey, err := GetDeviceKey(up.nc)
 		if err != nil {
 			log.Printf("Sync %v: no device key, connecting without credentials: %v",
 				up.config.Description, err)
 		} else {
-			opts.NkeySeed = seed
+			opts.NkeyPub = pubKey
+			opts.NkeySign = DeviceSigner(up.nc)
 			if pubKey != up.config.PubKey {
 				up.config.PubKey = pubKey
 				err := SendNodePoint(up.nc, up.config.ID,
@@ -290,7 +297,7 @@ func (up *SyncClient) connect() error {
 // enroll asks the upstream for a credential for this instance's key using
 // the sync node's enrollment token, and reports whether it was approved.
 func (up *SyncClient) enroll() bool {
-	seed, pubKey, err := GetDeviceKey(up.nc)
+	pubKey, err := GetDeviceKey(up.nc)
 	if err != nil {
 		up.setError("enrollment failed: no device key")
 		return false
@@ -298,7 +305,7 @@ func (up *SyncClient) enroll() bool {
 
 	desc, _ := up.rootLocal.Points.Text(data.PointTypeDescription, "")
 
-	reply, err := Enroll(up.config.URI, seed, EnrollRequest{
+	reply, err := Enroll(up.config.URI, pubKey, DeviceSigner(up.nc), EnrollRequest{
 		Token:       up.config.EnrollToken,
 		DeviceID:    up.rootLocal.ID,
 		PubKey:      pubKey,

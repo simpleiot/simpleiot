@@ -37,7 +37,11 @@ type Options struct {
 	NatsDisableServer bool
 	NatsPort          int
 	NatsHTTPPort      int
-	NatsWSPort        int
+	// NatsHTTPHost and NatsWSHost are the addresses the monitoring and
+	// WebSocket listeners bind; empty binds every interface.
+	NatsHTTPHost string
+	NatsWSPort   int
+	NatsWSHost   string
 	// NatsWSOrigins lists the origins allowed to open a NATS WebSocket,
 	// such as https://siot.example.com. Empty allows any origin; the
 	// browser still has to present a user JWT.
@@ -120,7 +124,9 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 		natsServer, err = newNatsServer(natsServerOptions{
 			Port:         o.NatsPort,
 			HTTPPort:     o.NatsHTTPPort,
+			HTTPHost:     o.NatsHTTPHost,
 			WSPort:       o.NatsWSPort,
+			WSHost:       o.NatsWSHost,
 			WSOrigins:    o.NatsWSOrigins,
 			MQTTPort:     o.NatsMQTTPort,
 			Auth:         auth,
@@ -148,8 +154,25 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 		}
 	}
 
+	// the server's own connection to its embedded server verifies the
+	// certificate it was given rather than a name, since the certificate
+	// is for the public name and the connection is over loopback
+	var tlsOpt nats.Option = func(*nats.Options) error { return nil }
+	if !o.NatsDisableServer && o.NatsTLSCert != "" {
+		certPEM, err := os.ReadFile(o.NatsTLSCert)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error reading TLS certificate: %v", err)
+		}
+		cfg, err := client.PinnedTLSConfig(certPEM)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error in TLS certificate: %v", err)
+		}
+		tlsOpt = nats.Secure(cfg)
+	}
+
 	// start the server side nats client
 	nc, err := nats.Connect(o.NatsServer,
+		tlsOpt,
 		nats.Timeout(10*time.Second),
 		nats.PingInterval(60*5*time.Second),
 		nats.MaxPingsOutstanding(5),
@@ -545,6 +568,7 @@ func (s *Server) Run() error {
 	httpAPI := api.NewServer(api.ServerArgs{
 		Port:               o.HTTPPort,
 		NatsWSPort:         o.NatsWSPort,
+		NatsTLSCert:        o.NatsTLSCert,
 		Filesystem:         http.FS(feFSDecomp),
 		Debug:              o.DebugHTTP,
 		Users:              siotStore,

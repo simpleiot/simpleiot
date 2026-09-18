@@ -15,6 +15,10 @@ type natsServerOptions struct {
 	Port     int
 	HTTPPort int
 	WSPort   int
+	// HTTPHost and WSHost bind the monitoring and WebSocket listeners to
+	// one address; empty binds every interface.
+	HTTPHost string
+	WSHost   string
 	// WSOrigins limits which page origins may open a WebSocket; empty
 	// allows any.
 	WSOrigins []string
@@ -41,6 +45,7 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 	opts := server.Options{
 		Port:                       o.Port,
 		HTTPPort:                   o.HTTPPort,
+		HTTPHost:                   o.HTTPHost,
 		CustomClientAuthentication: o.Auth,
 		// device credentials sign the connection nonce
 		AlwaysEnableNonce: true,
@@ -61,11 +66,7 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 		opts.TLSCert = o.TLSCert
 		opts.TLSKey = o.TLSKey
 		opts.TLSTimeout = o.TLSTimeout
-		tc := server.TLSConfigOpts{}
-		tc.CertFile = opts.TLSCert
-		tc.KeyFile = opts.TLSKey
-		tc.CaFile = opts.TLSCaCert
-		tc.Verify = opts.TLSVerify
+		tc := server.TLSConfigOpts{CertFile: o.TLSCert, KeyFile: o.TLSKey}
 
 		var err error
 		opts.TLSConfig, err = server.GenTLSConfig(&tc)
@@ -91,8 +92,14 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 
 	if o.WSPort != 0 {
 		opts.Websocket.Port = o.WSPort
+		opts.Websocket.Host = o.WSHost
 		opts.Websocket.AuthTimeout = o.TLSTimeout
-		opts.Websocket.NoTLS = true // will likely be fronted by Caddy anyway
+		// the listener serves TLS whenever the server has a certificate;
+		// the HTTP port's proxy reaches it over loopback either way
+		opts.Websocket.NoTLS = opts.TLSConfig == nil
+		if opts.TLSConfig != nil {
+			opts.Websocket.TLSConfig = opts.TLSConfig
+		}
 		opts.Websocket.HandshakeTimeout = time.Second * 20
 		// the HTTP server's proxy forwards the page's Origin header, so
 		// this applies to browsers arriving on either port

@@ -112,6 +112,12 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 		natsWSPort = n
 	}
 
+	// listeners bind every interface unless a host is given; an installed
+	// service sets these to loopback, since the HTTP port proxies the
+	// WebSocket and the monitoring port has no authentication
+	natsWSHost := os.Getenv("SIOT_NATS_WS_HOST")
+	natsHTTPHost := os.Getenv("SIOT_NATS_HTTP_HOST")
+
 	var natsWSOrigins []string
 	for _, o := range strings.Split(os.Getenv("SIOT_NATS_WS_ORIGINS"), ",") {
 		if o = strings.TrimSpace(o); o != "" {
@@ -290,7 +296,9 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 		NatsDisableServer: *flagNatsDisableServer,
 		NatsPort:          natsPort,
 		NatsHTTPPort:      natsHTTPPort,
+		NatsHTTPHost:      natsHTTPHost,
 		NatsWSPort:        natsWSPort,
+		NatsWSHost:        natsWSHost,
 		NatsWSOrigins:     natsWSOrigins,
 		NatsMQTTPort:      natsMQTTPort,
 		NatsTLSCert:       natsTLSCert,

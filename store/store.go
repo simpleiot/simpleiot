@@ -29,6 +29,7 @@ type Store struct {
 	subscriptions map[string]*nats.Subscription
 	db            *DbJetStream
 	authorizer    api.Key
+	limiter       *authLimiter
 
 	// cycle metrics track how long it takes to handle a point
 	metricCycleNodePoint     *client.Metric
@@ -81,6 +82,7 @@ func NewStore(p Params) (*Store, error) {
 		nc:            p.Nc,
 		db:            db,
 		authorizer:    authorizer,
+		limiter:       newAuthLimiter(),
 		subscriptions: make(map[string]*nats.Subscription),
 		pointErrLast:  make(map[string]time.Time),
 		chStop:        make(chan struct{}),
@@ -113,6 +115,24 @@ func (st *Store) UserAnchors(userID string) []string {
 // API uses it to keep a user's requests inside the user's groups.
 func (st *Store) IsUnder(id, anchor string) bool {
 	return st.db.isUnder(id, anchor)
+}
+
+// AuthAllowed reports whether a sign-in attempt for an account may be
+// checked now, or is refused because of earlier failures. The NATS
+// authorizer asks before checking a browser's token.
+func (st *Store) AuthAllowed(key string) bool {
+	return st.limiter.allowed(key)
+}
+
+// AuthFailed records a failed sign-in for an account, from any entry
+// point, and logs it.
+func (st *Store) AuthFailed(key, source string) {
+	delay := st.limiter.failed(key)
+	if delay > 0 {
+		log.Printf("Auth: sign-in failed for %q from %v, refused for %v", key, source, delay)
+		return
+	}
+	log.Printf("Auth: sign-in failed for %q from %v", key, source)
 }
 
 // Run connects to NATS server and set up handlers for things we are interested in
@@ -566,13 +586,25 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 		return
 	}
 
-	nodes, err := st.db.userCheck(emailP.Txt(), passP.Txt())
+	email := emailP.Txt()
 
-	if err != nil || len(nodes) <= 0 {
-		log.Println("Error, invalid user")
+	if !st.limiter.allowed(email) {
+		log.Printf("Auth: refusing sign-in for %q, too many failures", email)
 		returnNothing()
 		return
 	}
+
+	nodes, err := st.db.userCheck(email, passP.Txt())
+
+	if err != nil || len(nodes) <= 0 {
+		// the request arrives over NATS, so the source is the bus;
+		// the HTTP handler logs the remote address itself
+		st.AuthFailed(email, "auth.user")
+		returnNothing()
+		return
+	}
+
+	st.limiter.succeeded(email)
 
 	user, err := data.NodeToUser(nodes[0].ToNode())
 

@@ -3,10 +3,13 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/websocket"
+	"github.com/simpleiot/simpleiot/client"
 )
 
 // websocketProxy forwards a WebSocket opened on the HTTP port to the NATS
@@ -19,11 +22,16 @@ type websocketProxy struct {
 	backend            string
 	deviceAuthRequired bool
 	upgrader           websocket.Upgrader
+	dialer             websocket.Dialer
 }
 
-func newWebsocketProxy(backend string, deviceAuthRequired bool) *websocketProxy {
-	return &websocketProxy{
-		backend:            backend,
+// newWebsocketProxy makes a proxy to the NATS WebSocket listener on this
+// machine. When the server has a certificate the listener serves TLS, and
+// the proxy dials it over TLS expecting exactly that certificate, since
+// its name is the public one and not localhost.
+func newWebsocketProxy(wsPort int, certFile string, deviceAuthRequired bool) (*websocketProxy, error) {
+	p := &websocketProxy{
+		backend:            fmt.Sprintf("ws://localhost:%v", wsPort),
 		deviceAuthRequired: deviceAuthRequired,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  4096,
@@ -32,7 +40,22 @@ func newWebsocketProxy(backend string, deviceAuthRequired bool) *websocketProxy 
 			// allowed list; the header is forwarded to it below
 			CheckOrigin: func(*http.Request) bool { return true },
 		},
+		dialer: *websocket.DefaultDialer,
 	}
+
+	if certFile != "" {
+		pem, err := os.ReadFile(certFile)
+		if err != nil {
+			return nil, fmt.Errorf("error reading certificate: %w", err)
+		}
+		p.backend = fmt.Sprintf("wss://localhost:%v", wsPort)
+		p.dialer.TLSClientConfig, err = client.PinnedTLSConfig(pem)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return p, nil
 }
 
 func (p *websocketProxy) ServeHTTP(res http.ResponseWriter, req *http.Request) {
@@ -44,7 +67,7 @@ func (p *websocketProxy) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		header.Add("Sec-WebSocket-Protocol", prot)
 	}
 
-	back, resp, err := websocket.DefaultDialer.Dial(p.backend, header)
+	back, resp, err := p.dialer.Dial(p.backend, header)
 	if err != nil {
 		log.Printf("WebSocket proxy: error dialing %v: %v", p.backend, err)
 		status := http.StatusServiceUnavailable

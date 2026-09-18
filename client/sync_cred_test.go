@@ -32,7 +32,7 @@ func credUpstream(t *testing.T) (*nats.Conn, data.NodeEdge, server.Options, func
 // devicePubKey reads the key the downstream generated for itself.
 func devicePubKey(t *testing.T, ncD *nats.Conn) string {
 	t.Helper()
-	_, pubKey, err := client.GetDeviceKey(ncD)
+	pubKey, err := client.GetDeviceKey(ncD)
 	if err != nil {
 		t.Fatal("Error getting device key: ", err)
 	}

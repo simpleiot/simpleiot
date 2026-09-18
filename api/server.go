@@ -52,14 +52,14 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 // setSecurityHeaders puts the response headers every reply carries. The
 // content security policy allows what the UI is built from: its own
-// scripts and styles (the Elm UI sets styles inline), the fonts it loads,
-// and a WebSocket back to the server; and refuses to be framed.
+// scripts, styles (the Elm UI sets styles inline) and fonts, and a
+// WebSocket back to the server; and refuses to be framed.
 func setSecurityHeaders(h http.Header) {
 	h.Set("Content-Security-Policy",
 		"default-src 'self'; "+
 			"script-src 'self'; "+
-			"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "+
-			"font-src 'self' https://fonts.gstatic.com; "+
+			"style-src 'self' 'unsafe-inline'; "+
+			"font-src 'self'; "+
 			"img-src 'self' data:; "+
 			"connect-src 'self' ws: wss:; "+
 			"frame-ancestors 'none'; "+
@@ -80,8 +80,12 @@ func NewAppHandler(args ServerArgs) http.Handler {
 	var wsProxy http.Handler
 
 	if args.NatsWSPort > 0 {
-		wsProxy = newWebsocketProxy(fmt.Sprintf("ws://localhost:%v", args.NatsWSPort),
+		var err error
+		wsProxy, err = newWebsocketProxy(args.NatsWSPort, args.NatsTLSCert,
 			args.DeviceAuthRequired)
+		if err != nil {
+			log.Println("Error setting up WebSocket proxy:", err)
+		}
 	}
 
 	return &App{
@@ -100,7 +104,10 @@ type ServerArgs struct {
 	Users      UserAuthority
 	AuthToken  string
 	NatsWSPort int
-	Nc         *nats.Conn
+	// NatsTLSCert is the NATS server's certificate file when it serves
+	// TLS; the WebSocket proxy pins it.
+	NatsTLSCert string
+	Nc          *nats.Conn
 	// DeviceAuth resolves device tokens on the node API; nil accepts none.
 	DeviceAuth DeviceAuthorizer
 	// DeviceAuthRequired limits the shared token to loopback, on the API
