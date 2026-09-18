@@ -52,7 +52,9 @@ write elsewhere carries a `destination` mapping, whose keys are `nodeID`,
 `parent`, `highRate`, `pointType`, and `pointKey`. `nodeID` there is a key
 rather than a point type, so it is written as the ID of the node it names rather
 than as a description, which is worth knowing when moving a generator between
-instances.
+instances. The destination has to be the generator's parent or a node below it;
+a generator that names a node elsewhere in the tree does not run, and the reason
+is shown as an error on its node.
 
 Below is an export of several types of signal generator nodes:
 

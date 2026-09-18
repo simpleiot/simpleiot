@@ -151,7 +151,9 @@ well.
 A node sending high rate data also carries an `hrDest` point holding the ID of
 the destination node. Unlike a point of type `nodeID`, it is written as the ID
 rather than as a description, so it names a node in the instance it was exported
-from.
+from. The destination has to be the serial node's parent or a node below it; a
+destination elsewhere in the tree is refused, high rate data is dropped until it
+is fixed, and the reason is recorded as an error point on the serial node.
 
 ## Zephyr Examples
 

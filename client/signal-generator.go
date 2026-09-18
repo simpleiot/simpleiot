@@ -151,6 +151,15 @@ func (sgc *SignalGeneratorClient) validate(config SignalGenerator) (bool, string
 		problems = append(problems, "BatchPeriod must be set for high-rate data")
 	}
 
+	// the destination comes from a point, and the generator publishes
+	// with full access, so it may only reach what is under its parent
+	if config.Destination.NodeID != "" {
+		err := checkWriteTarget(sgc.nc, config.ID, config.Parent, config.Destination.NodeID)
+		if err != nil {
+			problems = append(problems, "destination refused: "+err.Error())
+		}
+	}
+
 	if len(problems) == 0 {
 		return true, ""
 	}
