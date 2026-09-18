@@ -116,6 +116,13 @@ subscribes fine, but every match lands on that one node, so name topics
 individually when they represent different things. The topic schema below is the
 better tool when you want one rule to cover many topics.
 
+On an `mqtt` node that is not directly under the root, a topic filter (and a
+topic schema) must start with a literal level: `plant-07/#` is allowed, and `#`,
+`+`, and `+/temp` are refused with an error on the node. The broker is shared by
+every group on the instance, so a node inside one group may not subscribe to
+what every other group publishes. An `mqtt` node directly under the root may use
+any filter.
+
 ## Automatic nodes with a topic schema
 
 Plain MQTT carries no information about which topic level is a site and which is
@@ -164,7 +171,9 @@ The rules:
   look the same from outside, so removal stays a human decision.
 - **A `maxNodes` limit** (default 1000) guards against topics that carry
   unbounded values such as message IDs. When the limit is reached, an error
-  point is set on the `mqtt` node and new topics are dropped.
+  point is set on the `mqtt` node and new topics are dropped. The same limit
+  bounds the groups, edge nodes, and devices Sparkplug creates, counted
+  separately.
 - **Explicit `mqttSub` children win.** A topic named by a subscription is
   handled by that subscription alone, so hand-tuned mappings with units and
   scaling override the schema where precision matters.

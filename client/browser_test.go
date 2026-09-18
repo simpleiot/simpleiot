@@ -90,3 +90,50 @@ func TestReadBrowserConfigValidFile(t *testing.T) {
 		t.Error("Failed to read QTWEBENGINE_REMOTE_DEBUGGING")
 	}
 }
+
+func TestBrowserConfigValueCheck(t *testing.T) {
+	for _, test := range []struct {
+		value string
+		ok    bool
+	}{
+		{"", true},
+		{"#D91824", true},
+		{"1024x600", true},
+		{"a\nQTWEBENGINE_DISABLE_SANDBOX=1", false},
+		{"a\rb", false},
+		{"a\x00b", false},
+		{"a\tb", false},
+	} {
+		err := checkConfigValue(test.value)
+		if test.ok && err != nil {
+			t.Errorf("%q: unexpected error %v", test.value, err)
+		}
+		if !test.ok && err == nil {
+			t.Errorf("%q: expected error", test.value)
+		}
+	}
+}
+
+func TestBrowserURLCheck(t *testing.T) {
+	for _, test := range []struct {
+		value string
+		ok    bool
+	}{
+		{"", true},
+		{"http://localhost:8080", true},
+		{"https://example.com/dashboard?x=1", true},
+		{"file:///usr/share/kiosk/index.html", true},
+		{"javascript:alert(1)", false},
+		{"ftp://example.com", false},
+		{"localhost:8080", false},
+		{"http://example.com\nX=1", false},
+	} {
+		err := checkBrowserURL(test.value)
+		if test.ok && err != nil {
+			t.Errorf("%q: unexpected error %v", test.value, err)
+		}
+		if !test.ok && err == nil {
+			t.Errorf("%q: expected error", test.value)
+		}
+	}
+}

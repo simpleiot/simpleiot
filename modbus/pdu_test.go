@@ -19,7 +19,7 @@ func TestPduReadCoils(t *testing.T) {
 		t.Errorf("Error processing request: %v", err)
 	}
 
-	bits, err := resp.RespReadBits()
+	bits, err := resp.RespReadBits(1)
 
 	if err != nil {
 		t.Errorf("Error getting bits: %v", err)
@@ -171,5 +171,136 @@ func TestProcessRequest(t *testing.T) {
 			}
 			t.Logf("register state: %+v", &regs)
 		})
+	}
+}
+
+// TestProcessRequestBounds checks that requests outside the protocol limits
+// get an illegal-data-value exception instead of a panic.
+func TestProcessRequestBounds(t *testing.T) {
+	regs := Regs{}
+	regs.AddCoil(128)
+	regs.AddReg(8, 1)
+
+	for _, test := range []struct {
+		name string
+		in   []byte
+	}{
+		{"ReadHoldingRegisters/0x8000", []byte{3, 0, 8, 0x80, 0x00}},
+		{"ReadHoldingRegisters/126", []byte{3, 0, 8, 0, 126}},
+		{"ReadHoldingRegisters/zero", []byte{3, 0, 8, 0, 0}},
+		{"ReadInputRegisters/0x8000", []byte{4, 0, 8, 0x80, 0x00}},
+		{"ReadInputRegisters/zero", []byte{4, 0, 8, 0, 0}},
+		{"ReadCoils/2048", []byte{1, 0, 128, 0x08, 0x00}},
+		{"ReadCoils/2001", []byte{1, 0, 128, 0x07, 0xd1}},
+		{"ReadCoils/zero", []byte{1, 0, 128, 0, 0}},
+		{"ReadDiscreteInputs/2048", []byte{2, 0, 128, 0x08, 0x00}},
+		{"ReadDiscreteInputs/zero", []byte{2, 0, 128, 0, 0}},
+		{"WriteMultipleCoils/zero", []byte{15, 0, 128, 0, 0, 0, 0}},
+		{"WriteMultipleCoils/0x8000", []byte{15, 0, 128, 0x80, 0, 0, 0}},
+		{"WriteMultipleRegisters/zero", []byte{0x10, 0, 8, 0, 0, 0, 0, 0}},
+		{"WriteMultipleRegisters/0x8000", []byte{0x10, 0, 8, 0x80, 0, 0, 0, 0}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			pdu := &PDU{
+				FunctionCode: FunctionCode(test.in[0]),
+				Data:         test.in[1:],
+			}
+			changed, resp, err := pdu.ProcessRequest(&regs)
+			if err != nil {
+				t.Fatalf("Error processing request: %v", err)
+			}
+			if changed {
+				t.Error("registers must not change")
+			}
+			if resp.FunctionCode != pdu.FunctionCode|0x80 {
+				t.Errorf("got function code %x, want exception", resp.FunctionCode)
+			}
+			if len(resp.Data) != 1 || resp.Data[0] != byte(ExcIllegalValue) {
+				t.Errorf("got %v, want illegal data value exception", resp.Data)
+			}
+		})
+	}
+}
+
+// TestProcessRequestLimits checks the largest legal counts still work.
+func TestProcessRequestLimits(t *testing.T) {
+	regs := Regs{}
+	for i := 0; i < MaxReadBits; i++ {
+		regs.AddCoil(i)
+	}
+	regs.AddReg(0, MaxReadRegs)
+
+	req := ReadCoils(0, MaxReadBits)
+	_, resp, err := req.ProcessRequest(&regs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bits, err := resp.RespReadBits(MaxReadBits); err != nil || len(bits) != MaxReadBits {
+		t.Errorf("read %v coils: %v, %v", MaxReadBits, len(bits), err)
+	}
+
+	req = ReadHoldingRegs(0, MaxReadRegs)
+	_, resp, err = req.ProcessRequest(&regs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if vals, err := resp.RespReadRegs(MaxReadRegs); err != nil || len(vals) != MaxReadRegs {
+		t.Errorf("read %v regs: %v, %v", MaxReadRegs, len(vals), err)
+	}
+}
+
+// TestRespReadBadLength checks that a response whose byte count disagrees
+// with the request returns an error instead of indexing past the buffer.
+func TestRespReadBadLength(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		bits  bool
+		pdu   PDU
+		count uint16
+	}{
+		{"bits/count larger than data", true, PDU{FuncCodeReadCoils, []byte{200, 1}}, 8},
+		{"bits/count short", true, PDU{FuncCodeReadCoils, []byte{1, 1}}, 16},
+		{"bits/count claims more than present", true, PDU{FuncCodeReadCoils, []byte{2, 1}}, 16},
+		{"bits/empty", true, PDU{FuncCodeReadCoils, []byte{}}, 1},
+		{"bits/zero request", true, PDU{FuncCodeReadCoils, []byte{0}}, 0},
+		{"bits/exception", true, PDU{FuncCodeReadCoils | 0x80, []byte{3}}, 1},
+		{"bits/wrong function", true, PDU{FuncCodeReadHoldingRegisters, []byte{2, 0, 1}}, 1},
+		{"regs/count larger than data", false, PDU{FuncCodeReadHoldingRegisters, []byte{250, 0, 1}}, 1},
+		{"regs/count short", false, PDU{FuncCodeReadHoldingRegisters, []byte{2, 0, 1}}, 2},
+		{"regs/count claims more than present", false, PDU{FuncCodeReadHoldingRegisters, []byte{4, 0, 1}}, 2},
+		{"regs/odd", false, PDU{FuncCodeReadHoldingRegisters, []byte{3, 0, 1, 2}}, 1},
+		{"regs/empty", false, PDU{FuncCodeReadHoldingRegisters, []byte{}}, 1},
+		{"regs/exception", false, PDU{FuncCodeReadHoldingRegisters | 0x80, []byte{2}}, 1},
+		{"regs/wrong function", false, PDU{FuncCodeReadCoils, []byte{2, 0, 1}}, 1},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var err error
+			if test.bits {
+				_, err = test.pdu.RespReadBits(test.count)
+			} else {
+				_, err = test.pdu.RespReadRegs(test.count)
+			}
+			if err == nil {
+				t.Error("expected error")
+			}
+		})
+	}
+
+	// an exception response surfaces as the exception
+	_, err := (&PDU{FuncCodeReadHoldingRegisters | 0x80, []byte{2}}).RespReadRegs(1)
+	if err != ExcIllegalAddress {
+		t.Errorf("got %v, want %v", err, ExcIllegalAddress)
+	}
+}
+
+func TestRespReadBits(t *testing.T) {
+	pdu := PDU{FuncCodeReadCoils, []byte{2, 0b10000001, 0b00000010}}
+	bits, err := pdu.RespReadBits(10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []bool{true, false, false, false, false, false, false, true, false, true}
+	if diff := cmp.Diff(bits, want); diff != "" {
+		t.Error(diff)
 	}
 }

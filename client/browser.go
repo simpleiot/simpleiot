@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/url"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
@@ -219,8 +221,50 @@ func readBrowserConfig(file io.Reader) (*BrowserConfigFile, error) {
 	return config, nil
 }
 
+// checkConfigValue refuses a value that would not survive as a single
+// KEY=VALUE line in the environment file. A newline would add a variable of
+// the attacker's choosing to the browser service's environment.
+func checkConfigValue(value string) error {
+	for _, r := range value {
+		if unicode.IsControl(r) {
+			return fmt.Errorf("value contains a control character: %q", value)
+		}
+	}
+	return nil
+}
+
+// checkBrowserURL accepts the schemes the kiosk browser is expected to
+// open. An empty URL is allowed so a setting can be cleared.
+func checkBrowserURL(value string) error {
+	if err := checkConfigValue(value); err != nil {
+		return err
+	}
+	if value == "" {
+		return nil
+	}
+	u, err := url.Parse(value)
+	if err != nil {
+		return fmt.Errorf("invalid URL %q: %w", value, err)
+	}
+	switch u.Scheme {
+	case "http", "https", "file":
+		return nil
+	default:
+		return fmt.Errorf("URL %q must use http, https, or file", value)
+	}
+}
+
 // update the file on disk with provided key/value pair
 func updateConfigInPlace(key, value string) error {
+	if err := checkConfigValue(value); err != nil {
+		return err
+	}
+	if key == "url" || key == "exception-url" {
+		if err := checkBrowserURL(value); err != nil {
+			return err
+		}
+	}
+
 	// Map user-friendly keys to actual environment variable names
 	keyMap := map[string]string{
 		"url":             "YOE_KIOSK_BROWSER_URL",

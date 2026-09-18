@@ -113,6 +113,12 @@ func (t *TCP) Type() TransportType {
 	return TransportTypeTCP
 }
 
+// delay between retries after Accept fails
+const (
+	acceptBackoffMin = 10 * time.Millisecond
+	acceptBackoffMax = time.Second
+)
+
 // TCPServer listens for new connections and then starts a modbus listener
 // on the port.
 type TCPServer struct {
@@ -154,6 +160,7 @@ func NewTCPServer(id, maxClients int, port string, regs *Regs, debug int) (*TCPS
 // 9 - dump raw data
 func (ts *TCPServer) Listen(errorCallback func(error),
 	changesCallback func(), done func()) {
+	backoff := acceptBackoffMin
 	for {
 		sock, err := ts.listener.Accept()
 		if err != nil {
@@ -165,33 +172,42 @@ func (ts *TCPServer) Listen(errorCallback func(error),
 				return
 			}
 			log.Println("Modbus TCP server: failed to accept connection:", err)
+			// back off so a persistent accept error (out of file
+			// descriptors, for example) does not spin
+			time.Sleep(backoff)
+			backoff = min(backoff*2, acceptBackoffMax)
+			continue
 		}
+		backoff = acceptBackoffMin
 
 		if ts.debug > 0 {
 			log.Println("New Modbus TCP connection")
 		}
 
 		ts.lock.Lock()
-		if len(ts.servers) < ts.maxClients {
-			transport := NewTCP(sock, 500*time.Millisecond, TransportServer)
-			server := NewServer(byte(ts.id), transport, ts.regs, ts.debug)
-			ts.servers = append(ts.servers, server)
-			go server.Listen(errorCallback,
-				changesCallback, func() {
-					// TCP server client has disconnected, remove from list
-					ts.lock.Lock()
-					for i := range ts.servers {
-						if ts.servers[i] == server {
-							ts.servers[i] = ts.servers[len(ts.servers)-1]
-							ts.servers = ts.servers[:len(ts.servers)-1]
-							break
-						}
-					}
-					ts.lock.Unlock()
-				})
-		} else {
-			log.Println("Modbus TCP server: warning reached max conn")
+		if len(ts.servers) >= ts.maxClients {
+			ts.lock.Unlock()
+			log.Println("Modbus TCP server: max connections reached, closing new connection from",
+				sock.RemoteAddr())
+			_ = sock.Close()
+			continue
 		}
+		transport := NewTCP(sock, 500*time.Millisecond, TransportServer)
+		server := NewServer(byte(ts.id), transport, ts.regs, ts.debug)
+		ts.servers = append(ts.servers, server)
+		go server.Listen(errorCallback,
+			changesCallback, func() {
+				// TCP server client has disconnected, remove from list
+				ts.lock.Lock()
+				for i := range ts.servers {
+					if ts.servers[i] == server {
+						ts.servers[i] = ts.servers[len(ts.servers)-1]
+						ts.servers = ts.servers[:len(ts.servers)-1]
+						break
+					}
+				}
+				ts.lock.Unlock()
+			})
 		ts.lock.Unlock()
 	}
 }

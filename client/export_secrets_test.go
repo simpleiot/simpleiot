@@ -31,7 +31,7 @@ func TestExportSecrets(t *testing.T) {
 	if strings.Contains(string(plain), "the-token") {
 		t.Fatalf("export carries the token without -secrets:\n%s", plain)
 	}
-	if !strings.HasPrefix(string(plain), "# authToken") {
+	if !strings.HasPrefix(string(plain), "# secret points (") || !strings.Contains(string(plain), "authToken") {
 		t.Fatalf("export does not say what it left out:\n%s", plain)
 	}
 	if !strings.Contains(string(plain), "uri: nats://cloud:4222") {

@@ -326,8 +326,7 @@ func (gc *GPSClient) runGpsd(config GPS, src *gpsSource) {
 func (gc *GPSClient) gpsdSession(config GPS, src *gpsSource,
 	conn *gpsConnState, counters *gpsCounters) (bool, error) {
 
-	dialer := net.Dialer{Timeout: gpsdDialTimeout}
-	netConn, err := dialer.Dial("tcp", config.GpsdAddress)
+	netConn, err := outboundDialer(gpsdDialTimeout).Dial("tcp", config.GpsdAddress)
 	if err != nil {
 		return false, err
 	}

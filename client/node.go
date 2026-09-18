@@ -6,6 +6,7 @@ import (
 	"log"
 	"reflect"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/goccy/go-yaml"
@@ -670,9 +671,9 @@ func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop fu
 // itself: the root is the instance rather than configuration, and a file
 // describing it would match nothing anywhere else.
 //
-// Secrets are left out unless asked for: authToken points are dropped and a
-// comment at the top says so. With secrets, treat the file as you would the
-// token itself.
+// Secrets are left out unless asked for: the point types
+// data.IsSecretPointType names are dropped and a comment at the top says so.
+// With secrets, treat the file as you would the credentials themselves.
 func ExportNodes(nc *nats.Conn, id string, secrets bool) ([]byte, error) {
 	root, err := GetRootNode(nc)
 	if err != nil {
@@ -747,11 +748,15 @@ func ExportNodes(nc *nats.Conn, id string, secrets bool) ([]byte, error) {
 
 	var header string
 
+	secretTypes := data.SecretPointTypes()
+	sort.Strings(secretTypes)
+
 	if !secrets {
 		for i := range f.Nodes {
 			dropSecretPoints(&f.Nodes[i])
 		}
-		header = "# authToken points are left out; export with -secrets to include them\n"
+		header = "# secret points (" + strings.Join(secretTypes, ", ") +
+			") are left out; export with -secrets to include them\n"
 	}
 
 	// indent sequences so that the nesting a person reads matches the nesting
@@ -768,7 +773,7 @@ func ExportNodes(nc *nats.Conn, id string, secrets bool) ([]byte, error) {
 func dropSecretPoints(n *data.NodeYAML) {
 	kept := n.Points[:0]
 	for _, p := range n.Points {
-		if p.Type != data.PointTypeAuthToken {
+		if !data.IsSecretPointType(p.Type) {
 			kept = append(kept, p)
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"sync"
@@ -86,7 +87,12 @@ func (sio *ShellyIo) rpc(method string, params interface{}, result interface{}) 
 		return err
 	}
 
-	res, err := httpClient.Post("http://"+sio.IP+"/rpc", "application/json",
+	host, err := shellyAddr(sio.IP)
+	if err != nil {
+		return err
+	}
+
+	res, err := httpClient.Post("http://"+host+"/rpc", "application/json",
 		bytes.NewReader(body))
 	if err != nil {
 		return err
@@ -97,7 +103,7 @@ func (sio *ShellyIo) rpc(method string, params interface{}, result interface{}) 
 	}
 
 	var frame shellyRPCFrame
-	if err := json.NewDecoder(res.Body).Decode(&frame); err != nil {
+	if err := json.NewDecoder(io.LimitReader(res.Body, shellyMaxBody)).Decode(&frame); err != nil {
 		return err
 	}
 	if frame.Error != nil {
@@ -190,11 +196,20 @@ func (w *shellyWatcher) send(u shellyStatusUpdate) {
 
 // session dials the device and reads frames until the connection fails.
 func (w *shellyWatcher) session() error {
-	dialer := websocket.Dialer{HandshakeTimeout: time.Second * 10}
-	conn, _, err := dialer.Dial("ws://"+w.ip+"/rpc", nil)
+	host, err := shellyAddr(w.ip)
 	if err != nil {
 		return err
 	}
+
+	dialer := websocket.Dialer{
+		HandshakeTimeout: time.Second * 10,
+		NetDialContext:   outboundDialer(time.Second * 10).DialContext,
+	}
+	conn, _, err := dialer.Dial("ws://"+host+"/rpc", nil)
+	if err != nil {
+		return err
+	}
+	conn.SetReadLimit(shellyMaxBody)
 
 	w.lock.Lock()
 	select {

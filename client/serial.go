@@ -23,6 +23,40 @@ import (
 // than taken from the point as is.
 const serialMaxMessageLength = 64 * 1024
 
+// serialConfigTypes are the point types that configure the serial client
+// itself. An MCU sends points about what it measures; a point of one of
+// these types arriving from the wire is dropped so the far end cannot
+// rewrite how it is talked to, or, with syncParent, the parent node's
+// configuration.
+var serialConfigTypes = map[string]bool{
+	data.PointTypeDescription:      true,
+	data.PointTypePort:             true,
+	data.PointTypeBaud:             true,
+	data.PointTypeProtocol:         true,
+	data.PointTypeTimeout:          true,
+	data.PointTypeLogConsole:       true,
+	data.PointTypeMaxMessageLength: true,
+	data.PointTypeHRDest:           true,
+	data.PointTypeSyncParent:       true,
+	data.PointTypeDebug:            true,
+	data.PointTypeDisabled:         true,
+	data.PointTypeDownload:         true,
+}
+
+// dropSerialConfigPoints returns the points from the wire that are not
+// serial client configuration.
+func dropSerialConfigPoints(pts data.Points) data.Points {
+	kept := pts[:0]
+	for _, p := range pts {
+		if serialConfigTypes[p.Type] {
+			log.Printf("Serial: dropping %v point sent by the MCU", p.Type)
+			continue
+		}
+		kept = append(kept, p)
+	}
+	return kept
+}
+
 // SerialDev represents a serial (MCU) config
 type SerialDev struct {
 	ID          string `node:"id"`
@@ -761,6 +795,7 @@ exitSerialClient:
 				}
 
 				shellPoints, shellAdmin := sd.handleShellLine(string(rd))
+				shellPoints = dropSerialConfigPoints(shellPoints)
 				sd.config.Rx++
 				sd.ratePointCount += len(shellPoints)
 
@@ -853,6 +888,7 @@ exitSerialClient:
 
 			// decode binary payload
 			points, errDecode := data.DecodePoints(payload)
+			points = dropSerialConfigPoints(points)
 			var adminPoints data.Points
 
 			sd.config.Rx++

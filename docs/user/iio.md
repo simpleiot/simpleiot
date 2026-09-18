@@ -44,7 +44,8 @@ the channels each one publishes along with their attributes, which is the
 quickest way to see what a device will produce.
 
 `Device` accepts the driver's name for the device, the sysfs directory name such
-as `iio:device0`, or a full path. Matching by name is preferred, since the
+as `iio:device0`, or a full absolute path; a relative path or one containing
+`..` is refused. Matching by name is preferred, since the
 device number depends on probe order and is not stable across boots. The client
 publishes the resolved `deviceName` and `devicePath` back to the node either
 way, so it is always clear which device is being read.

@@ -258,8 +258,8 @@ optional `repeatInterval`, in minutes, which reminds while the rule stays active
 and rate limits the action in both directions. A `setValue` action names what to
 write with `nodeID`, `pointType`, and `pointKey`, and what to write with
 `valueType` and `value` or `valueText`. A `playAudio` action names the WAV file
-to play with `filePath`, the ALSA device to play it on with `device`, and the
-channel with `channel`.
+to play with `filePath` (an absolute path, or a file name with no directory),
+the ALSA device to play it on with `device`, and the channel with `channel`.
 
 The rule's `active` state, its most recent notification, and any error are
 points the client maintains, so an export of a running rule carries them as

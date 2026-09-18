@@ -9,6 +9,15 @@ import (
 	"github.com/simpleiot/simpleiot/test"
 )
 
+// Protocol limits on the number of items one request may address
+// (Modbus Application Protocol V1.1b3, section 6).
+const (
+	MaxReadBits  = 2000
+	MaxReadRegs  = 125
+	MaxWriteBits = 1968
+	MaxWriteRegs = 123
+)
+
 // PDU for Modbus packets
 type PDU struct {
 	FunctionCode FunctionCode
@@ -51,6 +60,9 @@ func (p *PDU) ProcessRequest(regs RegProvider) (bool, PDU, error) {
 	case FuncCodeReadCoils, FuncCodeReadDiscreteInputs:
 		address := binary.BigEndian.Uint16(p.Data[:2])
 		count := binary.BigEndian.Uint16(p.Data[2:4])
+		if count < 1 || count > MaxReadBits {
+			return p.handleError(ExcIllegalValue)
+		}
 		bytes := byte((count + 7) / 8)
 		resp.Data = make([]byte, 1+bytes)
 		resp.Data[0] = bytes
@@ -70,6 +82,9 @@ func (p *PDU) ProcessRequest(regs RegProvider) (bool, PDU, error) {
 	case FuncCodeReadHoldingRegisters, FuncCodeReadInputRegisters:
 		address := binary.BigEndian.Uint16(p.Data[:2])
 		count := binary.BigEndian.Uint16(p.Data[2:4])
+		if count < 1 || count > MaxReadRegs {
+			return p.handleError(ExcIllegalValue)
+		}
 
 		resp.Data = make([]byte, 1+2*count)
 		resp.Data[0] = uint8(count * 2)
@@ -111,6 +126,9 @@ func (p *PDU) ProcessRequest(regs RegProvider) (bool, PDU, error) {
 	case FuncCodeWriteMultipleCoils:
 		address := binary.BigEndian.Uint16(p.Data[:2])
 		quantity := binary.BigEndian.Uint16(p.Data[2:4])
+		if quantity < 1 || quantity > MaxWriteBits {
+			return p.handleError(ExcIllegalValue)
+		}
 		if len(p.Data) != 5+((int(quantity)+7)/8) {
 			return p.handleError(ExcIllegalValue)
 		}
@@ -140,6 +158,9 @@ func (p *PDU) ProcessRequest(regs RegProvider) (bool, PDU, error) {
 	case FuncCodeWriteMultipleRegisters:
 		address := binary.BigEndian.Uint16(p.Data[:2])
 		quantity := binary.BigEndian.Uint16(p.Data[2:4])
+		if quantity < 1 || quantity > MaxWriteRegs {
+			return p.handleError(ExcIllegalValue)
+		}
 		if len(p.Data) != 5+(int(quantity)*2) {
 			return p.handleError(ExcIllegalValue)
 		}
@@ -161,11 +182,23 @@ func (p *PDU) ProcessRequest(regs RegProvider) (bool, PDU, error) {
 	return regsChanged, resp, nil
 }
 
-// RespReadBits reads coils and discrete inputs from a
-// response PDU.
-func (p *PDU) RespReadBits() ([]bool, error) {
-	if len(p.Data) < 2 {
-		return []bool{}, errors.New("not enough data")
+// respException returns the exception a response carries, if any.
+func (p *PDU) respException() error {
+	if p.FunctionCode&0x80 == 0 {
+		return nil
+	}
+	if len(p.Data) < 1 {
+		return errors.New("exception response without a code")
+	}
+	return ExceptionCode(p.Data[0])
+}
+
+// RespReadBits reads coils and discrete inputs from a response PDU. count is
+// the number of bits the request asked for; the response must carry exactly
+// that many, so a server cannot make the client read past its buffer.
+func (p *PDU) RespReadBits(count uint16) ([]bool, error) {
+	if err := p.respException(); err != nil {
+		return []bool{}, err
 	}
 	switch p.FunctionCode {
 	case FuncCodeReadCoils, FuncCodeReadDiscreteInputs:
@@ -173,29 +206,37 @@ func (p *PDU) RespReadBits() ([]bool, error) {
 	default:
 		return []bool{}, errors.New("invalid function code to read bits")
 	}
+	if count < 1 || count > MaxReadBits {
+		return []bool{}, fmt.Errorf("bit count %v out of range", count)
+	}
+	if len(p.Data) < 1 {
+		return []bool{}, errors.New("not enough data")
+	}
 
-	count := p.Data[0]
+	byteCount := int(count+7) / 8
+	if int(p.Data[0]) != byteCount {
+		return []bool{}, fmt.Errorf("expected byte count %v, got %v",
+			byteCount, p.Data[0])
+	}
+	if len(p.Data) < 1+byteCount {
+		return []bool{}, fmt.Errorf("expected %v data bytes, got %v",
+			byteCount, len(p.Data)-1)
+	}
+
 	ret := make([]bool, count)
-	byteIndex := 0
-	bitIndex := uint(0)
-
-	for i := byte(0); i < count; i++ {
-		ret[i] = ((p.Data[byteIndex+1] >> bitIndex) & 0x1) == 0x1
-		bitIndex++
-		if bitIndex >= 8 {
-			byteIndex++
-			bitIndex = 0
-		}
+	for i := range ret {
+		ret[i] = (p.Data[1+i/8]>>(i%8))&0x1 == 0x1
 	}
 
 	return ret, nil
 }
 
-// RespReadRegs reads register values from a
-// response PDU.
-func (p *PDU) RespReadRegs() ([]uint16, error) {
-	if len(p.Data) < 2 {
-		return []uint16{}, errors.New("not enough data")
+// RespReadRegs reads register values from a response PDU. count is the
+// number of registers the request asked for; the response must carry
+// exactly that many.
+func (p *PDU) RespReadRegs(count uint16) ([]uint16, error) {
+	if err := p.respException(); err != nil {
+		return []uint16{}, err
 	}
 	switch p.FunctionCode {
 	case FuncCodeReadHoldingRegisters, FuncCodeReadInputRegisters:
@@ -203,16 +244,25 @@ func (p *PDU) RespReadRegs() ([]uint16, error) {
 	default:
 		return []uint16{}, errors.New("invalid function code to read regs")
 	}
+	if count < 1 || count > MaxReadRegs {
+		return []uint16{}, fmt.Errorf("register count %v out of range", count)
+	}
+	if len(p.Data) < 1 {
+		return []uint16{}, errors.New("not enough data")
+	}
 
-	count := p.Data[0] / 2
-
-	if len(p.Data) < 1+int(count)*2 {
-		return []uint16{}, errors.New("RespReadRegs not enough data")
+	byteCount := int(count) * 2
+	if int(p.Data[0]) != byteCount {
+		return []uint16{}, fmt.Errorf("expected byte count %v, got %v",
+			byteCount, p.Data[0])
+	}
+	if len(p.Data) < 1+byteCount {
+		return []uint16{}, fmt.Errorf("expected %v data bytes, got %v",
+			byteCount, len(p.Data)-1)
 	}
 
 	ret := make([]uint16, count)
-
-	for i := 0; i < int(count); i++ {
+	for i := range ret {
 		ret[i] = binary.BigEndian.Uint16(p.Data[1+i*2 : 1+i*2+2])
 	}
 
