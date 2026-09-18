@@ -302,6 +302,9 @@ const (
 	PointTypeExpires     = "expires"
 	PointTypeEnrollToken = "enrollToken"
 
+	// PointTypePSK is the pre-shared key on a network manager connection.
+	PointTypePSK = "psk"
+
 	PointTypeMetricNatsCycleNodePoint          = "metricNatsCycleNodePoint"
 	PointTypeMetricNatsCycleNodeEdgePoint      = "metricNatsCycleNodeEdgePoint"
 	PointTypeMetricNatsCycleNode               = "metricNatsCycleNode"
