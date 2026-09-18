@@ -20,6 +20,13 @@ For more details or to discuss releases, please visit the
   [security reference](docs/ref/security.md#deployment-checklist) before
   exposing an instance to a network.
 
+### Fixed
+
+- **Device credentials on the upstream stay marked connected while the device is
+  connected.** A device could clear this status on its own copy of the
+  credential a few seconds after connecting, and the change synced back
+  upstream.
+
 ## [0.28.0] - 2026-09-17
 
 ### Added

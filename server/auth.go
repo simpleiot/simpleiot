@@ -816,6 +816,12 @@ func (a *authorizer) refreshCred(credID string) {
 		e.credID = credID
 		e.deviceID = deviceID
 		e.disabled = disabled
+		// this instance's own credential, replicated from the upstream,
+		// records connections to the upstream; reconcile would otherwise
+		// see no local connection and overwrite that record
+		if deviceID == a.rootID {
+			e.connected = false
+		}
 	}
 	a.mu.Unlock()
 
