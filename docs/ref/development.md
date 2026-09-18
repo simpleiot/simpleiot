@@ -13,7 +13,10 @@ available.
 
 Requirements:
 
-- Go
+- Go, at least the version named by the `go` directive in `go.mod`. A newer Go
+  downloads it automatically. Releases and CI build with that same version, so
+  bump it in `go.mod` deliberately, together with the `golangci-lint` pin in
+  `.github/workflows/go.yml` when the minor version changes.
 - Node/NPM
 
 Simple IoT build has currently been testing on Linux and MacOS systems. See

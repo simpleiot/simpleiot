@@ -422,10 +422,17 @@ for `/v1/auth` in the HTTP logger.
 413; responses carry the headers; `-debugHttp` output for a sign-in shows no
 password or token.
 
-### 18. Build releases with a current Go toolchain
+### 18. Build releases with a current Go toolchain (complete)
 
-- [ ] Pin a current toolchain in `go.mod` and check for known vulnerabilities in
+- [x] Pin a current toolchain in `go.mod` and check for known vulnerabilities in
       CI.
+
+**Done:** `go.mod` requires 1.27.1; both workflows take the version from
+`go.mod`; `go.yml` runs `govulncheck ./...`; `golang.org/x/crypto` is at
+v0.57.0; the `golangci-lint` pin moved to v2.13.2, the first with Go 1.27
+support. A pinned version was chosen over `stable` so that a new Go release
+cannot break the linter or ship untested in a release; bump `go.mod` before each
+release.
 
 **Problem:** `release.yml` takes the Go version from `go.mod`, which says
 `go 1.25.0` with no `toolchain` line, so release binaries are built with Go

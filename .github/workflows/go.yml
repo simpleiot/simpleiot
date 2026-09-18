@@ -8,10 +8,11 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v6
 
-      - name: Set up Go 1.25
+      - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: 1.25.12
+          # go.mod names the version; releases are built with the same one
+          go-version-file: go.mod
         id: go
 
       - name: Set up nodejs
@@ -37,10 +38,14 @@ jobs:
           . envsetup.sh
           go test -p=1 -race "$@" ./...
 
+      - name: Check dependencies for known vulnerabilities
+        run: |
+          go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
       - name: Lint backend
         uses: golangci/golangci-lint-action@v9
         with:
           # Pinned so CI matches the version developers run locally. Bump
           # this deliberately, along with any fixes new checks require.
-          version: v2.12.2
+          version: v2.13.2
           args: --timeout=5m

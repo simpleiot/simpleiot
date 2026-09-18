@@ -19,6 +19,10 @@ For more details or to discuss releases, please visit the
   upstream, is open to anyone who can reach it. See the
   [security reference](docs/ref/security.md#deployment-checklist) before
   exposing an instance to a network.
+- **Builds require Go 1.27.1, and releases are built with the version `go.mod`
+  names.** Release binaries were built with Go 1.25.0, the minimum the module
+  declared, rather than the version CI tested with. CI now checks dependencies
+  with `govulncheck` as well.
 
 ### Fixed
 
