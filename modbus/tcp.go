@@ -115,7 +115,7 @@ func (t *TCP) Type() TransportType {
 
 // delay between retries after Accept fails
 const (
-	acceptBackoffMin = 10 * time.Millisecond
+	acceptBackoffFirst = 10 * time.Millisecond
 	acceptBackoffMax = time.Second
 )
 
@@ -160,7 +160,7 @@ func NewTCPServer(id, maxClients int, port string, regs *Regs, debug int) (*TCPS
 // 9 - dump raw data
 func (ts *TCPServer) Listen(errorCallback func(error),
 	changesCallback func(), done func()) {
-	backoff := acceptBackoffMin
+	backoff := acceptBackoffFirst
 	for {
 		sock, err := ts.listener.Accept()
 		if err != nil {
@@ -178,7 +178,7 @@ func (ts *TCPServer) Listen(errorCallback func(error),
 			backoff = min(backoff*2, acceptBackoffMax)
 			continue
 		}
-		backoff = acceptBackoffMin
+		backoff = acceptBackoffFirst
 
 		if ts.debug > 0 {
 			log.Println("New Modbus TCP connection")

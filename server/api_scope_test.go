@@ -208,7 +208,7 @@ func TestAPIUserScope(t *testing.T) {
 		t.Fatalf("anchor reply: %s", body)
 	}
 	// the shared token still reads everything
-	code, body = apiGetNode(t, base+"/v1/nodes/sync-g", "")
+	code, _ = apiGetNode(t, base+"/v1/nodes/sync-g", "")
 	if code != http.StatusUnauthorized {
 		t.Fatalf("empty bearer accepted: %v", code)
 	}

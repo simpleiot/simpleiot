@@ -177,7 +177,7 @@ func (s *sparkplugState) setMaxNodes(n int) {
 func (s *sparkplugState) roomForNode() error {
 	if len(s.nodes) >= s.maxNodes {
 		return fmt.Errorf(
-			"Sparkplug has created its limit of %v nodes; new groups, edge nodes, and devices are being dropped",
+			"sparkplug has created its limit of %v nodes; new groups, edge nodes, and devices are being dropped",
 			s.maxNodes)
 	}
 	return nil
