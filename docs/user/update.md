@@ -10,7 +10,10 @@ download and install new updates.
 
 There are several options:
 
-- **Update server**: HTTP server that contains the following files:
+- **Update server**: HTTPS server that contains the following files. The URI
+  must use `https`; the update image is not signed, so a plain `http` server
+  would let anyone on the network path replace it. `files.txt` is limited to 1
+  MiB and an update image to 4 GiB.
   - files.txt: contains a list of update files on the server
   - update files named: `<prefix>_<version>.upd`
     - `version` should follow [Semantic Versioning](https://semver.org/):
@@ -39,7 +42,7 @@ nodes:
       directory: /data
       pollPeriod: 60
       prefix: myboard
-      uri: http://updates.example.com
+      uri: https://updates.example.com
 ```
 
 `pollPeriod` is how often the server is checked, in minutes, and defaults to 30
