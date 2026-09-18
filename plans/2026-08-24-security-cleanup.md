@@ -49,10 +49,18 @@ included in `siot export`.
 with a legacy plaintext point succeeds once and leaves a hash behind; wrong
 password fails.
 
-### 2. Redact secret points from read paths
+### 2. Redact secret points from read paths (complete)
 
-- [ ] Strip secret-valued points (`pass`, `authToken`, and any future seed
+- [x] Strip secret-valued points (`pass`, `authToken`, and any future seed
       point) from node read responses.
+
+**Done:** `data.IsSecretPointType` lists `pass`, `authToken`, `enrollToken`,
+`sid`, and `psk`; `data.RedactNodes` empties their values in replies on the user
+path (`u.<anchor>.<user>.nodes.>`) and in HTTP replies to a user or device, and
+`dropSecretPoints` in export uses the same list. The plain `nodes.>` subject is
+left as is, since the server's own clients read their tokens there and only the
+shared token reaches it. Parents outside the user's groups are left out of
+`nodes.all.<id>` replies (item 20).
 
 **Problem:** the `nodes.*.*` NATS subjects, and the `u.<anchor>.<user>.nodes.*`
 subjects the browser reads through, return all points, so the tree a browser
@@ -71,10 +79,15 @@ list of secret point types. Writes are unaffected. `siot export` already omits
 value and a sync node response contains no `authToken` value; export without
 `--secrets` omits them with a comment.
 
-### 3. Remove the empty-token auth bypass on the HTTP API
+### 3. Remove the empty-token auth bypass on the HTTP API (complete)
 
-- [ ] Require a valid JWT on `/v1/nodes` routes whenever the device token check
+- [x] Require a valid JWT on `/v1/nodes` routes whenever the device token check
       does not apply, and never treat an empty token as a match.
+
+**Done:** `authenticate` in `api/nodes.go` resolves a request to a principal;
+the shared token applies only when one is configured, compared with
+`subtle.ConstantTimeCompare`, and anything else needs a `Bearer` token that is a
+user's or a device's. `TestAPINoTokenNoBypass` covers it.
 
 **Problem:** `authenticate` in `api/nodes.go` compares
 `req.Header.Get("Authorization")` with `h.authToken`. With `SIOT_AUTH_TOKEN`
@@ -130,9 +143,14 @@ deliberately. Mention in configuration docs.
 
 **Verify:** default boot: 8222 refuses connections from a non-loopback address.
 
-### 7. Rate-limit and log authentication attempts
+### 7. Rate-limit and log authentication attempts (complete)
 
-- [ ] Throttle `auth.user` (NATS) and `/v1/auth` (HTTP) and log failures.
+- [x] Throttle `auth.user` (NATS) and `/v1/auth` (HTTP) and log failures.
+
+**Done:** `store/limiter.go` keys on the account presented; `auth.user`,
+`/v1/auth` (which logs the remote address), and the NATS authorizer's user check
+share it through `AuthAllowed` and `AuthFailed` on the store. Five failures
+start a one second refusal that doubles to five minutes.
 
 **Problem:** `store/store.go` answers password checks for any connected client
 at full speed with no logging — an unthrottled, invisible oracle. The NATS
@@ -147,10 +165,15 @@ audit-trail-as-points is out of scope here.
 
 **Verify:** test that repeated failures are delayed/refused and logged.
 
-### 8. Harden the user JWT check
+### 8. Harden the user JWT check (mostly complete)
 
-- [ ] Validate issuer and confirm the user still exists on every check, and
+- [x] Validate issuer and confirm the user still exists on every check, and
       shorten the token lifetime.
+
+**Done:** the issuer is checked in `TokenClaims`, and the HTTP routes refuse a
+token whose user has no anchors (deleted or not in the tree). **Open:** the
+lifetime stays at seven days, since the renewal over the NATS connection that
+the shorter lifetime depends on is not built yet; shorten it with that work.
 
 **Problem:** `api/key.go` issues 7-day tokens, never checks the issuer claim,
 and `Valid` never confirms the user node still exists — a deleted user keeps
@@ -171,10 +194,17 @@ sequencing.
 **Verify:** test that a token for a deleted user is rejected; a token with a
 wrong issuer is rejected.
 
-### 9. TLS plumbing corrections
+### 9. TLS plumbing corrections (complete)
 
-- [ ] Make the NATS WebSocket listener able to serve TLS, and let the NATS
+- [x] Make the NATS WebSocket listener able to serve TLS, and let the NATS
       client pin a CA.
+
+**Done:** the WebSocket listener serves TLS whenever the server has a
+certificate; the server's own loopback connection and the HTTP port's proxy
+accept exactly that certificate (`client.PinnedTLSConfig`), so it need not be
+issued for `localhost`; a sync node's `caCert` point is wired to the edge
+connection's root pool; the dead client-cert fields are gone. `TestTLS` covers
+the listeners, the proxy, and a pinned edge client refusing another chain.
 
 **Problem:** `server/nats-server.go:89` hardcodes `Websocket.NoTLS = true` even
 when NATS TLS certs are configured; `client/edge.go` sets no `nats.RootCAs`, so
@@ -231,11 +261,14 @@ sides move.
 
 ## Audit, September 2026
 
-A security audit at `v0.28.0` confirmed items 2, 3, 4, 6, 7, 8, and 9 above are
-still open and found the items below. Each finding marked _proven_ was
-reproduced with a throwaway test against a test server; the others were read in
-the code. The [security reference](../docs/ref/security.md#known-limitations)
-carries the operator-facing summary.
+A security audit at `v0.28.0` confirmed items 2, 3, 4, 6, 7, 8, and 9 above were
+still open and found the items below. Everything except items 4 and 6 (kept open
+by choice), the token lifetime in item 8, and two bullets of item 20 was closed
+in the release after `v0.28.0`; each item says what was done. Each finding
+marked _proven_ was reproduced with a throwaway test against a test server; the
+others were read in the code. The
+[security reference](../docs/ref/security.md#known-limitations) carries the
+operator-facing summary.
 
 Suggested order, by how much each one closes:
 
@@ -254,10 +287,17 @@ Suggested order, by how much each one closes:
    small.
 7. The rest in any order.
 
-### 11. Check both ends of an edge write from a browser (proven)
+### 11. Check both ends of an edge write from a browser (complete)
 
-- [ ] Require the child of a `u.<anchor>.<user>.ep.<child>.<parent>` request to
+- [x] Require the child of a `u.<anchor>.<user>.ep.<child>.<parent>` request to
       be under the anchor already, as well as the parent.
+
+**Done:** `handleUserRequest` refuses an `ep` request unless the child has no
+edges at all or was ever under the anchor (deleted edges count, so a user can
+restore what they deleted); `edgePoints` refuses a live edge whose parent is at
+or below its child, from any writer; `getNodesDepth` carries one visited set and
+caps depth at 64; the upstream fan-out uses a visited set. `TestUserEdgeScope`
+covers it.
 
 **Problem:** `handleUserRequest` in `store/store.go` checks
 `isUnder(parent, anchor)` for an `ep` request and never looks at the child. A
@@ -280,10 +320,14 @@ request open.
 `u.G.U.ep.<root>.G`; creating a new node under G still works; a `nodes` request
 with a large depth over a mirrored subtree returns.
 
-### 12. Scope the HTTP node routes to the user (proven)
+### 12. Scope the HTTP node routes to the user (complete)
 
-- [ ] Apply `UserAnchors` and `isUnder` to every `/v1/nodes/{id}` route, for
+- [x] Apply `UserAnchors` and `isUnder` to every `/v1/nodes/{id}` route, for
       both the node and any parent named in the body.
+
+**Done:** every route checks the node in the path and each parent in the body
+against the principal, including a `POST /v1/nodes` that names an existing
+node's ID. `TestAPIUserScope` covers each route on a node in another group.
 
 **Problem:** this was listed under "Deliberately excluded" as future work. The
 audit shows it gives any account the whole tree: `api/nodes.go` accepts any
@@ -301,10 +345,15 @@ retiring the routes stands; this closes the gap until then.
 duplicate, notification, and key request on a node in H, and 200 for the same on
 a node in G.
 
-### 13. Decide where a replicated user may sign in (proven)
+### 13. Decide where a replicated user may sign in (complete)
 
-- [ ] Stop a user node that arrived from a downstream instance from signing in
+- [x] Stop a user node that arrived from a downstream instance from signing in
       on the upstream, or make that an explicit, documented choice.
+
+**Done:** `userCheck` considers only users whose `pass` point was written on
+this instance (its origin is the local root). Documented in
+`docs/user/users-groups.md`. `TestReplicatedUserSignIn` covers a device user and
+a device's default admin being refused upstream.
 
 **Problem:** sync replicates a device's user nodes upstream, and `userCheck` in
 `store/jetstream.go` accepts any user with a path to the root. In the test, a
@@ -324,10 +373,15 @@ it to the device subtree on every door (items 11 and 12), and say so in
 **Verify:** a user created on a downstream instance is refused at the upstream's
 `/v1/auth` (or, if kept, is refused everything outside the device subtree).
 
-### 14. Bind an enrollment request to its connection and its device (proven)
+### 14. Bind an enrollment request to its connection and its device (complete)
 
-- [ ] Refuse an enrollment request for a device that already has a live
+- [x] Refuse an enrollment request for a device that already has a live
       credential, and check the key in the request against the connection.
+
+**Done:** as proposed. The reply subject has to start with the requested key's
+inbox prefix, `data.CheckSubjectToken` validates the device ID, a device with a
+live credential gets a further key as pending under any token, and at most 100
+devices may be pending. `TestEnrollBinding` covers it.
 
 **Problem:** `enroll` in `server/enroll.go` takes `DeviceID` and `PubKey` from
 the request body. A holder of the fleet enrollment token can name an existing
@@ -353,10 +407,17 @@ create.
 connection's is refused; a device ID containing `.`, `*`, `>`, or whitespace is
 refused before any node is created.
 
-### 15. Make `required` hold on the HTTP port (proven)
+### 15. Make `required` hold on the HTTP port (complete)
 
-- [ ] Stop the built-in WebSocket proxy from making a remote connection look
+- [x] Stop the built-in WebSocket proxy from making a remote connection look
       local.
+
+**Done:** the NATS server does not expose the connection type to the authorizer,
+so the check lives in the proxy instead: `api/ws-proxy.go` (which replaces the
+`koding/websocketproxy` dependency) inspects the first frame and refuses a
+`CONNECT` carrying a token from a non-loopback address under `required`. A
+reverse proxy in front of the HTTP port is documented as still making
+connections look local. `TestAPIRequiredThroughProxy` covers it.
 
 **Problem:** under `SIOT_DEVICE_AUTH=required` the shared token is accepted only
 from loopback (`checkToken` in `server/auth.go`, `authenticate` in
@@ -378,9 +439,15 @@ token on HTTP entirely under `required`.
 WebSocket proxy from a non-loopback address and still accepted on the NATS port
 from loopback.
 
-### 16. Keep the device key seed off the bus
+### 16. Keep the device key seed off the bus (complete)
 
-- [ ] Remove the seed from the `auth.deviceKey` reply.
+- [x] Remove the seed from the `auth.deviceKey` reply.
+
+**Done:** `auth.deviceKey` answers with the public key only and a new
+`auth.deviceSign` signs a nonce, so the sync client and `client.Enroll` take a
+public key and a signature handler (`client.DeviceSigner`) rather than a seed. A
+full-access connection can still have the server sign while connected, but
+nothing it reads stays useful afterward.
 
 **Problem:** `handleGet` in `server/device-key.go` answers `auth.deviceKey` with
 the instance's NKey seed as well as its public key. Any full-access connection
@@ -399,10 +466,16 @@ which file permissions protect.
 **Verify:** a request to `auth.deviceKey` returns no seed; sync with a device
 credential still connects.
 
-### 17. Harden the HTTP server
+### 17. Harden the HTTP server (complete)
 
-- [ ] Add timeouts, body limits, and response headers, and keep credentials out
+- [x] Add timeouts, body limits, and response headers, and keep credentials out
       of the debug log.
+
+**Done:** `http.Server` with header, read, and idle timeouts;
+`http.MaxBytesReader` at 4 MB on `/v1` (413 on overflow); the four headers on
+every response, with fonts served from the binary so the policy names no
+third-party origin; sign-in bodies skipped by the debug logger; constant-time
+token compare.
 
 **Problem:** `api/server.go` calls `http.Serve` with no timeouts, so idle or
 slow connections are held open without limit. Request bodies are decoded with no
@@ -449,9 +522,17 @@ advisories in `ssh`, which is not imported.
 **Verify:** `go version` on a release binary reports the pinned toolchain; CI
 fails on a called vulnerability.
 
-### 19. Safer defaults for an installed service
+### 19. Safer defaults for an installed service (complete)
 
-- [ ] Have `siot install` produce a service that is not open to the network.
+- [x] Have `siot install` produce a service that is not open to the network.
+
+**Done:** `siot install` generates a token into `SIOT_DATA/siot.env` (`0600`,
+kept on reinstall), creates the data directory `0700`, and the unit binds the
+WebSocket and monitoring listeners to loopback through the new
+`SIOT_NATS_WS_HOST` and `SIOT_NATS_HTTP_HOST`. A root install adds
+`NoNewPrivileges`, `ProtectSystem=strict`, `ProtectHome`, `PrivateTmp`, and
+`ReadWritePaths` for the data and binary directories; hardware access is a
+documented drop-in. Program defaults are unchanged (see item 6).
 
 **Problem:** `install/siot.service` sets `SIOT_AUTH_TOKEN=""` and has no `User=`
 or sandboxing directives; every listener (8118, 4222, 8222, 9222) binds all
@@ -473,32 +554,44 @@ another host, and `systemd-analyze security siot` improves.
 
 ### 20. Smaller items
 
-- [ ] Redaction (item 2) should also cover `nodes.all.<id>` replies to a
+- [x] Redaction (item 2) should also cover `nodes.all.<id>` replies to a
       browser: they list every parent edge of the node, including parents
-      outside the user's anchors, which discloses the IDs item 11 needs.
+      outside the user's anchors, which discloses the IDs item 11 needs. (Done;
+      the anchor's own edge is the one exception, since the UI needs it.)
 - [ ] Inside an anchor every node is writable, including other users' `pass` and
       `email` points, so one member of a group can take over another. A `role`
       edge point, or limiting writes on `user` nodes to the user and to members
-      of a parent group, would close it.
-- [ ] `userCheck` runs bcrypt only when the email matches, so response time
+      of a parent group, would close it. (Open: a design decision about roles.)
+- [x] `userCheck` runs bcrypt only when the email matches, so response time
       tells whether an account exists. Compare against a fixed hash when it does
-      not.
-- [ ] Use a 32-byte JWT signing key (`initJwtKey` makes 20 bytes).
+      not. (Done.)
+- [x] Use a 32-byte JWT signing key (`initJwtKey` makes 20 bytes). (Done for new
+      stores; an existing store keeps its key.)
 - [ ] Sign `checksums.txt` for releases and verify it in `siot update`; the
-      checksum today comes from the same place as the binary.
-- [ ] Pin GitHub Actions to commit SHAs and give `go.yml` a
-      `permissions:     contents: read` block.
-- [ ] Serve the UI fonts from the binary instead of `fonts.googleapis.com`,
-      which also lets the UI render on an isolated network.
-- [ ] Remove `frontend/public/ble.js`, which is embedded and served but unused,
-      and refresh or remove `contrib/configs/signal-gen.yaml`.
-- [ ] Un-anchor the key patterns in `.gitignore` (`device.nkey`, `*.nkey`,
+      checksum today comes from the same place as the binary. (Open: needs a
+      signing key held as a release secret, which is a decision for the
+      maintainer.)
+- [x] Pin GitHub Actions to commit SHAs and give `go.yml` a
+      `permissions:     contents: read` block. (Done.)
+- [x] Serve the UI fonts from the binary instead of `fonts.googleapis.com`,
+      which also lets the UI render on an isolated network. (Done: IBM Plex
+      Sans, latin and latin-ext, in `frontend/public/fonts`.)
+- [x] Remove `frontend/public/ble.js`, which is embedded and served but unused,
+      and refresh or remove `contrib/configs/signal-gen.yaml`. (Both removed.)
+- [x] Un-anchor the key patterns in `.gitignore` (`device.nkey`, `*.nkey`,
       `*.pem`, `*.key`) so a data directory elsewhere in the tree is covered.
+      (Done.)
 
-### 21. Keep one bad point from stopping the instance (proven)
+### 21. Keep one bad point from stopping the instance (complete)
 
-- [ ] Recover from panics in client goroutines and clamp values that come from
+- [x] Recover from panics in client goroutines and clamp values that come from
       points before they reach a ticker or an allocation.
+
+**Done:** `client/recover.go` and the manager restart a panicking client with
+backoff and record the error on the node; `client/duration.go` bounds every
+period taken from a point (the bounds per client are in its doc comment); the
+signal generator refuses a `sampleRate` above 1 MHz; `maxMessageLength` is
+capped at 64 KiB. `client/fault_test.go` reproduces the three cases.
 
 **Problem:** no goroutine in `client/`, `modbus/`, `server/`, `store/`, or
 `api/` recovers from a panic, so a panic in any client ends the whole process:
@@ -527,10 +620,14 @@ maximum, used everywhere a ticker is built; a ceiling on `maxMessageLength`.
 **Verify:** the three point values above leave the instance running with an
 error on the node.
 
-### 22. Bound Modbus requests and responses (proven at unit level)
+### 22. Bound Modbus requests and responses (complete)
 
-- [ ] Validate counts in the Modbus server and client and close connections over
+- [x] Validate counts in the Modbus server and client and close connections over
       the limit.
+
+**Done:** as proposed, with the protocol limits as constants in `modbus/pdu.go`,
+response decoders that take the requested count, and a TCP server that closes a
+connection over the limit and backs off on `Accept` errors.
 
 **Problem:** a Modbus TCP server node listens on every interface with no
 authentication, which is how Modbus works, so its parser is exposed to the
@@ -549,11 +646,16 @@ request; close connections over the limit and back off on `Accept` errors.
 **Verify:** unit tests for each malformed frame return an exception or an error;
 a sixth connection is closed.
 
-### 23. Keep a client's writes inside its own subtree (proven)
+### 23. Keep a client's writes inside its own subtree (complete)
 
-- [ ] Check the target of a rule action, a signal generator destination, and a
+- [x] Check the target of a rule action, a signal generator destination, and a
       serial high-rate destination against the client's parent before
       publishing.
+
+**Done:** `checkWriteTarget` in `client/scope.go`, applied to rule actions, the
+signal generator destination, and the serial high-rate destination; a refusal is
+recorded on the action or client node. Documented in the rules, signal
+generator, and MCU pages.
 
 **Problem:** clients publish on the server's full-access connection. A rule
 action's `nodeID`, `pointType`, and value come from points and are published
@@ -571,42 +673,46 @@ needs to reach across groups belongs at a level that contains both.
 **Verify:** a rule under G is refused an action targeting a node under H, with
 the error recorded on the action node.
 
-### 24. Validate what clients take from points and peers
+### 24. Validate what clients take from points and peers (complete)
 
-Smaller client items from the audit, each independent:
+Smaller client items from the audit, each independent. All done; the recipient
+change keeps the user-node path and ignores a `message` point on any other node,
+the dial policy is off by default and enabled with `SIOT_OUTBOUND_DENY_PRIVATE`
+since edge devices talk to LAN peers, and the MQTT rule is that a filter on a
+node inside a group starts with a literal level.
 
-- [ ] **Update client:** in addition to signing (see "Deliberately excluded"),
+- [x] **Update client:** in addition to signing (see "Deliberately excluded"),
       require `https`, check the response status, and add a timeout and a size
       cap to the download and to `files.txt`.
-- [ ] **Kiosk browser client:** reject control characters and validate the URL
+- [x] **Kiosk browser client:** reject control characters and validate the URL
       scheme before writing `/etc/default/yoe-kiosk-browser`, since a newline
       adds a variable to the unit's environment.
-- [ ] **Message service:** a `message` point raised anywhere below the service
+- [x] **Message service:** a `message` point raised anywhere below the service
       is sent to the phone or email in the point, with no rate limit, so a user
       in a subgroup can send through the operator's Twilio or SMTP account.
       Derive recipients from user nodes and add a limit. Strip CR and LF from
       SMTP headers (`msg/smtp.go`).
-- [ ] **Outbound requests:** the metrics scraper, Shelly `ip`, ntfy URL, Modbus
+- [x] **Outbound requests:** the metrics scraper, Shelly `ip`, ntfy URL, Modbus
       `uri`, and gpsd address are dialed as given, and errors are written back
       to the node, so a user on a cloud instance can probe its internal network.
       A shared policy that refuses loopback, link-local, and private ranges
       unless allowed, and parses `ip` as an address.
-- [ ] **Shelly discovery:** an mDNS answer with a known device name rewrites
+- [x] **Shelly discovery:** an mDNS answer with a known device name rewrites
       that device's `ip`. Confirm identity before changing a known address, and
       bound the JSON and WebSocket reads.
-- [ ] **Serial and Particle:** points arriving from an MCU are merged into the
+- [x] **Serial and Particle:** points arriving from an MCU are merged into the
       serial node's own configuration (and the parent's with `syncParent`). Drop
       the client's configuration point types when they arrive from the wire.
-- [ ] **Secrets:** extend item 2 and `dropSecretPoints` to `psk`, `enrollToken`,
+- [x] **Secrets:** extend item 2 and `dropSecretPoints` to `psk`, `enrollToken`,
       `sid`, and the messaging, database, and Particle tokens. Send the Particle
       token as a header; it is in the URL today and appears in logged errors.
-- [ ] **MQTT:** a user can add an `mqtt` node subscribed to `#` and receive
+- [x] **MQTT:** a user can add an `mqtt` node subscribed to `#` and receive
       every tenant's publishes as points. Restrict filters on nodes below the
       root, and cap the nodes Sparkplug may create.
-- [ ] **Paths from points:** the IIO `device` and `channel`, the OneWire `id`,
+- [x] **Paths from points:** the IIO `device` and `channel`, the OneWire `id`,
       the rule `playAudio` file, and `ListenForFile` names accept `../`.
       Validate each against its expected form.
-- [ ] **NTP client:** filter newlines in `server` and `fallbackServer`, write a
+- [x] **NTP client:** filter newlines in `server` and `fallbackServer`, write a
       newline between the two settings, and close the file.
 
 ## Deliberately excluded

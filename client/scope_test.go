@@ -164,7 +164,7 @@ func TestRuleActionScope(t *testing.T) {
 	var errDot string
 	waitFor(t, 5*time.Second, "refusal recorded on the dotted action", func() bool {
 		errDot = nodeText(t, nc, "sec23-act-dot", data.PointTypeError)
-		return strings.Contains(errDot, "not allowed in a node ID")
+		return strings.Contains(errDot, "which is not allowed")
 	})
 	t.Logf("dotted action error: %v", errDot)
 

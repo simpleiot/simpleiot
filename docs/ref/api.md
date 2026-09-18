@@ -158,8 +158,8 @@ Most APIs that do not return specific data (update/delete) return a
 
 Every node route needs credentials: the shared token as the `Authorization`
 header, or `Authorization: Bearer <jwt>` with a user's sign-in token or a
-device's signed token. A user's request is refused when the node in the path,
-or a parent named in the body, is outside the groups the user belongs to, and
+device's signed token. A user's request is refused when the node in the path, or
+a parent named in the body, is outside the groups the user belongs to, and
 replies to a user or device carry secret points with an empty value. See the
 [security reference](security.md#http).
 

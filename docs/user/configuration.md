@@ -17,13 +17,12 @@ The following are currently defined:
     a [device credential](sync.md#device-credentials). See the
     [security reference](../ref/security.md#nats).
   - `SIOT_OUTBOUND_DENY_PRIVATE`: set to `true` to refuse connections a client
-    makes to a loopback, link-local, or private address taken from a point:
-    the metrics scraper's URI, a Shelly device's `ip`, an ntfy server, a Modbus
-    TCP `uri`, and a gpsd address. Everything is allowed by default, since an
-    edge device talks to peers on its own network; set it on an instance that
-    other people configure, such as one in the cloud, so its nodes cannot be
-    used to probe the network it sits on. The check runs after the name is
-    resolved.
+    makes to a loopback, link-local, or private address taken from a point: the
+    metrics scraper's URI, a Shelly device's `ip`, an ntfy server, a Modbus TCP
+    `uri`, and a gpsd address. Everything is allowed by default, since an edge
+    device talks to peers on its own network; set it on an instance that other
+    people configure, such as one in the cloud, so its nodes cannot be used to
+    probe the network it sits on. The check runs after the name is resolved.
   - `OS_VERSION_FIELD`: the field in `/etc/os-release` used to extract the OS
     version information. Default is `VERSION`, which is common in most distros.
     The Yoe Distribution populates `VERSION_ID` with the update version, which
@@ -35,15 +34,15 @@ The following are currently defined:
     8222). It needs no credentials and lists connections and subjects, so keep
     it off untrusted networks.
   - `SIOT_NATS_HTTP_HOST`: address the monitoring interface binds, such as
-    `127.0.0.1`. Empty (the default) binds every interface. An installed
-    service sets it to loopback.
+    `127.0.0.1`. Empty (the default) binds every interface. An installed service
+    sets it to loopback.
   - `SIOT_NATS_SERVER`: defaults to nats://127.0.0.1:4222
   - `SIOT_NATS_TLS_CERT`: points to TLS certificate file. If not set, TLS is not
     used. These settings cover the NATS, MQTT, and NATS WebSocket ports; the
     HTTP port is served without TLS, so put a reverse proxy in front of it. The
-    server's own connections over loopback, and the HTTP port's WebSocket
-    proxy, accept exactly this certificate, so it does not have to be issued
-    for `localhost`.
+    server's own connections over loopback, and the HTTP port's WebSocket proxy,
+    accept exactly this certificate, so it does not have to be issued for
+    `localhost`.
   - `SIOT_NATS_TLS_KEY`: points to TLS certificate key
   - `SIOT_NATS_TLS_TIMEOUT`: Configure the TLS upgrade timeout. NATS defaults to
     a 0.5 second timeout for TLS upgrade, but that is too short for some
@@ -58,8 +57,7 @@ The following are currently defined:
     it.
   - `SIOT_NATS_WS_HOST`: address the WebSocket listener binds, such as
     `127.0.0.1`. Empty (the default) binds every interface. Browsers reach the
-    listener through the HTTP port, so an installed service sets it to
-    loopback.
+    listener through the HTTP port, so an installed service sets it to loopback.
   - `SIOT_NATS_WS_ORIGINS`: comma-separated page origins allowed to open a NATS
     WebSocket, such as `https://siot.example.com`. Empty (the default) allows
     any origin. When `SIOT_AUTH_TOKEN` is set, a browser still has to present a
@@ -253,10 +251,10 @@ usable as a provisioning file:
   point is written as the description of the node it points at.
 - Points that carry no value are left out, as is the origin recording which
   client last wrote each point.
-- Secret points (`authToken`, `enrollToken`, `pass`, `psk`, and `sid`) are
-  left out, and a comment at the top of the file says so. `siot export -secrets`
-  includes them, and a file made that way should be handled like the
-  credentials themselves.
+- Secret points (`authToken`, `enrollToken`, `pass`, `psk`, and `sid`) are left
+  out, and a comment at the top of the file says so. `siot export -secrets`
+  includes them, and a file made that way should be handled like the credentials
+  themselves.
 
 Two nodes that share a parent and a description cannot be told apart by a file,
 so `siot export` reports that rather than writing a file that would do the wrong

@@ -208,8 +208,8 @@ Revoking the enrollment token, by disabling or deleting its node, stops new
 enrollments and does not affect devices already enrolled. A device that enrolls
 again with a different key gets a second, pending credential, even under a token
 that approves automatically; the approved one is never replaced without an
-operator. At most 100 devices may wait for approval at once, so a token that
-has leaked cannot fill the tree.
+operator. At most 100 devices may wait for approval at once, so a token that has
+leaked cannot fill the tree.
 
 Users on a device are replicated to the upstream with the rest of the device's
 tree, but they sign in on the device only; see

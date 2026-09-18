@@ -60,13 +60,13 @@ The default ports are used, so if you want something different, modify the
 generated `siot.service` file. The service binds the NATS WebSocket and
 monitoring listeners to loopback, since browsers reach the WebSocket through the
 HTTP port. The `siot` command line tools need the token from `siot.env`, for
-example `siot log -token $(sed -n 's/^SIOT_AUTH_TOKEN=//p' /var/lib/siot/siot.env)`.
+example
+`siot log -token $(sed -n 's/^SIOT_AUTH_TOKEN=//p' /var/lib/siot/siot.env)`.
 
-A root install adds systemd sandboxing: the service cannot gain privileges,
-sees the rest of the system read-only, and may write only its data directory
-and the directory its binary lives in (for `siot update`). A client that needs
-hardware access has to be allowed it in a drop-in, for example for a serial
-port:
+A root install adds systemd sandboxing: the service cannot gain privileges, sees
+the rest of the system read-only, and may write only its data directory and the
+directory its binary lives in (for `siot update`). A client that needs hardware
+access has to be allowed it in a drop-in, for example for a serial port:
 
 ```sh
 sudo systemctl edit siot

@@ -145,10 +145,10 @@ instance restarts.
 Rules can also set points in other nodes. For simplicity, the node ID must be
 currently specified along with point parameters and a number/bool/text value.
 
-The target has to be the rule's parent or a node below it. An action that
-names a node elsewhere in the tree is refused, and the reason is shown as an
-error on the action. A rule that needs to reach across groups belongs at a
-level that contains both.
+The target has to be the rule's parent or a node below it. An action that names
+a node elsewhere in the tree is refused, and the reason is shown as an error on
+the action. A rule that needs to reach across groups belongs at a level that
+contains both.
 
 Typically a rule action is only used to set one value. In the case of on/off
 actions, one rule is used to turn a value on, and another rule is used to turn

@@ -11,7 +11,97 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Security
+
+- **A signed-in user cannot reach nodes outside their groups through any door.**
+  The HTTP node routes now resolve every request to a principal and refuse a
+  node, or a parent named in the body, outside what it may reach; a browser's
+  edge write checks the child as well as the parent, so a node cannot be
+  attached into a group from elsewhere; and a rule action, signal generator
+  destination, or serial high-rate destination that names a node above the
+  client's parent is refused with the error recorded on the node. A rule that
+  reaches across groups has to move to a level that contains both. See the
+  [security reference](docs/ref/security.md#http).
+- **A request with no credentials is refused on the HTTP node routes**, whether
+  or not `SIOT_AUTH_TOKEN` is set. A script that relied on an empty header
+  against an instance with no token has to sign in or present the token.
+- **Users replicated from a device do not sign in on the upstream.** A user
+  signs in on the instance where the password was set, so a device left with its
+  default `admin` account is not an account on the upstream. See
+  [users and groups](docs/user/users-groups.md#where-a-user-signs-in).
+- **Node replies to a browser or API user leave secret values out.** `pass`,
+  `authToken`, `enrollToken`, `sid`, and `psk` points arrive with an empty
+  value, replies list only the parents inside the user's groups, and
+  `siot export` leaves every one of these types out unless `-secrets` is given.
+- **Sign-in attempts are limited per account and logged**, over HTTP, NATS, and
+  the browser's WebSocket: five failures in a row refuse the account for a
+  second, doubling up to five minutes. A user's token is refused as soon as the
+  user is gone from the tree.
+- **The device key seed never leaves the server.** `auth.deviceKey` answers with
+  the public key only; the sync client has the server sign for it on
+  `auth.deviceSign`. `client.GetDeviceKey` and `client.Enroll` changed
+  accordingly.
+- **Enrollment is bound to the connection and the device.** A request has to
+  name the key on its own connection, the device ID has to be usable in a
+  subject, a device that already has a live credential gets any further key as
+  pending whatever the token says, and at most 100 devices may wait for
+  approval.
+- **Under `SIOT_DEVICE_AUTH=required`, the shared token is refused from a remote
+  address through the HTTP port's WebSocket proxy** as well as on the NATS port.
+  A reverse proxy in front of the HTTP port still makes connections look local;
+  see the [security reference](docs/ref/security.md#nats).
+- **A bad point no longer stops the instance.** A node whose points do not
+  decode, or a client that panics, records the problem on the node's `error`
+  point and is restarted with backoff while everything else keeps running.
+  Periods read from points are bounded before they reach a timer, a signal
+  generator refuses a `sampleRate` above 1 MHz, and a serial node's
+  `maxMessageLength` is capped at 64 KiB.
+- **Modbus requests and responses are bounded.** A request for more than 125
+  registers or 2000 coils, or for zero, gets an illegal-data-value exception; a
+  response whose length disagrees with the request is an error; and a connection
+  over a Modbus TCP server's client limit is closed.
+- **Messages go to the address on the user node, at a bounded rate.** A
+  `message` point raised on any node other than a user node is ignored, the
+  phone and email in the point are never used, and each messaging service sends
+  at most 30 messages at once and then one every 30 seconds. CR and LF are
+  stripped from SMTP headers.
+- **Inputs taken from points and peers are validated.** The update client
+  requires `https` and caps its downloads; kiosk browser and NTP settings refuse
+  control characters; IIO, OneWire, audio, and transferred file names cannot
+  leave their directory; a Shelly `ip` has to be an address, and a known device
+  is only moved when the device at the new address reports its MAC; a serial MCU
+  or Particle device can no longer rewrite its node's configuration; the
+  Particle token travels in a header. An update node with an `http` URI stops
+  fetching until the URI is changed.
+- **MQTT filters on a node inside a group must start with a literal topic
+  level.** `#` and `+/...` are refused with an error on the node; an `mqtt` node
+  directly under the root may use any filter, and `maxNodes` also caps the nodes
+  Sparkplug creates. An existing subscription to `#` under a group stops
+  working. See [MQTT](docs/user/mqtt.md).
+- **The HTTP server has timeouts, a 4 MB body limit, and security headers**, the
+  debug logger no longer logs sign-in bodies, the UI fonts are served from the
+  binary so the page loads no third-party origin, and the JWT signing key on a
+  new store is 32 bytes.
+
 ### Added
+
+- **The NATS WebSocket listener serves TLS when `SIOT_NATS_TLS_CERT` is set**,
+  the server's own loopback connection and the HTTP port's proxy accept exactly
+  that certificate, and a sync node can pin its upstream with a `caCert` point.
+  See [configuration](docs/user/configuration.md) and
+  [synchronization](docs/user/sync.md#device-credentials).
+- **`SIOT_NATS_WS_HOST` and `SIOT_NATS_HTTP_HOST`** bind the WebSocket and
+  monitoring listeners to one address.
+- **`SIOT_OUTBOUND_DENY_PRIVATE`** refuses connections to loopback, link-local,
+  and private addresses from the metrics scraper, Shelly, ntfy, Modbus TCP, and
+  gpsd clients, for an instance on a network it should not probe. Everything is
+  allowed by default.
+- **`siot install` produces a service that is not open to the network.** It
+  generates an auth token into a `0600` environment file, creates the data
+  directory `0700`, binds the WebSocket and monitoring listeners to loopback,
+  and, as a system service, adds systemd sandboxing. A client that needs
+  hardware access is allowed it in a drop-in; see
+  [installation](docs/user/installation.md).
 
 - **Browsers connect to NATS as the signed-in user.** The embedded NATS server
   accepts a user's node ID and sign-in JWT as user and password, over the

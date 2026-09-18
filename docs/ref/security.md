@@ -94,14 +94,14 @@ minutes, and every failure is logged with its source. The limit is shared by
 `POST /v1/auth`, the `auth.user` subject, and the NATS authorizer's check of a
 browser's token.
 
-The HTTP server closes a connection that sends no request within ten seconds
-or no complete request within thirty, limits a request body to 4 MB, and sends
+The HTTP server closes a connection that sends no request within ten seconds or
+no complete request within thirty, limits a request body to 4 MB, and sends
 `Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, and
 `Referrer-Policy` on every response. The policy allows the UI's own scripts,
 styles, and fonts (served from the binary) and a WebSocket back to the server,
 and refuses framing. The HTTP port has no TLS of its own; a reverse proxy in
-front of it supplies that. With `-debugHttp`, the bodies of sign-in requests
-and replies are not logged.
+front of it supplies that. With `-debugHttp`, the bodies of sign-in requests and
+replies are not logged.
 
 ## NATS
 
@@ -117,12 +117,12 @@ NATS accounts file to manage. Three kinds of credential are accepted:
   `SIOT_DATA/device.nkey`, which only the server process reads: the sync client
   asks the server to sign the connection challenge on `auth.deviceSign`, and
   `auth.deviceKey` answers with the public key alone. The upstream keeps only
-  the public key, in a `deviceCred` node under the device's
-  node, and grants the connection exactly the subjects that device needs to
-  sync. The credential authorizes the one device node it sits under: one under
-  the upstream's own root node, or under any node that is not a device,
-  authorizes nothing, and a credential marked `pending` (one a device enrolled
-  itself with) authorizes nothing until an operator clears it. See
+  the public key, in a `deviceCred` node under the device's node, and grants the
+  connection exactly the subjects that device needs to sync. The credential
+  authorizes the one device node it sits under: one under the upstream's own
+  root node, or under any node that is not a device, authorizes nothing, and a
+  credential marked `pending` (one a device enrolled itself with) authorizes
+  nothing until an operator clears it. See
   [Device credentials](../user/sync.md#device-credentials) for the workflow.
 - **A user's sign-in JWT**, presented with the user's node ID as the NATS user
   and password, grants the groups that user belongs to and nothing else. This is
@@ -146,13 +146,13 @@ An **enrollment token** is a third, narrower credential: a connection presenting
 one may publish to `enroll.request` and subscribe to its reply inbox, and
 nothing else. The token is presented together with a key, which signs the
 connection nonce, so the upstream gives the connection an inbox of its own. The
-request has to name that same key, since its reply can only be delivered to
-that key's inbox; a request naming another key is refused. The device ID has
-to be usable as a subject token (no period, wildcard, or whitespace). A device
-that already has a live credential gets any further key as pending, whatever
-the token says, so a token holder cannot take over a known device; and at most
-100 devices may wait for approval at once. It exists so a device with no
-credential can ask for one; see
+request has to name that same key, since its reply can only be delivered to that
+key's inbox; a request naming another key is refused. The device ID has to be
+usable as a subject token (no period, wildcard, or whitespace). A device that
+already has a live credential gets any further key as pending, whatever the
+token says, so a token holder cannot take over a known device; and at most 100
+devices may wait for approval at once. It exists so a device with no credential
+can ask for one; see
 [Devices that enroll themselves](../user/sync.md#2-devices-that-enroll-themselves).
 Only a hash of the token is stored, in an `enrollToken` node.
 
@@ -238,14 +238,14 @@ The server proves the connection may speak for the anchor and user in a `u.*`
 subject; the store checks the target of the request against the anchor and sets
 the origin of every point to the user, whatever the browser sent. For a node
 read or a point write the target is the node. For an edge write both ends are
-checked: the parent has to be under the anchor, and the child has to be under
-it already (or be a node new to the tree, or one the user deleted from there
-and is restoring), so a node from elsewhere cannot be attached into a group
-and reached through the new edge. The store also refuses any edge whose parent
-already sits below its child, from any writer, and bounds every walk of the
-tree, so a loop cannot be made and would not hold a request open if it were.
-Neither side needs the other's data structures, and no header can be added or
-left out to get a different outcome. Details of the subjects are in the
+checked: the parent has to be under the anchor, and the child has to be under it
+already (or be a node new to the tree, or one the user deleted from there and is
+restoring), so a node from elsewhere cannot be attached into a group and reached
+through the new edge. The store also refuses any edge whose parent already sits
+below its child, from any writer, and bounds every walk of the tree, so a loop
+cannot be made and would not hold a request open if it were. Neither side needs
+the other's data structures, and no header can be added or left out to get a
+different outcome. Details of the subjects are in the
 [API reference](api.md#nats).
 
 What a browser can and cannot do, compared with polling the HTTP API:
@@ -265,16 +265,15 @@ What a browser can and cannot do, compared with polling the HTTP API:
 Permissions are computed when the connection is made. The authorizer watches the
 tree and closes a user's connections when the user's edges change, so the
 browser reconnects and is granted the new set, or is refused if the user is
-gone. The HTTP node routes apply the same scope; see [HTTP](#http). A
-deployment with no shared token still runs open on every NATS listener,
-WebSocket included; the UI presents its JWT either way and is scoped either
-way.
+gone. The HTTP node routes apply the same scope; see [HTTP](#http). A deployment
+with no shared token still runs open on every NATS listener, WebSocket included;
+the UI presents its JWT either way and is scoped either way.
 
-A user signs in on the instance that holds the user's password. Sync
-replicates a device's user nodes to its upstream with the rest of the device's
-tree, and those users are not accepted at the upstream's sign-in: the
-password was set by whoever administers the device, and a device left with
-its default account would otherwise be a default account on the upstream.
+A user signs in on the instance that holds the user's password. Sync replicates
+a device's user nodes to its upstream with the rest of the device's tree, and
+those users are not accepted at the upstream's sign-in: the password was set by
+whoever administers the device, and a device left with its default account would
+otherwise be a default account on the upstream.
 
 ### Secrets in node reads
 
@@ -284,11 +283,11 @@ of a sync, message service, database, or Particle node, a sync node's
 (through `u.<anchor>.<user>.nodes.>`) or to a user or device over HTTP carries
 these points with an empty value, so the UI can show that a credential is set
 without receiving it; writing the point replaces the stored value as usual. A
-reply to a browser asking for a node's parents lists only the parents inside
-the user's groups. The server's own clients read on the plain `nodes.>`
-subject, which the shared token alone reaches, and see the values. `auth.me`
-leaves `pass` out. `siot export` leaves every secret point out unless
-`-secrets` is given.
+reply to a browser asking for a node's parents lists only the parents inside the
+user's groups. The server's own clients read on the plain `nodes.>` subject,
+which the shared token alone reaches, and see the values. `auth.me` leaves
+`pass` out. `siot export` leaves every secret point out unless `-secrets` is
+given.
 
 The instance's own NKey seed is kept in `SIOT_DATA/device.nkey` and never as a
 point or a reply; see [NATS](#nats).
@@ -316,13 +315,13 @@ are still open. The numbers refer to the
 [security cleanup plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-08-24-security-cleanup.md),
 which has the detail and the proposed change for each.
 
-| Area     | Limitation                                                                                                                                                                           | Plan item |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
-| Users    | Any member of a group can write any node under it, including another member's password.                                                                                              | 20        |
-| Users    | The sign-in token lasts seven days; it is refused once the user is gone, but not on a password change until the NATS connection is closed.                                            | 8         |
-| Defaults | The first account is `admin`/`admin` and nothing forces a change; the NATS monitoring port has no authentication. Both are left to the deployment checklist and the firewall.        | 4, 6      |
-| Releases | Releases carry checksums and no signature, so `siot update` trusts the release host.                                                                                                 | 20        |
-| Clients  | Update payloads are not signed; a point can still start a download and restart, from the release host, over HTTPS.                                                                   | excluded  |
+| Area     | Limitation                                                                                                                                                                    | Plan item |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| Users    | Any member of a group can write any node under it, including another member's password.                                                                                       | 20        |
+| Users    | The sign-in token lasts seven days; it is refused once the user is gone, but not on a password change until the NATS connection is closed.                                    | 8         |
+| Defaults | The first account is `admin`/`admin` and nothing forces a change; the NATS monitoring port has no authentication. Both are left to the deployment checklist and the firewall. | 4, 6      |
+| Releases | Releases carry checksums and no signature, so `siot update` trusts the release host.                                                                                          | 20        |
+| Clients  | Update payloads are not signed; a point can still start a download and restart, from the release host, over HTTPS.                                                            | excluded  |
 
 What the audit found sound: the binary point and node decoders bound every
 length and count; no client runs a command through a shell, disables TLS
