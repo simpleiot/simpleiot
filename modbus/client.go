@@ -79,7 +79,7 @@ func (c *Client) ReadCoils(id byte, coil, count uint16) ([]bool, error) {
 		fmt.Printf("Modbus client Readcoils ID:0x%x resp:%v\n", id, resp)
 	}
 
-	return resp.RespReadBits()
+	return resp.RespReadBits(count)
 }
 
 // WriteSingleCoil is used to read modbus coils
@@ -182,7 +182,7 @@ func (c *Client) ReadDiscreteInputs(id byte, input, count uint16) ([]bool, error
 		return []bool{}, errors.New("resp contains wrong function code")
 	}
 
-	return resp.RespReadBits()
+	return resp.RespReadBits(count)
 }
 
 // ReadHoldingRegs is used to read modbus holding regs
@@ -232,7 +232,7 @@ func (c *Client) ReadHoldingRegs(id byte, reg, count uint16) ([]uint16, error) {
 		return []uint16{}, errors.New("resp contains wrong function code")
 	}
 
-	return resp.RespReadRegs()
+	return resp.RespReadRegs(count)
 }
 
 // ReadInputRegs is used to read modbus input regs
@@ -282,7 +282,7 @@ func (c *Client) ReadInputRegs(id byte, reg, count uint16) ([]uint16, error) {
 		return []uint16{}, errors.New("resp contains wrong function code")
 	}
 
-	return resp.RespReadRegs()
+	return resp.RespReadRegs(count)
 }
 
 // WriteSingleReg writes to a single holding register
