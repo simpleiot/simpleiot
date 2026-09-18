@@ -16,6 +16,14 @@ The following are currently defined:
     anywhere; `required` accepts it only from this host, so remote devices need
     a [device credential](sync.md#device-credentials). See the
     [security reference](../ref/security.md#nats).
+  - `SIOT_OUTBOUND_DENY_PRIVATE`: set to `true` to refuse connections a client
+    makes to a loopback, link-local, or private address taken from a point:
+    the metrics scraper's URI, a Shelly device's `ip`, an ntfy server, a Modbus
+    TCP `uri`, and a gpsd address. Everything is allowed by default, since an
+    edge device talks to peers on its own network; set it on an instance that
+    other people configure, such as one in the cloud, so its nodes cannot be
+    used to probe the network it sits on. The check runs after the name is
+    resolved.
   - `OS_VERSION_FIELD`: the field in `/etc/os-release` used to extract the OS
     version information. Default is `VERSION`, which is common in most distros.
     The Yoe Distribution populates `VERSION_ID` with the update version, which
@@ -236,9 +244,10 @@ usable as a provisioning file:
   point is written as the description of the node it points at.
 - Points that carry no value are left out, as is the origin recording which
   client last wrote each point.
-- `authToken` points are left out, and a comment at the top of the file says so.
-  `siot export -secrets` includes them, and a file made that way should be
-  handled like the token itself.
+- Secret points (`authToken`, `enrollToken`, `pass`, `psk`, and `sid`) are
+  left out, and a comment at the top of the file says so. `siot export -secrets`
+  includes them, and a file made that way should be handled like the
+  credentials themselves.
 
 Two nodes that share a parent and a description cannot be told apart by a file,
 so `siot export` reports that rather than writing a file that would do the wrong

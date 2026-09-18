@@ -90,7 +90,10 @@ The Shelly node itself only carries a description and whether it is disabled.
 Everything else follows from what it finds: the client scans the network and
 adds a child node for each device, filling in `deviceID`, `ip`, `gen`, and
 `type` itself. `type` is the model the device reports for itself, such as
-`SNPL-00116US` for a Plus Plug US or `SHPLG-S` for a Gen1 Plug S.
+`SNPL-00116US` for a Plus Plug US or `SHPLG-S` for a Gen1 Plug S. `ip` must be
+an IP address. A device that answers a scan from a new address is moved there
+only when the device at that address reports the MAC in `deviceID`, since an
+mDNS answer on its own is not proof of which device sent it.
 
 What you configure on a device is its `description`, whether it is `disabled`,
 and, for a device that can be driven, `controlled`. With `controlled` set, the

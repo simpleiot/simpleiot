@@ -122,7 +122,7 @@ func (m *MetricsClient) promReset() {
 
 // promClient is shared across metrics nodes. Its timeout is set per request,
 // since each node has its own period.
-var promClient = &http.Client{}
+var promClient = &http.Client{Transport: outboundTransport()}
 
 // promPeriodic scrapes the configured endpoint and publishes what it carried
 func (m *MetricsClient) promPeriodic() {

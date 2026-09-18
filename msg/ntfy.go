@@ -22,17 +22,22 @@ type Ntfy struct {
 
 // NewNtfy creates a new ntfy sender. server may be empty, in which case
 // the public ntfy.sh server is used. token is an optional access token
-// sent as a bearer token.
-func NewNtfy(server, topic, token string) *Ntfy {
+// sent as a bearer token. client is the HTTP client to send with; nil uses
+// one with a 30 second timeout.
+func NewNtfy(server, topic, token string, client *http.Client) *Ntfy {
 	if server == "" {
 		server = NtfyDefaultServer
+	}
+
+	if client == nil {
+		client = &http.Client{Timeout: 30 * time.Second}
 	}
 
 	return &Ntfy{
 		server: server,
 		topic:  topic,
 		token:  token,
-		client: &http.Client{Timeout: 30 * time.Second},
+		client: client,
 	}
 }
 

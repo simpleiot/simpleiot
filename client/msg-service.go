@@ -224,7 +224,7 @@ done:
 				address := mc.config.URL + "/" + mc.config.Topic
 				mc.deliver(n.ID, address, func() error {
 					nt := msg.NewNtfy(mc.config.URL, mc.config.Topic,
-						mc.config.AuthToken)
+						mc.config.AuthToken, outboundHTTPClient(30*time.Second))
 					return nt.Send(n.Subject, n.Message)
 				})
 			}

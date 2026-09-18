@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/donovanhide/eventsource"
@@ -77,9 +78,16 @@ func (pc *ParticleClient) Run() error {
 			readerClosed <- struct{}{}
 		}()
 
-		urlAuth := particleEventURL + "sample" + "?access_token=" + pc.config.AuthToken
+		req, err := http.NewRequest(http.MethodGet, particleEventURL+"sample", nil)
+		if err != nil {
+			log.Println("Particle request error:", err)
+			return
+		}
+		// the token goes in a header rather than the query string, so it
+		// does not appear in a logged URL
+		req.Header.Set("Authorization", "Bearer "+pc.config.AuthToken)
 
-		stream, err := eventsource.Subscribe(urlAuth, "")
+		stream, err := eventsource.SubscribeWithRequest("", req)
 
 		if err != nil {
 			log.Println("Particle subscription error:", err)
