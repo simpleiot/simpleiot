@@ -23,11 +23,14 @@ The following are currently defined:
     [ref/version](../ref/version.md).
 - **NATS configuration**
   - `SIOT_NATS_PORT`: Port to run NATS on (default is 4222 if not set)
-  - `SIOT_NATS_HTTP_PORT`: Port to run NATS monitoring interface (default
-    is 8222)
+  - `SIOT_NATS_HTTP_PORT`: Port to run NATS monitoring interface (default is
+    8222). It needs no credentials and lists connections and subjects, so keep
+    it off untrusted networks.
   - `SIOT_NATS_SERVER`: defaults to nats://127.0.0.1:4222
   - `SIOT_NATS_TLS_CERT`: points to TLS certificate file. If not set, TLS is not
-    used.
+    used. These settings cover the NATS and MQTT ports only; the HTTP port and
+    the NATS WebSocket are served without TLS, so put a reverse proxy in front
+    of them.
   - `SIOT_NATS_TLS_KEY`: points to TLS certificate key
   - `SIOT_NATS_TLS_TIMEOUT`: Configure the TLS upgrade timeout. NATS defaults to
     a 0.5 second timeout for TLS upgrade, but that is too short for some
@@ -42,7 +45,9 @@ The following are currently defined:
     it.
   - `SIOT_NATS_WS_ORIGINS`: comma-separated page origins allowed to open a NATS
     WebSocket, such as `https://siot.example.com`. Empty (the default) allows
-    any origin; a browser still has to present a user JWT to connect.
+    any origin. When `SIOT_AUTH_TOKEN` is set, a browser still has to present a
+    user JWT to connect; with no token the listener accepts anonymous
+    connections, so set both on an instance other people can reach.
   - `SIOT_NATS_MQTT_PORT`: Port to serve MQTT on (disabled by default; 1883 is
     the conventional port). See the [MQTT page](mqtt.md).
 - **Provisioning**

@@ -11,6 +11,15 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Changed
+
+- **The security reference has a deployment checklist and a list of known
+  limitations.** A security audit found that an instance with no auth token or
+  with the default `admin` password, including on an edge device that syncs
+  upstream, is open to anyone who can reach it. See the
+  [security reference](docs/ref/security.md#deployment-checklist) before
+  exposing an instance to a network.
+
 ## [0.28.0] - 2026-09-17
 
 ### Added

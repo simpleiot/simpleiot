@@ -31,6 +31,12 @@ is:
 - user: `admin`
 - pass: `admin`
 
+Change this password before the instance is reachable by anyone else, and set
+`SIOT_AUTH_TOKEN`; until a token is set, the NATS and HTTP interfaces accept
+connections without credentials. The
+[deployment checklist](../ref/security.md#deployment-checklist) has the full
+list.
+
 ### Simple IoT self-install (Linux only)
 
 Simple IoT self-installation does the following:
@@ -49,7 +55,8 @@ To install as root:
 `sudo siot install`
 
 The default ports are used, so if you want something different, modify the
-generated `siot.service` file.
+generated `siot.service` file. The generated file sets an empty
+`SIOT_AUTH_TOKEN`; set a token there as well.
 
 ## Updating
 
