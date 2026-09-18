@@ -31,3 +31,4 @@ local.sh
 device.nkey
 *.nkey
 /jetstream_/$G/streams
+.claude/worktrees/

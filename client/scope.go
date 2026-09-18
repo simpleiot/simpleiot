@@ -35,7 +35,7 @@ func checkWriteTarget(nc *nats.Conn, self, parent, target string) error {
 		return fmt.Errorf("target node ID must be set")
 	}
 
-	if err := data.CheckSubjectToken(target); err != nil {
+	if err := data.CheckSubjectToken("node ID", target); err != nil {
 		return fmt.Errorf("target node ID %w", err)
 	}
 

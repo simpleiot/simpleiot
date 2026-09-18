@@ -15,19 +15,6 @@ import (
 //	whitespace, which NATS does not allow in a subject at all
 const invalidSubjectChars = ". \t\r\n*>"
 
-// CheckSubjectToken returns an error if s contains a character that is not
-// allowed in a NATS subject token. It is for a node ID that a client takes
-// from a point and places in a subject, such as a rule action target: an ID
-// with a period in it would address a different subject entirely.
-func CheckSubjectToken(s string) error {
-	if i := strings.IndexAny(s, invalidSubjectChars); i >= 0 {
-		return fmt.Errorf("%q contains %q, which is not allowed in a node ID",
-			s, s[i:i+1])
-	}
-
-	return nil
-}
-
 // CheckSubjectTokens returns an error if the point type or key contains a
 // character that is not allowed in a NATS subject token.
 //
@@ -57,8 +44,9 @@ func (p Point) CheckSubjectTokens() error {
 
 // CheckSubjectToken returns an error if a string cannot be one token of a
 // NATS subject: it is empty or contains a period, a wildcard, or
-// whitespace. Node IDs travel in subjects, so an ID a peer chooses (an
-// enrolling device names its own) is checked with it.
+// whitespace. Node IDs travel in subjects, so an ID taken from a peer or a
+// point (an enrolling device names its own, a rule action names its target)
+// is checked with it; what names the ID in the error.
 func CheckSubjectToken(what, s string) error {
 	if s == "" {
 		return fmt.Errorf("%v is empty", what)
