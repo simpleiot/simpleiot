@@ -156,11 +156,8 @@ func (c *OneWireClient) EdgePoints(nodeID, parentID string, points []data.Point)
 }
 
 func (c *OneWireClient) pollPeriod() time.Duration {
-	if c.config.PollPeriod <= 0 {
-		return oneWireDefaultPollPeriod
-	}
-
-	return time.Millisecond * time.Duration(c.config.PollPeriod)
+	return pointDuration(float64(c.config.PollPeriod), time.Millisecond,
+		oneWireDefaultPollPeriod, 10*time.Millisecond)
 }
 
 // busPoints reacts to points on the bus node that have a side effect beyond

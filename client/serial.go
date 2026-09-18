@@ -18,6 +18,11 @@ import (
 	"go.bug.st/serial"
 )
 
+// serialMaxMessageLength is the largest maxMessageLength a serial node
+// accepts, in bytes. The value sizes the read buffer, so it is capped rather
+// than taken from the point as is.
+const serialMaxMessageLength = 64 * 1024
+
 // SerialDev represents a serial (MCU) config
 type SerialDev struct {
 	ID          string `node:"id"`
@@ -39,6 +44,7 @@ type SerialDev struct {
 	SyncParent        bool   `point:"syncParent"`
 	Debug             int    `point:"debug"`
 	Disabled          bool   `point:"disabled"`
+	Error             string `point:"error"`
 	Log               string `point:"log"`
 	Rx                int    `point:"rx"`
 	RxReset           bool   `point:"rxReset"`
@@ -150,10 +156,39 @@ func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
 	return ret
 }
 
+// setError writes the node's error point when it changes
+func (sd *SerialDevClient) setError(errS string) {
+	if sd.config.Error == errS {
+		return
+	}
+
+	p := data.NewPointString(data.PointTypeError, "", errS)
+	if err := SendNodePoint(sd.nc, sd.config.ID, p, false); err != nil {
+		log.Println("Serial: error sending error point:", err)
+		return
+	}
+
+	sd.config.Error = errS
+}
+
 func (sd *SerialDevClient) populateNatsSubjects() {
 	phrup := fmt.Sprintf("phrup.%v.%v", sd.config.Parent, sd.config.ID)
 	if sd.config.HRDestNode != "" {
-		phrup = fmt.Sprintf("phrup.%v.%v", sd.config.HRDestNode, sd.config.ID)
+		// the destination comes from a point, and the client publishes
+		// with full access, so it may only reach what is under its
+		// parent. A refused destination leaves the subject empty and
+		// high rate data is dropped until it is fixed.
+		err := checkWriteTarget(sd.nc, sd.config.ID, sd.config.Parent, sd.config.HRDestNode)
+		if err != nil {
+			log.Printf("Serial %v: high rate destination refused: %v", sd.config.Description, err)
+			sd.setError("high rate destination refused: " + err.Error())
+			phrup = ""
+		} else {
+			phrup = fmt.Sprintf("phrup.%v.%v", sd.config.HRDestNode, sd.config.ID)
+			sd.setError("")
+		}
+	} else {
+		sd.setError("")
 	}
 	sd.natsSubHRUp = phrup
 
@@ -537,10 +572,16 @@ func (sd *SerialDevClient) Run() error {
 	}
 
 	openPort := func() {
-		if sd.config.MaxMessageLength <= 0 {
-			sd.config.MaxMessageLength = 1024
+		// the length sizes a buffer on every read, so a stored point
+		// cannot be allowed to make it arbitrarily large
+		if sd.config.MaxMessageLength <= 0 || sd.config.MaxMessageLength > serialMaxMessageLength {
+			l := 1024
+			if sd.config.MaxMessageLength > serialMaxMessageLength {
+				l = serialMaxMessageLength
+			}
+			sd.config.MaxMessageLength = l
 			err := SendPoints(sd.nc, sd.natsSub,
-				data.Points{data.NewPointFloat(data.PointTypeMaxMessageLength, "", 1024)}, true)
+				data.Points{data.NewPointFloat(data.PointTypeMaxMessageLength, "", float64(l))}, true)
 			if err != nil {
 				log.Println("Error sending max message len message:", err)
 			}
@@ -786,9 +827,11 @@ exitSerialClient:
 			if subject == "phr" {
 				// we have high rate points
 				sd.config.HrRx++
-				err := sd.nc.Publish(sd.natsSubHRUp, payload)
-				if err != nil {
-					log.Println("Error publishing HR data:", err)
+				if sd.natsSubHRUp != "" {
+					err := sd.nc.Publish(sd.natsSubHRUp, payload)
+					if err != nil {
+						log.Println("Error publishing HR data:", err)
+					}
 				}
 				sd.ratePointCountHR++
 				// we're done

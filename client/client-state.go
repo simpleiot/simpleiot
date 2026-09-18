@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -18,8 +19,17 @@ type clientState[T any] struct {
 
 	client Client
 
+	// crashes is how many times in a row this client panicked before this
+	// run. The manager sets it so a restart can back off.
+	crashes int
+
 	stopOnce sync.Once
 	chStop   chan struct{}
+
+	// crashErr is the panic that stopped the client, in Run or in a
+	// points callback, so run can report it to the manager
+	crashMu  sync.Mutex
+	crashErr error
 }
 
 func newClientState[T any](nc *nats.Conn, construct func(*nats.Conn, T) Client,
@@ -58,16 +68,27 @@ func newClientState[T any](nc *nats.Conn, construct func(*nats.Conn, T) Client,
 	return ret, nil
 }
 
-func (cs *clientState[T]) run() (err error) {
+// what names the client in log lines
+func (cs *clientState[T]) what() string {
+	return fmt.Sprintf("client %v %v", cs.node.Type, cs.node.ID)
+}
+
+// run blocks until the client stops. It returns the *panicError when the
+// client stopped because it panicked, so the manager can record it and back
+// off before starting the client again.
+func (cs *clientState[T]) run() error {
 
 	chClientStopped := make(chan struct{})
 
 	go func() {
 		// the following blocks until client exits
-		err := cs.client.Run()
-		if err != nil {
-			log.Printf("Client Run %v %v returned error: %v\n",
-				cs.node.Type, cs.node.ID, err)
+		err := runRecovered(cs.what(), cs.client.Run)
+
+		var pe *panicError
+		if errors.As(err, &pe) {
+			cs.crash(pe)
+		} else if err != nil {
+			log.Printf("%v Run returned error: %v\n", cs.what(), err)
 		}
 		close(chClientStopped)
 	}()
@@ -79,10 +100,25 @@ func (cs *clientState[T]) run() (err error) {
 	case <-chClientStopped:
 		// everything is OK
 	case <-time.After(5 * time.Second):
-		log.Println("Timeout stopping client:", cs.node.Type, cs.node.ID)
+		log.Println("Timeout stopping", cs.what())
 	}
 
-	return nil
+	cs.crashMu.Lock()
+	defer cs.crashMu.Unlock()
+
+	return cs.crashErr
+}
+
+// crash records that the client panicked and stops it, so run returns and the
+// manager starts the client again
+func (cs *clientState[T]) crash(err error) {
+	cs.crashMu.Lock()
+	if cs.crashErr == nil {
+		cs.crashErr = err
+	}
+	cs.crashMu.Unlock()
+
+	cs.stop(nil)
 }
 
 func (cs *clientState[T]) stop(_ error) {

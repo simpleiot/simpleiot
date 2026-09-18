@@ -15,6 +15,19 @@ import (
 //	whitespace, which NATS does not allow in a subject at all
 const invalidSubjectChars = ". \t\r\n*>"
 
+// CheckSubjectToken returns an error if s contains a character that is not
+// allowed in a NATS subject token. It is for a node ID that a client takes
+// from a point and places in a subject, such as a rule action target: an ID
+// with a period in it would address a different subject entirely.
+func CheckSubjectToken(s string) error {
+	if i := strings.IndexAny(s, invalidSubjectChars); i >= 0 {
+		return fmt.Errorf("%q contains %q, which is not allowed in a node ID",
+			s, s[i:i+1])
+	}
+
+	return nil
+}
+
 // CheckSubjectTokens returns an error if the point type or key contains a
 // character that is not allowed in a NATS subject token.
 //

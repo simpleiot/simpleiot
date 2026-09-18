@@ -113,7 +113,8 @@ func (c *ModbusClient) Run() error {
 	setScanTimer := func() {
 		if c.config.ClientServer == data.PointValueClient &&
 			c.config.PollPeriod > 0 && !c.config.Disabled {
-			scanTimer.Reset(time.Millisecond * time.Duration(c.config.PollPeriod))
+			scanTimer.Reset(pointDuration(float64(c.config.PollPeriod),
+				time.Millisecond, time.Second, time.Millisecond))
 		} else {
 			scanTimer.Stop()
 		}

@@ -438,7 +438,8 @@ func (m *UpdateClient) Run() error {
 		}()
 	}
 
-	checkTickerTime := time.Minute * time.Duration(m.config.PollPeriod)
+	checkTickerTime := pointDuration(float64(m.config.PollPeriod), time.Minute,
+		30*time.Minute, 10*time.Second)
 	checkTicker := time.NewTicker(checkTickerTime)
 	if m.config.AutoDownload {
 		m.setError(nil)
@@ -513,7 +514,8 @@ done:
 					}
 
 				case data.PointTypePollPeriod:
-					checkTickerTime := time.Minute * time.Duration(p.Val())
+					checkTickerTime := pointDuration(p.Val(), time.Minute,
+						30*time.Minute, 10*time.Second)
 					checkTicker.Reset(checkTickerTime)
 
 				case data.PointTypeAutoDownload:
