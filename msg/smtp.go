@@ -27,6 +27,18 @@ func NewSMTP(server, username, password, from string) *SMTP {
 	}
 }
 
+// headerValue makes a string safe to place in one header line: a CR or LF
+// would end the header and let the rest of the value add headers of its
+// own, such as another recipient.
+func headerValue(v string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\r' || r == '\n' {
+			return ' '
+		}
+		return r
+	}, v)
+}
+
 // Send sends an email message
 func (s *SMTP) Send(to, subject, body string) error {
 	if s.server == "" {
@@ -47,10 +59,12 @@ func (s *SMTP) Send(to, subject, body string) error {
 		auth = smtp.PlainAuth("", s.username, s.password, host)
 	}
 
+	to = headerValue(to)
+
 	var b strings.Builder
-	fmt.Fprintf(&b, "From: %s\r\n", s.from)
+	fmt.Fprintf(&b, "From: %s\r\n", headerValue(s.from))
 	fmt.Fprintf(&b, "To: %s\r\n", to)
-	fmt.Fprintf(&b, "Subject: %s\r\n", subject)
+	fmt.Fprintf(&b, "Subject: %s\r\n", headerValue(subject))
 	b.WriteString("MIME-Version: 1.0\r\n")
 	b.WriteString("Content-Type: text/plain; charset=utf-8\r\n")
 	b.WriteString("\r\n")

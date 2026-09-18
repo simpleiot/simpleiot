@@ -41,11 +41,56 @@ type MsgService struct {
 // notification can arrive long after it was raised.
 const msgServiceDedupWindow = time.Hour
 
+// A service sends at most msgServiceBurst messages at once, and after
+// that one more every msgServiceRefill. Both Twilio and SMTP cost the
+// operator money or reputation per message, and a rule that fires in a
+// loop, or a user who can raise notifications in the service's scope,
+// must not be able to run through either.
+const (
+	msgServiceBurst  = 30
+	msgServiceRefill = 30 * time.Second
+)
+
+// tokenBucket is a rate limiter: take succeeds while tokens remain, and a
+// token is returned every refill interval up to burst.
+type tokenBucket struct {
+	burst  float64
+	refill time.Duration
+	tokens float64
+	last   time.Time
+}
+
+func newTokenBucket(burst int, refill time.Duration, now time.Time) *tokenBucket {
+	return &tokenBucket{burst: float64(burst), refill: refill,
+		tokens: float64(burst), last: now}
+}
+
+// take reports whether a message may be sent now.
+func (b *tokenBucket) take(now time.Time) bool {
+	if elapsed := now.Sub(b.last); elapsed > 0 {
+		b.tokens = min(b.burst, b.tokens+float64(elapsed)/float64(b.refill))
+	}
+	b.last = now
+	if b.tokens < 1 {
+		return false
+	}
+	b.tokens--
+	return true
+}
+
+// userMessage is a message point together with the node it was raised on.
+type userMessage struct {
+	nodeID string
+	msg    data.Message
+}
+
 // MsgServiceClient delivers notifications through an external message
 // service. Twilio and SMTP need per-user addressing, so they consume
-// message points emitted by user nodes. ntfy has a global destination
-// (a topic), so it consumes notification points directly and works with
-// no user nodes in scope.
+// message points emitted by user nodes. The address comes from the user
+// node the point was raised on, not from the point itself, so a message
+// point on any other node is ignored and a point cannot name an arbitrary
+// recipient. ntfy has a global destination (a topic), so it consumes
+// notification points directly and works with no user nodes in scope.
 //
 // Deliveries are deduplicated on (notification ID, destination address),
 // so a user mirrored into two groups, or the same notification arriving
@@ -57,10 +102,11 @@ type MsgServiceClient struct {
 	stop             chan struct{}
 	newPoints        chan NewPoints
 	newEdgePoints    chan NewPoints
-	newMessages      chan data.Message
+	newMessages      chan userMessage
 	newNotifications chan data.Notification
 	upSub            *nats.Subscription
 	sent             map[string]time.Time
+	limit            *tokenBucket
 }
 
 // NewMsgServiceClient returns a new MsgServiceClient using its
@@ -72,9 +118,10 @@ func NewMsgServiceClient(nc *nats.Conn, config MsgService) Client {
 		stop:             make(chan struct{}),
 		newPoints:        make(chan NewPoints),
 		newEdgePoints:    make(chan NewPoints),
-		newMessages:      make(chan data.Message),
+		newMessages:      make(chan userMessage),
 		newNotifications: make(chan data.Notification),
 		sent:             make(map[string]time.Time),
+		limit:            newTokenBucket(msgServiceBurst, msgServiceRefill, time.Now()),
 	}
 }
 
@@ -110,7 +157,7 @@ func (mc *MsgServiceClient) Run() error {
 					log.Println("Msg service error decoding message:", err)
 					continue
 				}
-				mc.newMessages <- m
+				mc.newMessages <- userMessage{nodeID: chunks[2], msg: m}
 
 			case data.PointTypeNotification:
 				n, err := data.PointToNotification(p)
@@ -136,25 +183,38 @@ done:
 		case <-mc.stop:
 			break done
 
-		case m := <-mc.newMessages:
+		case um := <-mc.newMessages:
+			if mc.config.Service != data.PointValueTwilio &&
+				mc.config.Service != data.PointValueSMTP {
+				continue
+			}
+
+			user, err := mc.lookupUser(um.nodeID)
+			if err != nil {
+				log.Printf("Msg service: ignoring message point on node %v: %v",
+					um.nodeID, err)
+				continue
+			}
+			m := um.msg
+
 			switch mc.config.Service {
 			case data.PointValueTwilio:
-				if m.Phone == "" {
+				if user.Phone == "" {
 					continue
 				}
-				mc.deliver(m.NotificationID, m.Phone, func() error {
+				mc.deliver(m.NotificationID, user.Phone, func() error {
 					tw := msg.NewTwilio(mc.config.SID, mc.config.AuthToken,
 						mc.config.From)
-					return tw.SendSMS(m.Phone, m.Message)
+					return tw.SendSMS(user.Phone, m.Message)
 				})
 			case data.PointValueSMTP:
-				if m.Email == "" {
+				if user.Email == "" {
 					continue
 				}
-				mc.deliver(m.NotificationID, m.Email, func() error {
+				mc.deliver(m.NotificationID, user.Email, func() error {
 					sm := msg.NewSMTP(mc.config.URL, mc.config.Username,
 						mc.config.AuthToken, mc.config.From)
-					return sm.Send(m.Email, m.Subject, m.Message)
+					return sm.Send(user.Email, m.Subject, m.Message)
 				})
 			}
 
@@ -194,10 +254,24 @@ done:
 	return mc.upSub.Unsubscribe()
 }
 
+// lookupUser returns the user node a message point was raised on. A node
+// of any other type, or one that no longer exists, is an error.
+func (mc *MsgServiceClient) lookupUser(nodeID string) (User, error) {
+	users, err := GetNodesType[User](mc.nc, "all", nodeID)
+	if err != nil {
+		return User{}, err
+	}
+	if len(users) == 0 {
+		return User{}, fmt.Errorf("not a user node")
+	}
+	return users[0], nil
+}
+
 // deliver sends one message through the service unless the same
 // notification has already been delivered to the same address inside the
-// deduplication window. Failed sends are not recorded, so a later copy of
-// the notification arriving by another path retries the delivery.
+// deduplication window, or the service is over its rate limit. Failed
+// sends are not recorded, so a later copy of the notification arriving by
+// another path retries the delivery.
 func (mc *MsgServiceClient) deliver(notificationID, address string,
 	send func() error) {
 	key := ""
@@ -207,6 +281,13 @@ func (mc *MsgServiceClient) deliver(notificationID, address string,
 			time.Since(t) <= msgServiceDedupWindow {
 			return
 		}
+	}
+
+	if !mc.limit.take(time.Now()) {
+		mc.processError(fmt.Sprintf(
+			"Rate limit reached, dropping message to %v (at most %v at once, then one per %v)",
+			address, msgServiceBurst, msgServiceRefill))
+		return
 	}
 
 	err := send()
