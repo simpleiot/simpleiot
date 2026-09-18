@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -27,8 +28,8 @@ type Mqtt struct {
 	// "{site}/{gateway}/{device}", so matching topics create nodes as data
 	// arrives. Blank creates nothing.
 	TopicSchema string `point:"topicSchema"`
-	// MaxNodes bounds how many nodes the topic schema creates. Zero uses the
-	// default of 1000.
+	// MaxNodes bounds how many nodes the topic schema and Sparkplug create,
+	// counted separately. Zero uses the default of 1000.
 	MaxNodes int       `point:"maxNodes"`
 	Subs     []MqttSub `child:"mqttSub"`
 }
@@ -99,6 +100,33 @@ type MqttClient struct {
 	// schemaFilter is the schema the live subscription was built from, so an
 	// edit resubscribes
 	schemaFilter string
+
+	// underRoot is whether this node sits directly under the root. A node
+	// anywhere else belongs to a group, and its filters must start with a
+	// literal level so it cannot subscribe to every topic on the broker.
+	underRoot bool
+}
+
+// mqttFilterScoped checks a filter on an mqtt node that is not directly
+// under the root: the first topic level must be literal, so "#", "+/x", and
+// "+" are refused while "site/#" is allowed.
+func mqttFilterScoped(filter string) error {
+	first, _, _ := strings.Cut(filter, "/")
+	if first == "#" || first == "+" {
+		return fmt.Errorf(
+			"filter %q must start with a literal topic level on an mqtt node that is not directly under the root",
+			filter)
+	}
+	return nil
+}
+
+// scopedFilterError returns the error for a filter this node may not use, or
+// nil when the filter is allowed.
+func (c *MqttClient) scopedFilterError(filter string) error {
+	if c.underRoot {
+		return nil
+	}
+	return mqttFilterScoped(filter)
 }
 
 // NewMqttClient returns a new MQTT client for the given node
@@ -118,6 +146,12 @@ func NewMqttClient(nc *nats.Conn, config Mqtt) Client {
 // Run runs the main logic for this client and blocks until stopped
 func (c *MqttClient) Run() error {
 	log.Println("Starting MQTT client:", c.config.Description)
+
+	if root, err := GetRootNode(c.nc); err != nil {
+		log.Println("MQTT: error getting root node:", err)
+	} else {
+		c.underRoot = root.ID == c.config.Parent
+	}
 
 	c.sync()
 
@@ -227,6 +261,11 @@ func (c *MqttClient) sync() {
 	if !c.config.Disabled && c.config.URI == "" {
 		for _, s := range c.config.Subs {
 			if s.Disabled || s.Topic == "" {
+				continue
+			}
+
+			if err := c.scopedFilterError(s.Topic); err != nil {
+				c.setError(s.ID, err.Error())
 				continue
 			}
 
@@ -359,6 +398,7 @@ func (c *MqttClient) syncSparkplug() {
 		// keep the handler's logging in step with edits to this node
 		c.sp.desc = c.config.Description
 		c.sp.debug = c.config.Debug
+		c.sp.setMaxNodes(c.config.MaxNodes)
 		return
 	}
 
@@ -368,7 +408,8 @@ func (c *MqttClient) syncSparkplug() {
 		return
 	}
 
-	sp := newSparkplugState(c.nc, c.config.ID, c.config.Description, c.config.Debug)
+	sp := newSparkplugState(c.nc, c.config.ID, c.config.Description,
+		c.config.Debug, c.config.MaxNodes)
 
 	if err := sp.load(); err != nil {
 		c.setError(c.config.ID, err.Error())
@@ -430,6 +471,11 @@ func (c *MqttClient) syncSchema() {
 
 	schema, err := parseMqttSchema(c.config.TopicSchema)
 	if err != nil {
+		c.setError(c.config.ID, err.Error())
+		return
+	}
+
+	if err := c.scopedFilterError(schema.filter); err != nil {
 		c.setError(c.config.ID, err.Error())
 		return
 	}
