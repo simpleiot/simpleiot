@@ -13,7 +13,9 @@ There are several options:
 - **Update server**: HTTPS server that contains the following files. The URI
   must use `https`; the update image is not signed, so a plain `http` server
   would let anyone on the network path replace it. `files.txt` is limited to 1
-  MiB and an update image to 4 GiB.
+  MiB and an update image to 1 GiB. A download that would not leave 64 MiB free
+  in the destination directory does not start, so a large image cannot fill the
+  disk.
   - files.txt: contains a list of update files on the server
   - update files named: `<prefix>_<version>.upd`
     - `version` should follow [Semantic Versioning](https://semver.org/):

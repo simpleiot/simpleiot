@@ -19,6 +19,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/nats-io/nats.go"
+	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/system"
 )
@@ -84,10 +85,21 @@ var reUpd = regexp.MustCompile(`(.*)_(\d+\.\d+\.\d+)\.upd`)
 // Limits on what the update client fetches. Update images can be large, so
 // the download is given a long timeout, but not an unbounded one.
 const (
-	updateListTimeout      = 30 * time.Second
-	updateListMaxBytes     = 1 << 20 // 1 MiB
-	updateDownloadTimeout  = time.Hour
-	updateDownloadMaxBytes = 4 << 30 // 4 GiB
+	updateListTimeout     = 30 * time.Second
+	updateListMaxBytes    = 1 << 20 // 1 MiB
+	updateDownloadTimeout = time.Hour
+
+	// updateDownloadMaxBytes caps an update image. It is typed because
+	// the value does not fit an int on a 32-bit target. 1 GiB is above
+	// any image the Yoe updater takes and below the storage on the
+	// devices that run it, so the cap is reached before the disk is.
+	updateDownloadMaxBytes int64 = 1 << 30 // 1 GiB
+
+	// updateDownloadReserveBytes is free space left on the destination
+	// filesystem after a download. Filling the disk is how a download
+	// that is too large takes the rest of the system with it, so a
+	// download that would not leave this much does not start.
+	updateDownloadReserveBytes uint64 = 64 << 20 // 64 MiB
 )
 
 // updateURL joins name onto the update server URI. The URI must use https,
@@ -108,17 +120,46 @@ func updateURL(base, name string) (string, error) {
 }
 
 // updateFetcher performs the HTTP requests for the update client. Tests
-// supply an http.Client that trusts their server.
+// supply an http.Client that trusts their server, and smaller limits than
+// a real download would need.
 type updateFetcher struct {
 	list     *http.Client
 	download *http.Client
+	maxBytes int64
+	reserve  uint64
 }
 
 func newUpdateFetcher() updateFetcher {
 	return updateFetcher{
 		list:     &http.Client{Timeout: updateListTimeout},
 		download: &http.Client{Timeout: updateDownloadTimeout},
+		maxBytes: updateDownloadMaxBytes,
+		reserve:  updateDownloadReserveBytes,
 	}
+}
+
+// checkSpace reports whether a download of size bytes fits in dir and
+// still leaves the reserve free. A size of -1 means the server did not
+// say how large the image is, and only the reserve is required, so a
+// device that is already nearly full does not start a download that
+// cannot finish.
+func (f updateFetcher) checkSpace(dir string, size int64) error {
+	usage, err := disk.Usage(dir)
+	if err != nil {
+		return fmt.Errorf("error checking free space in %v: %w", dir, err)
+	}
+
+	need := f.reserve
+	if size > 0 {
+		need += uint64(size)
+	}
+
+	if usage.Free < need {
+		return fmt.Errorf("not enough space in %v: %v bytes free, %v needed",
+			dir, usage.Free, need)
+	}
+
+	return nil
 }
 
 // get fetches u and returns the response after checking its status.
@@ -173,17 +214,29 @@ func (f updateFetcher) fetchFile(base, name, dir string) error {
 	}
 	defer resp.Body.Close()
 
+	// A server that declares a size too large is refused before anything
+	// is written. The length is the server's claim, so the limit on the
+	// copy below is what enforces the cap.
+	if resp.ContentLength > f.maxBytes {
+		return fmt.Errorf("failed to download %v: update is %v bytes, over the %v byte limit",
+			u, resp.ContentLength, f.maxBytes)
+	}
+
+	if err := f.checkSpace(dir, resp.ContentLength); err != nil {
+		return fmt.Errorf("failed to download %v: %w", u, err)
+	}
+
 	out, err := os.Create(destPath)
 	if err != nil {
 		return fmt.Errorf("error creating OS update file: %w", err)
 	}
 
-	c, err := io.Copy(out, io.LimitReader(resp.Body, updateDownloadMaxBytes+1))
+	c, err := io.Copy(out, io.LimitReader(resp.Body, f.maxBytes+1))
 	if cerr := out.Close(); err == nil {
 		err = cerr
 	}
-	if err == nil && c > updateDownloadMaxBytes {
-		err = fmt.Errorf("update is larger than %v bytes", updateDownloadMaxBytes)
+	if err == nil && c > f.maxBytes {
+		err = fmt.Errorf("update is larger than %v bytes", f.maxBytes)
 	}
 	if err == nil && c <= 0 {
 		err = errors.New("empty download")
