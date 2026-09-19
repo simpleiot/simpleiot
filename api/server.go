@@ -44,6 +44,12 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			req.URL.Path = path
 			req.Body = http.MaxBytesReader(res, req.Body, maxBodyBytes)
 			h.V1ApiHandler.ServeHTTP(res, req)
+		case "fonts":
+			// the font files are named for their face and never change
+			// in place; embedded files carry no modification time, so
+			// without this the browser fetches them on every use
+			res.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			h.PublicHandler.ServeHTTP(res, req)
 		default:
 			h.PublicHandler.ServeHTTP(res, req)
 		}
