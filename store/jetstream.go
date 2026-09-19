@@ -1125,10 +1125,9 @@ func (db *DbJetStream) userCheck(email, password string) (data.Nodes, error) {
 	checked := false
 
 	for _, edge := range userEdges {
-		// a user replicated from a downstream instance signs in there,
-		// not here: its password is whatever that instance's operator
-		// set, and a default account on any device would otherwise be
-		// a default account on the upstream
+		// a user under a device signs in on that device, not here: a
+		// default account on any device would otherwise be a default
+		// account on the upstream
 		if !db.userIsLocal(edge.Down) {
 			continue
 		}
@@ -1194,14 +1193,14 @@ func (db *DbJetStream) userCheck(email, password string) (data.Nodes, error) {
 	return ret, nil
 }
 
-// userIsLocal reports whether a user node's password was written on this
-// instance rather than replicated from another.
+// userIsLocal reports whether a user node belongs to this instance rather
+// than to a device in its tree. A user reachable from a device boundary is
+// that device's user, wherever its password was set: an operator editing
+// the password of a device's user in the upstream's UI is administering
+// the device, not creating an account on the upstream. The instance's own
+// users are the ones reachable from no device boundary.
 func (db *DbJetStream) userIsLocal(id string) bool {
-	db.pointMu.RLock()
-	defer db.pointMu.RUnlock()
-
-	origin := db.pointOrigin[id][data.PointTypePass+"|0"]
-	return origin == "" || origin == db.meta.RootID
+	return len(db.edgeCache.DeliveryBoundaries(id, db.meta.RootID)) == 0
 }
 
 var (

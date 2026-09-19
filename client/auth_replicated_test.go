@@ -77,4 +77,22 @@ func TestReplicatedUserSignIn(t *testing.T) {
 	if err != nil || len(nodes) == 0 {
 		t.Fatalf("upstream admin sign-in: %v %v", nodes, err)
 	}
+
+	// setting the device user's password from the upstream administers
+	// the device: the new password works on the device and the user is
+	// still not an account on the upstream
+	err = client.SendNodePoint(ncU, "dev-user",
+		data.NewPointString(data.PointTypePass, "", "set-upstream"), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, 10*time.Second, "password change not on device", func() bool {
+		nodes, err := client.UserCheck(ncD, "d@example.com", "set-upstream")
+		return err == nil && len(nodes) > 0
+	})
+
+	nodes, err = client.UserCheck(ncU, "d@example.com", "set-upstream")
+	if err == nil && len(nodes) > 0 {
+		t.Fatalf("device user signed in on the upstream after an upstream password change: %v", nodes)
+	}
 }

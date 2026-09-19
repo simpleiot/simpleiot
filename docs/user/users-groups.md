@@ -61,12 +61,15 @@ it sets a new password.
 
 ## Where a user signs in
 
-A user signs in on the instance where the user's password was set. When a device
-syncs to an upstream, its user nodes are replicated there with the rest of its
-tree, and they appear under the device in the upstream's UI, but they are not
-accepted at the upstream's sign-in. A user who needs the upstream is created on
-the upstream. This also means a device still carrying the default `admin`
-account is not a way into its upstream.
+A user belongs to the instance whose tree holds it, and signs in there. A user
+under a device node is that device's user: when the device syncs to an upstream,
+the user is replicated there with the rest of the device's tree and appears
+under the device in the upstream's UI, but is not accepted at the upstream's
+sign-in. Setting that user's password from the upstream changes the password on
+the device, and does not make the user an account on the upstream. A user who
+needs the upstream is created under the upstream's root or one of its groups.
+This also means a device still carrying the default `admin` account is not a way
+into its upstream.
 
 Sign-in attempts are limited per account: after five failures in a row the
 account is refused for a second, doubling with each further failure up to five

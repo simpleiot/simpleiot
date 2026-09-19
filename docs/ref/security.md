@@ -307,11 +307,15 @@ gone. The HTTP node routes apply the same scope; see [HTTP](#http). A deployment
 with no shared token still runs open on every NATS listener, WebSocket included;
 the UI presents its JWT either way and is scoped either way.
 
-A user signs in on the instance that holds the user's password. Sync replicates
-a device's user nodes to its upstream with the rest of the device's tree, and
-those users are not accepted at the upstream's sign-in: the password was set by
-whoever administers the device, and a device left with its default account would
-otherwise be a default account on the upstream.
+A user signs in on the instance whose tree holds it, and a user under a device
+node belongs to that device. Sync replicates a device's user nodes to its
+upstream with the rest of the device's tree, and those users are not accepted at
+the upstream's sign-in, whoever set the password: an upstream operator editing a
+device user's password is administering the device, and a device left with its
+default account would otherwise be a default account on the upstream. The store
+decides this from the tree (`userIsLocal`, `store/jetstream.go`), not from which
+instance wrote the password point, so a restart or a copy of the point in
+another stream cannot change the answer.
 
 ### Secrets in node reads
 

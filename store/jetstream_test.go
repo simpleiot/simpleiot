@@ -259,19 +259,33 @@ func TestDbJetStreamUserCheckDuplicateCredentials(t *testing.T) {
 
 	rootID := db.rootNodeID()
 
-	// a downstream device, holding a replicated user with the same
-	// email and password as the admin created with the root node
-	deviceID := uuid.New().String()
-	mkTestNode(t, db, rootID, deviceID, data.NodeTypeDevice, "downstream")
+	// a group holding a second user with the same email and password
+	// as the admin created with the root node
+	groupID := uuid.New().String()
+	mkTestNode(t, db, rootID, groupID, data.NodeTypeGroup, "group")
 
 	dupID := uuid.New().String()
-	mkTestNode(t, db, deviceID, dupID, data.NodeTypeUser, "")
+	mkTestNode(t, db, groupID, dupID, data.NodeTypeUser, "")
 	err := db.nodePoints(dupID, data.Points{
 		data.NewPointString(data.PointTypeEmail, "", "admin"),
 		data.NewPointString(data.PointTypePass, "", "admin"),
 	})
 	if err != nil {
-		t.Fatal("Error writing downstream user points:", err)
+		t.Fatal("Error writing group user points:", err)
+	}
+
+	// a user under a device is that device's user, wherever its
+	// password was written, so it is never returned here
+	deviceID := uuid.New().String()
+	mkTestNode(t, db, rootID, deviceID, data.NodeTypeDevice, "downstream")
+	devUserID := uuid.New().String()
+	mkTestNode(t, db, deviceID, devUserID, data.NodeTypeUser, "")
+	err = db.nodePoints(devUserID, data.Points{
+		data.NewPointString(data.PointTypeEmail, "", "admin"),
+		data.NewPointString(data.PointTypePass, "", "admin"),
+	})
+	if err != nil {
+		t.Fatal("Error writing device user points:", err)
 	}
 
 	for i := 0; i < 10; i++ {
@@ -283,10 +297,10 @@ func TestDbJetStreamUserCheckDuplicateCredentials(t *testing.T) {
 			t.Fatal("expected both matching users, got:", len(users))
 		}
 		if users[0].ID == dupID {
-			t.Fatal("userCheck picked the downstream user over the root user")
+			t.Fatal("userCheck picked the group user over the root user")
 		}
 		if users[1].ID != dupID {
-			t.Fatal("downstream user not ordered after the root user")
+			t.Fatal("group user not ordered after the root user")
 		}
 	}
 }

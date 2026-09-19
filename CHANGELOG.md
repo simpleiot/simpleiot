@@ -25,9 +25,11 @@ For more details or to discuss releases, please visit the
 - **A request with no credentials is refused on the HTTP node routes**, whether
   or not `SIOT_AUTH_TOKEN` is set. A script that relied on an empty header
   against an instance with no token has to sign in or present the token.
-- **Users replicated from a device do not sign in on the upstream.** A user
-  signs in on the instance where the password was set, so a device left with its
-  default `admin` account is not an account on the upstream. See
+- **A user under a device signs in on that device only.** A device's users are
+  replicated to the upstream with the rest of its tree, but are not accepted at
+  the upstream's sign-in, even after their password is set from the upstream's
+  UI, so a device left with its default `admin` account is not an account on the
+  upstream. See
   [users and groups](docs/user/users-groups.md#where-a-user-signs-in).
 - **Node replies to a browser or API user leave secret values out.** `pass`,
   `authToken`, `enrollToken`, `sid`, and `psk` points arrive with an empty
