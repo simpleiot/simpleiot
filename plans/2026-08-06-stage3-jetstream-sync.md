@@ -1,11 +1,13 @@
-# Plan: JetStream Synchronization (ADR-7 Stage 3) — DRAFT
+# Plan: JetStream Synchronization (ADR-7 Stage 3)
 
-**Status:** DRAFT — written before Stage 2 (boundary-origin streams) is
-implemented, to think through the sync design far enough to catch anything that
-should change in the
-[Stage 2 store plan](2026-08-06-boundary-origin-streams.md). The phases here are
-a sketch, not a commitment; they get firmed up after the Stage 2 work and the
-Phase 7 spikes land. **ADR:** docs/adr/7-jetstream-store.md (Stage 3 decision).
+**Status:** COMPLETE. Two instances replicate in both directions, survive
+disconnection, and converge; per-device credentials
+([plan](2026-08-20-per-device-credentials.md)) replaced the shared token and
+closed the AuthZ item. The open items moved to the
+[follow-up plan](2026-09-19-jetstream-sync-followups.md). The design sections
+below were written before implementation; see
+[Implementation Status](#implementation-status-2026-08-06) for where it departs.
+**ADR:** docs/adr/7-jetstream-store.md (Stage 3 decision).
 
 ## Context
 
@@ -331,25 +333,19 @@ after the Stage 2 rework:
 - **Tests:** two-instance flows in both directions (points, node create/delete),
   detach, offline catch-up (`client/sync_test.go`).
 
-Remaining, in rough priority order:
+Later work, done:
 
-1. Nested device boundaries (only the root boundary replicates today).
-2. Multi-hop chaining test (expected to work: each hop is independent).
-3. ~~Per-replica retention~~ — largely resolved 2026-08-07: retention defaults
-   to 5000 messages per subject, and each instance's store applies its own
-   policy to replica streams it discovers (sync pumps create streams bare and
-   never update configuration). Remaining: per-boundary overrides at the
-   `maxMsgsForStream` resolution point, e.g. a hub keeping deeper history for
-   selected devices.
-4. AuthZ tightening: shared token today; per-stream permissions via auth
-   callout.
-5. ~~History sinks as durable stream consumers~~ — done 2026-08-07: the Db
-   client consumes the `inst-*` streams with durable consumers (DeliverNew on
-   first start, DeliverAll for streams that appear later), acknowledging after
-   handoff to the batching writer. External sinks can follow the same pattern.
-6. Sync status points (lag, last-delivered); `SyncCount` currently counts
-   replication sessions.
-7. Frontend sync status UI.
+- Per-replica retention (2026-08-07): retention defaults to 5000 messages per
+  subject, and each instance's store applies its own policy to replica streams
+  it discovers.
+- History sinks (2026-08-07): the Db client consumes the `inst-*` streams with
+  durable consumers.
+- AuthZ: per-device credentials scope each device to its own streams.
+
+Still open, in the [follow-up plan](2026-09-19-jetstream-sync-followups.md):
+nested device boundaries, a multi-hop test, moving nodes between boundaries,
+per-boundary retention overrides, sync status points and UI, history sink gaps,
+and revisiting sourcing.
 
 ## Retrospective (2026-08-07)
 

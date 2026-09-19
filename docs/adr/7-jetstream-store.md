@@ -655,7 +655,8 @@ Implementation is broken down into 3 stages:
 Stage 3 is functional end to end — two instances replicate in both directions,
 survive disconnection, and converge — but the items below are still outstanding.
 They are grouped by area and roughly ordered by priority within each group. The
-Stage 3 [plan](../../plans/2026-08-06-stage3-jetstream-sync.md) tracks progress.
+[sync follow-ups plan](../../plans/2026-09-19-jetstream-sync-followups.md)
+tracks progress.
 
 **Sync coverage**
 
@@ -699,17 +700,18 @@ Stage 3 [plan](../../plans/2026-08-06-stage3-jetstream-sync.md) tracks progress.
 
 **Security**
 
-8. AuthZ tightening: instances share a token today. The target is per-stream
-   JetStream permissions issued dynamically via NATS auth callout, so a device
-   may replicate `inst_X_*` and export only `inst_X_X`.
-9. The filter-carrying consumer-create permission form
-   (`$JS.API.CONSUMER.CREATE.<stream>.<consumer>.<filter>`) is unverified on the
-   NATS version SIOT pins. Item 8 depends on it.
+8. AuthZ tightening: resolved. Per-device credentials scope a device to
+   replicating `inst_X_*` and writing only `inst_X_X`, issued by the server's
+   own authorizer rather than auth callout (`devicePermissions` in
+   `server/auth.go`; see the [security reference](../ref/security.md)).
+9. The filter-carrying consumer-create permission form: resolved as part of item
+   8, which grants `$JS.API.CONSUMER.CREATE.<stream>.>`.
 
 **Operations and observability**
 
-10. Per-replica retention overrides: replica streams are currently unlimited.
-    The resolution point exists in `maxMsgsForStream`.
+10. Per-boundary retention overrides: every stream, replicas included, keeps
+    5000 messages per subject by default. The resolution point exists in
+    `maxMsgsForStream`.
 11. History sinks: the Db client consumes boundary-origin streams with a durable
     consumer, so node points are gap-free across restarts (`client/db.go`), and
     external sinks can follow the same pattern. Remaining: edge points are
