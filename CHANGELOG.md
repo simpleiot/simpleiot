@@ -124,6 +124,11 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+- **An OS update download stops before it fills the disk.** The size limit is 1
+  GiB, larger than any update image and smaller than the storage on a typical
+  device. A server that declares an oversized image is refused before anything
+  is written, and a download that would not leave 64 MiB free in the destination
+  directory does not start. See [update](docs/user/update.md).
 - **A copied node stays on the clipboard after a mirror or a duplicate**, so it
   can be pasted into several destinations in a row. A move still clears it, and
   the x next to the clipboard entry clears it at any time.
