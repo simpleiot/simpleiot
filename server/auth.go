@@ -1050,6 +1050,11 @@ func (a *authorizer) enforce() {
 			continue
 		}
 		e, ok := a.creds[pub]
+		if !ok && a.token == "" {
+			// an open instance accepts a key it does not know, so there
+			// is nothing to take away from it
+			continue
+		}
 		if !ok || e.disabled {
 			closeIDs = append(closeIDs, cid)
 			continue

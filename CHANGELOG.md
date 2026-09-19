@@ -162,6 +162,10 @@ For more details or to discuss releases, please visit the
 
 ### Fixed
 
+- **Sync to an upstream with no token stays connected.** The upstream no longer
+  drops a device each time its tree changes; before, the device reconnected a
+  few seconds later.
+
 - **A node mirrored onto an upstream keeps syncing to its device.** Mirroring a
   node with no primary location -- a variable, a user -- from a device subtree
   into the upstream tree moved the node's ownership to the upstream root, so

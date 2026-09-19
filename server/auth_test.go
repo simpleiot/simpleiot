@@ -184,6 +184,32 @@ func TestCheckNkey(t *testing.T) {
 	}
 }
 
+// TestEnforceOpenKeepsUnknownKey checks that an instance with no token,
+// which accepts a key it does not know, does not close that connection
+// again when it enforces credentials after a tree change.
+func TestEnforceOpenKeepsUnknownKey(t *testing.T) {
+	a, _ := spikeAuthorizer(t, "")
+	_, url, _ := spikeServer(t, a)
+
+	stranger, _ := nkeys.CreateUser()
+	nc, err := nats.Connect(url, append(nkeyOptions(stranger),
+		nats.NoReconnect())...)
+	if err != nil {
+		t.Fatal("connect:", err)
+	}
+	defer nc.Close()
+
+	a.enforce()
+
+	if err := nc.Flush(); err != nil {
+		t.Fatal("flush:", err)
+	}
+	time.Sleep(200 * time.Millisecond)
+	if !nc.IsConnected() {
+		t.Fatal("enforce closed an unknown key on an open instance")
+	}
+}
+
 // TestDeviceAuthRequiredKeepsLocalToken starts a full server with device
 // auth required and checks that its own client, which presents the shared
 // token from loopback, still works.
