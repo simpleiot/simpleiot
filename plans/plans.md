@@ -24,3 +24,4 @@
 | 2026-09-01-ui-over-nats.md                       | **COMPLETE** (in-process server client not done; see plan)                              | b373fc73      |
 | 2026-09-19-security-followups.md                 | **NOT STARTED**                                                                         | d4855615      |
 | 2026-09-19-jetstream-sync-followups.md           | **NOT STARTED**                                                                         | a85c26f6      |
+| 2026-09-19-shared-nodes-across-devices.md        | **IN PROGRESS** (phase 1 done)                                                          | cda79cb7      |

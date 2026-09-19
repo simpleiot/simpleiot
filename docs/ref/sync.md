@@ -160,10 +160,12 @@ replication resumes where it left off.
   boundary's streams, which the stream-per-boundary layout makes a one-rule
   grant. See [per-device credentials](../user/sync.md#device-credentials) and
   the [security reference](security.md#nats).
-- A node reaches one device. Because a node belongs to a single boundary and a
-  device replicates only its own boundary's streams, a node mirrored into two
-  devices reaches neither; give each device its own node and write them from one
-  place. See [one node reaches one device](data.md#one-node-reaches-one-device).
+- A node mirrored into several devices reaches all of them (planned). The
+  upstream appends its own writes to the stream it keeps for each device the
+  node is reachable from, so a setpoint changed on the upstream lands on every
+  device sharing it. What a device writes reaches the upstream and not the other
+  devices. See
+  [a node reaches every device it is mirrored into](data.md#a-node-reaches-every-device-it-is-mirrored-into-planned).
 
 See the
 [Stage 3 plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-08-06-stage3-jetstream-sync.md)

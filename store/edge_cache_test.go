@@ -262,3 +262,65 @@ func TestBoundaryContractBothSides(t *testing.T) {
 		t.Error("edge M->S must be owned by X on both sides")
 	}
 }
+
+func TestDeliveryBoundaries(t *testing.T) {
+	ec := NewEdgeCache()
+
+	// R (root) > G (group) > V1 (variable): nothing to deliver to
+	// R > A (device) > V2
+	// R > A > V3 and R > B (device) > V3: two devices, no roles
+	// R > A > S (sensor, primary) and R > B > S (mirror)
+	// R > A > V4 and R > G > V4: a device and a group
+	testEdge(ec, "root", "R", data.NodeTypeDevice, false)
+	testEdge(ec, "R", "G", data.NodeTypeGroup, false)
+	testEdge(ec, "R", "A", data.NodeTypeDevice, false)
+	testEdge(ec, "R", "B", data.NodeTypeDevice, false)
+	testEdge(ec, "G", "V1", data.NodeTypeVariable, false)
+	testEdge(ec, "A", "V2", data.NodeTypeVariable, false)
+	testEdge(ec, "A", "V3", data.NodeTypeVariable, false)
+	testEdge(ec, "B", "V3", data.NodeTypeVariable, false)
+	testEdgeRole(ec, "A", "S", data.NodeTypeGPIO, data.EdgeRolePrimary)
+	testEdgeRole(ec, "B", "S", data.NodeTypeGPIO, data.EdgeRoleMirror)
+	testEdge(ec, "A", "V4", data.NodeTypeVariable, false)
+	testEdge(ec, "G", "V4", data.NodeTypeVariable, false)
+
+	check := func(id string, want ...string) {
+		t.Helper()
+		got := ec.DeliveryBoundaries(id, "R")
+		if len(got) != len(want) {
+			t.Errorf("DeliveryBoundaries(%v) = %v, want %v", id, got, want)
+			return
+		}
+		for i := range want {
+			if got[i] != want[i] {
+				t.Errorf("DeliveryBoundaries(%v) = %v, want %v", id, got, want)
+				return
+			}
+		}
+	}
+
+	check("V1")
+	check("V2", "A")
+	check("V3", "A", "B")
+	check("S", "A", "B")
+	check("V4", "A")
+	check("A", "A")
+	check("R")
+
+	// a descendant of a node mirrored into two devices reaches both
+	testEdge(ec, "R", "SUB", data.NodeTypeGroup, false)
+	testEdgeRole(ec, "A", "SUB", data.NodeTypeGroup, data.EdgeRoleMirror)
+	testEdgeRole(ec, "B", "SUB", data.NodeTypeGroup, data.EdgeRoleMirror)
+	testEdge(ec, "SUB", "V5", data.NodeTypeVariable, false)
+
+	check("V5", "A", "B")
+
+	// a tombstoned mirror edge stops delivering
+	testEdgeRole(ec, "B", "S", data.NodeTypeGPIO, data.EdgeRoleMirror)
+	ec.Set(EdgeEntry{Up: "B", Down: "S", Type: data.NodeTypeGPIO, Points: data.Points{
+		data.NewPointFloat(data.PointTypeTombstone, "0", 1),
+		data.NewPointFloat(data.PointTypeMirror, "0", 1),
+	}})
+
+	check("S", "A")
+}

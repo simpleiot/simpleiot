@@ -322,33 +322,44 @@ the one that says where the node lives. A variable on a device that is also
 mirrored onto the upstream therefore stays owned by the device, and a value
 written on the upstream reaches it.
 
-### One node reaches one device
+### A node reaches every device it is mirrored into (planned)
 
-A node belongs to a single boundary, and a device replicates only the streams
-for its own boundary, so a node cannot be mirrored into two devices. Nothing
-chooses between two device boundaries, so the node resolves to the instance
-root, which neither device replicates. Each device still receives the edge,
-since an edge is stored with its parent's boundary, so the node appears in both
-trees carrying no points. Mirroring a node into a second device also takes it
-away from the first, which owned it until then.
+A node belongs to one boundary, and a device replicates only the streams for its
+own boundary. That decides where the upstream stores the node and which instance
+runs its client. Which devices _receive_ the node is a separate question,
+answered by walking every live edge above it, mirror or not, to the first device
+boundary on each path. This is the node's delivery set
+(`EdgeCache.DeliveryBoundaries`). When the upstream writes a point to a node, it
+appends the point to its own stream for the owning boundary as before, and also
+to the stream it writes for each device in the delivery set. Each device pulls
+its own stream, so all of them receive the write.
 
-Mirroring the other way has the same limit. A hardware node that lives on the
-upstream and is mirrored into a device's subtree keeps its points on the
-upstream, because its new edge is a mirror and ownership skips it, and the
-device sees the edge without them. A node with no role does move to the device,
-since the instance root and one device boundary resolve to the device.
+A variable under the upstream root mirrored into three devices reaches all
+three, and a setpoint changed in the portal arrives on each. Removing one mirror
+removes the node from that device only; the upstream purges the node's copies
+from that device's stream. Adding a mirror delivers the node's current values
+right away, so a device never shows an empty node waiting for the next write.
+
+Ownership follows the same rules as before. Mirroring a node whose type has no
+primary location (a variable, a rule, a group) makes an edge with no role, so a
+variable that lived on one device and is mirrored into a second resolves to the
+upstream root, and its stored subjects move there. The move does not affect
+delivery: both devices are in the delivery set, and both keep receiving the
+upstream's writes.
+
+What a device writes reaches the upstream and stops there. A write lands in the
+device's own stream, which the upstream replicates and the other devices do not.
+Two devices sharing a variable each see the upstream's writes and their own; a
+change made on one is visible on the upstream but not on the other. The same
+holds for a sensor on one device mirrored into another: the second device gets
+the edge and the values the upstream has copied for it, and readings the
+sensor's device writes afterward do not reach it. Carrying device writes across
+would make the upstream a relay between devices, and is not something the system
+does.
 
 Behind this is the property that makes synchronization echo-free: only the
-origin instance ever appends to a stream. Copying the upstream's writes into
-both device boundaries would be mechanical, but a write made on one device lands
-in that device's own stream, which the other device does not replicate. Carrying
-it across would make the upstream a relay between two devices editing one node
-with nothing to coordinate them.
-
-To give several devices the same value, keep a node in each device's subtree and
-write them all from one place. A rule on the upstream with a `setValue` action
-per device does this, and each write lands in the boundary that device
-replicates.
+origin instance ever appends to a stream. The upstream copies its own writes
+into several of its own streams, which keeps that property intact.
 
 ### Upgrading
 

@@ -78,13 +78,14 @@ mirrors are labeled in the tree so it is clear that nothing runs there. Controls
 still work from a mirror: setting a value on one travels to the device that owns
 the node, and the result comes back.
 
-A node reaches one device. Mirror it into as many groups as you like, but a node
-mirrored into two different devices reaches neither of them: it appears in both
-trees with no values, and a node that already lived on one of them stops syncing
-there too. To give several devices the same value, give each device its own node
-and write them all from one place, such as a rule with a `setValue` action per
-device. See
-[one node reaches one device](../ref/data.md#one-node-reaches-one-device).
+Mirroring a node into several devices shares it with all of them (planned). A
+setpoint or schedule kept on the upstream and mirrored into each device at a
+site arrives on every one, and a change made in the portal reaches them all.
+Each device sees the current values as soon as the mirror is added, and removing
+a mirror removes the node from that device only. A change made on one device
+reaches the upstream but not the other devices, so keep values that several
+devices depend on where they are set: on the upstream. See
+[a node reaches every device it is mirrored into](../ref/data.md#a-node-reaches-every-device-it-is-mirrored-into-planned).
 
 Some nodes belong under a particular parent and are found through it: a Modbus
 IO under its Modbus node, a rule condition under its rule. For these, `mirror`
