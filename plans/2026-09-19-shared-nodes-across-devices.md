@@ -93,36 +93,36 @@ ownership change deletes the copies it just made.
 
 ## Phase 2 — Fan out node and edge points
 
-- [ ] `nodePoints` (`store/jetstream.go`) writes each point to the owning
+- [x] `nodePoints` (`store/jetstream.go`) writes each point to the owning
       boundary as today, and also to `inst.<b>.<self>` for each boundary in the
       delivery set other than the owner.
-- [ ] `edgePoints` does the same for a child edge, using the parent's delivery
+- [x] `edgePoints` does the same for a child edge, using the parent's delivery
       set, so a node's subtree reaches every device the node does.
-- [ ] The fan-out also runs on a device. `DeliveryBoundaries` is empty there
+- [x] The fan-out also runs on a device. `DeliveryBoundaries` is empty there
       unless the device has nested devices, which item 1 of the
       [sync follow-ups plan](2026-09-19-jetstream-sync-followups.md) covers.
-- [ ] Test: on a hub with two devices, a variable under the hub root mirrored
+- [x] Test: on a hub with two devices, a variable under the hub root mirrored
       into both devices. A write on the hub lands in both `inst_A_<hub>` and
       `inst_B_<hub>`.
 
 ## Phase 3 — Seed and purge when the delivery set changes
 
-- [ ] In `edgePoints`, capture the child's delivery set before and after the
+- [x] In `edgePoints`, capture the child's delivery set before and after the
       edge lands, as it does for the owner. For each added boundary, republish
       the node's tips from the point cache and its child edges into that
       boundary's upstream-written stream, recursing into the subtree. For each
       removed boundary, purge the node's subjects there.
-- [ ] Fold this into `migrateBoundary` rather than adding a parallel path, and
+- [x] Fold this into `migrateBoundary` rather than adding a parallel path, and
       change `purgeNodeSubjectsExcept` to keep the whole delivery set.
-- [ ] Sync test in `client/sync_test.go`: a hub, two devices, a variable on the
+- [x] Sync test in `client/sync_test.go`: a hub, two devices, a variable on the
       hub mirrored into both. Both devices receive its current value, a hub
       write reaches both, and removing one mirror removes the node from that
       device only.
-- [ ] Sync test: a variable created on device A, mirrored into device B on the
+- [x] Sync test: a variable created on device A, mirrored into device B on the
       hub. B receives A's value at the time of the mirror, and a hub write
       reaches both. A write on A reaches the hub and not B, which is the
       documented limit until the relay exists.
-- [ ] Sync test: a hub restart does not append anything to the device streams.
+- [x] Sync test: a hub restart does not append anything to the device streams.
 
 ## Phase 4 — Docs and changelog
 

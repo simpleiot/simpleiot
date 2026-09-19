@@ -419,13 +419,30 @@ func (db *DbJetStream) pointIsTip(nodeID string, pIn data.Point, origin string) 
 	return true
 }
 
+// targetBoundaries returns every boundary this instance stores a node's
+// subjects under: the owning boundary, where the node lives, and each
+// device boundary in the delivery set, which receives a copy of what this
+// instance writes. The owner comes first.
+func (db *DbJetStream) targetBoundaries(id string) (owner string, targets []string) {
+	origin := db.meta.RootID
+	owner = db.edgeCache.OwningBoundary(id, origin)
+	targets = []string{owner}
+	for _, b := range db.edgeCache.DeliveryBoundaries(id, origin) {
+		if b != owner {
+			targets = append(targets, b)
+		}
+	}
+	return owner, targets
+}
+
 // nodePoints writes node points to this instance's origin stream for
-// the node's owning boundary and updates the point cache.
+// the node's owning boundary, copies them into the stream for each other
+// device in the node's delivery set, and updates the point cache.
 func (db *DbJetStream) nodePoints(id string, points data.Points) error {
 	points.Collapse()
 
 	origin := db.meta.RootID
-	boundary := db.edgeCache.OwningBoundary(id, origin)
+	boundary, targets := db.targetBoundaries(id)
 
 	// backstop for the startup pre-population: on a cache miss, load
 	// the node's current points from JetStream before adding new ones,
@@ -435,9 +452,11 @@ func (db *DbJetStream) nodePoints(id string, points data.Points) error {
 		return err
 	}
 
-	_, err = db.ensureOriginStream(boundary)
-	if err != nil {
-		return err
+	for _, b := range targets {
+		_, err = db.ensureOriginStream(b)
+		if err != nil {
+			return err
+		}
 	}
 
 	ctx := context.Background()
@@ -455,11 +474,14 @@ func (db *DbJetStream) nodePoints(id string, points data.Points) error {
 			continue
 		}
 
-		subject := nodePointSubject(boundary, origin, id, pIn.Type, pIn.Key)
 		pts := data.Points{pIn}
-		_, err = db.js.Publish(ctx, subject, pts.Encode())
-		if err != nil {
-			return fmt.Errorf("error publishing point to %v: %v", subject, err)
+		encoded := pts.Encode()
+		for _, b := range targets {
+			subject := nodePointSubject(b, origin, id, pIn.Type, pIn.Key)
+			_, err = db.js.Publish(ctx, subject, encoded)
+			if err != nil {
+				return fmt.Errorf("error publishing point to %v: %v", subject, err)
+			}
 		}
 
 		db.mergePointTip(id, pIn, origin)
@@ -469,7 +491,9 @@ func (db *DbJetStream) nodePoints(id string, points data.Points) error {
 }
 
 // edgePoints writes edge points to JetStream and updates the edge
-// cache. Edges are stored with the parent node's boundary.
+// cache. Edges are stored with the parent node's boundary and copied
+// into the stream for each other device in the parent's delivery set, so
+// a node's subtree reaches every device the node does.
 func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) error {
 	points.Collapse()
 
@@ -501,23 +525,32 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 
 	origin := db.meta.RootID
 	var boundary string
+	var targets []string
 	if parentID == "root" {
 		// an instance root edge always lives in the root node's own
 		// boundary-origin stream, so a fresh instance starts with the
 		// single stream inst_<rootID>_<rootID>
 		boundary = nodeID
 		origin = nodeID
+		targets = []string{boundary}
 	} else {
-		boundary = db.edgeCache.OwningBoundary(parentID, origin)
+		boundary, targets = db.targetBoundaries(parentID)
 	}
 
-	// capture the child's owning boundary before this edge lands so a
-	// cross-boundary move can be detected afterward
-	oldChildBoundary := db.edgeCache.OwningBoundary(nodeID, db.meta.RootID)
+	// capture where the child's subjects are stored before this edge
+	// lands, so a change in its owner or its delivery set can be acted on
+	// afterward
+	_, oldChildTargets := db.targetBoundaries(nodeID)
 
 	s, err := db.ensureOriginStreamFor(boundary, origin)
 	if err != nil {
 		return err
+	}
+	for _, b := range targets[1:] {
+		_, err = db.ensureOriginStreamFor(b, origin)
+		if err != nil {
+			return err
+		}
 	}
 
 	ctx := context.Background()
@@ -623,9 +656,12 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 
 	// Publish merged edge points
 	encoded := writePoints.Encode()
-	_, err = db.js.Publish(ctx, subject, encoded)
-	if err != nil {
-		return fmt.Errorf("error publishing edge points to %v: %v", subject, err)
+	for _, b := range targets {
+		subject := edgePointSubject(b, origin, parentID, nodeID)
+		_, err = db.js.Publish(ctx, subject, encoded)
+		if err != nil {
+			return fmt.Errorf("error publishing edge points to %v: %v", subject, err)
+		}
 	}
 
 	if !ok && parentID == "root" && nodeID != db.meta.RootID {
@@ -640,14 +676,17 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 	db.edgeCache.MergeEdgePoints(parentID, nodeID, nodeType, origin, writePoints)
 
 	// a fully deleted node keeps its subjects where they are; an
-	// undelete migrates them if ownership moved in the meantime
+	// undelete migrates them if ownership or delivery moved in the
+	// meantime
 	if boundaryCheck && len(db.edgeCache.UpIDs(nodeID, false)) > 0 {
-		newChildBoundary := db.edgeCache.OwningBoundary(nodeID, db.meta.RootID)
-		if newChildBoundary != oldChildBoundary {
-			err := db.migrateBoundary(nodeID, make(map[string]bool))
+		_, newChildTargets := db.targetBoundaries(nodeID)
+		added := boundaryDiff(newChildTargets, oldChildTargets)
+		removed := boundaryDiff(oldChildTargets, newChildTargets)
+		if len(added) > 0 || len(removed) > 0 {
+			err := db.migrateBoundary(nodeID, added, removed, make(map[string]bool))
 			if err != nil {
-				log.Printf("STORE: error migrating %v to boundary %v: %v",
-					nodeID, newChildBoundary, err)
+				log.Printf("STORE: error migrating %v (added %v, removed %v): %v",
+					nodeID, added, removed, err)
 			}
 		}
 	}
@@ -655,21 +694,55 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 	return nil
 }
 
-// migrateBoundary handles a node whose owning boundary changed:
-// republish its current subject tips into the new boundary's origin
-// stream preserving original point timestamps, purge its subjects from
-// every other local-origin stream, and walk its owned descendants doing
-// the same. Descendants that are boundaries themselves own their
-// subtree and do not move; tombstoned paths are left in place (an
-// undelete migrates them when it restores ownership).
-func (db *DbJetStream) migrateBoundary(nodeID string, visited map[string]bool) error {
+// boundaryCommon returns the boundaries in a that are also in b.
+func boundaryCommon(a, b []string) []string {
+	return boundaryDiff(a, boundaryDiff(a, b))
+}
+
+// boundaryDiff returns the boundaries in a that are not in b.
+func boundaryDiff(a, b []string) []string {
+	var out []string
+	for _, x := range a {
+		found := false
+		for _, y := range b {
+			if x == y {
+				found = true
+				break
+			}
+		}
+		if !found {
+			out = append(out, x)
+		}
+	}
+	return out
+}
+
+// migrateBoundary handles a node whose set of storage boundaries changed,
+// because its owner moved or a device was added to or removed from its
+// delivery set. added and removed are the boundaries that came and went
+// for the node whose edge was written; a descendant gained or lost a
+// subset of the same ones, so the node's own targets decide which apply.
+//
+// For each added boundary the node still targets, its current subject
+// tips and child edges are republished into that boundary's origin
+// stream, preserving original point timestamps. For each removed
+// boundary it no longer targets, its subjects are purged there. The walk
+// then continues into owned descendants. Descendants that are boundaries
+// themselves own their subtree and do not move; tombstoned paths are left
+// in place (an undelete migrates them when it restores ownership).
+func (db *DbJetStream) migrateBoundary(nodeID string, added, removed []string,
+	visited map[string]bool) error {
+
 	if visited[nodeID] {
 		return nil
 	}
 	visited[nodeID] = true
 
 	origin := db.meta.RootID
-	boundary := db.edgeCache.OwningBoundary(nodeID, origin)
+	_, targets := db.targetBoundaries(nodeID)
+
+	seed := boundaryCommon(added, targets)
+	purge := boundaryDiff(removed, targets)
 
 	db.pointMu.RLock()
 	pts := append(data.Points{}, db.pointCache[nodeID]...)
@@ -679,34 +752,37 @@ func (db *DbJetStream) migrateBoundary(nodeID string, visited map[string]bool) e
 
 	// a freshly created node has nothing to move
 	if len(pts) > 0 || len(children) > 0 {
-		_, err := db.ensureOriginStream(boundary)
-		if err != nil {
-			return err
-		}
-
 		ctx := context.Background()
 
 		// republish before purging so there is never a window with no
 		// stored copy
-		for _, p := range pts {
-			subject := nodePointSubject(boundary, origin, nodeID, p.Type, p.Key)
-			one := data.Points{p}
-			_, err := db.js.Publish(ctx, subject, one.Encode())
+		for _, b := range seed {
+			_, err := db.ensureOriginStream(b)
 			if err != nil {
-				return fmt.Errorf("error republishing %v: %v", subject, err)
+				return err
+			}
+
+			for _, p := range pts {
+				subject := nodePointSubject(b, origin, nodeID, p.Type, p.Key)
+				one := data.Points{p}
+				_, err := db.js.Publish(ctx, subject, one.Encode())
+				if err != nil {
+					return fmt.Errorf("error republishing %v: %v", subject, err)
+				}
+			}
+
+			// child edges belong to this node's boundaries, tombstoned
+			// or not
+			for _, e := range children {
+				subject := edgePointSubject(b, origin, nodeID, e.Down)
+				_, err := db.js.Publish(ctx, subject, e.Points.Encode())
+				if err != nil {
+					return fmt.Errorf("error republishing %v: %v", subject, err)
+				}
 			}
 		}
 
-		// child edges belong to this node's boundary, tombstoned or not
-		for _, e := range children {
-			subject := edgePointSubject(boundary, origin, nodeID, e.Down)
-			_, err := db.js.Publish(ctx, subject, e.Points.Encode())
-			if err != nil {
-				return fmt.Errorf("error republishing %v: %v", subject, err)
-			}
-		}
-
-		err = db.purgeNodeSubjectsExcept(nodeID, boundary)
+		err := db.purgeNodeSubjects(nodeID, purge)
 		if err != nil {
 			return err
 		}
@@ -719,7 +795,7 @@ func (db *DbJetStream) migrateBoundary(nodeID string, visited map[string]bool) e
 		if db.edgeCache.IsBoundary(e.Down, origin) {
 			continue
 		}
-		err := db.migrateBoundary(e.Down, visited)
+		err := db.migrateBoundary(e.Down, added, removed, visited)
 		if err != nil {
 			return err
 		}
@@ -728,38 +804,33 @@ func (db *DbJetStream) migrateBoundary(nodeID string, visited map[string]bool) e
 	return nil
 }
 
-// purgeNodeSubjectsExcept removes a node's subjects (its points and its
-// child edges) from every local-origin stream other than the boundary
-// that now owns it. Also used by permanent removal paths.
-func (db *DbJetStream) purgeNodeSubjectsExcept(nodeID, keepBoundary string) error {
+// purgeNodeSubjects removes a node's subjects (its points and its child
+// edges) from this instance's origin stream for each boundary listed.
+func (db *DbJetStream) purgeNodeSubjects(nodeID string, boundaries []string) error {
 	ctx := context.Background()
 	self := db.meta.RootID
 
-	lister := db.js.ListStreams(ctx, jetstream.WithStreamListSubject("inst.>"))
-	for si := range lister.Info() {
-		b, o, ok := streamBoundaryOrigin(si.Config)
-		if !ok || o != self || b == keepBoundary {
+	for _, b := range boundaries {
+		name := streamName(b, self)
+
+		s, err := db.js.Stream(ctx, name)
+		if errors.Is(err, jetstream.ErrStreamNotFound) {
 			continue
 		}
-
-		s, err := db.js.Stream(ctx, si.Config.Name)
 		if err != nil {
-			log.Printf("error getting stream %v: %v", si.Config.Name, err)
-			continue
+			return fmt.Errorf("error getting stream %v: %v", name, err)
 		}
 
-		filter := fmt.Sprintf("inst.%v.%v.%v.>", b, o, nodeID)
+		filter := fmt.Sprintf("inst.%v.%v.%v.>", b, self, nodeID)
 		err = s.Purge(ctx, jetstream.WithPurgeSubject(filter))
 		if err != nil {
 			return fmt.Errorf("error purging %v: %v", filter, err)
 		}
 	}
 
-	return lister.Err()
+	return nil
 }
 
-// loadAllStreams populates the edge and point caches from the subject
-// tips of every boundary-origin stream.
 func (db *DbJetStream) loadAllStreams() error {
 	ctx := context.Background()
 

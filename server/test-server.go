@@ -35,6 +35,17 @@ var TestServerOptions2 = Options{
 	ID:              "inst2",
 }
 
+// TestServerOptions3 options used for 3rd test server
+var TestServerOptions3 = Options{
+	NatsPort:        8920,
+	HTTPPort:        "8921",
+	NatsMonitorPort: 8922,
+	NatsWSPort:      8923,
+	NatsMQTTPort:    8924,
+	NatsServer:      "nats://localhost:8920",
+	ID:              "inst3",
+}
+
 // TestServer starts a test server and returns a function to stop it
 func TestServer(args ...string) (*nats.Conn, data.NodeEdge, func(), error) {
 	opts := TestServerOptions
