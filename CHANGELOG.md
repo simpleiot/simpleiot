@@ -127,6 +127,9 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+- **A copied node stays on the clipboard after a mirror or a duplicate**, so it
+  can be pasted into several destinations in a row. A move still clears it, and
+  the x next to the clipboard entry clears it at any time.
 - **The web UI moves to port 4223, and one setting now moves every port.** The
   HTTP port defaults to one above the NATS port (4222) and NATS monitoring to
   two above it, so `SIOT_NATS_PORT` alone moves a second instance off the

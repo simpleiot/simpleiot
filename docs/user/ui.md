@@ -69,6 +69,11 @@ presented with the following options:
   This is useful for scenarios where you have a device or site configuration
   (perhaps a complex Modbus setup) that you want to duplicate at a new site.
 
+After a mirror or a duplicate, the copied node stays on the clipboard, so you
+can paste it into several destinations in a row, such as mirroring a shared
+variable into each device at a site. A move clears it. Press the x next to the
+clipboard entry at the top of the page to clear it yourself.
+
 Mirroring a node that talks to hardware (a Modbus IO, a Shelly IO, a GPIO line,
 an MQTT connection) gives you a view of it rather than a second copy that runs.
 The instance where the node actually lives keeps talking to the device, and the

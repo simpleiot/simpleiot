@@ -666,7 +666,6 @@ updateInner shared msg model =
                 Data.Success _ ->
                     ( { model
                         | nodeOp = OpNone
-                        , copyMove = CopyMoveNone
                         , nodes = List.map (expChildren parent) model.nodes
                       }
                     , refetchChildren model parent
@@ -683,7 +682,6 @@ updateInner shared msg model =
                 Data.Success _ ->
                     ( { model
                         | nodeOp = OpNone
-                        , copyMove = CopyMoveNone
                         , nodes = List.map (expChildren parent) model.nodes
                       }
                     , refetchChildren model parent
