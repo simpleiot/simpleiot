@@ -2,6 +2,11 @@
 
 **Branch:** `cbrake/master` **Branched from:** `179d06ea`
 
+**Status:** complete (September 2026). What remains open is a set of design and
+infrastructure items, moved to the
+[security follow-ups plan](2026-09-19-security-followups.md) so this file stands
+as the record of what shipped.
+
 ## Context
 
 The security review recorded in [`security.md`](../../security.md) found a set
@@ -715,30 +720,13 @@ node inside a group starts with a literal level.
 - [x] **NTP client:** filter newlines in `server` and `fallbackServer`, write a
       newline between the two settings, and close the file.
 
-### 25. Honor host-changing node types only under the root
+### 25. Honor host-changing node types only under the root (moved)
 
-- [ ] Run the update, NTP, network manager, and kiosk browser clients only on
-      nodes directly under the root, so an account in a group cannot change the
-      host.
-
-**Problem:** the scope work (items 11, 12, 23) keeps a user inside their groups
-but not away from node types that act on the host. Every client runs wherever
-its node type appears, on the server's connection, so a user in any group can
-add an `update` node with any `https` URL and have the server replace its own
-binary and reboot; `ntp`, `networkManager`, and `browser` nodes rewrite system
-configuration the same way. An account is therefore control of the host, which
-is fine for an operator's own team and not for anyone else. Documented under
-[What an account can do](../docs/ref/security.md#what-an-account-can-do).
-
-**Change:** give `client.NewManager` a way to restrict a client to nodes whose
-parent is the root (the manager already takes a list of parent types), and use
-it for these four; a node of one of these types elsewhere in the tree gets an
-`error` point saying so and is not run. Consider the same for `modbus` server
-nodes and `file` nodes. Signed update payloads (see "Deliberately excluded")
-remain the answer for the root-level update node itself.
-
-**Verify:** an update node created by a user under a group is not acted on and
-carries an error; one under the root still updates.
+Found after the audit while reviewing a deployment behind a reverse proxy: every
+client runs wherever its node type appears, so any account can add an `update`
+node and have the server replace its own binary. Moved to the
+[security follow-ups plan](2026-09-19-security-followups.md) as item 1, with the
+other open items (4, 6, the token lifetime in 8, and two bullets of 20).
 
 ## Deliberately excluded
 

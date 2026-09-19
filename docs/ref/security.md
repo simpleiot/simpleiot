@@ -70,8 +70,8 @@ The trust boundary is therefore the instance, not the group: **an account is
 authority over the machine the instance runs on.** For an operator and their own
 team that is the intended model. For a deployment that gives accounts to people
 who should not administer the host, the host-changing node types need to be
-honored only directly under the root, which is tracked as item 25 of the
-[security cleanup plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-08-24-security-cleanup.md);
+honored only directly under the root, which is tracked as item 1 of the
+[security follow-ups plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-09-19-security-followups.md);
 until then, do not give such people accounts.
 
 Inside a group, every member can write every node, including another member's
@@ -351,20 +351,22 @@ decentralized auth) is the escalation path:
 
 An audit at `v0.28.0` (September 2026) reviewed the HTTP API, the NATS
 authorizer, the store, the clients, the frontend, dependencies, and packaging.
-Most of what it found was closed in the release that followed; the items below
-are still open. The numbers refer to the
-[security cleanup plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-08-24-security-cleanup.md),
+Everything it found that was a bug or a missing check was closed in the release
+that followed; see the
+[security cleanup plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-08-24-security-cleanup.md)
+for what shipped. The items below are still open. The numbers refer to the
+[security follow-ups plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-09-19-security-followups.md),
 which has the detail and the proposed change for each.
 
 | Area     | Limitation                                                                                                                                                                                                         | Plan item |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
-| Users    | Any account can add an `update`, `ntp`, `networkManager`, or `browser` node in its own group, and the server acts on it: an account is control of the host. See [What an account can do](#what-an-account-can-do). | 25        |
-| Users    | Any member of a group can write any node under it, including another member's password.                                                                                                                            | 20        |
-| Users    | The sign-in limiter keys on the account, so a known email can be locked out for up to five minutes at a time by anyone who can reach the sign-in page.                                                             | 7         |
-| Devices  | Behind a reverse proxy every connection arrives from loopback, so `SIOT_DEVICE_AUTH=required` does not limit the shared token on the HTTP port.                                                                    | 15        |
-| Users    | The sign-in token lasts seven days; it is refused once the user is gone, but not on a password change until the NATS connection is closed.                                                                         | 8         |
-| Defaults | The first account is `admin`/`admin` and nothing forces a change; the NATS monitoring port has no authentication. Both are left to the deployment checklist and the firewall.                                      | 4, 6      |
-| Releases | Releases carry checksums and no signature, so `siot update` trusts the release host.                                                                                                                               | 20        |
+| Users    | Any account can add an `update`, `ntp`, `networkManager`, or `browser` node in its own group, and the server acts on it: an account is control of the host. See [What an account can do](#what-an-account-can-do). | 1         |
+| Users    | Any member of a group can write any node under it, including another member's password.                                                                                                                            | 2         |
+| Users    | The sign-in limiter keys on the account, so a known email can be locked out for up to five minutes at a time by anyone who can reach the sign-in page.                                                             | 4         |
+| Devices  | Behind a reverse proxy every connection arrives from loopback, so `SIOT_DEVICE_AUTH=required` does not limit the shared token on the HTTP port.                                                                    | 4         |
+| Users    | The sign-in token lasts seven days; it is refused once the user is gone, but not on a password change until the NATS connection is closed.                                                                         | 3         |
+| Defaults | The first account is `admin`/`admin` and nothing forces a change; the NATS monitoring port has no authentication. Both are left to the deployment checklist and the firewall.                                      | 6, 7      |
+| Releases | Releases carry checksums and no signature, so `siot update` trusts the release host.                                                                                                                               | 5         |
 | Clients  | Update payloads are not signed; a point can still start a download and restart, from the release host, over HTTPS.                                                                                                 | excluded  |
 
 What the audit found sound: the binary point and node decoders bound every
