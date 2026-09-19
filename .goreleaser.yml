@@ -10,9 +10,12 @@ before:
     - go mod download
     - go generate ./...
     # release notes are the CHANGELOG.md section for the tag being released,
-    # followed by the download instructions in scripts/release-footer.md
+    # followed by the download instructions in scripts/release-footer.md, then
+    # formatted for GitHub: paragraphs joined into single lines and
+    # documentation links pointed at docs.simpleiot.org
     - bash -c './scripts/extract-changelog.sh $(git describe --tags --abbrev=0) > .release-notes.md'
     - bash -c 'printf "\n---\n\n" >> .release-notes.md; cat ./scripts/release-footer.md >> .release-notes.md'
+    - ./scripts/format-release-notes.sh .release-notes.md
 
 builds:
   - main: ./cmd/siot
