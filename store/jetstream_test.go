@@ -259,19 +259,33 @@ func TestDbJetStreamUserCheckDuplicateCredentials(t *testing.T) {
 
 	rootID := db.rootNodeID()
 
-	// a downstream device, holding a replicated user with the same
-	// email and password as the admin created with the root node
-	deviceID := uuid.New().String()
-	mkTestNode(t, db, rootID, deviceID, data.NodeTypeDevice, "downstream")
+	// a group holding a second user with the same email and password
+	// as the admin created with the root node
+	groupID := uuid.New().String()
+	mkTestNode(t, db, rootID, groupID, data.NodeTypeGroup, "group")
 
 	dupID := uuid.New().String()
-	mkTestNode(t, db, deviceID, dupID, data.NodeTypeUser, "")
+	mkTestNode(t, db, groupID, dupID, data.NodeTypeUser, "")
 	err := db.nodePoints(dupID, data.Points{
 		data.NewPointString(data.PointTypeEmail, "", "admin"),
 		data.NewPointString(data.PointTypePass, "", "admin"),
 	})
 	if err != nil {
-		t.Fatal("Error writing downstream user points:", err)
+		t.Fatal("Error writing group user points:", err)
+	}
+
+	// a user under a device is that device's user, wherever its
+	// password was written, so it is never returned here
+	deviceID := uuid.New().String()
+	mkTestNode(t, db, rootID, deviceID, data.NodeTypeDevice, "downstream")
+	devUserID := uuid.New().String()
+	mkTestNode(t, db, deviceID, devUserID, data.NodeTypeUser, "")
+	err = db.nodePoints(devUserID, data.Points{
+		data.NewPointString(data.PointTypeEmail, "", "admin"),
+		data.NewPointString(data.PointTypePass, "", "admin"),
+	})
+	if err != nil {
+		t.Fatal("Error writing device user points:", err)
 	}
 
 	for i := 0; i < 10; i++ {
@@ -283,10 +297,10 @@ func TestDbJetStreamUserCheckDuplicateCredentials(t *testing.T) {
 			t.Fatal("expected both matching users, got:", len(users))
 		}
 		if users[0].ID == dupID {
-			t.Fatal("userCheck picked the downstream user over the root user")
+			t.Fatal("userCheck picked the group user over the root user")
 		}
 		if users[1].ID != dupID {
-			t.Fatal("downstream user not ordered after the root user")
+			t.Fatal("group user not ordered after the root user")
 		}
 	}
 }
@@ -1374,5 +1388,110 @@ func TestDbJetStreamStrayRootEdgeIgnored(t *testing.T) {
 	}
 	if len(nodes) != 0 {
 		t.Fatalf("stray edge served as a root node: %v", nodes)
+	}
+}
+
+// TestDbJetStreamDeliveryFanOut covers a node under the instance root
+// mirrored into two devices: the instance's writes land in the stream it
+// keeps for each device, adding a mirror seeds the node's current values,
+// and removing one purges them from that device's stream only.
+func TestDbJetStreamDeliveryFanOut(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
+
+	rootID := db.rootNodeID()
+
+	devA := uuid.New().String()
+	devB := uuid.New().String()
+	v := uuid.New().String()
+
+	mkTestNode(t, db, rootID, devA, data.NodeTypeDevice, "device A")
+	mkTestNode(t, db, rootID, devB, data.NodeTypeDevice, "device B")
+	mkTestNode(t, db, rootID, v, data.NodeTypeVariable, "shared")
+
+	rootStream := streamName(rootID, rootID)
+	aStream := streamName(devA, rootID)
+	bStream := streamName(devB, rootID)
+	subj := func(b string) string { return "inst." + b + "." + rootID + "." + v + ".>" }
+
+	if streamSubjectCount(t, db, rootStream, subj(rootID)) == 0 {
+		t.Fatal("variable subjects not in root stream")
+	}
+
+	// mirror into A: the variable's current points are seeded into A's
+	// stream, and the node stays owned by the root
+	mirror := func(dev string) {
+		t.Helper()
+		err := db.edgePoints(v, dev, data.Points{
+			data.NewPointFloat(data.PointTypeTombstone, "", 0),
+			data.NewPointString(data.PointTypeNodeType, "", data.NodeTypeVariable),
+		})
+		if err != nil {
+			t.Fatal("Error mirroring:", err)
+		}
+	}
+
+	mirror(devA)
+
+	if streamSubjectCount(t, db, aStream, subj(devA)) == 0 {
+		t.Fatal("variable not seeded into device A stream")
+	}
+	if got := db.edgeCache.OwningBoundary(v, rootID); got != devA {
+		t.Fatalf("root plus one device: owner = %v, want A", got)
+	}
+
+	mirror(devB)
+
+	if streamSubjectCount(t, db, bStream, subj(devB)) == 0 {
+		t.Fatal("variable not seeded into device B stream")
+	}
+	if got := db.edgeCache.OwningBoundary(v, rootID); got != rootID {
+		t.Fatalf("two devices: owner = %v, want root", got)
+	}
+
+	// a write lands in every stream
+	err := db.nodePoints(v, data.Points{data.NewPointFloat(data.PointTypeValue, "", 42)})
+	if err != nil {
+		t.Fatal("Error writing value:", err)
+	}
+
+	for _, sc := range []struct{ stream, b string }{
+		{rootStream, rootID}, {aStream, devA}, {bStream, devB},
+	} {
+		filter := "inst." + sc.b + "." + rootID + "." + v + ".p." + data.PointTypeValue + ".0"
+		if streamSubjectCount(t, db, sc.stream, filter) != 1 {
+			t.Fatalf("value not written to %v", sc.stream)
+		}
+	}
+
+	// unmirror from B: purged there, still in A and root
+	err = db.edgePoints(v, devB, data.Points{
+		data.NewPointFloat(data.PointTypeTombstone, "", 1),
+	})
+	if err != nil {
+		t.Fatal("Error removing mirror:", err)
+	}
+
+	if n := streamSubjectCount(t, db, bStream, subj(devB)); n != 0 {
+		t.Fatal("variable subjects remain in device B stream:", n)
+	}
+	if streamSubjectCount(t, db, aStream, subj(devA)) == 0 {
+		t.Fatal("variable subjects gone from device A stream")
+	}
+
+	// ownership returned to A, and its subjects moved with it
+	if got := db.edgeCache.OwningBoundary(v, rootID); got != devA {
+		t.Fatalf("after unmirror: owner = %v, want A", got)
+	}
+	if n := streamSubjectCount(t, db, rootStream, subj(rootID)); n != 0 {
+		t.Fatal("variable subjects remain in root stream:", n)
+	}
+
+	nodes, err := db.getNodes(nil, devA, v, "", false)
+	if err != nil || len(nodes) < 1 {
+		t.Fatal("Error getting variable under A:", err)
+	}
+	if val, _ := nodes[0].Points.Value(data.PointTypeValue, ""); val != 42 {
+		t.Fatal("value lost:", val)
 	}
 }

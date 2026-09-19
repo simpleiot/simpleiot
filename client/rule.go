@@ -1022,6 +1022,14 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				break
 			}
 
+			// the target comes from a point, and a rule publishes with
+			// full access, so it may only reach what is under the
+			// rule's parent
+			if err := checkWriteTarget(rc.nc, rc.config.ID, rc.config.Parent, a.NodeID); err != nil {
+				processError(fmt.Errorf("action target refused: %w", err))
+				break
+			}
+
 			p := data.Point{
 				Time:   time.Now(),
 				Type:   a.PointType,
@@ -1043,6 +1051,11 @@ func (rc *RuleClient) ruleRunActions(actions []Action, triggerNodeID string) err
 				processError(err)
 			}
 		case data.PointValuePlayAudio:
+			if err := safePath(a.FilePath); err != nil {
+				processError(fmt.Errorf("invalid wave file path: %w", err))
+				break
+			}
+
 			f, err := os.Open(a.FilePath)
 			if err != nil {
 				processError(fmt.Errorf("error opening wave file: %w", err))

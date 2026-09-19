@@ -5,7 +5,6 @@ import (
 	"fmt"
 	goio "io"
 	"log"
-	"net"
 	"strconv"
 	"syscall"
 	"time"
@@ -113,7 +112,8 @@ func (c *ModbusClient) Run() error {
 	setScanTimer := func() {
 		if c.config.ClientServer == data.PointValueClient &&
 			c.config.PollPeriod > 0 && !c.config.Disabled {
-			scanTimer.Reset(time.Millisecond * time.Duration(c.config.PollPeriod))
+			scanTimer.Reset(pointDuration(float64(c.config.PollPeriod),
+				time.Millisecond, time.Second, time.Millisecond))
 		} else {
 			scanTimer.Stop()
 		}
@@ -482,7 +482,7 @@ func (c *ModbusClient) SetupPort() error {
 	case data.PointValueTCP:
 		switch c.config.ClientServer {
 		case data.PointValueClient:
-			sock, err := net.DialTimeout("tcp", c.config.URI, 5*time.Second)
+			sock, err := outboundDialer(5*time.Second).Dial("tcp", c.config.URI)
 			if err != nil {
 				return err
 			}

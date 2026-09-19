@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -58,7 +59,7 @@ func (e *enroller) handle(msg *nats.Msg) {
 		return
 	}
 
-	status, err := e.enroll(req)
+	status, err := e.enroll(req, msg.Reply)
 	if err != nil {
 		log.Printf("Enrollment refused for device %v: %v", req.DeviceID, err)
 		e.reply(msg, client.EnrollReply{Error: err.Error()})
@@ -69,17 +70,29 @@ func (e *enroller) handle(msg *nats.Msg) {
 	e.reply(msg, client.EnrollReply{Status: status})
 }
 
+// maxPendingEnrollments bounds how many devices may wait for approval at
+// once, so a token that has leaked cannot fill the tree with device nodes.
+const maxPendingEnrollments = 100
+
 // enroll validates a request and creates what it needs. The token is
 // checked again here even though the connection was made with it, since
-// the request does not say which connection it came from.
-func (e *enroller) enroll(req client.EnrollRequest) (string, error) {
+// the request does not say which connection it came from; the reply
+// subject does, since only the connection holding the key can subscribe
+// to that key's inbox.
+func (e *enroller) enroll(req client.EnrollRequest, reply string) (string, error) {
 	autoApprove, ok := e.auth.EnrollToken(req.Token)
 	if !ok {
 		return "", errors.New("enrollment token refused")
 	}
 
-	if req.DeviceID == "" || !nkeys.IsValidPublicUserKey(req.PubKey) {
-		return "", errors.New("device ID and public key are required")
+	if err := data.CheckSubjectToken("device ID", req.DeviceID); err != nil {
+		return "", err
+	}
+	if !nkeys.IsValidPublicUserKey(req.PubKey) {
+		return "", errors.New("public key is not a user key")
+	}
+	if !strings.HasPrefix(reply, client.InboxPrefix(req.PubKey)+".") {
+		return "", errors.New("key does not match the connection")
 	}
 
 	rootID := e.auth.root()
@@ -91,6 +104,13 @@ func (e *enroller) enroll(req client.EnrollRequest) (string, error) {
 
 	switch {
 	case len(nodes) == 0:
+		n, err := e.pendingDevices()
+		if err != nil {
+			return "", err
+		}
+		if n >= maxPendingEnrollments {
+			return "", errors.New("too many devices are waiting for approval")
+		}
 		dev := client.Device{ID: req.DeviceID, Parent: rootID, Description: req.Description}
 		if err := client.SendNodeType(e.nc, dev, "enroll"); err != nil {
 			return "", fmt.Errorf("error creating device node: %w", err)
@@ -105,14 +125,24 @@ func (e *enroller) enroll(req client.EnrollRequest) (string, error) {
 		return "", fmt.Errorf("error reading credentials: %w", err)
 	}
 
+	// a device that already has a live credential is known; a second key
+	// for it waits for an operator whatever the token says, so a token
+	// holder cannot take over a device by naming its ID
+	hasLive := false
 	for _, c := range creds {
-		if c.PubKey != req.PubKey {
-			continue
+		if c.PubKey == req.PubKey {
+			if c.Pending || c.Disabled {
+				return client.EnrollPending, nil
+			}
+			return client.EnrollApproved, nil
 		}
-		if c.Pending || c.Disabled {
-			return client.EnrollPending, nil
+		if !c.Pending && !c.Disabled {
+			hasLive = true
 		}
-		return client.EnrollApproved, nil
+	}
+
+	if hasLive {
+		autoApprove = false
 	}
 
 	cred := client.DeviceCred{
@@ -131,6 +161,22 @@ func (e *enroller) enroll(req client.EnrollRequest) (string, error) {
 	}
 
 	return client.EnrollPending, nil
+}
+
+// pendingDevices counts the devices with a credential waiting for
+// approval.
+func (e *enroller) pendingDevices() (int, error) {
+	creds, err := client.GetNodesType[client.DeviceCred](e.nc, "all", "all")
+	if err != nil && !errors.Is(err, data.ErrDocumentNotFound) {
+		return 0, fmt.Errorf("error reading credentials: %w", err)
+	}
+	devices := map[string]bool{}
+	for _, c := range creds {
+		if c.Pending && !c.Disabled {
+			devices[c.Parent] = true
+		}
+	}
+	return len(devices), nil
 }
 
 func anyLive(nodes []data.NodeEdge) bool {

@@ -6,8 +6,8 @@
 
 ## Basic Navigation
 
-After Simple IoT is started, a web application is available on port `:8118`
-(typically [http://localhost:8118](http://localhost:8118)). After logging in
+After Simple IoT is started, a web application is available on port `:4223`
+(typically [http://localhost:4223](http://localhost:4223)). After logging in
 (default user/pass is `admin`/`admin`), you will be presented with a tree of
 nodes.
 
@@ -24,6 +24,17 @@ You can expand/edit node details by clicking on the dot
 ![dot](images/icon-dot.png) to the left of a node.
 
 ![node edit](images/node-edit.png)
+
+## Live updates
+
+The page keeps one connection to the server and shows changes as they happen: a
+value a device reports, a node someone else adds, or a setting you change in
+another tab appear without a refresh. Expanding a node fetches its children, and
+the arrow shows a spinner until they arrive; expanding again after collapsing
+fetches them afresh. A `connecting...` badge next to the logo means the
+connection is down and the page is trying again; when it is back, what is on
+screen is fetched again. Being removed from a group, or a password change,
+closes the connection, and an expired sign-in returns you to the sign-in page.
 
 ## Adding nodes
 
@@ -58,6 +69,11 @@ presented with the following options:
   This is useful for scenarios where you have a device or site configuration
   (perhaps a complex Modbus setup) that you want to duplicate at a new site.
 
+After a mirror or a duplicate, the copied node stays on the clipboard, so you
+can paste it into several destinations in a row, such as mirroring a shared
+variable into each device at a site. A move clears it. Press the x next to the
+clipboard entry at the top of the page to clear it yourself.
+
 Mirroring a node that talks to hardware (a Modbus IO, a Shelly IO, a GPIO line,
 an MQTT connection) gives you a view of it rather than a second copy that runs.
 The instance where the node actually lives keeps talking to the device, and the
@@ -66,6 +82,15 @@ to mirror a sensor from inside a device into a group you share with someone, and
 mirrors are labeled in the tree so it is clear that nothing runs there. Controls
 still work from a mirror: setting a value on one travels to the device that owns
 the node, and the result comes back.
+
+Mirroring a node into several devices shares it with all of them. A setpoint or
+schedule kept on the upstream and mirrored into each device at a site arrives on
+every one, and a change made in the portal reaches them all. Each device sees
+the current values as soon as the mirror is added, and removing a mirror removes
+the node from that device only. A change made on one device reaches the upstream
+but not the other devices, so keep values that several devices depend on where
+they are set: on the upstream. See
+[a node reaches every device it is mirrored into](../ref/data.md#a-node-reaches-every-device-it-is-mirrored-into).
 
 Some nodes belong under a particular parent and are found through it: a Modbus
 IO under its Modbus node, a rule condition under its rule. For these, `mirror`

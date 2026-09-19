@@ -1,7 +1,6 @@
 package client
 
 import (
-	"errors"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -30,38 +29,4 @@ func UserCheck(nc *nats.Conn, email, pass string) ([]data.NodeEdge, error) {
 	}
 
 	return nodes, nil
-}
-
-// GetNatsURI returns the nats URI and auth token for the SIOT server
-// this can be used to set up new NATS connections with different requirements
-// (no echo, etc)
-// return URI, authToken, error
-func GetNatsURI(nc *nats.Conn) (string, string, error) {
-	resp, err := nc.Request("auth.getNatsURI", nil, time.Second*1)
-
-	if err != nil {
-		return "", "", err
-	}
-
-	points, err := data.DecodePoints(resp.Data)
-	if err != nil {
-		return "", "", err
-	}
-
-	var uri, token string
-
-	for _, p := range points {
-		switch p.Type {
-		case data.PointTypeURI:
-			uri = p.Txt()
-		case data.PointTypeToken:
-			token = p.Txt()
-		}
-	}
-
-	if uri == "" {
-		return "", "", errors.New("URI not returned")
-	}
-
-	return uri, token, nil
 }

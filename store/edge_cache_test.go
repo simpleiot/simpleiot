@@ -148,15 +148,30 @@ func TestOwningBoundaryMultiParent(t *testing.T) {
 	ec := NewEdgeCache()
 
 	// S is mirrored under device X and under group G (root boundary):
-	// reachable from two boundaries, so the root boundary owns it
+	// the root is reachable from every node in the tree, so the device
+	// boundary is the one that says where S lives and it keeps S. This is
+	// what a variable on a device mirrored into a group on the upstream
+	// looks like -- neither edge carries a role, since a variable has no
+	// primary location -- and the device replicates only its own
+	// boundary, so upstream writes reach it only this way.
 	testEdge(ec, "root", "R", data.NodeTypeDevice, false)
 	testEdge(ec, "R", "G", data.NodeTypeGroup, false)
 	testEdge(ec, "R", "X", data.NodeTypeDevice, false)
 	testEdge(ec, "X", "S", data.NodeTypeVariable, false)
 	testEdge(ec, "G", "S", data.NodeTypeVariable, false)
 
-	if got := ec.OwningBoundary("S", "R"); got != "R" {
-		t.Errorf("multi-boundary: OwningBoundary(S) = %v, want R", got)
+	if got := ec.OwningBoundary("S", "R"); got != "X" {
+		t.Errorf("root plus one device boundary: OwningBoundary(S) = %v, want X", got)
+	}
+
+	// S2 is under two device boundaries: nothing says which one holds
+	// it, so it falls back to the instance root
+	testEdge(ec, "R", "X2", data.NodeTypeDevice, false)
+	testEdge(ec, "X", "S2", data.NodeTypeVariable, false)
+	testEdge(ec, "X2", "S2", data.NodeTypeVariable, false)
+
+	if got := ec.OwningBoundary("S2", "R"); got != "R" {
+		t.Errorf("two device boundaries: OwningBoundary(S2) = %v, want R", got)
 	}
 
 	// M is mirrored under two groups that both resolve to the root
@@ -246,4 +261,66 @@ func TestBoundaryContractBothSides(t *testing.T) {
 		dev.OwningBoundary("M", "X") != "X" {
 		t.Error("edge M->S must be owned by X on both sides")
 	}
+}
+
+func TestDeliveryBoundaries(t *testing.T) {
+	ec := NewEdgeCache()
+
+	// R (root) > G (group) > V1 (variable): nothing to deliver to
+	// R > A (device) > V2
+	// R > A > V3 and R > B (device) > V3: two devices, no roles
+	// R > A > S (sensor, primary) and R > B > S (mirror)
+	// R > A > V4 and R > G > V4: a device and a group
+	testEdge(ec, "root", "R", data.NodeTypeDevice, false)
+	testEdge(ec, "R", "G", data.NodeTypeGroup, false)
+	testEdge(ec, "R", "A", data.NodeTypeDevice, false)
+	testEdge(ec, "R", "B", data.NodeTypeDevice, false)
+	testEdge(ec, "G", "V1", data.NodeTypeVariable, false)
+	testEdge(ec, "A", "V2", data.NodeTypeVariable, false)
+	testEdge(ec, "A", "V3", data.NodeTypeVariable, false)
+	testEdge(ec, "B", "V3", data.NodeTypeVariable, false)
+	testEdgeRole(ec, "A", "S", data.NodeTypeGPIO, data.EdgeRolePrimary)
+	testEdgeRole(ec, "B", "S", data.NodeTypeGPIO, data.EdgeRoleMirror)
+	testEdge(ec, "A", "V4", data.NodeTypeVariable, false)
+	testEdge(ec, "G", "V4", data.NodeTypeVariable, false)
+
+	check := func(id string, want ...string) {
+		t.Helper()
+		got := ec.DeliveryBoundaries(id, "R")
+		if len(got) != len(want) {
+			t.Errorf("DeliveryBoundaries(%v) = %v, want %v", id, got, want)
+			return
+		}
+		for i := range want {
+			if got[i] != want[i] {
+				t.Errorf("DeliveryBoundaries(%v) = %v, want %v", id, got, want)
+				return
+			}
+		}
+	}
+
+	check("V1")
+	check("V2", "A")
+	check("V3", "A", "B")
+	check("S", "A", "B")
+	check("V4", "A")
+	check("A", "A")
+	check("R")
+
+	// a descendant of a node mirrored into two devices reaches both
+	testEdge(ec, "R", "SUB", data.NodeTypeGroup, false)
+	testEdgeRole(ec, "A", "SUB", data.NodeTypeGroup, data.EdgeRoleMirror)
+	testEdgeRole(ec, "B", "SUB", data.NodeTypeGroup, data.EdgeRoleMirror)
+	testEdge(ec, "SUB", "V5", data.NodeTypeVariable, false)
+
+	check("V5", "A", "B")
+
+	// a tombstoned mirror edge stops delivering
+	testEdgeRole(ec, "B", "S", data.NodeTypeGPIO, data.EdgeRoleMirror)
+	ec.Set(EdgeEntry{Up: "B", Down: "S", Type: data.NodeTypeGPIO, Points: data.Points{
+		data.NewPointFloat(data.PointTypeTombstone, "0", 1),
+		data.NewPointFloat(data.PointTypeMirror, "0", 1),
+	}})
+
+	check("S", "A")
 }

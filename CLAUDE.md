@@ -116,18 +116,28 @@ classifying its node type in `primaryTypes` or `treeScopedTypes` in
 Every connection to the embedded NATS server (NATS, WebSocket, MQTT) goes
 through the authorizer in `server/auth.go`. The shared token grants full access;
 an NKey whose public key is in a `deviceCred` node is scoped to that device's
-subjects (`devicePermissions`), and an enrollment token may only publish
-`enroll.request`. Each instance keeps its own key in `SIOT_DATA/device.nkey`
-(`server/device-key.go`), never as a point, since points replicate upstream.
-`server/auth_spike_test.go` is the canary for nats-server upgrades. See
-[security](docs/ref/security.md) and
+subjects (`devicePermissions`), a user's sign-in JWT is scoped to the user's
+groups (`userPermissions`, enforced per request by `handleUserRequest` in
+`store/store.go`), and an enrollment token may only publish `enroll.request`.
+Each instance keeps its own key in `SIOT_DATA/device.nkey`
+(`server/device-key.go`), never as a point, since points replicate upstream; the
+seed stays in the server process, which signs for the sync client on
+`auth.deviceSign`. The HTTP node routes (`api/nodes.go`) resolve every request
+to a principal and apply the same scope. Clients run on the server's full-access
+connection, so a value from a point that names a target goes through
+`checkWriteTarget` in `client/scope.go`, a period from a point through
+`pointDuration`, and a path from a point through `client/paths.go`; secret point
+types are listed once in `data/secret.go`. `server/auth_spike_test.go` is the
+canary for nats-server upgrades. See [security](docs/ref/security.md) and
 [device credentials](docs/user/sync.md#device-credentials).
 
 ### Frontend Architecture
 
 - **Elm SPA**: Single-page application using elm-spa framework
 - **Components**: Node-specific UI components in `Components/` directory
-- **API**: Communication with backend via HTTP and WebSocket
+- **API**: Nodes are read and points written over NATS WebSockets through
+  `frontend/lib` (`simpleiot-js`) and the `Api.Nats` port module; sign-in and
+  node operations (add, delete, move, mirror, duplicate, notify) use HTTP
 - **Build**: Uses elm-watch for hot reloading during development
 
 ## Design Priorities
@@ -187,19 +197,22 @@ branch, switch branches, or start a worktree unless I ask for one.
 
 ## Committing
 
-Leave `frontend/public/dist/elm.js.gz` out of commits. The frontend build
-regenerates it constantly, so it shows up as modified during normal work. It is
-committed only right before a release, in its own commit. When staging changes,
-stage the files you edited rather than using `git add -A` or `git commit -a`,
-and if the built artifact does get committed by mistake, drop it with
-`git restore --source=HEAD~1 --staged frontend/public/dist/elm.js.gz` followed
-by `git commit --amend`.
+Leave the built frontend files in `frontend/public/dist` (`elm.js.gz`,
+`siot-nats.js.gz`, `codec.js.gz`, `nats.js.gz`) out of commits. The frontend
+build regenerates them constantly, so they show up as modified during normal
+work. They are committed only right before a release, in their own commit. When
+staging changes, stage the files you edited rather than using `git add -A` or
+`git commit -a`, and if a built artifact does get committed by mistake, drop it
+with `git restore --source=HEAD~1 --staged frontend/public/dist/elm.js.gz` (or
+the file in question) followed by `git commit --amend`.
 
 ## Important Notes
 
 - Always source `envsetup.sh` before running build commands
-- Frontend build generates compressed `elm.js.gz` file (see Committing above —
-  it is not committed with regular changes)
+- Frontend build generates compressed files in `frontend/public/dist` (see
+  Committing above — they are not committed with regular changes). The
+  JavaScript there is copied from `frontend/lib` and `nats.ws`, not bundled;
+  `siot_build_frontend_js` refreshes it during development
 - NATS JetStream stores all application data (one stream per boundary/origin
   pair; see ADR-7)
 - System supports TLS with certificates via `siot_mkcert` and `siot_run_tls`

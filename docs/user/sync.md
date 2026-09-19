@@ -118,8 +118,14 @@ running node carries it as well.
 Every instance has a device key, generated the first time it starts and kept in
 `device.nkey` under `SIOT_DATA`. The key is the instance's identity when it
 connects to an upstream: a sync node with no `authToken` signs the upstream's
-connection challenge with it, so the secret never leaves the device. The public
-half is shown on the sync node as `pubKey`, and `siot key show` prints it.
+connection challenge with it, so the secret never leaves the device, and only
+the server process reads the file. The public half is shown on the sync node as
+`pubKey`, and `siot key show` prints it.
+
+A sync node may also carry `caCert`, a PEM certificate the upstream's TLS chain
+has to be signed by. With it set, the device accepts only an upstream whose
+certificate chains to that one, whatever the system certificate store says.
+Leave it out to trust the system store.
 
 An upstream accepts a device key when a `deviceCred` node under the device's
 node carries the matching `pubKey`. The credential limits the connection to that
@@ -186,9 +192,9 @@ own:
    ```
 
 4. When the upstream refuses the device's key, the device connects with the
-   token, which allows exactly one thing, and asks for a credential for its key.
-   The upstream creates the device node if it is new and a credential under it
-   marked **pending approval**; the device's sync node says
+   token and that key, which together allow exactly one thing, and asks for a
+   credential for it. The upstream creates the device node if it is new and a
+   credential under it marked **pending approval**; the device's sync node says
    `enrollment pending approval on upstream` and keeps trying every minute.
 5. Approve the credential: uncheck **Pending** on it, or run
    `siot cred approve ID` (`siot cred list` shows pending ones). The device
@@ -200,8 +206,14 @@ still carrying an `authToken` is refused from then on.
 
 Revoking the enrollment token, by disabling or deleting its node, stops new
 enrollments and does not affect devices already enrolled. A device that enrolls
-again with a different key gets a second, pending credential; the approved one
-is never replaced without an operator.
+again with a different key gets a second, pending credential, even under a token
+that approves automatically; the approved one is never replaced without an
+operator. At most 100 devices may wait for approval at once, so a token that has
+leaked cannot fill the tree.
+
+Users on a device are replicated to the upstream with the rest of the device's
+tree, but they sign in on the device only; see
+[users and groups](users-groups.md#where-a-user-signs-in).
 
 ## Videos
 

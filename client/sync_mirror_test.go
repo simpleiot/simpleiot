@@ -133,3 +133,77 @@ func TestSyncMirrorAcrossBoundary(t *testing.T) {
 	}
 
 }
+
+// TestSyncMirrorNoRoleAcrossBoundary covers a node with no primary location --
+// a variable, a user -- that lives on a device and is mirrored onto the
+// upstream. Neither edge carries a role, because every edge of such a node is
+// a real place it lives, so ownership cannot follow a primary edge here.
+//
+// The node still has to stay owned by the device's boundary. Reaching the
+// upstream root as well says only that the node is somewhere in the upstream's
+// tree, and if that moved ownership, a value written on the upstream would be
+// stored where the device never reads it.
+func TestSyncMirrorNoRoleAcrossBoundary(t *testing.T) {
+	ncU, rootU, stopU, err := server.TestServer("2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stopU()
+
+	ncD, rootD, stopD, err := server.TestServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stopD()
+
+	sync := client.Sync{ID: "sync-id", Parent: rootD.ID, Description: "sync to up",
+		URI: server.TestServerOptions2.NatsServer}
+	if err := client.SendNodeType(ncD, sync, "test"); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, 10*time.Second, "device node not synced", func() bool {
+		nodes, err := client.GetNodes(ncU, "all", rootD.ID, "", false)
+		return err == nil && len(nodes) > 0
+	})
+
+	varID := "var-mirrored"
+	if err := client.SendNode(ncD, data.NodeEdge{
+		ID: varID, Type: data.NodeTypeVariable, Parent: rootD.ID,
+		Points: data.Points{
+			data.NewPointString(data.PointTypeDescription, "", "Var1"),
+			data.NewPointFloat(data.PointTypeValue, "", 0),
+		},
+	}, "test"); err != nil {
+		t.Fatal(err)
+	}
+
+	waitFor(t, 10*time.Second, "variable not synced upstream", func() bool {
+		nodes, err := client.GetNodes(ncU, rootD.ID, varID, "", false)
+		return err == nil && len(nodes) > 0
+	})
+
+	// mirror it onto the upstream root, as someone organizing the upstream
+	// tree would
+	if err := client.MirrorNode(ncU, varID, rootD.ID, rootU.ID, "test"); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(2 * time.Second)
+
+	p := data.NewPointFloat(data.PointTypeValue, "", 42)
+	p.Origin = "some-user-id"
+	if err := client.SendNodePoint(ncU, varID, p, true); err != nil {
+		t.Fatal(err)
+	}
+
+	valueOn := func(nc *nats.Conn) float64 {
+		nodes, err := client.GetNodes(nc, "all", varID, "", false)
+		if err != nil || len(nodes) == 0 {
+			return 0
+		}
+		v, _ := nodes[0].Points.Value(data.PointTypeValue, "")
+		return v
+	}
+
+	waitFor(t, 30*time.Second, "value written on the mirror did not reach the device",
+		func() bool { return valueOn(ncD) == 42 })
+}

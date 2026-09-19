@@ -5,7 +5,9 @@ import (
 	"encoding/base64"
 	"net"
 	"slices"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
@@ -14,7 +16,7 @@ import (
 )
 
 func TestDevicePermissions(t *testing.T) {
-	p := devicePermissions("X", "R", []string{"R", "R2"})
+	p := devicePermissions("UKEY", "X", "R", []string{"R", "R2"})
 
 	wantPub := []string{
 		"nodes.root.all",
@@ -40,7 +42,8 @@ func TestDevicePermissions(t *testing.T) {
 		t.Errorf("publish allow:\n got %v\nwant %v", p.Publish.Allow, wantPub)
 	}
 
-	if !slices.Equal(p.Subscribe.Allow, []string{"_INBOX.>"}) {
+	// the device's own inbox, not the _INBOX.> every client shares
+	if !slices.Equal(p.Subscribe.Allow, []string{"_INBOX_UKEY.>"}) {
 		t.Errorf("subscribe allow: got %v", p.Subscribe.Allow)
 	}
 
@@ -58,7 +61,7 @@ func TestDevicePermissions(t *testing.T) {
 	}
 
 	// the device's own ID is never an origin to pull from
-	p = devicePermissions("X", "R", []string{"X", "R"})
+	p = devicePermissions("UKEY", "X", "R", []string{"X", "R"})
 	if slices.Contains(p.Publish.Allow, "$JS.API.STREAM.INFO.inst_X_X.>") {
 		t.Error("device's own stream listed as a pull origin")
 	}
@@ -181,6 +184,32 @@ func TestCheckNkey(t *testing.T) {
 	}
 }
 
+// TestEnforceOpenKeepsUnknownKey checks that an instance with no token,
+// which accepts a key it does not know, does not close that connection
+// again when it enforces credentials after a tree change.
+func TestEnforceOpenKeepsUnknownKey(t *testing.T) {
+	a, _ := spikeAuthorizer(t, "")
+	_, url, _ := spikeServer(t, a)
+
+	stranger, _ := nkeys.CreateUser()
+	nc, err := nats.Connect(url, append(nkeyOptions(stranger),
+		nats.NoReconnect())...)
+	if err != nil {
+		t.Fatal("connect:", err)
+	}
+	defer nc.Close()
+
+	a.enforce()
+
+	if err := nc.Flush(); err != nil {
+		t.Fatal("flush:", err)
+	}
+	time.Sleep(200 * time.Millisecond)
+	if !nc.IsConnected() {
+		t.Fatal("enforce closed an unknown key on an open instance")
+	}
+}
+
 // TestDeviceAuthRequiredKeepsLocalToken starts a full server with device
 // auth required and checks that its own client, which presents the shared
 // token from loopback, still works.
@@ -221,4 +250,112 @@ func TestDeviceAuthRequiredKeepsLocalToken(t *testing.T) {
 // encodeSig encodes a signature the way nats.go sends it.
 func encodeSig(sig []byte) []byte {
 	return []byte(base64.RawURLEncoding.EncodeToString(sig))
+}
+
+// fakeUsers is a userAuthority for exercising checkUser without a store.
+type fakeUsers struct {
+	id      string
+	expires time.Time
+	anchors map[string][]string
+}
+
+const fakeJWT = "eyJhbGciOiJIUzI1NiJ9.valid.sig"
+
+func (f fakeUsers) UserFromToken(token string) (string, time.Time, bool) {
+	if token != fakeJWT {
+		return "", time.Time{}, false
+	}
+	return f.id, f.expires, true
+}
+
+func (f fakeUsers) UserAnchors(id string) []string { return f.anchors[id] }
+func (f fakeUsers) AuthAllowed(string) bool        { return true }
+func (f fakeUsers) AuthFailed(string, string)      {}
+
+func TestUserPermissions(t *testing.T) {
+	p := userPermissions("U", []string{"G1", "G2"})
+
+	wantPub := []string{"u.G1.U.>", "u.G2.U.>", "auth.me"}
+	if !slices.Equal(p.Publish.Allow, wantPub) {
+		t.Errorf("publish allow:\n got %v\nwant %v", p.Publish.Allow, wantPub)
+	}
+
+	wantSub := []string{"up.G1.>", "up.G2.>", "_INBOX_U.>"}
+	if !slices.Equal(p.Subscribe.Allow, wantSub) {
+		t.Errorf("subscribe allow:\n got %v\nwant %v", p.Subscribe.Allow, wantSub)
+	}
+
+	if p.Publish.Deny != nil || p.Subscribe.Deny != nil {
+		t.Error("expected allow lists only")
+	}
+
+	for _, s := range append(p.Publish.Allow, p.Subscribe.Allow...) {
+		for _, bad := range []string{"p.", "nodes.", "ep.", "$JS.", "auth.user", "admin.", "_INBOX."} {
+			if strings.HasPrefix(s, bad) {
+				t.Errorf("permission set includes %v", s)
+			}
+		}
+	}
+}
+
+func TestCheckUser(t *testing.T) {
+	exp := time.Now().Add(time.Hour).Truncate(time.Second)
+	users := fakeUsers{id: "U", expires: exp, anchors: map[string][]string{"U": {"G"}}}
+
+	tests := []struct {
+		name     string
+		token    string
+		users    userAuthority
+		user     string
+		pass     string
+		want     bool
+		wantUser bool
+	}{
+		{"valid", "tok", users, "U", fakeJWT, true, true},
+		{"valid on an open instance", "", users, "U", fakeJWT, true, true},
+		{"issued to another user", "tok", users, "V", fakeJWT, false, false},
+		{"invalid token", "tok", users, "U", "eyJ.bad.sig", false, false},
+		{"invalid token on an open instance", "", users, "U", "eyJ.bad.sig", false, false},
+		{"not in the tree", "tok", fakeUsers{id: "U", anchors: nil}, "U", fakeJWT, false, false},
+		{"store not ready", "tok", nil, "U", fakeJWT, false, false},
+		// an MQTT client sends user and password, and the server copies
+		// the password into the token field: that is the shared token
+		// path, not a user
+		{"mqtt with the shared token", "tok", users, "mqtt", "tok", true, false},
+		{"mqtt with a wrong token", "tok", users, "mqtt", "bad", false, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := newAuthorizer(tt.token, "")
+			if tt.users != nil {
+				a.users = tt.users
+			}
+			c := &fakeClient{addr: tcpAddr("10.1.1.1:1")}
+			c.opts.Username = tt.user
+			c.opts.Password = tt.pass
+			c.opts.Token = tt.pass
+			if got := a.Check(c); got != tt.want {
+				t.Fatalf("got %v, want %v", got, tt.want)
+			}
+			if (c.user != nil) != tt.wantUser {
+				t.Fatalf("user registered: %v, want %v", c.user != nil, tt.wantUser)
+			}
+			if !tt.wantUser {
+				return
+			}
+			if c.user.Username != "U" {
+				t.Errorf("username %v", c.user.Username)
+			}
+			if !c.user.ConnectionDeadline.Equal(exp) {
+				t.Errorf("deadline %v, want %v", c.user.ConnectionDeadline, exp)
+			}
+			if !slices.Equal(c.user.Permissions.Publish.Allow, []string{"u.G.U.>", "auth.me"}) {
+				t.Errorf("publish allow %v", c.user.Permissions.Publish.Allow)
+			}
+			if ac := a.conns[c.GetID()]; ac.userID != "U" || ac.grant != "G" {
+				t.Errorf("connection not recorded: %+v", ac)
+			}
+		})
+	}
 }

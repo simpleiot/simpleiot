@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 )
 
 // HTTPLogger can be used to log http requests
@@ -32,9 +33,13 @@ func NewHTTPLogger(prefix string) *HTTPLogger {
 func (l *HTTPLogger) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+		// a sign-in carries the password in and the token out, so
+		// neither body is logged
+		logBody := !strings.Contains(r.RequestURI, "/auth")
+
 		var rdr io.ReadCloser
 		buf, err := io.ReadAll(r.Body)
-		if err == nil {
+		if err == nil && logBody {
 			rdr = io.NopCloser(bytes.NewBuffer(buf))
 			rdr2 := io.NopCloser(bytes.NewBuffer(buf))
 			r.Body = rdr2
@@ -44,7 +49,7 @@ func (l *HTTPLogger) Handler(next http.Handler) http.Handler {
 		next.ServeHTTP(crw, r)
 
 		addr := r.RemoteAddr
-		if err == nil {
+		if err == nil && logBody {
 			rBuf := bytes.Buffer{}
 			_, _ = rBuf.ReadFrom(rdr)
 			l.Printf("(%s) \"%s %s\" %d -> %v -> %v", addr, r.Method, r.RequestURI,

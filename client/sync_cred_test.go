@@ -2,10 +2,12 @@ package client_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nkeys"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/server"
@@ -30,7 +32,7 @@ func credUpstream(t *testing.T) (*nats.Conn, data.NodeEdge, server.Options, func
 // devicePubKey reads the key the downstream generated for itself.
 func devicePubKey(t *testing.T, ncD *nats.Conn) string {
 	t.Helper()
-	_, pubKey, err := client.GetDeviceKey(ncD)
+	pubKey, err := client.GetDeviceKey(ncD)
 	if err != nil {
 		t.Fatal("Error getting device key: ", err)
 	}
@@ -382,5 +384,60 @@ func TestSyncCredentialWrongParent(t *testing.T) {
 	}
 	if len(nodes) != 0 {
 		t.Fatal("device got in through a misplaced credential")
+	}
+}
+
+// TestDeviceInboxScope checks that a device's reply inbox is its own: it
+// can receive its own replies and cannot subscribe to the _INBOX.> space
+// every other client on the upstream replies into.
+func TestDeviceInboxScope(t *testing.T) {
+	ncU, rootU, optsU, stopU := credUpstream(t)
+	defer stopU()
+
+	seed, pub, err := client.GenerateDeviceKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	kp, err := nkeys.FromSeed([]byte(seed))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	enrollDevice(t, ncU, rootU, "dev-inbox", "cred-inbox", pub)
+
+	errs := make(chan string, 8)
+	var nc *nats.Conn
+	waitFor(t, 10*time.Second, "credential not accepted", func() bool {
+		nc, err = nats.Connect(optsU.NatsServer, nats.Nkey(pub, kp.Sign),
+			nats.CustomInboxPrefix(client.InboxPrefix(pub)),
+			nats.ErrorHandler(func(_ *nats.Conn, _ *nats.Subscription, err error) {
+				select {
+				case errs <- err.Error():
+				default:
+				}
+			}), nats.NoReconnect())
+		return err == nil
+	})
+	defer nc.Close()
+
+	// its own replies arrive on its own inbox
+	if _, err := nc.Request("nodes.all.dev-inbox", nil, 5*time.Second); err != nil {
+		t.Fatal("device could not receive its own reply:", err)
+	}
+
+	// everyone else's do not
+	if _, err := nc.SubscribeSync("_INBOX.>"); err != nil {
+		t.Fatal(err)
+	}
+	if err := nc.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case e := <-errs:
+		if !strings.Contains(e, "Permissions Violation") {
+			t.Fatalf("subscribing to _INBOX.> gave %v", e)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("device could subscribe to the shared inbox")
 	}
 }

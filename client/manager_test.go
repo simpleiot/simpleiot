@@ -747,3 +747,66 @@ nodes:
 		}
 	}
 }
+
+// TestManagerScanNested checks that a scan finds each client node once in a
+// tree of nested groups. Returning the list passed in along with the nodes
+// found, and appending that onto the list again, doubles it for every group
+// visited, which exhausts memory on a large tree.
+func TestManagerScanNested(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+	defer stop()
+
+	want := map[string]bool{}
+
+	addTestNode := func(parent string) {
+		want[addNode(t, nc, "testNode", parent)] = true
+	}
+
+	addTestNode(root.ID)
+
+	// three levels of two groups, each holding a test node
+	var nest func(parent string, depth int)
+	nest = func(parent string, depth int) {
+		if depth == 0 {
+			return
+		}
+
+		for range 2 {
+			groupID := addNode(t, nc, data.NodeTypeGroup, parent)
+			addTestNode(groupID)
+			nest(groupID, depth-1)
+		}
+	}
+
+	nest(root.ID, 3)
+
+	m := client.NewManager(nc, func(nc *nats.Conn, config testNode) client.Client {
+		return newTestNodeClient(nc, config)
+	}, nil)
+
+	nodes, err := m.ScanNodes(root.ID)
+	if err != nil {
+		t.Fatal("Error scanning: ", err)
+	}
+
+	if len(nodes) != len(want) {
+		t.Errorf("scan returned %v nodes, want %v", len(nodes), len(want))
+	}
+
+	seen := map[string]bool{}
+
+	for _, n := range nodes {
+		if !want[n.ID] {
+			t.Errorf("scan returned unexpected node %v", n.ID)
+		}
+
+		if seen[n.ID] {
+			t.Errorf("scan returned node %v more than once", n.ID)
+		}
+
+		seen[n.ID] = true
+	}
+}

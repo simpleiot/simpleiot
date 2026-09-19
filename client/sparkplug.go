@@ -133,6 +133,10 @@ type sparkplugState struct {
 	// "group/edge", and "group/edge/device"
 	nodes map[string]string
 
+	// maxNodes bounds how many nodes birth certificates may create, so a
+	// publisher cannot fill the tree
+	maxNodes int
+
 	// aliases maps "group/edge" to the alias assignments from that edge
 	// node's birth certificates. The specification makes an alias unique
 	// across an edge node and all of its devices.
@@ -146,8 +150,8 @@ type sparkplugState struct {
 	rebirthAt map[string]time.Time
 }
 
-func newSparkplugState(nc *nats.Conn, mqttID, desc string, debug int) *sparkplugState {
-	return &sparkplugState{
+func newSparkplugState(nc *nats.Conn, mqttID, desc string, debug, maxNodes int) *sparkplugState {
+	s := &sparkplugState{
 		nc:         nc,
 		mqttID:     mqttID,
 		desc:       desc,
@@ -157,6 +161,26 @@ func newSparkplugState(nc *nats.Conn, mqttID, desc string, debug int) *sparkplug
 		aliasSaved: make(map[string]string),
 		rebirthAt:  make(map[string]time.Time),
 	}
+	s.setMaxNodes(maxNodes)
+	return s
+}
+
+// setMaxNodes applies the maxNodes point; zero or less means the default.
+func (s *sparkplugState) setMaxNodes(n int) {
+	if n <= 0 {
+		n = mqttMaxNodesDefault
+	}
+	s.maxNodes = n
+}
+
+// roomForNode reports whether one more node may be created.
+func (s *sparkplugState) roomForNode() error {
+	if len(s.nodes) >= s.maxNodes {
+		return fmt.Errorf(
+			"sparkplug has created its limit of %v nodes; new groups, edge nodes, and devices are being dropped",
+			s.maxNodes)
+	}
+	return nil
 }
 
 // load indexes the nodes a previous run created, so a restart matches them by
@@ -425,6 +449,10 @@ func (s *sparkplugState) ensureNodes(t sparkplugTopic, device bool) (string, err
 	groupID, ok := s.nodes[t.Group]
 
 	if !ok {
+		if err := s.roomForNode(); err != nil {
+			return "", err
+		}
+
 		groupID = uuid.New().String()
 
 		g := SparkplugGroup{
@@ -448,6 +476,10 @@ func (s *sparkplugState) ensureNodes(t sparkplugTopic, device bool) (string, err
 	edgeID, ok := s.nodes[edgeKey]
 
 	if !ok {
+		if err := s.roomForNode(); err != nil {
+			return "", err
+		}
+
 		edgeID = uuid.New().String()
 
 		e := SparkplugNode{
@@ -475,6 +507,10 @@ func (s *sparkplugState) ensureNodes(t sparkplugTopic, device bool) (string, err
 	deviceID, ok := s.nodes[deviceKey]
 
 	if !ok {
+		if err := s.roomForNode(); err != nil {
+			return "", err
+		}
+
 		deviceID = uuid.New().String()
 
 		d := SparkplugDevice{

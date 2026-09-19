@@ -2,7 +2,6 @@ package client_test
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"slices"
 	"strings"
@@ -166,15 +165,13 @@ func TestExportImportNodes(t *testing.T) {
 		if n.Type == data.NodeTypeUser {
 			userNodeFound = true
 
-			nodes, err := client.GetNodesForUser(nc, n.ID)
+			// the user sits under the device node and nowhere else
+			edges, err := client.GetNodes(nc, "all", n.ID, "", false)
 			if err != nil {
-				log.Println("Error getting nodes for user:", err)
+				t.Fatal("Error getting user edges:", err)
 			}
-
-			// there should be two nodes in the new system -- a device and user node
-			if len(nodes) != 2 {
-				fmt.Println("nodes for user: ", nodes)
-				t.Fatal("Should be exactly 2 nodes for user after import, got: ", len(nodes))
+			if len(edges) != 1 || edges[0].Parent != "inst1" {
+				t.Fatal("Expected the user under the device node, got:", edges)
 			}
 		}
 	}

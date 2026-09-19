@@ -41,12 +41,14 @@ tr '\0' '\n' < /proc/<pid>/environ | grep SIOT_        # port overrides
 ss -lntp | grep <pid>                                  # ports actually bound
 ```
 
-Default ports, each overridable by the environment variable in parentheses:
+Default ports. The others follow `SIOT_NATS_PORT`, so an instance started with
+`SIOT_NATS_PORT=4232` serves HTTP on 4233:
 
 - `4222` NATS (`SIOT_NATS_PORT`)
-- `8118` HTTP / web UI (`SIOT_HTTP_PORT`)
-- `8222` NATS monitoring (`SIOT_NATS_HTTP_PORT`)
-- `9222` NATS websocket (`SIOT_NATS_WS_PORT`)
+- `4223` HTTP / web UI (`SIOT_HTTP_PORT` overrides)
+- `4224` NATS monitoring, loopback only (`SIOT_NATS_MONITOR_PORT` overrides)
+- NATS WebSocket: loopback, at a port the system picks; browsers reach it
+  through the HTTP port
 
 The data directory is the process working directory, so `/proc/<pid>/cwd` tells
 you which `jetstream/` tree belongs to which instance. Confirm the port from
@@ -127,8 +129,9 @@ Three things dump reports that no other command does:
   usually follows a bad sync or a hand-edited store.
 
 The same environment precedence applies as everywhere else — `SIOT_NATS_SERVER`
-wins whenever `-natsServer` is left at `nats://127.0.0.1:4222`. Read the connect
-banner in the output before trusting a dump.
+wins whenever `-natsServer` is left at its default, `nats://127.0.0.1:` followed
+by `SIOT_NATS_PORT`. Read the connect banner in the output before trusting a
+dump.
 
 ## Watching points flow with `siot log`
 
@@ -164,10 +167,10 @@ process and the device address for a remote one:
 ```
 
 **`SIOT_NATS_SERVER` takes precedence whenever `-natsServer` holds the default
-`nats://127.0.0.1:4222`.** The commands consult the environment only when the
-flag is left at its default, and passing that value explicitly is
-indistinguishable from omitting it. A shell prepared by `envsetup.sh` for a
-second instance exports `SIOT_NATS_SERVER`, so
+`nats://127.0.0.1:<SIOT_NATS_PORT>` (4222 unless the port is set).** The
+commands consult the environment only when the flag is left at its default, and
+passing that value explicitly is indistinguishable from omitting it. A shell
+prepared by `envsetup.sh` for a second instance exports `SIOT_NATS_SERVER`, so
 `-natsServer nats://127.0.0.1:4222` connects to the other instance instead. The
 connect banner names the server actually used — read it before trusting the
 output. `unset SIOT_NATS_SERVER` to take control. The same applies to `export`,
@@ -245,14 +248,14 @@ error:
 # 1. Log in. The "email" is whatever the user node's email point holds,
 #    which is often a bare name such as "admin" rather than an address.
 TOKEN=$(curl -s -X POST -d "email=admin&password=admin" \
-  http://localhost:8118/v1/auth | jq -r .token)
+  http://localhost:4223/v1/auth | jq -r .token)
 
 # 2. The Authorization header needs the Bearer prefix.
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8118/v1/nodes
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:4223/v1/nodes
 
 # 3. A single-node GET takes the parent ID in the request body; "all" works.
 curl -s -X GET -H "Authorization: Bearer $TOKEN" --data "all" \
-  "http://localhost:8118/v1/nodes/<nodeID>"
+  "http://localhost:4223/v1/nodes/<nodeID>"
 ```
 
 Without the `Bearer` prefix the response is `Unauthorized`; with no header at

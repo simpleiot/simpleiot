@@ -165,6 +165,10 @@ const (
 
 	PointTypeNodeID = "nodeID"
 
+	// PointTypeDepth on a nodes request asks for descendants as well:
+	// 1 returns children with their children, and so on.
+	PointTypeDepth = "depth"
+
 	PointTypeTrigger = "trigger"
 
 	PointTypeStart   = "start"
@@ -297,6 +301,9 @@ const (
 	PointTypeAutoApprove = "autoApprove"
 	PointTypeExpires     = "expires"
 	PointTypeEnrollToken = "enrollToken"
+
+	// PointTypePSK is the pre-shared key on a network manager connection.
+	PointTypePSK = "psk"
 
 	PointTypeMetricNatsCycleNodePoint          = "metricNatsCycleNodePoint"
 	PointTypeMetricNatsCycleNodeEdgePoint      = "metricNatsCycleNodeEdgePoint"

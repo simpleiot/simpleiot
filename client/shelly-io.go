@@ -3,7 +3,10 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"sort"
 	"strconv"
@@ -24,7 +27,48 @@ const (
 	ShellyGen2 ShellyGen = 2
 )
 
-var httpClient = &http.Client{Timeout: 10 * time.Second}
+var httpClient = outboundHTTPClient(10 * time.Second)
+
+// shellyMaxBody bounds what is read from a device in one response or
+// WebSocket frame. A status is a few kilobytes.
+const shellyMaxBody = 1 << 20
+
+// shellyAddr checks that a device's ip point is an IP address, with an
+// optional port, and returns it in the form a URL takes. A name would be
+// resolved elsewhere, and anything else would be pasted into a URL as
+// given.
+func shellyAddr(ip string) (string, error) {
+	host, port, err := net.SplitHostPort(ip)
+	if err != nil {
+		host, port = ip, ""
+	}
+
+	addr, err := netip.ParseAddr(host)
+	if err != nil {
+		return "", fmt.Errorf("shelly ip %q is not an IP address", ip)
+	}
+
+	h := addr.String()
+	if addr.Is6() {
+		h = "[" + h + "]"
+	}
+
+	if port != "" {
+		if _, err := strconv.ParseUint(port, 10, 16); err != nil {
+			return "", fmt.Errorf("shelly ip %q has an invalid port", ip)
+		}
+		h += ":" + port
+	}
+
+	return h, nil
+}
+
+// shellyIdentityMatches reports whether the device that answered at an
+// address is the one an mDNS hostname names, by comparing the MAC the
+// device reports with the serial in the hostname.
+func shellyIdentityMatches(di shellyDeviceInfo, deviceID string) bool {
+	return di.MAC != "" && strings.EqualFold(di.MAC, deviceID)
+}
 
 // shellyDeviceInfo is the response to GET /shelly, the one request both
 // generations answer without authentication. A Gen1 device returns `type` and
@@ -62,7 +106,11 @@ func (di shellyDeviceInfo) model() string {
 // this code was written still identifies itself correctly.
 func shellyGetDeviceInfo(ip string) (shellyDeviceInfo, error) {
 	var di shellyDeviceInfo
-	res, err := httpClient.Get("http://" + ip + "/shelly")
+	host, err := shellyAddr(ip)
+	if err != nil {
+		return di, err
+	}
+	res, err := httpClient.Get("http://" + host + "/shelly")
 	if err != nil {
 		return di, err
 	}
@@ -70,7 +118,7 @@ func shellyGetDeviceInfo(ip string) (shellyDeviceInfo, error) {
 	if res.StatusCode != http.StatusOK {
 		return di, fmt.Errorf("shelly /shelly returned status %v", res.StatusCode)
 	}
-	err = json.NewDecoder(res.Body).Decode(&di)
+	err = json.NewDecoder(io.LimitReader(res.Body, shellyMaxBody)).Decode(&di)
 	return di, err
 }
 
@@ -743,7 +791,11 @@ func (s shellyGen1Status) toPoints() data.Points {
 // gen1Get makes a Gen1 HTTP request and decodes the response into result when
 // one is supplied.
 func (sio *ShellyIo) gen1Get(path string, params map[string]string, result interface{}) error {
-	uri := "http://" + sio.IP + "/" + path
+	host, err := shellyAddr(sio.IP)
+	if err != nil {
+		return err
+	}
+	uri := "http://" + host + "/" + path
 	if len(params) > 0 {
 		q := make([]string, 0, len(params))
 		for k, v := range params {
@@ -763,5 +815,5 @@ func (sio *ShellyIo) gen1Get(path string, params map[string]string, result inter
 	if result == nil {
 		return nil
 	}
-	return json.NewDecoder(res.Body).Decode(result)
+	return json.NewDecoder(io.LimitReader(res.Body, shellyMaxBody)).Decode(result)
 }

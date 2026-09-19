@@ -16,12 +16,10 @@ devices and higher rate data.
 
 ## User Interface
 
-The web UI is currently polling the SIOT backend every 4 seconds via HTTP. This
-works OK for small datasets, but uses more data than necessary and has a latency
-of up to 4 seconds. Long term we will run a
-[NATS client](https://github.com/simpleiot/simpleiot/tree/master/frontend/lib)
-in the frontend over a WebSocket so the UI response is real-time and new data
-gets pushed to the browser.
+The web UI holds one NATS connection over a WebSocket for the life of the
+session, fetches nodes as you expand the tree, and receives changes to the nodes
+on screen as they happen. See the [UI page](ui.md#live-updates). Node operations
+(add, delete, move, mirror, duplicate) still go over HTTP.
 
 ## Security
 

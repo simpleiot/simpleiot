@@ -13,7 +13,8 @@ node_modules
 /dist
 /.release-notes.md
 data.json
-/*.pem
+*.pem
+*.key
 GITHUB_TOKEN
 local.sh
 /badger
@@ -27,4 +28,7 @@ local.sh
 .aider*
 /jetstream
 /test-edge
-/device.nkey
+device.nkey
+*.nkey
+/jetstream_/$G/streams
+.claude/worktrees/

@@ -8,6 +8,11 @@ whole company belongs on the company group rather than on any one device.
 
 Delivery failures are reported on the node's error point and shown in the UI.
 
+Twilio and email messages go to the phone number or email on the user node that
+raised the message, so adding a user with a phone or email is how a recipient is
+added. Each service sends at most 30 messages at once and then one more every 30
+seconds; a message over that limit is dropped and reported on the error point.
+
 ## Twilio SMS
 
 Simple IoT supports sending SMS messages using Twilio's

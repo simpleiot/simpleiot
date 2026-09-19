@@ -53,10 +53,10 @@ colors =
 fonts : { sans : List Font.Font }
 fonts =
     { sans =
-        [ Font.external
-            { name = "IBM Plex Sans"
-            , url = "https://fonts.googleapis.com/css?family=IBM+Plex+Sans:400,400i,600,600i&display=swap"
-            }
+        [ -- the stylesheet is linked from index.html; a Font.external here
+          -- would put an @import in elm-ui's generated stylesheet, which is
+          -- re-evaluated on every re-render and made the text flash
+          Font.typeface "IBM Plex Sans"
         , Font.serif
         ]
     }

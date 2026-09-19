@@ -72,11 +72,26 @@ siot_setup() {
 	return 0
 }
 
+# the web UI loads the NATS client as native ES modules, so the library
+# and nats.ws are copied next to the Elm output rather than bundled
+siot_frontend_js_files="siot-nats.js codec.js nats.js"
+
+siot_build_frontend_js() {
+	mkdir -p frontend/public/dist || return 1
+	cp frontend/lib/siot-nats.js frontend/lib/codec.js frontend/public/dist/ || return 1
+	cp frontend/lib/node_modules/nats.ws/esm/nats.js frontend/public/dist/nats.js || return 1
+	return 0
+}
+
 siot_build_frontend() {
 	# send build output to stderr so that redirecting stdout (for example
 	# siot_run export > nodes.yaml) captures only the program output
 	(cd "frontend" && npx elm-spa build >&2) || return 1
-	gzip -f frontend/public/dist/elm.js
+	siot_build_frontend_js || return 1
+	gzip -f frontend/public/dist/elm.js || return 1
+	for f in $siot_frontend_js_files; do
+		gzip -f "frontend/public/dist/$f" || return 1
+	done
 	return 0
 }
 
@@ -157,6 +172,9 @@ siot_watch_elm() {
 }
 
 siot_watch() {
+	# the JavaScript is served as is in dev mode; rerun
+	# siot_build_frontend_js after editing frontend/lib
+	siot_build_frontend_js || return 1
 	npx run-pty \
 		% /bin/sh -c ". ./envsetup.sh && siot_watch_elm" \
 		% /bin/sh -c ". ./envsetup.sh && siot_watch_go $*"
@@ -175,23 +193,14 @@ check_go_format() {
 siot_test_frontend() {
 	(cd frontend && npx elm-test || return 1) || return 1
 	(cd frontend && npx elm-review || return 1) || return 1
+	siot_test_frontend_js || return 1
 }
 
-siot_test_frontend_lib() {
-	(cd ./frontend/lib && npm run lint || return 1) || return 1
-	echo "Starting SimpleIOT..."
-	./siot serve --store siot_test_frontend_lib.sqlite --resetStore 2>/dev/null &
-	PID=$!
-	sleep 1
-	(cd ./frontend/lib && npm run test || return 1)
-	CODE=$?
-	echo "Stopping SimpleIOT..."
-	kill -s SIGINT $PID
-	wait $PID
-	echo "SimpleIOT Stopped"
-	if [ "$CODE" = "0" ]; then
-		rm siot_test_frontend_lib.sqlite
-	fi
+# the codec tests check the JavaScript encoder against fixtures the Go
+# tests write (data/point_fixture_test.go)
+siot_test_frontend_js() {
+	(cd frontend && npx eslint public/main.js lib/*.js || return 1) || return 1
+	(cd frontend/lib && npm test || return 1) || return 1
 }
 
 siot_frontend_fix() {

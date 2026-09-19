@@ -12,8 +12,10 @@ directory.
 The frontend is based on [elm-spa](https://www.elm-spa.dev/), and is split into
 the following directories:
 
-- `Api`: contains core data structures and API code to communicate with backend
-  (currently REST).
+- `Api`: contains core data structures and API code to communicate with the
+  backend. `Api.Nats` is the port module the node tree is read and written
+  through; the HTTP calls in `Api.Node` and `Api.Auth` remain for sign-in and
+  node operations.
 - `Pages`: the various pages of the application
 - `Components`: each node type has a separate module that is used to render it.
   `NodeOptions.elm` contains a struct that is used to pass options into the
@@ -24,6 +26,34 @@ the following directories:
 We'd like to keep the UI
 [optimistic](https://blog.meteor.com/optimistic-ui-with-meteor-67b5a78c3fcf) if
 possible.
+
+### The node tree over NATS
+
+Elm 0.19 has no WebSocket support, so `public/main.js` owns the NATS connection
+and `Api.Nats` carries a small JSON protocol over one port pair. JavaScript owns
+the connection; Elm owns the tree.
+
+Commands from Elm: `connect {token}`, `fetch {anchor, parent, id, depth}`,
+`watch [subjects]`, `sendPoints {anchor, id, points}`, and `disconnect`. Events
+to Elm: `connected {userId, anchors}`, `disconnected`, `authFailed`,
+`nodes {anchor, parent, id, depth, nodes}`, `points [{nodeId, points}]`,
+`edgePoints [{nodeId, parentId, points}]`, and `error {message}`. Points cross
+the port in the JSON shape the HTTP API used, so `Api.Point.decode` and every
+component are unchanged.
+
+An _anchor_ is a group the user belongs to; the connection may reach the subtree
+under each of its anchors and nothing else. On `connected`, the page fetches
+each anchor with its children and grandchildren. Expanding a node fetches its
+children with their children, so each child knows whether it can be expanded,
+and collapsing keeps what is there. `Utils.NodeTree` holds the pure tree code:
+merging a fetched subtree into the tree while keeping expansion state and the
+deeper levels a reply did not reach, applying live points, and deriving the
+watch list. The watch list is every node on screen (`up.<anchor>.<id>.*.*` for
+its points and `up.<anchor>.*.<id>.*.*` for the edges of its children), sent to
+JavaScript whenever it changes; JavaScript brings its subscriptions in line and
+batches incoming points per animation frame. An edge for a child the tree does
+not have is a new node: the page fetches it. A reconnect, or a tab coming back
+into view, refetches everything loaded, since messages in between were missed.
 
 ### Creating Custom Icons
 
@@ -76,30 +106,25 @@ The process by which a file is uploaded is:
 
 ## SIOT JavaScript library using NATS over WebSockets
 
-This is a JavaScript library available in the
 [`frontend/lib`](https://github.com/simpleiot/simpleiot/tree/master/frontend/lib)
-directory that can be used to interface a frontend with the SIOT backend.
+is `simpleiot-js`, the client the web UI uses to talk to the backend over NATS
+WebSockets, and it can be used by any other JavaScript frontend. It connects as
+a signed-in user with the JWT from `POST /v1/auth`, learns which groups the user
+belongs to, fetches nodes one subtree at a time, subscribes to live points, and
+writes points. The `README.md` in that directory documents the API; the subjects
+are in the [API reference](api.md#nats).
 
-Usage:
+The library has one dependency, `nats.ws`, and no build step. The web UI loads
+it as native ES modules: `siot_build_frontend_js` copies `siot-nats.js`,
+`codec.js`, and `nats.ws`'s bundle into `frontend/public/dist`, and an import
+map in `index.html` resolves `nats.ws` to that copy. `siot_build_frontend` gzips
+them alongside `elm.js`, and the server decompresses on request.
 
-```js
-import { connect } from "./lib/nats"
-
-async function connectAndGetNodes() {
-	const conn = await connect()
-	const [root] = await conn.getNode("root")
-	const children = await conn.getNodeChildren(root.id, { recursive: "flat" })
-	return [root].concat(children)
-}
-```
-
-This library is also published on NPM (in the near future).
-
-(see [#357](https://github.com/simpleiot/simpleiot/pull/357))
-
-(Note, we are not currently using this yet in the SIOT frontend we still poll
-the backend over REST and fetch the entire node tree, but we are building out
-infrastructure so we don't have to do this.)
+`codec.js` mirrors the binary point and node encoding in `data/point.go` and
+`data/node.go`. The Go test `data/point_fixture_test.go` writes fixtures into
+`frontend/lib/testdata`, and `npm test` in `frontend/lib` decodes and re-encodes
+them, so the two encoders are checked against the same bytes. Run the Go test
+with `UPDATE_FIXTURES=1` after changing the encoding.
 
 ## Custom UIs
 

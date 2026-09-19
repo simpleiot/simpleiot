@@ -145,6 +145,11 @@ instance restarts.
 Rules can also set points in other nodes. For simplicity, the node ID must be
 currently specified along with point parameters and a number/bool/text value.
 
+The target has to be the rule's parent or a node below it. An action that names
+a node elsewhere in the tree is refused, and the reason is shown as an error on
+the action. A rule that needs to reach across groups belongs at a level that
+contains both.
+
 Typically a rule action is only used to set one value. In the case of on/off
 actions, one rule is used to turn a value on, and another rule is used to turn
 the same value off. This allows for hysteresis and more complex logic than in
@@ -253,8 +258,8 @@ optional `repeatInterval`, in minutes, which reminds while the rule stays active
 and rate limits the action in both directions. A `setValue` action names what to
 write with `nodeID`, `pointType`, and `pointKey`, and what to write with
 `valueType` and `value` or `valueText`. A `playAudio` action names the WAV file
-to play with `filePath`, the ALSA device to play it on with `device`, and the
-channel with `channel`.
+to play with `filePath` (an absolute path, or a file name with no directory),
+the ALSA device to play it on with `device`, and the channel with `channel`.
 
 The rule's `active` state, its most recent notification, and any error are
 points the client maintains, so an export of a running rule carries them as

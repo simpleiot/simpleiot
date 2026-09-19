@@ -315,9 +315,51 @@ reads them and a command would never arrive. Skipping mirror edges keeps the
 node with the device that holds the hardware, which is where the client that
 acts on it runs.
 
-A node with no role that is reachable from two boundaries still resolves to the
-instance root boundary, since nothing marks which side owns it. That is
-[ADR-7](../adr/7-jetstream-store.md) remaining work item 3.
+A node with no role works the same way without any marking. Every node hangs off
+the instance root, so reaching the root alongside a device boundary says only
+that the node is somewhere in this instance's tree, and the device boundary is
+the one that says where the node lives. A variable on a device that is also
+mirrored onto the upstream therefore stays owned by the device, and a value
+written on the upstream reaches it.
+
+### A node reaches every device it is mirrored into
+
+A node belongs to one boundary, and a device replicates only the streams for its
+own boundary. That decides where the upstream stores the node and which instance
+runs its client. Which devices _receive_ the node is a separate question,
+answered by walking every live edge above it, mirror or not, to the first device
+boundary on each path. This is the node's delivery set
+(`EdgeCache.DeliveryBoundaries`). When the upstream writes a point to a node, it
+appends the point to its own stream for the owning boundary as before, and also
+to the stream it writes for each device in the delivery set. Each device pulls
+its own stream, so all of them receive the write.
+
+A variable under the upstream root mirrored into three devices reaches all
+three, and a setpoint changed in the portal arrives on each. Removing one mirror
+removes the node from that device only; the upstream purges the node's copies
+from that device's stream. Adding a mirror delivers the node's current values
+right away, so a device never shows an empty node waiting for the next write.
+
+Ownership follows the same rules as before. Mirroring a node whose type has no
+primary location (a variable, a rule, a group) makes an edge with no role, so a
+variable that lived on one device and is mirrored into a second resolves to the
+upstream root, and its stored subjects move there. The move does not affect
+delivery: both devices are in the delivery set, and both keep receiving the
+upstream's writes.
+
+What a device writes reaches the upstream and stops there. A write lands in the
+device's own stream, which the upstream replicates and the other devices do not.
+Two devices sharing a variable each see the upstream's writes and their own; a
+change made on one is visible on the upstream but not on the other. The same
+holds for a sensor on one device mirrored into another: the second device gets
+the edge and the values the upstream has copied for it, and readings the
+sensor's device writes afterward do not reach it. Carrying device writes across
+would make the upstream a relay between devices, which is tracked in
+[issue 810](https://github.com/simpleiot/simpleiot/issues/810).
+
+Behind this is the property that makes synchronization echo-free: only the
+origin instance ever appends to a stream. The upstream copies its own writes
+into several of its own streams, which keeps that property intact.
 
 ### Upgrading
 

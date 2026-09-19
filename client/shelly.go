@@ -154,7 +154,13 @@ done:
 				// if we don't set origin, then the client manager will filter out
 				// points to the client that owns the node
 				found = true
-				if io.IP != ip {
+				if io.IP != ip && !shellyIdentityMatches(di, id) {
+					// an mDNS answer is unauthenticated, so a known
+					// device is only moved when the device at the new
+					// address proves it is the same one
+					log.Printf("Shelly %v: device at %v reports MAC %q, not moving it from %v",
+						id, ip, di.MAC, io.IP)
+				} else if io.IP != ip {
 					err := SendNodePoint(sc.nc, io.ID, func() data.Point {
 						p := data.NewPointString(data.PointTypeIP, "", ip)
 						p.Origin = sc.config.ID

@@ -42,6 +42,21 @@ func (p Point) CheckSubjectTokens() error {
 	return nil
 }
 
+// CheckSubjectToken returns an error if a string cannot be one token of a
+// NATS subject: it is empty or contains a period, a wildcard, or
+// whitespace. Node IDs travel in subjects, so an ID taken from a peer or a
+// point (an enrolling device names its own, a rule action names its target)
+// is checked with it; what names the ID in the error.
+func CheckSubjectToken(what, s string) error {
+	if s == "" {
+		return fmt.Errorf("%v is empty", what)
+	}
+	if i := strings.IndexAny(s, invalidSubjectChars); i >= 0 {
+		return fmt.Errorf("%v %q contains %q, which is not allowed", what, s, s[i:i+1])
+	}
+	return nil
+}
+
 // SubjectSafeToken replaces every character that is not allowed in a point type
 // or key with an underscore. It is for callers that generate keys from names
 // they do not control, such as sysfs device names or network interface names.

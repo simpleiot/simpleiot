@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/donovanhide/eventsource"
@@ -30,6 +31,31 @@ type Particle struct {
 	Description string `point:"description"`
 	Disabled    bool   `point:"disabled"`
 	AuthToken   string `point:"authToken"`
+}
+
+// particleConfigTypes are the point types that configure the Particle
+// client. A sample from a device that carries one of them is dropped, so a
+// device cannot rewrite the node's token or disable it.
+var particleConfigTypes = map[string]bool{
+	data.PointTypeDescription: true,
+	data.PointTypeDisabled:    true,
+	data.PointTypeAuthToken:   true,
+}
+
+// particlePoints converts the samples in an event to points, leaving out
+// any that would change the client's configuration.
+func particlePoints(pPoints []particlePoint, t time.Time) data.Points {
+	points := make(data.Points, 0, len(pPoints))
+	for _, p := range pPoints {
+		if particleConfigTypes[p.Type] {
+			log.Printf("Particle: dropping %v point sent by a device", p.Type)
+			continue
+		}
+		pt := p.toPoint()
+		pt.Time = t
+		points = append(points, pt)
+	}
+	return points
 }
 
 // ParticleClient is a SIOT particle client
@@ -77,9 +103,16 @@ func (pc *ParticleClient) Run() error {
 			readerClosed <- struct{}{}
 		}()
 
-		urlAuth := particleEventURL + "sample" + "?access_token=" + pc.config.AuthToken
+		req, err := http.NewRequest(http.MethodGet, particleEventURL+"sample", nil)
+		if err != nil {
+			log.Println("Particle request error:", err)
+			return
+		}
+		// the token goes in a header rather than the query string, so it
+		// does not appear in a logged URL
+		req.Header.Set("Authorization", "Bearer "+pc.config.AuthToken)
 
-		stream, err := eventsource.Subscribe(urlAuth, "")
+		stream, err := eventsource.SubscribeWithRequest("", req)
 
 		if err != nil {
 			log.Println("Particle subscription error:", err)
@@ -103,11 +136,9 @@ func (pc *ParticleClient) Run() error {
 					continue
 				}
 
-				points := make(data.Points, len(pPoints))
-
-				for i, p := range pPoints {
-					points[i] = p.toPoint()
-					points[i].Time = pEvent.Timestamp
+				points := particlePoints(pPoints, pEvent.Timestamp)
+				if len(points) == 0 {
+					continue
 				}
 
 				err = SendNodePoints(pc.nc, pc.config.ID, points, false)

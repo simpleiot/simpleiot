@@ -1,7 +1,9 @@
 package client
 
 import (
-	"fmt"
+	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	"log"
 	"net"
 	"time"
@@ -14,10 +16,15 @@ import (
 type EdgeOptions struct {
 	URI       string
 	AuthToken string
-	// NkeySeed is a device credential (an NKey user seed). When set, the
-	// connection authenticates by signing the server's nonce with it and
-	// AuthToken is not sent.
-	NkeySeed     string
+	// NkeyPub and NkeySign are a device credential: the public key the
+	// upstream knows and a function that signs the server's nonce with
+	// it (see DeviceSigner). When set, AuthToken is not sent.
+	NkeyPub  string
+	NkeySign nats.SignatureHandler
+	// CACert is a PEM certificate chain the upstream has to present,
+	// for an instance that pins its upstream rather than trusting the
+	// system store. Empty keeps the system store.
+	CACert       string
 	NoEcho       bool
 	Connected    func()
 	Disconnected func()
@@ -34,19 +41,23 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 		authEnabled = "token"
 	}
 
-	var kp nkeys.KeyPair
-	var pubKey string
-	if eo.NkeySeed != "" {
-		var err error
-		kp, err = nkeys.FromSeed([]byte(eo.NkeySeed))
-		if err != nil {
-			return nil, fmt.Errorf("error parsing device credential: %w", err)
+	if eo.NkeyPub != "" {
+		if eo.NkeySign == nil {
+			return nil, errors.New("device credential needs a signer")
 		}
-		pubKey, err = kp.PublicKey()
-		if err != nil {
-			return nil, fmt.Errorf("error reading device credential: %w", err)
+		if !nkeys.IsValidPublicUserKey(eo.NkeyPub) {
+			return nil, errors.New("device credential is not a user key")
 		}
-		authEnabled = "device credential " + pubKey
+		authEnabled = "device credential " + eo.NkeyPub
+	}
+
+	var tlsConfig *tls.Config
+	if eo.CACert != "" {
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM([]byte(eo.CACert)) {
+			return nil, errors.New("caCert holds no certificate")
+		}
+		tlsConfig = &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
 	}
 
 	natsErrHandler := func(_ *nats.Conn, sub *nats.Subscription, natsErr error) {
@@ -86,10 +97,17 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 			return delay
 		})(o)
 
-		if kp != nil {
-			_ = nats.Nkey(pubKey, kp.Sign)(o)
+		if eo.NkeyPub != "" {
+			_ = nats.Nkey(eo.NkeyPub, eo.NkeySign)(o)
+			// the upstream grants this key its own inbox and nothing
+			// else, so replies have to arrive there
+			_ = nats.CustomInboxPrefix(InboxPrefix(eo.NkeyPub))(o)
 		} else {
 			_ = nats.Token(eo.AuthToken)(o)
+		}
+
+		if tlsConfig != nil {
+			_ = nats.Secure(tlsConfig)(o)
 		}
 
 		if eo.NoEcho {

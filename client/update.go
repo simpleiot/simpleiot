@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -80,11 +81,128 @@ func (m *UpdateClient) setError(err error) {
 
 var reUpd = regexp.MustCompile(`(.*)_(\d+\.\d+\.\d+)\.upd`)
 
+// Limits on what the update client fetches. Update images can be large, so
+// the download is given a long timeout, but not an unbounded one.
+const (
+	updateListTimeout      = 30 * time.Second
+	updateListMaxBytes     = 1 << 20 // 1 MiB
+	updateDownloadTimeout  = time.Hour
+	updateDownloadMaxBytes = 4 << 30 // 4 GiB
+)
+
+// updateURL joins name onto the update server URI. The URI must use https,
+// since the update is not signed and would otherwise be replaceable on
+// the wire.
+func updateURL(base, name string) (string, error) {
+	u, err := url.Parse(base)
+	if err != nil {
+		return "", fmt.Errorf("URI error: %w", err)
+	}
+	if u.Scheme != "https" {
+		return "", fmt.Errorf("update URI must use https: %v", base)
+	}
+	if u.Host == "" {
+		return "", fmt.Errorf("update URI has no host: %v", base)
+	}
+	return u.JoinPath(name).String(), nil
+}
+
+// updateFetcher performs the HTTP requests for the update client. Tests
+// supply an http.Client that trusts their server.
+type updateFetcher struct {
+	list     *http.Client
+	download *http.Client
+}
+
+func newUpdateFetcher() updateFetcher {
+	return updateFetcher{
+		list:     &http.Client{Timeout: updateListTimeout},
+		download: &http.Client{Timeout: updateDownloadTimeout},
+	}
+}
+
+// get fetches u and returns the response after checking its status.
+func (f updateFetcher) get(c *http.Client, u string) (*http.Response, error) {
+	resp, err := c.Get(u)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		_ = resp.Body.Close()
+		return nil, fmt.Errorf("%v: %v", u, resp.Status)
+	}
+	return resp, nil
+}
+
+// fetchList returns the lines of files.txt on the update server.
+func (f updateFetcher) fetchList(base string) ([]string, error) {
+	u, err := updateURL(base, "files.txt")
+	if err != nil {
+		return nil, err
+	}
+	resp, err := f.get(f.list, u)
+	if err != nil {
+		return nil, fmt.Errorf("error getting updates: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, updateListMaxBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("error reading http response: %w", err)
+	}
+	if len(body) > updateListMaxBytes {
+		return nil, fmt.Errorf("files.txt is larger than %v bytes", updateListMaxBytes)
+	}
+
+	return strings.Split(string(body), "\n"), nil
+}
+
+// fetchFile downloads name from the update server into dir. A file that
+// is empty, fails to download, or is larger than the cap is removed.
+func (f updateFetcher) fetchFile(base, name, dir string) error {
+	u, err := updateURL(base, name)
+	if err != nil {
+		return err
+	}
+
+	destPath := filepath.Join(dir, filepath.Base(name))
+
+	resp, err := f.get(f.download, u)
+	if err != nil {
+		return fmt.Errorf("error fetching OS update: %w", err)
+	}
+	defer resp.Body.Close()
+
+	out, err := os.Create(destPath)
+	if err != nil {
+		return fmt.Errorf("error creating OS update file: %w", err)
+	}
+
+	c, err := io.Copy(out, io.LimitReader(resp.Body, updateDownloadMaxBytes+1))
+	if cerr := out.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil && c > updateDownloadMaxBytes {
+		err = fmt.Errorf("update is larger than %v bytes", updateDownloadMaxBytes)
+	}
+	if err == nil && c <= 0 {
+		err = errors.New("empty download")
+	}
+	if err != nil {
+		_ = os.Remove(destPath)
+		return fmt.Errorf("failed to download %v: %w", u, err)
+	}
+
+	return nil
+}
+
 // Run the main logic for this client and blocks until stopped
 func (m *UpdateClient) Run() error {
 	cDownloadFinished := make(chan struct{})
 	// cSetError is used in any goroutines
 	cSetError := make(chan error)
+
+	fetch := newUpdateFetcher()
 
 	download := func(v string) error {
 		defer func() {
@@ -96,39 +214,9 @@ func (m *UpdateClient) Run() error {
 			m.config.DownloadOS = ""
 		}()
 
-		u, err := url.JoinPath(m.config.URI, m.config.Prefix+"_"+v+".upd")
-		if err != nil {
-			return fmt.Errorf("URI error: %w", err)
-		}
-
-		m.log.Println("Downloading update: ", u)
-
-		fileName := filepath.Base(u)
-		destPath := filepath.Join(m.config.Directory, fileName)
-
-		out, err := os.Create(destPath)
-		if err != nil {
-			return fmt.Errorf("error creating OS update file: %w", err)
-		}
-		defer out.Close()
-
-		resp, err := http.Get(u)
-		if err != nil {
-			return fmt.Errorf("error http get fetching OS update: %w", err)
-		}
-		defer resp.Body.Close()
-
-		c, err := io.Copy(out, resp.Body)
-		if err != nil {
-			return fmt.Errorf("io.Copy error: %w", err)
-		}
-
-		if c <= 0 {
-			os.Remove(destPath)
-			return fmt.Errorf("failed to download: %v", u)
-		}
-
-		return nil
+		name := m.config.Prefix + "_" + v + ".upd"
+		m.log.Println("Downloading update: ", name)
+		return fetch.fetchFile(m.config.URI, name, m.config.Directory)
 	}
 
 	// fill in default prefix
@@ -188,30 +276,11 @@ func (m *UpdateClient) Run() error {
 			}
 		}
 
-		p, err := url.JoinPath(m.config.URI, "files.txt")
+		updates, err := fetch.fetchList(m.config.URI)
 		if err != nil {
 			clearUpdateList()
-			return fmt.Errorf("URI error: %w", err)
+			return err
 		}
-		resp, err := http.Get(p)
-		if err != nil {
-			clearUpdateList()
-			return fmt.Errorf("error getting updates: %w", err)
-		}
-
-		if resp.StatusCode != 200 {
-			clearUpdateList()
-			return fmt.Errorf("error getting updates: %v", resp.Status)
-		}
-
-		defer resp.Body.Close()
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return fmt.Errorf("error reading http response: %w", err)
-		}
-
-		updates := strings.Split(string(body), "\n")
 
 		updates = slices.DeleteFunc(updates, func(u string) bool {
 			return !strings.HasPrefix(u, m.config.Prefix)
@@ -438,7 +507,8 @@ func (m *UpdateClient) Run() error {
 		}()
 	}
 
-	checkTickerTime := time.Minute * time.Duration(m.config.PollPeriod)
+	checkTickerTime := pointDuration(float64(m.config.PollPeriod), time.Minute,
+		30*time.Minute, 10*time.Second)
 	checkTicker := time.NewTicker(checkTickerTime)
 	if m.config.AutoDownload {
 		m.setError(nil)
@@ -513,7 +583,8 @@ done:
 					}
 
 				case data.PointTypePollPeriod:
-					checkTickerTime := time.Minute * time.Duration(p.Val())
+					checkTickerTime := pointDuration(p.Val(), time.Minute,
+						30*time.Minute, 10*time.Second)
 					checkTicker.Reset(checkTickerTime)
 
 				case data.PointTypeAutoDownload:

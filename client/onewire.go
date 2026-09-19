@@ -156,11 +156,8 @@ func (c *OneWireClient) EdgePoints(nodeID, parentID string, points []data.Point)
 }
 
 func (c *OneWireClient) pollPeriod() time.Duration {
-	if c.config.PollPeriod <= 0 {
-		return oneWireDefaultPollPeriod
-	}
-
-	return time.Millisecond * time.Duration(c.config.PollPeriod)
+	return pointDuration(float64(c.config.PollPeriod), time.Millisecond,
+		oneWireDefaultPollPeriod, 10*time.Millisecond)
 }
 
 // busPoints reacts to points on the bus node that have a side effect beyond
@@ -356,6 +353,10 @@ func oneWireDetect(root string, index int) ([]string, error) {
 // Fahrenheit when units is "F". The read uses the flat device directory, which
 // is the same path regardless of which controller the sensor is on.
 func oneWireRead(root, deviceID, units string) (float64, error) {
+	if err := safeName(deviceID); err != nil {
+		return 0, err
+	}
+
 	path := filepath.Join(root, deviceID, "temperature")
 
 	d, err := os.ReadFile(path)

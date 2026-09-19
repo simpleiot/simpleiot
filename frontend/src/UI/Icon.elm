@@ -16,6 +16,7 @@ module UI.Icon exposing
     , io
     , key
     , list
+    , loader
     , mapPin
     , mqtt
     , network
@@ -176,6 +177,11 @@ serialDev =
 cloudOff : Element msg
 cloudOff =
     icon FeatherIcons.cloudOff
+
+
+loader : Element msg
+loader =
+    icon FeatherIcons.loader
 
 
 cloud : Element msg

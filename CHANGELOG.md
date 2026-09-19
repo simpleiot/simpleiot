@@ -11,6 +11,197 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-09-19
+
+### Security
+
+- **A signed-in user cannot reach nodes outside their groups through any door.**
+  The HTTP node routes now resolve every request to a principal and refuse a
+  node, or a parent named in the body, outside what it may reach; a browser's
+  edge write checks the child as well as the parent, so a node cannot be
+  attached into a group from elsewhere; and a rule action, signal generator
+  destination, or serial high-rate destination that names a node above the
+  client's parent is refused with the error recorded on the node. A rule that
+  reaches across groups has to move to a level that contains both. See the
+  [security reference](docs/ref/security.md#http).
+- **A request with no credentials is refused on the HTTP node routes**, whether
+  or not `SIOT_AUTH_TOKEN` is set. A script that relied on an empty header
+  against an instance with no token has to sign in or present the token.
+- **A user under a device signs in on that device only.** A device's users are
+  replicated to the upstream with the rest of its tree, but are not accepted at
+  the upstream's sign-in, even after their password is set from the upstream's
+  UI, so a device left with its default `admin` account is not an account on the
+  upstream. See
+  [users and groups](docs/user/users-groups.md#where-a-user-signs-in).
+- **Node replies to a browser or API user leave secret values out.** `pass`,
+  `authToken`, `enrollToken`, `sid`, and `psk` points arrive with an empty
+  value, replies list only the parents inside the user's groups, and
+  `siot export` leaves every one of these types out unless `-secrets` is given.
+- **Sign-in attempts are limited per account and logged**, over HTTP, NATS, and
+  the browser's WebSocket: five failures in a row refuse the account for a
+  second, doubling up to five minutes. A user's token is refused as soon as the
+  user is gone from the tree.
+- **The device key seed never leaves the server.** `auth.deviceKey` answers with
+  the public key only; the sync client has the server sign for it on
+  `auth.deviceSign`. `client.GetDeviceKey` and `client.Enroll` changed
+  accordingly.
+- **Enrollment is bound to the connection and the device.** A request has to
+  name the key on its own connection, the device ID has to be usable in a
+  subject, a device that already has a live credential gets any further key as
+  pending whatever the token says, and at most 100 devices may wait for
+  approval.
+- **Under `SIOT_DEVICE_AUTH=required`, the shared token is refused from a remote
+  address through the HTTP port's WebSocket proxy** as well as on the NATS port.
+  A reverse proxy in front of the HTTP port still makes connections look local;
+  see the [security reference](docs/ref/security.md#nats).
+- **A bad point no longer stops the instance.** A node whose points do not
+  decode, or a client that panics, records the problem on the node's `error`
+  point and is restarted with backoff while everything else keeps running.
+  Periods read from points are bounded before they reach a timer, a signal
+  generator refuses a `sampleRate` above 1 MHz, and a serial node's
+  `maxMessageLength` is capped at 64 KiB.
+- **Modbus requests and responses are bounded.** A request for more than 125
+  registers or 2000 coils, or for zero, gets an illegal-data-value exception; a
+  response whose length disagrees with the request is an error; and a connection
+  over a Modbus TCP server's client limit is closed.
+- **Messages go to the address on the user node, at a bounded rate.** A
+  `message` point raised on any node other than a user node is ignored, the
+  phone and email in the point are never used, and each messaging service sends
+  at most 30 messages at once and then one every 30 seconds. CR and LF are
+  stripped from SMTP headers.
+- **Inputs taken from points and peers are validated.** The update client
+  requires `https` and caps its downloads; kiosk browser and NTP settings refuse
+  control characters; IIO, OneWire, audio, and transferred file names cannot
+  leave their directory; a Shelly `ip` has to be an address, and a known device
+  is only moved when the device at the new address reports its MAC; a serial MCU
+  or Particle device can no longer rewrite its node's configuration; the
+  Particle token travels in a header. An update node with an `http` URI stops
+  fetching until the URI is changed.
+- **MQTT filters on a node inside a group must start with a literal topic
+  level.** `#` and `+/...` are refused with an error on the node; an `mqtt` node
+  directly under the root may use any filter, and `maxNodes` also caps the nodes
+  Sparkplug creates. An existing subscription to `#` under a group stops
+  working. See [MQTT](docs/user/mqtt.md).
+- **The HTTP server has timeouts, a 4 MB body limit, and security headers**, the
+  debug logger no longer logs sign-in bodies, the UI fonts are served from the
+  binary so the page loads no third-party origin, and the JWT signing key on a
+  new store is 32 bytes.
+
+### Added
+
+- **A node mirrored into several devices now reaches all of them.** A setpoint
+  kept on the upstream and mirrored into each device at a site arrives on every
+  one, with its current values as soon as the mirror is made, and removing a
+  mirror removes it from that device only. A change made on a device still
+  reaches the upstream and not the other devices. A mirror made before the
+  upgrade gets new writes right away and current values on its next edge change,
+  or at once if it is removed and made again. See
+  [a node reaches every device it is mirrored into](docs/ref/data.md#a-node-reaches-every-device-it-is-mirrored-into).
+- **The NATS WebSocket listener serves TLS when `SIOT_NATS_TLS_CERT` is set**,
+  the server's own loopback connection and the HTTP port's proxy accept exactly
+  that certificate, and a sync node can pin its upstream with a `caCert` point.
+  See [configuration](docs/user/configuration.md) and
+  [synchronization](docs/user/sync.md#device-credentials).
+- **`SIOT_OUTBOUND_DENY_PRIVATE`** refuses connections to loopback, link-local,
+  and private addresses from the metrics scraper, Shelly, ntfy, Modbus TCP, and
+  gpsd clients, for an instance on a network it should not probe. Everything is
+  allowed by default.
+- **`siot install` produces a service that is not open to the network.** It
+  generates an auth token into a `0600` environment file, creates the data
+  directory `0700`, and, as a system service, adds systemd sandboxing. A client
+  that needs hardware access is allowed it in a drop-in; see
+  [installation](docs/user/installation.md).
+- **Browsers connect to NATS as the signed-in user.** The embedded NATS server
+  accepts a user's node ID and sign-in JWT as user and password, over the
+  WebSocket the HTTP port already proxies, and limits the connection to the
+  groups that user belongs to. Removing a user from a group, deleting the user,
+  or changing the password closes the connection within seconds, and a
+  connection is closed when its JWT expires. New subjects `u.<anchor>.<user>.>`
+  and `auth.me`, and a `depth` parameter on `nodes` requests, serve it.
+  `SIOT_NATS_WS_ORIGINS` limits which page origins may open the WebSocket;
+  empty, the default, allows any. See the [API reference](docs/ref/api.md#nats)
+  and [security reference](docs/ref/security.md#browser).
+
+### Changed
+
+- **A copied node stays on the clipboard after a mirror or a duplicate**, so it
+  can be pasted into several destinations in a row. A move still clears it, and
+  the x next to the clipboard entry clears it at any time.
+- **The web UI moves to port 4223, and one setting now moves every port.** The
+  HTTP port defaults to one above the NATS port (4222) and NATS monitoring to
+  two above it, so `SIOT_NATS_PORT` alone moves a second instance off the
+  defaults; `SIOT_HTTP_PORT` and the new `SIOT_NATS_MONITOR_PORT` still override
+  them. Monitoring and the NATS WebSocket now listen on loopback only, and the
+  WebSocket takes a free port the HTTP port finds on its own.
+  `SIOT_NATS_HTTP_PORT`, `SIOT_NATS_HTTP_HOST`, `SIOT_NATS_WS_PORT`, and
+  `SIOT_NATS_WS_HOST` are gone. Update bookmarks, firewall rules, and reverse
+  proxies that name 8118, and an installed service's `siot.service`, which sets
+  the old ports until it is regenerated. See
+  [configuration](docs/user/configuration.md).
+- **The web UI updates live instead of polling.** The page keeps one NATS
+  connection over the WebSocket the HTTP port proxies, fetches nodes as you
+  expand the tree, and shows point changes for the nodes on screen as they
+  happen. A `connecting...` badge appears while the connection is down. See
+  [live updates](docs/user/ui.md#live-updates).
+- **`simpleiot-js` 2.0 connects as a user and speaks the binary encoding.** The
+  JavaScript client in `frontend/lib` is rewritten on the point and node
+  encoding the server has used since protocol buffers were dropped, connects
+  with a sign-in JWT, and names the group every read and write is made under.
+  The protobuf-based API of 1.x is gone. See the
+  [frontend reference](docs/ref/frontend.md#siot-javascript-library-using-nats-over-websockets).
+- **Devices get a reply inbox of their own.** A device credential used to be
+  granted the `_INBOX.>` space every client on a server shares, so one device
+  could read every other client's request replies. Each connection now gets an
+  inbox named for its key. A device enrolling itself presents the key it is
+  enrolling alongside the enrollment token, so it gets an inbox too; an
+  enrollment token on its own is no longer accepted. Devices and upstreams have
+  to be upgraded together, since neither inbox grant covers the other. See the
+  [security reference](docs/ref/security.md#what-a-device-credential-allows).
+- **The security reference has a deployment checklist and a list of known
+  limitations.** A security audit found that an instance with no auth token or
+  with the default `admin` password, including on an edge device that syncs
+  upstream, is open to anyone who can reach it. See the
+  [security reference](docs/ref/security.md#deployment-checklist) before
+  exposing an instance to a network.
+- **Builds require Go 1.27.1, and releases are built with the version `go.mod`
+  names.** Release binaries were built with Go 1.25.0, the minimum the module
+  declared, rather than the version CI tested with. CI now checks dependencies
+  with `govulncheck` as well.
+
+### Fixed
+
+- **A node deleted on a device disappears from the upstream's UI right away.**
+  Before, it stayed on screen until the page was reloaded.
+- **Sync to an upstream with no token stays connected.** The upstream no longer
+  drops a device each time its tree changes; before, the device reconnected a
+  few seconds later.
+- **A node mirrored onto an upstream keeps syncing to its device.** Mirroring a
+  node with no primary location -- a variable, a user -- from a device subtree
+  into the upstream tree moved the node's ownership to the upstream root, so
+  values written on the upstream were stored where the device never reads them
+  and never arrived. Ownership now stays with the device. See
+  [primary and mirror edges](docs/ref/data.md#primary-and-mirror-edges).
+- **An instance with a large store starts reliably.** Loading the store at
+  start-up could outlast the server's wait for its own NATS connection, so the
+  process exited and restarted in a loop without ever serving. The server now
+  connects once the store has loaded.
+- **A tree with many nested groups no longer exhausts memory.** Looking for
+  nodes to run clients on counted nodes again for every group it passed through,
+  so a large tree of groups could use all of the system's memory. Each node is
+  now found once.
+- **Device credentials on the upstream stay marked connected while the device is
+  connected.** A device could clear this status on its own copy of the
+  credential a few seconds after connecting, and the change synced back
+  upstream.
+
+### Removed
+
+- **`GET /v1/nodes` is gone.** It returned every node a user could see in one
+  reply, and the web UI was its only caller. The other node routes stay.
+- **`auth.getNatsURI` is gone.** It handed the shared token to any connected
+  client. Nothing in the repository used it; a client that did should hold its
+  own credential.
+
 ## [0.27.0] - 2026-09-02
 
 ### Added

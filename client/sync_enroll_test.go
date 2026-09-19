@@ -2,10 +2,12 @@ package client_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nkeys"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/server"
@@ -124,11 +126,12 @@ func TestSyncEnroll(t *testing.T) {
 	})
 
 	fmt.Println("**** a second key for the same device is held as pending")
-	_, otherPub, err := client.GenerateDeviceKey()
+	otherSeed, otherPub, err := client.GenerateDeviceKey()
 	if err != nil {
 		t.Fatal(err)
 	}
-	reply, err := client.Enroll(optsU.NatsServer, client.EnrollRequest{
+	_, otherSign, _ := client.SeedSigner(otherSeed)
+	reply, err := client.Enroll(optsU.NatsServer, otherPub, otherSign, client.EnrollRequest{
 		Token: token, DeviceID: rootD.ID, PubKey: otherPub})
 	if err != nil || reply.Status != client.EnrollPending {
 		t.Fatalf("second enrollment: %v %v", reply, err)
@@ -149,7 +152,7 @@ func TestSyncEnroll(t *testing.T) {
 	fmt.Println("**** revoking the token does not affect the enrolled device")
 	setCred(t, ncU, "et-1", data.NewPointFloat(data.PointTypeDisabled, "", 1))
 	time.Sleep(time.Second)
-	if _, err := client.Enroll(optsU.NatsServer, client.EnrollRequest{
+	if _, err := client.Enroll(optsU.NatsServer, otherPub, otherSign, client.EnrollRequest{
 		Token: token, DeviceID: "another", PubKey: otherPub}); err == nil {
 		t.Fatal("revoked enrollment token accepted")
 	}
@@ -197,11 +200,51 @@ func TestEnrollTokenScope(t *testing.T) {
 	token := makeEnrollToken(t, ncU, rootU, "et-1", false)
 	time.Sleep(500 * time.Millisecond)
 
-	nc, err := nats.Connect(optsU.NatsServer, nats.Token(token), nats.NoReconnect())
+	// the token on its own is not a credential: the key being enrolled
+	// comes with it, so the connection can be given an inbox of its own
+	if _, err := nats.Connect(optsU.NatsServer, nats.Token(token),
+		nats.NoReconnect()); err == nil {
+		t.Fatal("enrollment token accepted without a key")
+	}
+
+	seed, pub, err := client.GenerateDeviceKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	kp, err := nkeys.FromSeed([]byte(seed))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	errs := make(chan string, 8)
+	nc, err := nats.Connect(optsU.NatsServer, nats.Token(token),
+		nats.Nkey(pub, kp.Sign), nats.CustomInboxPrefix(client.InboxPrefix(pub)),
+		nats.ErrorHandler(func(_ *nats.Conn, _ *nats.Subscription, err error) {
+			select {
+			case errs <- err.Error():
+			default:
+			}
+		}), nats.NoReconnect())
 	if err != nil {
 		t.Fatal("enrollment token refused:", err)
 	}
 	defer nc.Close()
+
+	// it cannot read anyone else's replies
+	if _, err := nc.SubscribeSync("_INBOX.>"); err != nil {
+		t.Fatal(err)
+	}
+	if err := nc.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case e := <-errs:
+		if !strings.Contains(e, "Permissions Violation") {
+			t.Fatalf("subscribing to _INBOX.> gave %v", e)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("enrolling connection could subscribe to the shared inbox")
+	}
 
 	if _, err := nc.Request("nodes.root.all", nil, 500*time.Millisecond); err == nil {
 		t.Fatal("enrollment token could read the tree")
@@ -219,8 +262,8 @@ func TestEnrollTokenScope(t *testing.T) {
 	}
 
 	// the one thing it can do
-	_, pub, _ := client.GenerateDeviceKey()
-	reply, err := client.Enroll(optsU.NatsServer, client.EnrollRequest{
+	_, sign, _ := client.SeedSigner(seed)
+	reply, err := client.Enroll(optsU.NatsServer, pub, sign, client.EnrollRequest{
 		Token: token, DeviceID: "unit-7", PubKey: pub, Description: "unit 7"})
 	if err != nil || reply.Status != client.EnrollPending {
 		t.Fatalf("enroll: %v %v", reply, err)

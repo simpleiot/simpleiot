@@ -655,7 +655,8 @@ Implementation is broken down into 3 stages:
 Stage 3 is functional end to end — two instances replicate in both directions,
 survive disconnection, and converge — but the items below are still outstanding.
 They are grouped by area and roughly ordered by priority within each group. The
-Stage 3 [plan](../../plans/2026-08-06-stage3-jetstream-sync.md) tracks progress.
+[sync follow-ups plan](../../plans/2026-09-19-jetstream-sync-followups.md)
+tracks progress.
 
 **Sync coverage**
 
@@ -663,49 +664,63 @@ Stage 3 [plan](../../plans/2026-08-06-stage3-jetstream-sync.md) tracks progress.
    device beneath another device's boundary does not yet sync.
 2. Multi-hop chaining test: each hop is independent and expected to work, but
    this is unverified.
-3. Nodes mirrored across device boundaries: resolved for nodes that carry an
-   edge role. `OwningBoundary` skips mirror edges, so a device's node mirrored
-   into a group on the upstream stays owned by the device's boundary and writes
-   made on the upstream -- including a `valueSet` aimed at the hardware --
-   travel back down and are acted on there (`TestSyncMirrorAcrossBoundary`).
-   Before that, such a node became reachable from two boundaries and resolved to
-   the instance root, so upstream writes landed in a stream the device does not
-   replicate and never arrived. Still open: a node with **no** role reachable
-   from two boundaries, which has nothing to say which side owns it and still
-   resolves to the instance root.
-4. Moving a node between boundaries: requires republishing subject tips into the
+3. Nodes mirrored across device boundaries: resolved. `OwningBoundary` skips
+   mirror edges, so a device's node mirrored into a group on the upstream stays
+   owned by the device's boundary and writes made on the upstream -- including a
+   `valueSet` aimed at the hardware -- travel back down and are acted on there
+   (`TestSyncMirrorAcrossBoundary`). A node with no role, such as a variable or
+   a user, has no mirror edge to skip, so ownership comes from the boundaries
+   themselves: reaching the instance root alongside a device boundary says only
+   that the node is in this instance's tree, and the device boundary wins
+   (`TestSyncMirrorNoRoleAcrossBoundary`). Before both, such a node became
+   reachable from two boundaries and resolved to the instance root, so upstream
+   writes landed in a stream the device does not replicate and never arrived.
+4. One node into two devices: resolved for the upstream's writes. Ownership
+   still names a single boundary, and a node reachable from two device
+   boundaries still resolves to the instance root. Separately,
+   `EdgeCache.DeliveryBoundaries` lists every device boundary the node is
+   reachable from, mirror edges included, and the instance appends its own
+   writes to its stream for each of them (`nodePoints` and `edgePoints`,
+   `store/jetstream.go`). Adding a mirror seeds the node's current tips and
+   subtree into that device's stream and removing it purges them, through the
+   same walk that handles an owner change. The single-writer rule holds, since
+   the instance only ever appends to its own streams. What a device writes still
+   reaches only the upstream; relaying it to the other devices is
+   [issue 810](https://github.com/simpleiot/simpleiot/issues/810).
+5. Moving a node between boundaries: requires republishing subject tips into the
    new stream and purging the old subjects. Not implemented.
 
 **Transport**
 
-5. JetStream sourcing over leaf connections remains the intended replacement for
+6. JetStream sourcing over leaf connections remains the intended replacement for
    durable-consumer replication, pending a way to drive server domain
    configuration from instance identity (identity is known only after the store
    initializes).
-6. Chained (multi-hop) sourcing is unverified; the single-hop spike passed
+7. Chained (multi-hop) sourcing is unverified; the single-hop spike passed
    (`store/leafnode_spike_test.go`).
 
 **Security**
 
-7. AuthZ tightening: instances share a token today. The target is per-stream
-   JetStream permissions issued dynamically via NATS auth callout, so a device
-   may replicate `inst_X_*` and export only `inst_X_X`.
-8. The filter-carrying consumer-create permission form
-   (`$JS.API.CONSUMER.CREATE.<stream>.<consumer>.<filter>`) is unverified on the
-   NATS version SIOT pins. Item 7 depends on it.
+8. AuthZ tightening: resolved. Per-device credentials scope a device to
+   replicating `inst_X_*` and writing only `inst_X_X`, issued by the server's
+   own authorizer rather than auth callout (`devicePermissions` in
+   `server/auth.go`; see the [security reference](../ref/security.md)).
+9. The filter-carrying consumer-create permission form: resolved as part of item
+   8, which grants `$JS.API.CONSUMER.CREATE.<stream>.>`.
 
 **Operations and observability**
 
-9. Per-replica retention overrides: replica streams are currently unlimited. The
-   resolution point exists in `maxMsgsForStream`.
-10. History sinks: the Db client consumes boundary-origin streams with a durable
+10. Per-boundary retention overrides: every stream, replicas included, keeps
+    5000 messages per subject by default. The resolution point exists in
+    `maxMsgsForStream`.
+11. History sinks: the Db client consumes boundary-origin streams with a durable
     consumer, so node points are gap-free across restarts (`client/db.go`), and
     external sinks can follow the same pattern. Remaining: edge points are
     excluded by the consumer filter and are not stored, and sink lag is not
     surfaced. High-rate (`phrup`) data stays a core NATS subscription by design.
-11. Sync status points: per-replica lag and last-delivered sequence. `SyncCount`
+12. Sync status points: per-replica lag and last-delivered sequence. `SyncCount`
     currently counts replication sessions.
-12. Frontend sync status UI: surface lag rather than the former hash and
+13. Frontend sync status UI: surface lag rather than the former hash and
     `SyncCount` values.
 
 ## Consequences

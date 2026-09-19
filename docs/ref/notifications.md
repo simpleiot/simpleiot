@@ -56,12 +56,22 @@ Delivery happens in up to two hops, and the second hop is optional per service:
    information. Users with no phone or email emit nothing.
 2. Each messaging service node (`msgService`) runs a client with the same
    subscription. Twilio and SMTP need per-user addressing, so they consume
-   message points. A service with a global destination — an ntfy topic —
-   consumes notification points directly and works with no user nodes in scope.
+   message points. The service looks up the node the point was raised on and
+   takes the phone number or email from that user node; a message point raised
+   on a node of any other type is ignored, and the address carried in the point
+   is not used. A service with a global destination — an ntfy topic — consumes
+   notification points directly and works with no user nodes in scope.
 
 Scope comes from position in the tree: a service or user sees notifications
 raised anywhere in its parent's subtree, so moving a node changes its
 notification scope.
+
+## Rate limit
+
+Each service sends at most 30 messages at once and then one more every 30
+seconds. A message over the limit is dropped and reported on the service node's
+error point. The limit is per service node and per instance, and it counts
+deliveries, so a duplicate suppressed by deduplication does not use it up.
 
 ## Deduplication
 

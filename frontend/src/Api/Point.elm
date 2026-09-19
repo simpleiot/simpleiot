@@ -20,6 +20,7 @@ module Api.Point exposing
     , keyPointKey
     , keyPointType
     , light
+    , mergePoints
     , newText
     , renderPoint
     , renderPoint2
@@ -1786,6 +1787,29 @@ updatePoints : List Point -> List Point -> List Point
 updatePoints points newPoints =
     List.foldr
         (\newPoint updatedPoints -> updatePoint updatedPoints newPoint)
+        points
+        newPoints
+
+
+{-| mergePoints applies points that arrived from the server, keeping the
+newer of two points with the same type and key, so a point delivered late
+does not replace a newer one.
+-}
+mergePoints : List Point -> List Point -> List Point
+mergePoints points newPoints =
+    List.foldr
+        (\newPoint merged ->
+            case get merged newPoint.typ newPoint.key of
+                Just p ->
+                    if Time.posixToMillis newPoint.time < Time.posixToMillis p.time then
+                        merged
+
+                    else
+                        updatePoint merged newPoint
+
+                Nothing ->
+                    updatePoint merged newPoint
+        )
         points
         newPoints
 

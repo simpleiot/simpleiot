@@ -8,8 +8,10 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
+	"strconv"
 	"sync"
 	"time"
 
@@ -36,8 +38,16 @@ type Options struct {
 	NatsServer        string
 	NatsDisableServer bool
 	NatsPort          int
-	NatsHTTPPort      int
-	NatsWSPort        int
+	// NatsMonitorPort is the NATS monitoring port, bound to loopback; zero
+	// turns it off.
+	NatsMonitorPort int
+	// NatsWSPort is the NATS WebSocket port, bound to loopback and reached
+	// through the HTTP port's proxy. Zero picks a free port.
+	NatsWSPort int
+	// NatsWSOrigins lists the origins allowed to open a NATS WebSocket,
+	// such as https://siot.example.com. Empty allows any origin; the
+	// browser still has to present a user JWT.
+	NatsWSOrigins []string
 	// NatsMQTTPort enables the built-in MQTT broker on this port. Zero, the
 	// default, leaves it off.
 	NatsMQTTPort   int
@@ -89,18 +99,88 @@ type Server struct {
 	nc                 *nats.Conn
 	options            Options
 	natsServer         *server.Server
+	auth               *authorizer
 	clients            *client.RunGroup
 	chNatsClientClosed chan struct{}
 	chStop             chan struct{}
 	chWaitStart        chan struct{}
 }
 
-// NewServer creates a new server
+// NewServer creates a new server. It starts the embedded NATS server, which
+// loads the JetStream store, and waits for it to accept connections before
+// connecting the server side NATS client.
 func NewServer(o Options) (*Server, *nats.Conn, error) {
 	chNatsClientClosed := make(chan struct{})
 
+	auth := newAuthorizer(o.AuthToken, o.DeviceAuth)
+
+	var natsServer *server.Server
+
+	if !o.NatsDisableServer {
+		jsDir := o.DataDir
+		if jsDir == "" {
+			jsDir = "jetstream"
+		}
+
+		var err error
+		natsServer, err = newNatsServer(natsServerOptions{
+			Port:         o.NatsPort,
+			HTTPPort:     o.NatsMonitorPort,
+			WSPort:       o.NatsWSPort,
+			WSOrigins:    o.NatsWSOrigins,
+			MQTTPort:     o.NatsMQTTPort,
+			Auth:         auth,
+			AuthEnabled:  o.AuthToken != "",
+			TLSCert:      o.NatsTLSCert,
+			TLSKey:       o.NatsTLSKey,
+			TLSTimeout:   o.NatsTLSTimeout,
+			StoreDir:     jsDir,
+			ID:           o.ID,
+			SyncInterval: o.StoreSyncInterval,
+			SyncAlways:   o.StoreSyncAlways,
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("error setting up nats server: %v", err)
+		}
+
+		// Start returns once JetStream has loaded the store, which takes
+		// longer as the store grows. Connecting the client after this keeps
+		// its reconnect limit and the start-up timeouts from running out
+		// during the load.
+		natsServer.Start()
+		if !natsServer.ReadyForConnections(10 * time.Second) {
+			natsServer.Shutdown()
+			return nil, nil, fmt.Errorf("NATS server failed to start")
+		}
+
+		// the WebSocket port may have been picked by the kernel; the HTTP
+		// server's proxy needs the one it got
+		o.NatsWSPort, err = natsWSPort(natsServer)
+		if err != nil {
+			natsServer.Shutdown()
+			return nil, nil, err
+		}
+	}
+
+	// the server's own connection to its embedded server verifies the
+	// certificate it was given rather than a name, since the certificate
+	// is for the public name and the connection is over loopback
+	var tlsOpt nats.Option = func(*nats.Options) error { return nil }
+	if !o.NatsDisableServer && o.NatsTLSCert != "" {
+		certPEM, err := os.ReadFile(o.NatsTLSCert)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error reading TLS certificate: %v", err)
+		}
+		cfg, err := client.PinnedTLSConfig(certPEM)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error in TLS certificate: %v", err)
+		}
+		tlsOpt = nats.Secure(cfg)
+	}
+
 	// start the server side nats client
 	nc, err := nats.Connect(o.NatsServer,
+		tlsOpt,
 		nats.Timeout(10*time.Second),
 		nats.PingInterval(60*5*time.Second),
 		nats.MaxPingsOutstanding(5),
@@ -138,6 +218,8 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 	return &Server{
 		nc:                 nc,
 		options:            o,
+		natsServer:         natsServer,
+		auth:               auth,
 		chNatsClientClosed: chNatsClientClosed,
 		chStop:             make(chan struct{}),
 		chWaitStart:        make(chan struct{}),
@@ -177,42 +259,10 @@ func (s *Server) Run() error {
 	// ====================================
 	// Nats server
 	// ====================================
-	jsDir := o.DataDir
-	if jsDir == "" {
-		jsDir = "jetstream"
-	}
+	auth := s.auth
 
-	auth := newAuthorizer(o.AuthToken, o.DeviceAuth)
-
-	natsOptions := natsServerOptions{
-		Port:         o.NatsPort,
-		HTTPPort:     o.NatsHTTPPort,
-		WSPort:       o.NatsWSPort,
-		MQTTPort:     o.NatsMQTTPort,
-		Auth:         auth,
-		AuthEnabled:  o.AuthToken != "",
-		TLSCert:      o.NatsTLSCert,
-		TLSKey:       o.NatsTLSKey,
-		TLSTimeout:   o.NatsTLSTimeout,
-		StoreDir:     jsDir,
-		ID:           o.ID,
-		SyncInterval: o.StoreSyncInterval,
-		SyncAlways:   o.StoreSyncAlways,
-	}
-
-	if !o.NatsDisableServer {
-		s.natsServer, err = newNatsServer(natsOptions)
-		if err != nil {
-			return fmt.Errorf("error setting up nats server: %v", err)
-		}
-
-		// Start NATS server immediately so JetStream is available
-		// for store initialization
-		s.natsServer.Start()
-		if !s.natsServer.ReadyForConnections(10 * time.Second) {
-			return fmt.Errorf("NATS server failed to start")
-		}
-
+	// NewServer has already started the NATS server
+	if s.natsServer != nil {
 		g.Add(func() error {
 			s.natsServer.WaitForShutdown()
 			logLS("LS: Exited: nats server")
@@ -355,7 +405,7 @@ func (s *Server) Run() error {
 				return err
 			}
 
-			err = auth.start(s.nc, s.natsServer)
+			err = auth.start(s.nc, s.natsServer, siotStore)
 			if err != nil {
 				logLS("LS: Exited: device auth")
 				return fmt.Errorf("error starting device auth: %v", err)
@@ -526,9 +576,10 @@ func (s *Server) Run() error {
 	httpAPI := api.NewServer(api.ServerArgs{
 		Port:               o.HTTPPort,
 		NatsWSPort:         o.NatsWSPort,
+		NatsTLSCert:        o.NatsTLSCert,
 		Filesystem:         http.FS(feFSDecomp),
 		Debug:              o.DebugHTTP,
-		JwtAuth:            siotStore.GetAuthorizer(),
+		Users:              siotStore,
 		AuthToken:          o.AuthToken,
 		Nc:                 s.nc,
 		DeviceAuth:         auth,
@@ -616,4 +667,18 @@ func (s *Server) WaitStart(ctx context.Context) error {
 		return nil
 	}
 
+}
+
+// natsWSPort returns the port a running NATS server's WebSocket listener is
+// on.
+func natsWSPort(ns *server.Server) (int, error) {
+	ports := ns.PortsInfo(10 * time.Second)
+	if ports == nil || len(ports.WebSocket) == 0 {
+		return 0, errors.New("NATS WebSocket listener did not start")
+	}
+	u, err := url.Parse(ports.WebSocket[0])
+	if err != nil {
+		return 0, fmt.Errorf("error parsing NATS WebSocket address: %w", err)
+	}
+	return strconv.Atoi(u.Port())
 }

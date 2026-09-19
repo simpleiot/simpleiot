@@ -25,18 +25,26 @@ chmod +x simpleiot-vX.Y.Z-linux-x86_64
 Renaming it to `siot` is convenient if you plan to keep it in your `PATH`.
 
 Once running, you can log into the user interface by opening
-[http://localhost:8118](http://localhost:8118) in a browser. The default login
+[http://localhost:4223](http://localhost:4223) in a browser. The default login
 is:
 
 - user: `admin`
 - pass: `admin`
+
+Change this password before the instance is reachable by anyone else, and set
+`SIOT_AUTH_TOKEN`; until a token is set, the NATS and HTTP interfaces accept
+connections without credentials. The
+[deployment checklist](../ref/security.md#deployment-checklist) has the full
+list.
 
 ### Simple IoT self-install (Linux only)
 
 Simple IoT self-installation does the following:
 
 - creates a Systemd service file
-- creates a data directory
+- creates a data directory, readable by the service user only
+- generates an auth token into `siot.env` in the data directory (mode `0600`),
+  which the service reads; an existing file is kept on reinstall
 - starts and enables the service
 
 To install as user, copy the `siot` binary to some location like
@@ -48,8 +56,28 @@ To install as root:
 
 `sudo siot install`
 
-The default ports are used, so if you want something different, modify the
-generated `siot.service` file.
+The default ports are used (HTTP on 4223, NATS on 4222); to move them, set
+`SIOT_NATS_PORT` in the generated `siot.service` file, and the other ports
+follow it. The `siot` command line tools need the token from `siot.env`, for
+example
+`siot log -token $(sed -n 's/^SIOT_AUTH_TOKEN=//p' /var/lib/siot/siot.env)`.
+
+A root install adds systemd sandboxing: the service cannot gain privileges, sees
+the rest of the system read-only, and may write only its data directory and the
+directory its binary lives in (for `siot update`). A client that needs hardware
+access has to be allowed it in a drop-in, for example for a serial port:
+
+```sh
+sudo systemctl edit siot
+```
+
+```ini
+[Service]
+SupplementaryGroups=dialout
+DeviceAllow=/dev/ttyUSB0 rw
+```
+
+`systemd-analyze security siot` shows what the unit still allows.
 
 ## Updating
 
