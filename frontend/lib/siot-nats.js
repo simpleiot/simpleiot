@@ -34,7 +34,7 @@ export function inboxPrefix(userId) {
 }
 
 // connect opens a connection as a user.
-// - `url` is the WebSocket URL, such as ws://localhost:8118/ (the HTTP
+// - `url` is the WebSocket URL, such as ws://localhost:4223/ (the HTTP
 //   server proxies WebSocket connections to NATS)
 // - `token` is the JWT from sign-in; `user` defaults to the ID in it
 // Any other option is passed to nats.ws. Reconnection is on, without
@@ -45,7 +45,7 @@ export async function connect({ url, token, user, ...opts } = {}) {
 		throw new Error("connect: a user ID or a sign-in token is required")
 	}
 	const nc = await natsConnect({
-		servers: [url || "ws://localhost:8118/"],
+		servers: [url || "ws://localhost:4223/"],
 		user: userId,
 		pass: token,
 		inboxPrefix: inboxPrefix(userId),

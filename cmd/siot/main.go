@@ -170,7 +170,9 @@ func runServer(args []string, version string, id string) error {
 	return g.Run()
 }
 
-var defaultNatsServer = "nats://127.0.0.1:4222"
+// defaultNatsServer is this host's NATS server, on the port SIOT_NATS_PORT
+// selects
+var defaultNatsServer = server.DefaultNatsServer()
 
 func runLog(args []string) {
 	flags := flag.NewFlagSet("log", flag.ExitOnError)

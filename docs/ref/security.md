@@ -26,12 +26,10 @@ For any instance that other people or devices can reach, cloud or edge:
 - Give each device a [credential](../user/sync.md#device-credentials) and set
   `SIOT_DEVICE_AUTH=required` on the upstream. Prefer enrollment tokens that
   leave credentials pending over ones that approve automatically.
-- Expose only the HTTP port, behind a reverse proxy that terminates TLS.
-  Firewall the NATS (4222), NATS WebSocket (9222), and NATS monitoring (8222)
-  ports unless devices connect to 4222 directly, in which case configure
-  `SIOT_NATS_TLS_CERT` and `SIOT_NATS_TLS_KEY`. By default every listener binds
-  every interface; `SIOT_NATS_WS_HOST` and `SIOT_NATS_HTTP_HOST` bind the
-  WebSocket and monitoring listeners to loopback, as `siot install` does.
+- Expose only the HTTP port (4223), behind a reverse proxy that terminates TLS.
+  Firewall the NATS port (4222) unless devices connect to it directly, in which
+  case configure `SIOT_NATS_TLS_CERT` and `SIOT_NATS_TLS_KEY`. The NATS
+  WebSocket and monitoring listeners bind to loopback only.
 - Behind a reverse proxy, every connection reaches Simple IoT from loopback, and
   Simple IoT does not read `X-Forwarded-For`. `SIOT_DEVICE_AUTH=required`
   therefore does not limit the shared token on the HTTP port; keep the token off
@@ -89,12 +87,11 @@ more information, and the reverse proxy note in the
 
 Simple IoT Edge instances initiate all connections to upstream instances;
 therefore, no incoming connections are required on edge instances and all
-incoming ports can be firewalled. By default the HTTP, NATS, NATS WebSocket, and
-NATS monitoring listeners bind every interface, and an edge instance often runs
-with no auth token, so the firewall is what keeps the local network out.
-`SIOT_NATS_WS_HOST` and `SIOT_NATS_HTTP_HOST` bind the WebSocket and monitoring
-listeners to loopback, which `siot install` does, and the installed service is
-given a generated token; see [installation](../user/installation.md).
+incoming ports can be firewalled. The HTTP and NATS listeners bind every
+interface (the NATS WebSocket and monitoring listeners bind to loopback), and an
+edge instance often runs with no auth token, so the firewall is what keeps the
+local network out. The installed service is given a generated token; see
+[installation](../user/installation.md).
 
 ## HTTP
 
@@ -365,7 +362,7 @@ which has the detail and the proposed change for each.
 | Users    | The sign-in limiter keys on the account, so a known email can be locked out for up to five minutes at a time by anyone who can reach the sign-in page.                                                             | 4         |
 | Devices  | Behind a reverse proxy every connection arrives from loopback, so `SIOT_DEVICE_AUTH=required` does not limit the shared token on the HTTP port.                                                                    | 4         |
 | Users    | The sign-in token lasts seven days; it is refused once the user is gone, but not on a password change until the NATS connection is closed.                                                                         | 3         |
-| Defaults | The first account is `admin`/`admin` and nothing forces a change; the NATS monitoring port has no authentication. Both are left to the deployment checklist and the firewall.                                      | 6, 7      |
+| Defaults | The first account is `admin`/`admin` and nothing forces a change. It is left to the deployment checklist.                                                                                                          | 6         |
 | Releases | Releases carry checksums and no signature, so `siot update` trusts the release host.                                                                                                                               | 5         |
 | Clients  | Update payloads are not signed; a point can still start a download and restart, from the release host, over HTTPS.                                                                                                 | excluded  |
 

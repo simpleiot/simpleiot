@@ -129,10 +129,9 @@ the sign-in page is reachable, and the limiter slows a guess. The proposed
 change, from the earlier plan: use `SIOT_ADMIN_PASS` if set on first start,
 otherwise generate a password, store its hash, and print it once to the log.
 
-### 7. Bind the NATS monitoring port to localhost (deferred by choice)
+### 7. Bind the NATS monitoring port to localhost
 
-- [ ] Default the monitoring listener to `127.0.0.1`.
+- [x] Default the monitoring listener to `127.0.0.1`.
 
-Deferred: the firewall covers it, and `SIOT_NATS_HTTP_HOST` now exists for a
-deployment that wants it bound to loopback; `siot install` sets it. The change
-would be to make that the program default.
+Done 2026-09-19 with the port simplification: the monitoring listener always
+binds to loopback, and `SIOT_NATS_HTTP_HOST` is gone.

@@ -305,7 +305,7 @@ not publishing from a schema that is not matching:
 mosquitto_sub -h localhost -p 1883 -t 'plant-07/#' -v
 ```
 
-The same nodes appear in the web UI at `http://localhost:8118`, where you can
+The same nodes appear in the web UI at `http://localhost:4223`, where you can
 rename a device or add tags to it. Those edits survive later messages and
 restarts, since auto-created nodes are matched by their `id` point rather than
 by description.

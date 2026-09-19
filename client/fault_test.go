@@ -25,13 +25,13 @@ func faultTestServer(t *testing.T) (*nats.Conn, data.NodeEdge, func()) {
 	t.Helper()
 
 	opts := server.Options{
-		NatsPort:     8960,
-		HTTPPort:     "8961",
-		NatsHTTPPort: 8962,
-		NatsWSPort:   8963,
-		NatsServer:   "nats://localhost:8960",
-		ID:           "sec21",
-		DataDir:      filepath.Join(os.TempDir(), "siot-test-sec21"),
+		NatsPort:        8960,
+		HTTPPort:        "8961",
+		NatsMonitorPort: 8962,
+		NatsWSPort:      8963,
+		NatsServer:      "nats://localhost:8960",
+		ID:              "sec21",
+		DataDir:         filepath.Join(os.TempDir(), "siot-test-sec21"),
 	}
 
 	nc, root, stop, err := server.TestServerOpts(opts)

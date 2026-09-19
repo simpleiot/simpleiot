@@ -22,7 +22,7 @@ The package is an ES module and depends on
 import { connect } from "simpleiot-js"
 
 const token = "..." // from POST /v1/auth
-const c = await connect({ url: "ws://localhost:8118/", token })
+const c = await connect({ url: "ws://localhost:4223/", token })
 
 const { userId, anchors } = await c.me()
 for (const anchor of anchors) {

@@ -98,10 +98,10 @@ in the same command so it cannot be left behind.
 `TestServerOptions2` use ports 8900 to 8914 and store data in
 `/tmp/siot-test-<ID>`, which a clean start deletes. Another session or a running
 test loop on the same checkout will collide with both. A development instance
-usually holds 8118, 4222, and 9222.
+usually holds 4222, 4223, and 4224.
 
 ```go
-optsU := server.Options{NatsPort: 8950, HTTPPort: "8951", NatsHTTPPort: 8952,
+optsU := server.Options{NatsPort: 8950, HTTPPort: "8951", NatsMonitorPort: 8952,
 	NatsWSPort: 8953, NatsServer: "nats://localhost:8950", ID: "auditU",
 	AuthToken: "upstream-token", DataDir: "<scratchpad>/auditU"}
 nc, root, stop, err := server.TestServerOpts(optsU)

@@ -6,8 +6,8 @@ Environment variables are used to control various aspects of the application.
 The following are currently defined:
 
 - **General**
-  - `SIOT_HTTP_PORT`: HTTP network port the SIOT server attaches to (default
-    is 8118)
+  - `SIOT_HTTP_PORT`: HTTP network port the SIOT server attaches to (default is
+    one above `SIOT_NATS_PORT`, 4223)
   - `SIOT_DATA`: directory where any data is stored, including the instance's
     device key in `device.nkey`
   - `SIOT_AUTH_TOKEN`: auth token used for NATS and HTTP device API, default is
@@ -29,16 +29,16 @@ The following are currently defined:
     is probably more appropriate for embedded systems built with Yoe. See
     [ref/version](../ref/version.md).
 - **NATS configuration**
-  - `SIOT_NATS_PORT`: Port to run NATS on (default is 4222 if not set)
-  - `SIOT_NATS_HTTP_PORT`: Port to run NATS monitoring interface (default is
-    8222). It needs no credentials and lists connections and subjects, so keep
-    it off untrusted networks.
-  - `SIOT_NATS_HTTP_HOST`: address the monitoring interface binds, such as
-    `127.0.0.1`. Empty (the default) binds every interface. An installed service
-    sets it to loopback.
-  - `SIOT_NATS_SERVER`: defaults to nats://127.0.0.1:4222
+  - `SIOT_NATS_PORT`: Port to run NATS on (default is 4222). The HTTP and
+    monitoring ports follow it, so setting this alone moves a second instance on
+    the same machine off the defaults; step it by 10 (4232, 4242, ...).
+  - `SIOT_NATS_MONITOR_PORT`: Port for the NATS monitoring interface (default is
+    two above `SIOT_NATS_PORT`, 4224; 0 turns it off). It needs no credentials
+    and lists connections and subjects, so it listens on `127.0.0.1` only.
+  - `SIOT_NATS_SERVER`: the NATS server the process connects to (default is
+    `nats://127.0.0.1:` followed by `SIOT_NATS_PORT`)
   - `SIOT_NATS_TLS_CERT`: points to TLS certificate file. If not set, TLS is not
-    used. These settings cover the NATS, MQTT, and NATS WebSocket ports; the
+    used. These settings cover the NATS, MQTT, and NATS WebSocket listeners; the
     HTTP port is served without TLS, so put a reverse proxy in front of it. The
     server's own connections over loopback, and the HTTP port's WebSocket proxy,
     accept exactly this certificate, so it does not have to be issued for
@@ -50,15 +50,9 @@ The following are currently defined:
     (we've see this process take as long as 4 seconds). See NATS
     [documentation](https://docs.nats.io/nats-server/configuration/securing_nats/tls#tls-timeout)
     for more information.
-  - `SIOT_NATS_WS_PORT`: Port to run NATS WebSocket (default is 9222, set to 0
-    to disable). The web UI reaches NATS through the HTTP port, which proxies
-    WebSocket connections to this listener, so the port itself does not have to
-    be reachable by browsers. Setting it to 0 disables both, and the web UI with
-    it.
-  - `SIOT_NATS_WS_HOST`: address the WebSocket listener binds, such as
-    `127.0.0.1`. Empty (the default) binds every interface. Browsers reach the
-    listener through the HTTP port, so an installed service sets it to loopback.
-  - `SIOT_NATS_WS_ORIGINS`: comma-separated page origins allowed to open a NATS
+  - `SIOT_NATS_WS_ORIGINS`: the web UI reaches NATS through the HTTP port, which
+    proxies to a WebSocket listener on `127.0.0.1` at a port the system picks.
+    This setting lists the page origins, comma-separated, allowed to open that
     WebSocket, such as `https://siot.example.com`. Empty (the default) allows
     any origin. When `SIOT_AUTH_TOKEN` is set, a browser still has to present a
     user JWT to connect; with no token the listener accepts anonymous

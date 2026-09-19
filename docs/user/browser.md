@@ -21,7 +21,7 @@ nodes:
       disabled: 0
       disablesandbox: 1
       displaycard: /dev/dri/card0
-      exceptionurl: http://localhost:8118/offline.html
+      exceptionurl: http://localhost:4223/offline.html
       fullscreen: 1
       ignorecerterr: 0
       keyboardscale: 1
@@ -29,7 +29,7 @@ nodes:
       rotate: 0
       screenresolution: 1920x1080
       touchquirk: 0
-      url: http://localhost:8118
+      url: http://localhost:4223
 ```
 
 The point types are lower case throughout, which matches the settings written to

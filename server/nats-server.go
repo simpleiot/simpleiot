@@ -12,13 +12,13 @@ import (
 )
 
 type natsServerOptions struct {
-	Port     int
+	Port int
+	// HTTPPort is the monitoring port; zero turns it off.
 	HTTPPort int
-	WSPort   int
-	// HTTPHost and WSHost bind the monitoring and WebSocket listeners to
-	// one address; empty binds every interface.
-	HTTPHost string
-	WSHost   string
+	// WSPort is the WebSocket port; zero picks a free one. Monitoring and
+	// the WebSocket bind to loopback: monitoring has no authentication,
+	// and browsers reach the WebSocket through the HTTP port's proxy.
+	WSPort int
 	// WSOrigins limits which page origins may open a WebSocket; empty
 	// allows any.
 	WSOrigins []string
@@ -45,7 +45,7 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 	opts := server.Options{
 		Port:                       o.Port,
 		HTTPPort:                   o.HTTPPort,
-		HTTPHost:                   o.HTTPHost,
+		HTTPHost:                   "127.0.0.1",
 		CustomClientAuthentication: o.Auth,
 		// device credentials sign the connection nonce
 		AlwaysEnableNonce: true,
@@ -90,21 +90,21 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 		}
 	}
 
-	if o.WSPort != 0 {
-		opts.Websocket.Port = o.WSPort
-		opts.Websocket.Host = o.WSHost
-		opts.Websocket.AuthTimeout = o.TLSTimeout
-		// the listener serves TLS whenever the server has a certificate;
-		// the HTTP port's proxy reaches it over loopback either way
-		opts.Websocket.NoTLS = opts.TLSConfig == nil
-		if opts.TLSConfig != nil {
-			opts.Websocket.TLSConfig = opts.TLSConfig
-		}
-		opts.Websocket.HandshakeTimeout = time.Second * 20
-		// the HTTP server's proxy forwards the page's Origin header, so
-		// this applies to browsers arriving on either port
-		opts.Websocket.AllowedOrigins = o.WSOrigins
+	opts.Websocket.Port = o.WSPort
+	if o.WSPort == 0 {
+		opts.Websocket.Port = server.RANDOM_PORT
 	}
+	opts.Websocket.Host = "127.0.0.1"
+	opts.Websocket.AuthTimeout = o.TLSTimeout
+	// the listener serves TLS whenever the server has a certificate; the
+	// HTTP port's proxy pins that certificate
+	opts.Websocket.NoTLS = opts.TLSConfig == nil
+	if opts.TLSConfig != nil {
+		opts.Websocket.TLSConfig = opts.TLSConfig
+	}
+	opts.Websocket.HandshakeTimeout = time.Second * 20
+	// the HTTP server's proxy forwards the page's Origin header
+	opts.Websocket.AllowedOrigins = o.WSOrigins
 
 	natsServer, err := server.NewServer(&opts)
 
@@ -118,12 +118,8 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 		authEnabled = "yes"
 	}
 
-	log.Printf("NATS server, port: %v, http port: %v, auth enabled: %v\n",
+	log.Printf("NATS server, port: %v, monitoring port: %v, auth enabled: %v\n",
 		o.Port, o.HTTPPort, authEnabled)
-
-	if o.WSPort != 0 {
-		log.Printf("NATS server WS enabled on port: %v\n", o.WSPort)
-	}
 
 	if o.MQTTPort != 0 {
 		log.Printf("NATS server MQTT enabled on port: %v, server name: %v\n",

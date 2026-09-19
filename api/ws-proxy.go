@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/simpleiot/simpleiot/client"
@@ -31,7 +32,7 @@ type websocketProxy struct {
 // its name is the public one and not localhost.
 func newWebsocketProxy(wsPort int, certFile string, deviceAuthRequired bool) (*websocketProxy, error) {
 	p := &websocketProxy{
-		backend:            fmt.Sprintf("ws://localhost:%v", wsPort),
+		backend:            fmt.Sprintf("ws://127.0.0.1:%v", wsPort),
 		deviceAuthRequired: deviceAuthRequired,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  4096,
@@ -48,7 +49,7 @@ func newWebsocketProxy(wsPort int, certFile string, deviceAuthRequired bool) (*w
 		if err != nil {
 			return nil, fmt.Errorf("error reading certificate: %w", err)
 		}
-		p.backend = fmt.Sprintf("wss://localhost:%v", wsPort)
+		p.backend = fmt.Sprintf("wss://127.0.0.1:%v", wsPort)
 		p.dialer.TLSClientConfig, err = client.PinnedTLSConfig(pem)
 		if err != nil {
 			return nil, err
@@ -136,9 +137,12 @@ func (p *websocketProxy) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}()
 
 	<-errc
+	// the other direction may still be writing; WriteControl is safe to
+	// call alongside it, WriteMessage is not
 	closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
-	_ = front.WriteMessage(websocket.CloseMessage, closeMsg)
-	_ = back.WriteMessage(websocket.CloseMessage, closeMsg)
+	deadline := time.Now().Add(time.Second)
+	_ = front.WriteControl(websocket.CloseMessage, closeMsg, deadline)
+	_ = back.WriteControl(websocket.CloseMessage, closeMsg, deadline)
 }
 
 // connectHasToken reports whether a client's first message is a NATS

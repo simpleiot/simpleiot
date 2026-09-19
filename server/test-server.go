@@ -15,24 +15,24 @@ import (
 
 // TestServerOptions options used for test server
 var TestServerOptions = Options{
-	NatsPort:     8900,
-	HTTPPort:     "8901",
-	NatsHTTPPort: 8902,
-	NatsWSPort:   8903,
-	NatsMQTTPort: 8904,
-	NatsServer:   "nats://localhost:8900",
-	ID:           "inst1",
+	NatsPort:        8900,
+	HTTPPort:        "8901",
+	NatsMonitorPort: 8902,
+	NatsWSPort:      8903,
+	NatsMQTTPort:    8904,
+	NatsServer:      "nats://localhost:8900",
+	ID:              "inst1",
 }
 
 // TestServerOptions2 options used for 2nd test server
 var TestServerOptions2 = Options{
-	NatsPort:     8910,
-	HTTPPort:     "8911",
-	NatsHTTPPort: 8912,
-	NatsWSPort:   8913,
-	NatsMQTTPort: 8914,
-	NatsServer:   "nats://localhost:8910",
-	ID:           "inst2",
+	NatsPort:        8910,
+	HTTPPort:        "8911",
+	NatsMonitorPort: 8912,
+	NatsWSPort:      8913,
+	NatsMQTTPort:    8914,
+	NatsServer:      "nats://localhost:8910",
+	ID:              "inst2",
 }
 
 // TestServer starts a test server and returns a function to stop it

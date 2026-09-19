@@ -8,8 +8,10 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
+	"strconv"
 	"sync"
 	"time"
 
@@ -36,12 +38,12 @@ type Options struct {
 	NatsServer        string
 	NatsDisableServer bool
 	NatsPort          int
-	NatsHTTPPort      int
-	// NatsHTTPHost and NatsWSHost are the addresses the monitoring and
-	// WebSocket listeners bind; empty binds every interface.
-	NatsHTTPHost string
-	NatsWSPort   int
-	NatsWSHost   string
+	// NatsMonitorPort is the NATS monitoring port, bound to loopback; zero
+	// turns it off.
+	NatsMonitorPort int
+	// NatsWSPort is the NATS WebSocket port, bound to loopback and reached
+	// through the HTTP port's proxy. Zero picks a free port.
+	NatsWSPort int
 	// NatsWSOrigins lists the origins allowed to open a NATS WebSocket,
 	// such as https://siot.example.com. Empty allows any origin; the
 	// browser still has to present a user JWT.
@@ -123,10 +125,8 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 		var err error
 		natsServer, err = newNatsServer(natsServerOptions{
 			Port:         o.NatsPort,
-			HTTPPort:     o.NatsHTTPPort,
-			HTTPHost:     o.NatsHTTPHost,
+			HTTPPort:     o.NatsMonitorPort,
 			WSPort:       o.NatsWSPort,
-			WSHost:       o.NatsWSHost,
 			WSOrigins:    o.NatsWSOrigins,
 			MQTTPort:     o.NatsMQTTPort,
 			Auth:         auth,
@@ -151,6 +151,14 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 		if !natsServer.ReadyForConnections(10 * time.Second) {
 			natsServer.Shutdown()
 			return nil, nil, fmt.Errorf("NATS server failed to start")
+		}
+
+		// the WebSocket port may have been picked by the kernel; the HTTP
+		// server's proxy needs the one it got
+		o.NatsWSPort, err = natsWSPort(natsServer)
+		if err != nil {
+			natsServer.Shutdown()
+			return nil, nil, err
 		}
 	}
 
@@ -659,4 +667,18 @@ func (s *Server) WaitStart(ctx context.Context) error {
 		return nil
 	}
 
+}
+
+// natsWSPort returns the port a running NATS server's WebSocket listener is
+// on.
+func natsWSPort(ns *server.Server) (int, error) {
+	ports := ns.PortsInfo(10 * time.Second)
+	if ports == nil || len(ports.WebSocket) == 0 {
+		return 0, errors.New("NATS WebSocket listener did not start")
+	}
+	u, err := url.Parse(ports.WebSocket[0])
+	if err != nil {
+		return 0, fmt.Errorf("error parsing NATS WebSocket address: %w", err)
+	}
+	return strconv.Atoi(u.Port())
 }

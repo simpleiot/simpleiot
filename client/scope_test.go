@@ -19,13 +19,13 @@ func scopeTestServer(t *testing.T) (*nats.Conn, data.NodeEdge, func()) {
 	t.Helper()
 
 	opts := server.Options{
-		NatsPort:     8964,
-		HTTPPort:     "8965",
-		NatsHTTPPort: 8966,
-		NatsWSPort:   8967,
-		NatsServer:   "nats://localhost:8964",
-		ID:           "sec23",
-		DataDir:      filepath.Join(os.TempDir(), "siot-test-sec23"),
+		NatsPort:        8964,
+		HTTPPort:        "8965",
+		NatsMonitorPort: 8966,
+		NatsWSPort:      8967,
+		NatsServer:      "nats://localhost:8964",
+		ID:              "sec23",
+		DataDir:         filepath.Join(os.TempDir(), "siot-test-sec23"),
 	}
 
 	nc, root, stop, err := server.TestServerOpts(opts)

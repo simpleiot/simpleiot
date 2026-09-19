@@ -14,14 +14,14 @@ import (
 
 // sec22ServerOptions keeps these tests off the ports server.TestServer uses
 var sec22ServerOptions = server.Options{
-	NatsPort:     8970,
-	HTTPPort:     "8971",
-	NatsHTTPPort: 8972,
-	NatsWSPort:   8973,
-	NatsMQTTPort: 8974,
-	NatsServer:   "nats://localhost:8970",
-	ID:           "sec22",
-	DataDir:      filepath.Join(os.TempDir(), "siot-test-sec22"),
+	NatsPort:        8970,
+	HTTPPort:        "8971",
+	NatsMonitorPort: 8972,
+	NatsWSPort:      8973,
+	NatsMQTTPort:    8974,
+	NatsServer:      "nats://localhost:8970",
+	ID:              "sec22",
+	DataDir:         filepath.Join(os.TempDir(), "siot-test-sec22"),
 }
 
 // TestMsgServiceRecipientFromUserNode verifies that an SMTP service takes

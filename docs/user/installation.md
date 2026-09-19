@@ -25,7 +25,7 @@ chmod +x simpleiot-vX.Y.Z-linux-x86_64
 Renaming it to `siot` is convenient if you plan to keep it in your `PATH`.
 
 Once running, you can log into the user interface by opening
-[http://localhost:8118](http://localhost:8118) in a browser. The default login
+[http://localhost:4223](http://localhost:4223) in a browser. The default login
 is:
 
 - user: `admin`
@@ -56,10 +56,9 @@ To install as root:
 
 `sudo siot install`
 
-The default ports are used, so if you want something different, modify the
-generated `siot.service` file. The service binds the NATS WebSocket and
-monitoring listeners to loopback, since browsers reach the WebSocket through the
-HTTP port. The `siot` command line tools need the token from `siot.env`, for
+The default ports are used (HTTP on 4223, NATS on 4222); to move them, set
+`SIOT_NATS_PORT` in the generated `siot.service` file, and the other ports
+follow it. The `siot` command line tools need the token from `siot.env`, for
 example
 `siot log -token $(sed -n 's/^SIOT_AUTH_TOKEN=//p' /var/lib/siot/siot.env)`.
 

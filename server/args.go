@@ -2,6 +2,7 @@ package server
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -14,9 +15,36 @@ import (
 	"github.com/simpleiot/simpleiot/system"
 )
 
+// DefaultNatsPort is the NATS client port when SIOT_NATS_PORT is not set.
+// The HTTP and monitoring ports follow it (see Args).
+const DefaultNatsPort = 4222
+
+// natsPortEnv returns SIOT_NATS_PORT, or DefaultNatsPort when it is not set.
+func natsPortEnv() (int, error) {
+	v := os.Getenv("SIOT_NATS_PORT")
+	if v == "" {
+		return DefaultNatsPort, nil
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing SIOT_NATS_PORT: %w", err)
+	}
+	return n, nil
+}
+
+// DefaultNatsServer is the address of the NATS server on this host, on the
+// port SIOT_NATS_PORT selects.
+func DefaultNatsServer() string {
+	port, err := natsPortEnv()
+	if err != nil {
+		port = DefaultNatsPort
+	}
+	return fmt.Sprintf("nats://127.0.0.1:%v", port)
+}
+
 // Args parses common SIOT command line options
 func Args(args []string, flags *flag.FlagSet) (Options, error) {
-	defaultNatsServer := "nats://127.0.0.1:4222"
+	defaultNatsServer := DefaultNatsServer()
 
 	// =============================================
 	// Command line options
@@ -76,47 +104,26 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	// NATS stuff
 	// =============================================
 
-	// populate general args
-	natsPort := 4222
-
-	natsPortE := os.Getenv("SIOT_NATS_PORT")
-	if natsPortE != "" {
-		n, err := strconv.Atoi(natsPortE)
-		if err != nil {
-			log.Println("Error parsing SIOT_NATS_PORT:", err)
-			os.Exit(-1)
-		}
-		natsPort = n
+	// every port follows the NATS port unless it is set on its own, so
+	// SIOT_NATS_PORT alone moves a second instance off the defaults
+	natsPort, err := natsPortEnv()
+	if err != nil {
+		log.Println(err)
+		os.Exit(-1)
 	}
 
-	natsHTTPPort := 8222
+	// monitoring always binds to loopback, since it has no authentication;
+	// zero turns it off
+	natsMonitorPort := natsPort + 2
 
-	natsHTTPPortE := os.Getenv("SIOT_NATS_HTTP_PORT")
-	if natsHTTPPortE != "" {
-		n, err := strconv.Atoi(natsHTTPPortE)
+	if v := os.Getenv("SIOT_NATS_MONITOR_PORT"); v != "" {
+		n, err := strconv.Atoi(v)
 		if err != nil {
-			log.Println("Error parsing SIOT_NATS_HTTP_PORT:", err)
+			log.Println("Error parsing SIOT_NATS_MONITOR_PORT:", err)
 			os.Exit(-1)
 		}
-		natsHTTPPort = n
+		natsMonitorPort = n
 	}
-
-	natsWSPort := 9222
-	natsWSPortE := os.Getenv("SIOT_NATS_WS_PORT")
-	if natsWSPortE != "" {
-		n, err := strconv.Atoi(natsWSPortE)
-		if err != nil {
-			log.Println("Error parsing SIOT_NATS_WS_PORT:", err)
-			os.Exit(-1)
-		}
-		natsWSPort = n
-	}
-
-	// listeners bind every interface unless a host is given; an installed
-	// service sets these to loopback, since the HTTP port proxies the
-	// WebSocket and the monitoring port has no authentication
-	natsWSHost := os.Getenv("SIOT_NATS_WS_HOST")
-	natsHTTPHost := os.Getenv("SIOT_NATS_HTTP_HOST")
 
 	var natsWSOrigins []string
 	for _, o := range strings.Split(os.Getenv("SIOT_NATS_WS_ORIGINS"), ",") {
@@ -188,7 +195,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 	// finally, start web server
 	port := os.Getenv("SIOT_HTTP_PORT")
 	if port == "" {
-		port = "8118"
+		port = strconv.Itoa(natsPort + 1)
 	}
 
 	osVersionField := os.Getenv("OS_VERSION_FIELD")
@@ -295,10 +302,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 		NatsServer:        natsServer,
 		NatsDisableServer: *flagNatsDisableServer,
 		NatsPort:          natsPort,
-		NatsHTTPPort:      natsHTTPPort,
-		NatsHTTPHost:      natsHTTPHost,
-		NatsWSPort:        natsWSPort,
-		NatsWSHost:        natsWSHost,
+		NatsMonitorPort:   natsMonitorPort,
 		NatsWSOrigins:     natsWSOrigins,
 		NatsMQTTPort:      natsMQTTPort,
 		NatsTLSCert:       natsTLSCert,

@@ -117,6 +117,18 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+- **The web UI moves to port 4223, and one setting now moves every port.** The
+  HTTP port defaults to one above the NATS port (4222) and NATS monitoring to
+  two above it, so `SIOT_NATS_PORT` alone moves a second instance off the
+  defaults; `SIOT_HTTP_PORT` and the new `SIOT_NATS_MONITOR_PORT` still override
+  them. Monitoring and the NATS WebSocket now listen on loopback only, and the
+  WebSocket takes a free port the HTTP port finds on its own.
+  `SIOT_NATS_HTTP_PORT`, `SIOT_NATS_HTTP_HOST`, `SIOT_NATS_WS_PORT`, and
+  `SIOT_NATS_WS_HOST` are gone. Update bookmarks, firewall rules, and reverse
+  proxies that name 8118, and an installed service's `siot.service`, which sets
+  the old ports until it is regenerated. See
+  [configuration](docs/user/configuration.md).
+
 - **The web UI updates live instead of polling.** The page keeps one NATS
   connection over the WebSocket the HTTP port proxies, fetches nodes as you
   expand the tree, and shows point changes for the nodes on screen as they

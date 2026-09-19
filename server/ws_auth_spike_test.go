@@ -52,7 +52,7 @@ func TestUserDeadline(t *testing.T) {
 func connzUsers(t *testing.T) []string {
 	t.Helper()
 	resp, err := http.Get(fmt.Sprintf("http://localhost:%v/connz?auth=1",
-		TestServerOptions.NatsHTTPPort))
+		TestServerOptions.NatsMonitorPort))
 	if err != nil {
 		t.Fatal("connz:", err)
 	}
