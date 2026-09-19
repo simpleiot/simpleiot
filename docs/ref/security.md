@@ -17,20 +17,29 @@ For any instance that other people or devices can reach, cloud or edge:
 - Set `SIOT_AUTH_TOKEN`. With no token, every listener accepts anonymous
   connections with full access, and the HTTP API accepts requests with no
   `Authorization` header.
-- Change the `admin` password, on every instance. A device's users replicate to
-  its upstream and can sign in there, so a default account left on one device is
-  a default account on the upstream.
+- Change the `admin` password, on every instance, before the sign-in page is
+  reachable. Nothing forces a change, and the limiter on sign-in attempts only
+  slows a guess against a known password.
+- Give accounts only to people you would trust with the host. Any account can
+  add nodes that change the machine the instance runs on; see
+  [What an account can do](#what-an-account-can-do).
 - Give each device a [credential](../user/sync.md#device-credentials) and set
   `SIOT_DEVICE_AUTH=required` on the upstream. Prefer enrollment tokens that
   leave credentials pending over ones that approve automatically.
 - Expose only the HTTP port, behind a reverse proxy that terminates TLS.
   Firewall the NATS (4222), NATS WebSocket (9222), and NATS monitoring (8222)
   ports unless devices connect to 4222 directly, in which case configure
-  `SIOT_NATS_TLS_CERT` and `SIOT_NATS_TLS_KEY`. All listeners bind every
-  interface.
+  `SIOT_NATS_TLS_CERT` and `SIOT_NATS_TLS_KEY`. By default every listener binds
+  every interface; `SIOT_NATS_WS_HOST` and `SIOT_NATS_HTTP_HOST` bind the
+  WebSocket and monitoring listeners to loopback, as `siot install` does.
+- Behind a reverse proxy, every connection reaches Simple IoT from loopback, and
+  Simple IoT does not read `X-Forwarded-For`. `SIOT_DEVICE_AUTH=required`
+  therefore does not limit the shared token on the HTTP port; keep the token off
+  that path and treat it as a secret. Rate limit `POST /v1/auth` per address in
+  the proxy, since the built-in limiter keys on the account.
 - On an edge device, firewall all incoming ports unless the local UI is needed.
-  Anyone who can write a point can configure the update, rule, and network
-  clients, so write access to an instance is equivalent to control of the host.
+  An edge instance usually runs with no token, and write access to an instance
+  is control of the host; see [What an account can do](#what-an-account-can-do).
 - Keep a Modbus TCP server node on a trusted network. Modbus has no
   authentication, and the listener binds every interface.
 - Set `SIOT_NATS_WS_ORIGINS` to the origin the UI is served from.
@@ -38,11 +47,43 @@ For any instance that other people or devices can reach, cloud or edge:
 - Run a release built with a current Go toolchain, and keep it updated with
   `siot update`.
 
+## What an account can do
+
+The scope checks keep a signed-in user inside the groups the user belongs to:
+reads, point writes, edge writes, the HTTP node routes, and the clients' own
+writes all stop at the group. What they do not do is limit _which kinds of node_
+a user may create there. Every client in `client.DefaultClients` runs on its
+node type wherever that node sits in the tree, on the server's own full-access
+connection, so a user in any group can add:
+
+- an `update` node with an `https` URL of their choosing, which downloads an
+  image, replaces the instance's binary, and with `autoReboot` runs `reboot`.
+  This is code execution on the host as the service user;
+- an `ntp` or `networkManager` node, which rewrite the host's time and network
+  configuration;
+- a `browser` node, which rewrites the kiosk browser's configuration;
+- a `modbus` server node, which opens a listener on every interface, or an
+  `mqtt`, `metrics`, `shelly`, or `db` node, which dials out from the host
+  (`SIOT_OUTBOUND_DENY_PRIVATE` keeps those off private addresses).
+
+The trust boundary is therefore the instance, not the group: **an account is
+authority over the machine the instance runs on.** For an operator and their own
+team that is the intended model. For a deployment that gives accounts to people
+who should not administer the host, the host-changing node types need to be
+honored only directly under the root, which is tracked as item 25 of the
+[security cleanup plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-08-24-security-cleanup.md);
+until then, do not give such people accounts.
+
+Inside a group, every member can write every node, including another member's
+`pass` and `email` points. A user with an account can also add user nodes to the
+group, and a message service delivers to the users in its scope.
+
 ## Server
 
 For cloud/server deployments, we recommend installing a web server like Caddy in
 front of Simple IoT. See the [Installation page](../user/installation.md) for
-more information.
+more information, and the reverse proxy note in the
+[deployment checklist](#deployment-checklist).
 
 ## Edge
 
@@ -315,13 +356,16 @@ are still open. The numbers refer to the
 [security cleanup plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-08-24-security-cleanup.md),
 which has the detail and the proposed change for each.
 
-| Area     | Limitation                                                                                                                                                                    | Plan item |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| Users    | Any member of a group can write any node under it, including another member's password.                                                                                       | 20        |
-| Users    | The sign-in token lasts seven days; it is refused once the user is gone, but not on a password change until the NATS connection is closed.                                    | 8         |
-| Defaults | The first account is `admin`/`admin` and nothing forces a change; the NATS monitoring port has no authentication. Both are left to the deployment checklist and the firewall. | 4, 6      |
-| Releases | Releases carry checksums and no signature, so `siot update` trusts the release host.                                                                                          | 20        |
-| Clients  | Update payloads are not signed; a point can still start a download and restart, from the release host, over HTTPS.                                                            | excluded  |
+| Area     | Limitation                                                                                                                                                                                                         | Plan item |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| Users    | Any account can add an `update`, `ntp`, `networkManager`, or `browser` node in its own group, and the server acts on it: an account is control of the host. See [What an account can do](#what-an-account-can-do). | 25        |
+| Users    | Any member of a group can write any node under it, including another member's password.                                                                                                                            | 20        |
+| Users    | The sign-in limiter keys on the account, so a known email can be locked out for up to five minutes at a time by anyone who can reach the sign-in page.                                                             | 7         |
+| Devices  | Behind a reverse proxy every connection arrives from loopback, so `SIOT_DEVICE_AUTH=required` does not limit the shared token on the HTTP port.                                                                    | 15        |
+| Users    | The sign-in token lasts seven days; it is refused once the user is gone, but not on a password change until the NATS connection is closed.                                                                         | 8         |
+| Defaults | The first account is `admin`/`admin` and nothing forces a change; the NATS monitoring port has no authentication. Both are left to the deployment checklist and the firewall.                                      | 4, 6      |
+| Releases | Releases carry checksums and no signature, so `siot update` trusts the release host.                                                                                                                               | 20        |
+| Clients  | Update payloads are not signed; a point can still start a download and restart, from the release host, over HTTPS.                                                                                                 | excluded  |
 
 What the audit found sound: the binary point and node decoders bound every
 length and count; no client runs a command through a shell, disables TLS

@@ -18,7 +18,7 @@
 | 2026-08-20-per-device-credentials.md             | **COMPLETE**                                                                            | cbc07a67      |
 | 2026-08-24-linux-gpio-client.md                  | **COMPLETE** (Phase 4 pulse counting deferred)                                          | 179d06ea      |
 | 2026-08-24-iio-client.md                         | **COMPLETE**                                                                            | 8454edb6      |
-| 2026-08-24-security-cleanup.md                   | **MOSTLY COMPLETE** (open: 4, 6 by choice; token lifetime in 8; two bullets of 20)      | 179d06ea      |
+| 2026-08-24-security-cleanup.md                   | **MOSTLY COMPLETE** (open: 4, 6 by choice; token lifetime in 8; two bullets of 20; 25)  | 179d06ea      |
 | 2026-08-24-primary-mirror-edges.md               | **COMPLETE**                                                                            | fc017969      |
 | 2026-08-26-shelly-push-and-generic-components.md | **COMPLETE** (Phase 4 CoIoT for Gen1 not done)                                          | 98e0fa88      |
 | 2026-09-01-ui-over-nats.md                       | **COMPLETE** (in-process server client not done; see plan)                              | b373fc73      |

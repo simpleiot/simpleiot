@@ -264,9 +264,9 @@ sides move.
 A security audit at `v0.28.0` confirmed items 2, 3, 4, 6, 7, 8, and 9 above were
 still open and found the items below. Everything except items 4 and 6 (kept open
 by choice), the token lifetime in item 8, and two bullets of item 20 was closed
-in the release after `v0.28.0`; each item says what was done. Each finding
-marked _proven_ was reproduced with a throwaway test against a test server; the
-others were read in the code. The
+in the release after `v0.28.0`; each item says what was done. Item 25 was added
+afterward. Each finding marked _proven_ was reproduced with a throwaway test
+against a test server; the others were read in the code. The
 [security reference](../docs/ref/security.md#known-limitations) carries the
 operator-facing summary.
 
@@ -714,6 +714,31 @@ node inside a group starts with a literal level.
       Validate each against its expected form.
 - [x] **NTP client:** filter newlines in `server` and `fallbackServer`, write a
       newline between the two settings, and close the file.
+
+### 25. Honor host-changing node types only under the root
+
+- [ ] Run the update, NTP, network manager, and kiosk browser clients only on
+      nodes directly under the root, so an account in a group cannot change the
+      host.
+
+**Problem:** the scope work (items 11, 12, 23) keeps a user inside their groups
+but not away from node types that act on the host. Every client runs wherever
+its node type appears, on the server's connection, so a user in any group can
+add an `update` node with any `https` URL and have the server replace its own
+binary and reboot; `ntp`, `networkManager`, and `browser` nodes rewrite system
+configuration the same way. An account is therefore control of the host, which
+is fine for an operator's own team and not for anyone else. Documented under
+[What an account can do](../docs/ref/security.md#what-an-account-can-do).
+
+**Change:** give `client.NewManager` a way to restrict a client to nodes whose
+parent is the root (the manager already takes a list of parent types), and use
+it for these four; a node of one of these types elsewhere in the tree gets an
+`error` point saying so and is not run. Consider the same for `modbus` server
+nodes and `file` nodes. Signed update payloads (see "Deliberately excluded")
+remain the answer for the root-level update node itself.
+
+**Verify:** an update node created by a user under a group is not acted on and
+carries an error; one under the root still updates.
 
 ## Deliberately excluded
 
