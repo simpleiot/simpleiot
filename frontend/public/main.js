@@ -262,13 +262,16 @@ let pendingPoints = new Map() // nodeId -> points
 let pendingEdges = new Map() // nodeId|parentId -> {nodeId, parentId, points}
 let frame = null
 
-// merge keeps the latest point per type and key, so a batch never
-// carries two values for one point
+// merge keeps the newest point per type and key, so a batch never
+// carries two values for one point, and a point that arrives late does
+// not replace a newer one
 function merge(into, points) {
 	for (const p of points) {
 		const i = into.findIndex((q) => q.type === p.type && q.key === p.key)
 		if (i >= 0) {
-			into[i] = p
+			if (Date.parse(p.time) >= Date.parse(into[i].time)) {
+				into[i] = p
+			}
 		} else {
 			into.push(p)
 		}

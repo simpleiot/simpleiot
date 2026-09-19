@@ -252,7 +252,7 @@ applyPoints nodeID points forest =
                         node =
                             n.node
                     in
-                    { n | node = { node | points = Point.updatePoints node.points points } }
+                    { n | node = { node | points = Point.mergePoints node.points points } }
 
                 else
                     n
@@ -283,7 +283,7 @@ applyEdgePoints nodeID parentID points forest =
                                 node =
                                     n.node
                             in
-                            { n | node = { node | edgePoints = Point.updatePoints node.edgePoints points } }
+                            { n | node = { node | edgePoints = Point.mergePoints node.edgePoints points } }
 
                         else
                             n

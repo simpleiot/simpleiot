@@ -25,4 +25,15 @@ all =
                         ]
                 in
                 Expect.equal (Point.getTextArray pts "a") [ "111", "222", "333", "444" ]
+        , test "mergePoints keeps the newer point" <|
+            \_ ->
+                let
+                    created =
+                        Point "tombstone" "0" (Time.millisToPosix 1000) 1 0 "" 0
+
+                    deleted =
+                        Point "tombstone" "0" (Time.millisToPosix 2000) 1 1 "" 0
+                in
+                Point.mergePoints (Point.mergePoints [ created ] [ deleted ]) [ created ]
+                    |> Expect.equal [ deleted ]
         ]

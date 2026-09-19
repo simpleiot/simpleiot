@@ -162,6 +162,9 @@ For more details or to discuss releases, please visit the
 
 ### Fixed
 
+- **A node deleted on a device disappears from the upstream's UI right away.**
+  Before, it stayed on screen until the page was reloaded.
+
 - **Sync to an upstream with no token stays connected.** The upstream no longer
   drops a device each time its tree changes; before, the device reconnected a
   few seconds later.
