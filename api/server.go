@@ -50,14 +50,19 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// importMapHash is the SHA-256 of the import map in the UI's index.html,
+// the one inline script the page has. The content security policy allows
+// it by hash; a test checks the hash against the embedded file.
+const importMapHash = "sha256-gPiKIrU1rMetb7cOogG/Un/8wJwuzqdVF4wUyJQ4Ty0="
+
 // setSecurityHeaders puts the response headers every reply carries. The
 // content security policy allows what the UI is built from: its own
-// scripts, styles (the Elm UI sets styles inline) and fonts, and a
-// WebSocket back to the server; and refuses to be framed.
+// scripts plus the import map, styles (the Elm UI sets styles inline) and
+// fonts, and a WebSocket back to the server; and refuses to be framed.
 func setSecurityHeaders(h http.Header) {
 	h.Set("Content-Security-Policy",
 		"default-src 'self'; "+
-			"script-src 'self'; "+
+			"script-src 'self' '"+importMapHash+"'; "+
 			"style-src 'self' 'unsafe-inline'; "+
 			"font-src 'self'; "+
 			"img-src 'self' data:; "+
