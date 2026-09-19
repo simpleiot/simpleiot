@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-09-19
+
 ### Security
 
 - **A signed-in user cannot reach nodes outside their groups through any door.**
