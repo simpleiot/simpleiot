@@ -86,44 +86,37 @@ For more details or to discuss releases, please visit the
 ### Added
 
 - **A node mirrored into several devices now reaches all of them.** A setpoint
-  or schedule kept on the upstream and mirrored into each device at a site
-  arrives on every one, and a change made in the portal reaches them all. A
-  device sees the node's current values as soon as the mirror is made, and
-  removing a mirror removes the node from that device only. Before, such a node
-  reached none of the devices. A change made on one device still reaches the
-  upstream and not the other devices. Mirrors that existed before the upgrade
-  receive new writes right away and current values on the next change to the
-  node's edges; removing and re-adding the mirror delivers them at once. See
+  kept on the upstream and mirrored into each device at a site arrives on every
+  one, with its current values as soon as the mirror is made, and removing a
+  mirror removes it from that device only. A change made on a device still
+  reaches the upstream and not the other devices. A mirror made before the
+  upgrade gets new writes right away and current values on its next edge change,
+  or at once if it is removed and made again. See
   [a node reaches every device it is mirrored into](docs/ref/data.md#a-node-reaches-every-device-it-is-mirrored-into).
 - **The NATS WebSocket listener serves TLS when `SIOT_NATS_TLS_CERT` is set**,
   the server's own loopback connection and the HTTP port's proxy accept exactly
   that certificate, and a sync node can pin its upstream with a `caCert` point.
   See [configuration](docs/user/configuration.md) and
   [synchronization](docs/user/sync.md#device-credentials).
-- **`SIOT_NATS_WS_HOST` and `SIOT_NATS_HTTP_HOST`** bind the WebSocket and
-  monitoring listeners to one address.
 - **`SIOT_OUTBOUND_DENY_PRIVATE`** refuses connections to loopback, link-local,
   and private addresses from the metrics scraper, Shelly, ntfy, Modbus TCP, and
   gpsd clients, for an instance on a network it should not probe. Everything is
   allowed by default.
 - **`siot install` produces a service that is not open to the network.** It
   generates an auth token into a `0600` environment file, creates the data
-  directory `0700`, binds the WebSocket and monitoring listeners to loopback,
-  and, as a system service, adds systemd sandboxing. A client that needs
-  hardware access is allowed it in a drop-in; see
+  directory `0700`, and, as a system service, adds systemd sandboxing. A client
+  that needs hardware access is allowed it in a drop-in; see
   [installation](docs/user/installation.md).
-
 - **Browsers connect to NATS as the signed-in user.** The embedded NATS server
   accepts a user's node ID and sign-in JWT as user and password, over the
   WebSocket the HTTP port already proxies, and limits the connection to the
   groups that user belongs to. Removing a user from a group, deleting the user,
   or changing the password closes the connection within seconds, and a
   connection is closed when its JWT expires. New subjects `u.<anchor>.<user>.>`
-  and `auth.me`, and a `depth` parameter on `nodes` requests, serve it. See the
-  [API reference](docs/ref/api.md#nats) and
-  [security reference](docs/ref/security.md#browser).
-- **`SIOT_NATS_WS_ORIGINS`** limits which page origins may open a NATS
-  WebSocket. Empty, the default, allows any.
+  and `auth.me`, and a `depth` parameter on `nodes` requests, serve it.
+  `SIOT_NATS_WS_ORIGINS` limits which page origins may open the WebSocket;
+  empty, the default, allows any. See the [API reference](docs/ref/api.md#nats)
+  and [security reference](docs/ref/security.md#browser).
 
 ### Changed
 
@@ -141,13 +134,11 @@ For more details or to discuss releases, please visit the
   proxies that name 8118, and an installed service's `siot.service`, which sets
   the old ports until it is regenerated. See
   [configuration](docs/user/configuration.md).
-
 - **The web UI updates live instead of polling.** The page keeps one NATS
   connection over the WebSocket the HTTP port proxies, fetches nodes as you
   expand the tree, and shows point changes for the nodes on screen as they
   happen. A `connecting...` badge appears while the connection is down. See
-  [live updates](docs/user/ui.md#live-updates). The UI needs the WebSocket
-  listener, so `SIOT_NATS_WS_PORT=0` now disables the UI as well.
+  [live updates](docs/user/ui.md#live-updates).
 - **`simpleiot-js` 2.0 connects as a user and speaks the binary encoding.** The
   JavaScript client in `frontend/lib` is rewritten on the point and node
   encoding the server has used since protocol buffers were dropped, connects
@@ -177,11 +168,9 @@ For more details or to discuss releases, please visit the
 
 - **A node deleted on a device disappears from the upstream's UI right away.**
   Before, it stayed on screen until the page was reloaded.
-
 - **Sync to an upstream with no token stays connected.** The upstream no longer
   drops a device each time its tree changes; before, the device reconnected a
   few seconds later.
-
 - **A node mirrored onto an upstream keeps syncing to its device.** Mirroring a
   node with no primary location -- a variable, a user -- from a device subtree
   into the upstream tree moved the node's ownership to the upstream root, so
