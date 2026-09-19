@@ -322,7 +322,7 @@ the one that says where the node lives. A variable on a device that is also
 mirrored onto the upstream therefore stays owned by the device, and a value
 written on the upstream reaches it.
 
-### A node reaches every device it is mirrored into (planned)
+### A node reaches every device it is mirrored into
 
 A node belongs to one boundary, and a device replicates only the streams for its
 own boundary. That decides where the upstream stores the node and which instance
@@ -354,8 +354,8 @@ change made on one is visible on the upstream but not on the other. The same
 holds for a sensor on one device mirrored into another: the second device gets
 the edge and the values the upstream has copied for it, and readings the
 sensor's device writes afterward do not reach it. Carrying device writes across
-would make the upstream a relay between devices, and is not something the system
-does.
+would make the upstream a relay between devices, which is tracked in
+[issue 810](https://github.com/simpleiot/simpleiot/issues/810).
 
 Behind this is the property that makes synchronization echo-free: only the
 origin instance ever appends to a stream. The upstream copies its own writes

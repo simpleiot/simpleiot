@@ -675,17 +675,18 @@ tracks progress.
    (`TestSyncMirrorNoRoleAcrossBoundary`). Before both, such a node became
    reachable from two boundaries and resolved to the instance root, so upstream
    writes landed in a stream the device does not replicate and never arrived.
-4. One node into two devices: not supported. A node belongs to a single
-   boundary, so a node reachable from two device boundaries resolves to the
-   instance root and reaches neither device, and mirroring a node into a second
-   device takes it away from the first. Making a node writable from two devices
-   would require the upstream to relay one device's writes into the other's
-   boundary, which gives up the single-writer property. Read-only fan-out is the
-   tractable form: ownership stays with one boundary, and the owning instance
-   republishes the node's point subjects into each other boundary under its own
-   origin, so the single-writer rule holds and devices never write back. That
-   covers broadcasting a setpoint or schedule to many devices, which is what
-   people usually want from it.
+4. One node into two devices: resolved for the upstream's writes. Ownership
+   still names a single boundary, and a node reachable from two device
+   boundaries still resolves to the instance root. Separately,
+   `EdgeCache.DeliveryBoundaries` lists every device boundary the node is
+   reachable from, mirror edges included, and the instance appends its own
+   writes to its stream for each of them (`nodePoints` and `edgePoints`,
+   `store/jetstream.go`). Adding a mirror seeds the node's current tips and
+   subtree into that device's stream and removing it purges them, through the
+   same walk that handles an owner change. The single-writer rule holds, since
+   the instance only ever appends to its own streams. What a device writes still
+   reaches only the upstream; relaying it to the other devices is
+   [issue 810](https://github.com/simpleiot/simpleiot/issues/810).
 5. Moving a node between boundaries: requires republishing subject tips into the
    new stream and purging the old subjects. Not implemented.
 

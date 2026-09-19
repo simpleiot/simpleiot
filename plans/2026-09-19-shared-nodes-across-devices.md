@@ -126,16 +126,18 @@ ownership change deletes the copies it just made.
 
 ## Phase 4 — Docs and changelog
 
-- [ ] Replace "One node reaches one device" in `docs/ref/data.md` with how
+- [x] Replace "One node reaches one device" in `docs/ref/data.md` with how
       delivery works, including that a roleless node mirrored into a second
       device still moves to the upstream root, and update `docs/ref/sync.md` and
       `docs/user/ui.md`.
-- [ ] Changelog entry, noting that a device's writes reach the upstream and not
+- [x] Changelog entry, noting that a device's writes reach the upstream and not
       the other devices.
 
 ## Future: Device Writes Reach the Other Devices
 
-Not planned. Recorded here so the shape is not lost.
+Not planned. Tracked as
+[issue 810](https://github.com/simpleiot/simpleiot/issues/810) and recorded here
+so the shape is not lost.
 
 With delivery in place, the remaining gap is a write made on one device reaching
 the other devices a node is shared with: a variable that lives on device A and

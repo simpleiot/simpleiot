@@ -85,6 +85,16 @@ For more details or to discuss releases, please visit the
 
 ### Added
 
+- **A node mirrored into several devices now reaches all of them.** A setpoint
+  or schedule kept on the upstream and mirrored into each device at a site
+  arrives on every one, and a change made in the portal reaches them all. A
+  device sees the node's current values as soon as the mirror is made, and
+  removing a mirror removes the node from that device only. Before, such a node
+  reached none of the devices. A change made on one device still reaches the
+  upstream and not the other devices. Mirrors that existed before the upgrade
+  receive new writes right away and current values on the next change to the
+  node's edges; removing and re-adding the mirror delivers them at once. See
+  [a node reaches every device it is mirrored into](docs/ref/data.md#a-node-reaches-every-device-it-is-mirrored-into).
 - **The NATS WebSocket listener serves TLS when `SIOT_NATS_TLS_CERT` is set**,
   the server's own loopback connection and the HTTP port's proxy accept exactly
   that certificate, and a sync node can pin its upstream with a `caCert` point.
