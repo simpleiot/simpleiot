@@ -403,10 +403,52 @@ func (m *Manager[T]) scan() error {
 			continue
 		}
 
+		// Subscribe before reading the node, so a point written while the
+		// client is being built is delivered to it rather than lost. The
+		// node was read by the scan above, before this subscription, so it
+		// is read again below. Messages wait in the subscription until the
+		// client exists; a point that arrives in between is both in the
+		// snapshot and delivered, which is harmless as points are state.
+		var cs *clientState[T]
+		ready := make(chan struct{})
+		subject := fmt.Sprintf("up.%v.>", n.ID)
+
+		sub, err := m.nc.Subscribe(subject, func(msg *nats.Msg) {
+			<-ready
+			if cs == nil {
+				return
+			}
+			err := runRecovered(cs.what()+" points", func() error {
+				m.clientPoints(cs, msg)
+				return nil
+			})
+			if err != nil {
+				cs.crash(err)
+			}
+		})
+		if err != nil {
+			return err
+		}
+
+		abandon := func() {
+			close(ready)
+			_ = sub.Unsubscribe()
+		}
+
+		fresh, err := GetNodes(m.nc, n.Parent, n.ID, "", false)
+		if err != nil || len(fresh) == 0 {
+			// deleted since the scan, or not readable right now; the
+			// next scan looks again
+			abandon()
+			continue
+		}
+		n = fresh[0]
+
 		// Need to create a new client
-		cs, err := newClientState(m.nc, m.construct, n)
+		cs, err = newClientState(m.nc, m.construct, n)
 
 		if err != nil {
+			abandon()
 			// a node whose points do not decode (a slice point keyed
 			// with something other than an index, for one) is left
 			// with the error on it until it is fixed; the next scan
@@ -426,24 +468,8 @@ func (m *Manager[T]) scan() error {
 		go m.runClientState(key, cs)
 
 		m.clientStates[key] = cs
-
-		// Set up subscriptions
-		subject := fmt.Sprintf("up.%v.>", cs.node.ID)
-
-		m.clientUpSub[key], err = cs.nc.Subscribe(subject, func(msg *nats.Msg) {
-			err := runRecovered(cs.what()+" points", func() error {
-				m.clientPoints(cs, msg)
-				return nil
-			})
-			if err != nil {
-				cs.crash(err)
-			}
-		})
-
-		if err != nil {
-			return err
-		}
-
+		m.clientUpSub[key] = sub
+		close(ready)
 	}
 
 	// remove nodes that have been deleted

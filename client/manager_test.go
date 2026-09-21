@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -808,5 +809,88 @@ func TestManagerScanNested(t *testing.T) {
 		}
 
 		seen[n.ID] = true
+	}
+}
+
+// TestManagerPointDuringRestart checks that a point written while the manager
+// is building a client is delivered to it. Adding a child restarts the client,
+// and the manager used to read the node before subscribing to its points, so a
+// point written in between reached neither the old client nor the new one.
+func TestManagerPointDuringRestart(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+	defer stop()
+
+	x := testX{"ID-X", root.ID, "before", "", nil}
+	if err := client.SendNodeType(nc, x, "test"); err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	newClient := make(chan *testXClient, 10)
+	building := make(chan struct{})
+	proceed := make(chan struct{})
+	var gate atomic.Bool
+
+	construct := func(nc *nats.Conn, config testX) client.Client {
+		if gate.Load() {
+			// hold the manager while it builds the client, so the test can
+			// write a point in the window
+			building <- struct{}{}
+			<-proceed
+		}
+		c := newTestXClient(nc, config)
+		newClient <- c
+		return c
+	}
+
+	m := client.NewManager(nc, construct, nil)
+	go func() { _ = m.Run() }()
+	defer m.Stop(nil)
+
+	select {
+	case <-newClient:
+	case <-time.After(5 * time.Second):
+		t.Fatal("client not created")
+	}
+
+	gate.Store(true)
+
+	// a new child restarts the client
+	y := testY{"ID-Y", x.ID, "child", ""}
+	if err := client.SendNodeType(nc, y, "test"); err != nil {
+		t.Fatal("Error sending child node: ", err)
+	}
+
+	select {
+	case <-building:
+	case <-time.After(5 * time.Second):
+		t.Fatal("client not rebuilt after adding a child")
+	}
+	gate.Store(false)
+
+	p := data.NewPointString(data.PointTypeDescription, "", "during")
+	p.Origin = "test"
+	if err := client.SendNodePoint(nc, x.ID, p, true); err != nil {
+		t.Fatal("Error sending point: ", err)
+	}
+
+	close(proceed)
+
+	var c *testXClient
+	select {
+	case c = <-newClient:
+	case <-time.After(5 * time.Second):
+		t.Fatal("rebuilt client not returned")
+	}
+
+	start := time.Now()
+	for c.getConfig().Description != "during" {
+		if time.Since(start) > 3*time.Second {
+			t.Fatalf("point written while the client was built was lost, description: %q",
+				c.getConfig().Description)
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
 }
