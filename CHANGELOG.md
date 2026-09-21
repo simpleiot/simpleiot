@@ -15,6 +15,8 @@ For more details or to discuss releases, please visit the
 
 ### Fixed
 
+## [0.28.2] - 2026-09-21
+
 - **The database client starts writing as soon as the instance starts.** Before,
   it logged `deliver policy can not be updated` for each stream it had read
   before and began writing a few seconds later.
