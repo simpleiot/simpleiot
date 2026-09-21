@@ -112,6 +112,10 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 		return nil, fmt.Errorf("error create new Nats server: %v", err)
 	}
 
+	// route the server's own log into ours so JetStream store recovery and
+	// warnings (such as a stream state file being rebuilt) are visible
+	natsServer.SetLogger(natsLogger{}, false, false)
+
 	authEnabled := "no"
 
 	if o.AuthEnabled {
@@ -147,3 +151,14 @@ func natsServerName(o natsServerOptions) string {
 
 	return "siot-" + hex.EncodeToString(sum[:6])
 }
+
+// natsLogger writes the embedded NATS server's notices, warnings, and errors
+// to the standard log. Debug and trace output is discarded.
+type natsLogger struct{}
+
+func (natsLogger) Noticef(format string, v ...any) { log.Printf("NATS: "+format, v...) }
+func (natsLogger) Warnf(format string, v ...any)   { log.Printf("NATS: warning: "+format, v...) }
+func (natsLogger) Errorf(format string, v ...any)  { log.Printf("NATS: error: "+format, v...) }
+func (natsLogger) Fatalf(format string, v ...any)  { log.Fatalf("NATS: fatal: "+format, v...) }
+func (natsLogger) Debugf(string, ...any)           {}
+func (natsLogger) Tracef(string, ...any)           {}

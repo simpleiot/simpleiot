@@ -84,6 +84,10 @@ func main() {
 	case "serve":
 		if err := runServer(args[1:], version, *flagID); err != nil {
 			log.Println("Simple IoT stopped, reason:", err)
+			// a stop signal is a clean shutdown, not a failure
+			if errors.As(err, &run.SignalError{}) {
+				return
+			}
 			// exit non-zero so service managers that only restart on failure
 			// bring us back up
 			os.Exit(1)
