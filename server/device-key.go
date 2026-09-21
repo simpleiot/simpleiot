@@ -71,7 +71,7 @@ func (k *deviceKey) load() error {
 	k.pubKey = pubKey
 	k.mu.Unlock()
 
-	log.Println("Device key:", pubKey)
+	log.Println("Device NKey public key:", pubKey)
 
 	return nil
 }
