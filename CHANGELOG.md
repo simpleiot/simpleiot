@@ -15,6 +15,23 @@ For more details or to discuss releases, please visit the
 
 ### Fixed
 
+- **Point types and keys may not contain a NUL byte or invalid UTF-8.** NATS
+  stores such subjects but refuses them when it loads a stream's index, so one
+  corrupted point made every restart rebuild the stream from its message blocks,
+  which is slow and uses a lot of memory on a large store. Rejected points are
+  logged and flagged with an error point on the node, the same as a period in a
+  key.
+- **A device enrolling or connecting is no longer disconnected by a tree change
+  that happens at the same moment.** A connection accepted while credentials
+  were being enforced could be closed as unknown; an enrolling device saw its
+  connection drop.
+- **A setting changed right after adding a node is no longer lost.** Adding a
+  child restarts its parent's client, and a point written while the client was
+  being rebuilt could reach neither the old client nor the new one.
+- **An instance that stores data synced from devices no longer spends minutes at
+  full CPU after it starts.** It used to reread everything each device had ever
+  sent; it now reads only the latest value of each point.
+
 ## [0.28.2] - 2026-09-21
 
 - **The database client starts writing as soon as the instance starts.** Before,

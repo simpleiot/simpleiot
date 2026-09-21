@@ -210,6 +210,86 @@ func TestEnforceOpenKeepsUnknownKey(t *testing.T) {
 	}
 }
 
+// TestEnforceKeepsConnBeingAccepted checks that enforcement leaves alone a
+// connection the authorizer has not recorded yet. The server lists a
+// connection with its key as soon as it has parsed CONNECT, while the
+// authorizer is still verifying it, and enforcement running then used to
+// close it as a key it knew nothing about. A device enrolling a second key
+// saw its connection drop.
+func TestEnforceKeepsConnBeingAccepted(t *testing.T) {
+	a, _ := spikeAuthorizer(t, "tok")
+	_, url, _ := spikeServer(t, a)
+
+	// a key the instance does not know, enrolling with a live token
+	const enrollToken = "enroll-secret"
+	hash := client.HashEnrollToken(enrollToken)
+	a.enroll[hash] = &enrollEntry{nodeID: "et"}
+	a.enrollIDs["et"] = hash
+
+	kp, _ := nkeys.CreateUser()
+	nc, err := nats.Connect(url, append(nkeyOptions(kp),
+		nats.Token(enrollToken), nats.NoReconnect())...)
+	if err != nil {
+		t.Fatal("connect:", err)
+	}
+	defer nc.Close()
+
+	// the moment between the server listing the connection and the
+	// authorizer recording it
+	a.mu.Lock()
+	saved := a.conns
+	a.conns = make(map[uint64]authConn)
+	a.mu.Unlock()
+
+	a.enforce()
+
+	if err := nc.Flush(); err != nil {
+		t.Fatal("enforce closed a connection that was still being accepted:", err)
+	}
+	time.Sleep(200 * time.Millisecond)
+	if !nc.IsConnected() {
+		t.Fatal("enforce closed a connection that was still being accepted")
+	}
+
+	// once recorded, the connection is enforced as usual: revoking the
+	// token it enrolled with closes it
+	a.mu.Lock()
+	a.conns = saved
+	a.enroll[hash].disabled = true
+	a.mu.Unlock()
+
+	a.enforce()
+
+	start := time.Now()
+	for nc.IsConnected() {
+		if time.Since(start) > 5*time.Second {
+			t.Fatal("enforce kept a connection whose enrollment token was revoked")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+// TestEnforceKeepsNewEntry checks that enforcement does not drop the entry
+// for a connection the server did not list when enforcement read the
+// connection list, which happens when the entry is written just after.
+func TestEnforceKeepsNewEntry(t *testing.T) {
+	a := newAuthorizer("tok", "")
+	a.ready = true
+
+	a.conns[1] = authConn{pubKey: "UNEW", enrollID: "et", added: time.Now()}
+	a.conns[2] = authConn{pubKey: "UGONE",
+		added: time.Now().Add(-2 * connRegisterGrace)}
+
+	a.enforce()
+
+	if _, ok := a.conns[1]; !ok {
+		t.Error("dropped the entry for a connection still being accepted")
+	}
+	if _, ok := a.conns[2]; ok {
+		t.Error("kept the entry for a connection that has gone")
+	}
+}
+
 // TestDeviceAuthRequiredKeepsLocalToken starts a full server with device
 // auth required and checks that its own client, which presents the shared
 // token from loopback, still works.

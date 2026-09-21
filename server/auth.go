@@ -70,7 +70,15 @@ type authConn struct {
 	// with, set only for a connection that is enrolling a key.
 	enrollID string
 	grant    string
+	// added is when the connection was authorized.
+	added time.Time
 }
+
+// connRegisterGrace is how long a connection's entry is kept while it is
+// missing from the server's connection list. Enforcement reads that list
+// before taking the lock, so an entry written in between is not in it yet;
+// dropping the entry would leave the connection unenforced.
+const connRegisterGrace = time.Minute
 
 // userAuthority is what the authorizer needs from the store to authenticate
 // a browser: who a JWT belongs to and where that user sits in the tree.
@@ -224,6 +232,7 @@ func (a *authorizer) checkUser(c server.ClientAuthentication, opts *server.Clien
 	a.conns[c.GetID()] = authConn{
 		userID: userID,
 		grant:  strings.Join(anchors, ","),
+		added:  time.Now(),
 	}
 	a.mu.Unlock()
 
@@ -314,7 +323,11 @@ func (a *authorizer) checkNkey(c server.ClientAuthentication, opts *server.Clien
 				Username:    opts.Nkey,
 				Permissions: enrollPermissions(opts.Nkey),
 			})
-			a.conns[c.GetID()] = authConn{pubKey: opts.Nkey, enrollID: id}
+			a.conns[c.GetID()] = authConn{
+				pubKey:   opts.Nkey,
+				enrollID: id,
+				added:    time.Now(),
+			}
 			return true
 		}
 		log.Printf("NATS auth: refusing unknown credential %v", opts.Nkey)
@@ -333,6 +346,7 @@ func (a *authorizer) checkNkey(c server.ClientAuthentication, opts *server.Clien
 	a.conns[c.GetID()] = authConn{
 		pubKey: opts.Nkey,
 		grant:  strings.Join(origins, ","),
+		added:  time.Now(),
 	}
 
 	select {
@@ -1030,7 +1044,16 @@ func (a *authorizer) enforce() {
 	users := a.users
 	var closeIDs []uint64
 	for cid, pub := range live {
-		if ac, ok := a.conns[cid]; ok && ac.userID != "" {
+		ac, ok := a.conns[cid]
+		if !ok {
+			// The server lists a connection once it has parsed CONNECT,
+			// before the authorizer has decided on it, and every
+			// connection it accepts gets an entry. With no entry yet the
+			// connection is still being authenticated, and the next pass
+			// sees its entry.
+			continue
+		}
+		if ac.userID != "" {
 			grant := ""
 			if users != nil {
 				grant = strings.Join(users.UserAnchors(ac.userID), ",")
@@ -1040,7 +1063,7 @@ func (a *authorizer) enforce() {
 			}
 			continue
 		}
-		if ac, ok := a.conns[cid]; ok && ac.enrollID != "" {
+		if ac.enrollID != "" {
 			// enrolling, not yet a credential: the connection lives as
 			// long as the enrollment token it came in with
 			e, ok := a.enroll[a.enrollIDs[ac.enrollID]]
@@ -1059,13 +1082,12 @@ func (a *authorizer) enforce() {
 			closeIDs = append(closeIDs, cid)
 			continue
 		}
-		if ac, ok := a.conns[cid]; ok &&
-			ac.grant != strings.Join(a.originsFor(e.deviceID), ",") {
+		if ac.grant != strings.Join(a.originsFor(e.deviceID), ",") {
 			closeIDs = append(closeIDs, cid)
 		}
 	}
-	for cid := range a.conns {
-		if _, ok := live[cid]; !ok {
+	for cid, ac := range a.conns {
+		if _, ok := live[cid]; !ok && time.Since(ac.added) > connRegisterGrace {
 			delete(a.conns, cid)
 		}
 	}
