@@ -15,6 +15,13 @@ For more details or to discuss releases, please visit the
 
 ### Fixed
 
+- **Point types and keys may not contain a NUL byte or invalid UTF-8.** NATS
+  stores such subjects but refuses them when it loads a stream's index, so one
+  corrupted point made every restart rebuild the stream from its message blocks,
+  which is slow and uses a lot of memory on a large store. Rejected points are
+  logged and flagged with an error point on the node, the same as a period in a
+  key.
+
 ## [0.28.2] - 2026-09-21
 
 - **The database client starts writing as soon as the instance starts.** Before,

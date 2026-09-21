@@ -1,6 +1,7 @@
 package data
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -21,6 +22,13 @@ func TestPointCheckSubjectTokens(t *testing.T) {
 		{"space in key", Point{Type: "temp", Key: "board area"}, false},
 		{"wildcard in key", Point{Type: "temp", Key: "board*"}, false},
 		{"wildcard in type", Point{Type: ">", Key: "cpu"}, false},
+		// a corrupted serial read stored subjects like this one, and NATS
+		// then refused the stream index on every restart
+		{"NUL in type", Point{Type: "cha\x00\x00rgerState", Key: "0"}, false},
+		{"NUL in key", Point{Type: "temp", Key: "cpu\x00"}, false},
+		{"invalid UTF-8 in key", Point{Type: "temp", Key: "cpu\xff"}, false},
+		{"replacement character in type", Point{Type: "temp\uFFFD", Key: "cpu"}, false},
+		{"non-ASCII UTF-8 in key", Point{Type: "temp", Key: "zone-ä"}, true},
 	}
 
 	for _, test := range tests {
@@ -39,11 +47,11 @@ func TestPointCheckSubjectTokens(t *testing.T) {
 				// the sender has to be able to find the point from the
 				// message alone, so it names the offending value
 				offending := test.p.Key
-				if strings.ContainsAny(test.p.Type, invalidSubjectChars) {
+				if _, bad := invalidTokenChar(test.p.Type); bad {
 					offending = test.p.Type
 				}
 
-				if !strings.Contains(err.Error(), offending) {
+				if !strings.Contains(err.Error(), fmt.Sprintf("%q", offending)) {
 					t.Errorf("Expected error to name %q, got: %v", offending, err)
 				}
 			}
@@ -61,6 +69,8 @@ func TestSubjectSafeToken(t *testing.T) {
 		{"eth0.100", "eth0_100"},
 		{"/boot/efi", "/boot/efi"},
 		{"board area", "board_area"},
+		{"board\x00area", "board_area"},
+		{"board\xffarea", "board_area"},
 		{"", ""},
 	}
 
