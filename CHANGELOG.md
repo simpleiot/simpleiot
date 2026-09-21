@@ -11,6 +11,17 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Changed
+
+## [0.28.1] - 2026-09-21
+
+- **A normal stop is reported as a clean exit.** Stopping or restarting the
+  service no longer shows as a failure in systemd; errors still exit non-zero so
+  the service is restarted.
+- **The embedded NATS server's messages now appear in the SIOT log.** Start-up,
+  JetStream store recovery, and warnings are visible, which helps diagnose slow
+  starts.
+
 ## [0.28.0] - 2026-09-19
 
 ### Security
