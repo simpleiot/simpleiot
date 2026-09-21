@@ -13,6 +13,13 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+## [0.28.2] - 2026-09-21
+
+- **SIOT stays within a memory limit set for its service.** When systemd's
+  `MemoryMax` or a container limit applies, SIOT frees memory more eagerly as it
+  approaches the limit, rather than being stopped on reaching it. `GOMEMLIMIT`
+  overrides this.
+
 ### Fixed
 
 - **Point types and keys may not contain a NUL byte or invalid UTF-8.** NATS
