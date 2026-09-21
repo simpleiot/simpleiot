@@ -630,11 +630,12 @@ func dbWriteRetryable(err error) bool {
 }
 
 // scanStreams looks for boundary-origin streams and starts a durable
-// consumer on each new one. Streams present when the client first
-// starts get DeliverNew (a new db client does not backfill existing
-// history); streams that appear later are new — typically a freshly
-// adopted device's replica — and get DeliverAll so their initial
-// catch-up is captured.
+// consumer on each new one. When the consumer is created, streams
+// present at the client's first scan get DeliverNew (a new db client
+// does not backfill existing history); streams that appear later are
+// new — typically a freshly adopted device's replica — and get
+// DeliverAll so their initial catch-up is captured. A consumer that
+// already exists resumes where it stopped.
 func (dbc *DbClient) scanStreams(js jetstream.JetStream, firstScan bool) {
 	ctx := context.Background()
 
@@ -651,15 +652,10 @@ func (dbc *DbClient) scanStreams(js jetstream.JetStream, firstScan bool) {
 			continue
 		}
 
-		deliver := jetstream.DeliverAllPolicy
-		if firstScan {
-			deliver = jetstream.DeliverNewPolicy
-		}
-
-		c, err := s.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
+		cfg := jetstream.ConsumerConfig{
 			Durable:       "db-" + dbc.config.ID,
 			AckPolicy:     jetstream.AckExplicitPolicy,
-			DeliverPolicy: deliver,
+			DeliverPolicy: jetstream.DeliverAllPolicy,
 			// points are redelivered until the database accepts them,
 			// so an outage is ridden out rather than lost
 			AckWait:       dbAckWait,
@@ -667,7 +663,29 @@ func (dbc *DbClient) scanStreams(js jetstream.JetStream, firstScan bool) {
 			MaxAckPending: dbMaxAckPending,
 			// node points only; edge points are not stored (yet)
 			FilterSubject: "inst.*.*.*.p.>",
-		})
+		}
+
+		// The deliver policy only sets where a new consumer starts, and
+		// JetStream refuses to change it on an existing one. A durable
+		// left by an earlier run keeps its policy and resumes where it
+		// stopped.
+		existing, err := s.Consumer(ctx, cfg.Durable)
+		switch {
+		case err == nil:
+			info := existing.CachedInfo().Config
+			cfg.DeliverPolicy = info.DeliverPolicy
+			cfg.OptStartSeq = info.OptStartSeq
+			cfg.OptStartTime = info.OptStartTime
+		case errors.Is(err, jetstream.ErrConsumerNotFound):
+			if firstScan {
+				cfg.DeliverPolicy = jetstream.DeliverNewPolicy
+			}
+		default:
+			log.Printf("DB: error getting consumer on %v: %v", name, err)
+			continue
+		}
+
+		c, err := s.CreateOrUpdateConsumer(ctx, cfg)
 		if err != nil {
 			log.Printf("DB: error creating consumer on %v: %v", name, err)
 			continue

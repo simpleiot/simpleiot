@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/server"
@@ -260,5 +262,80 @@ func TestDbOutage(t *testing.T) {
 	waitFor(t, 60*time.Second, "point sent during the outage", func() bool {
 		v, ok := vmQueryValue(query("during"))
 		return ok && v == 2
+	})
+}
+
+// A durable consumer left by an earlier run keeps the deliver policy it
+// was created with, and JetStream refuses to change it. The db client
+// must resume on that consumer rather than ask for a different policy.
+// The durable here is created with a policy the client never chooses
+// itself, so a client that sets its own policy is refused on every scan.
+func TestDbExistingConsumer(t *testing.T) {
+	stopVM := startVictoriaMetrics(t)
+	defer stopVM()
+
+	nc, root, stop, err := server.TestServer()
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+	defer stop()
+
+	dbConfig := client.Db{
+		ID:          "ID-db-existing",
+		Parent:      root.ID,
+		Description: "existing consumer test db",
+		URI:         "http://" + vmAddr,
+		Org:         "siot-test",
+		Bucket:      "test",
+		AuthToken:   "not-used",
+	}
+
+	js, err := jetstream.New(nc)
+	if err != nil {
+		t.Fatal("Error creating jetstream context:", err)
+	}
+
+	ctx := context.Background()
+	streams := 0
+	lister := js.ListStreams(ctx, jetstream.WithStreamListSubject("inst.>"))
+	for si := range lister.Info() {
+		_, err := js.CreateConsumer(ctx, si.Config.Name, jetstream.ConsumerConfig{
+			Durable:       "db-" + dbConfig.ID,
+			AckPolicy:     jetstream.AckExplicitPolicy,
+			DeliverPolicy: jetstream.DeliverLastPerSubjectPolicy,
+			FilterSubject: "inst.*.*.*.p.>",
+		})
+		if err != nil {
+			t.Fatal("Error creating consumer:", err)
+		}
+		streams++
+	}
+	if err := lister.Err(); err != nil {
+		t.Fatal("Error listing streams:", err)
+	}
+	if streams == 0 {
+		t.Fatal("no inst streams found")
+	}
+
+	err = client.SendNodeType(nc, dbConfig, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	// let the client start and pick up the existing consumers
+	time.Sleep(time.Second)
+
+	p := data.NewPointFloat(data.PointTypeValue, "resumed", 3)
+	p.Origin = "test"
+	if err := client.SendNodePoint(nc, dbConfig.ID, p, true); err != nil {
+		t.Fatal("Error sending point:", err)
+	}
+
+	query := fmt.Sprintf(
+		`last_over_time(points_value{"node.id"=%q, type="value", key="resumed"}[10m])`,
+		dbConfig.ID)
+	waitFor(t, 15*time.Second, "point written through the existing consumer", func() bool {
+		v, ok := vmQueryValue(query)
+		return ok && v == 3
 	})
 }
