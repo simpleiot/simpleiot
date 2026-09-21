@@ -26,6 +26,10 @@ For more details or to discuss releases, please visit the
   which is slow and uses a lot of memory on a large store. Rejected points are
   logged and flagged with an error point on the node, the same as a period in a
   key.
+- **A device enrolling or connecting is no longer disconnected by a tree change
+  that happens at the same moment.** A connection accepted while credentials
+  were being enforced could be closed as unknown; an enrolling device saw its
+  connection drop.
 - **A setting changed right after adding a node is no longer lost.** Adding a
   child restarts its parent's client, and a point written while the client was
   being rebuilt could reach neither the old client nor the new one.
