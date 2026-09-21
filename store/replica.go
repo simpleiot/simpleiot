@@ -198,9 +198,11 @@ func (rm *replicaManager) applyPolicy(cfg jetstream.StreamConfig) {
 }
 
 // consumeReplica starts an ordered consumer on one replica stream.
-// Deliveries merge into the caches from the start of the stream (the
-// merge is idempotent against the startup pre-population); broadcasts
-// are gated until the backlog drains.
+// Only the tip of each subject matters to the caches, so the consumer
+// starts at the last message per subject rather than replaying the whole
+// stream, which on a large replica took minutes of CPU at every start.
+// Tips already merged by the startup pre-population merge again as no
+// change; broadcasts are gated until the backlog drains.
 func (rm *replicaManager) consumeReplica(name, origin string) (jetstream.ConsumeContext, error) {
 	ctx := context.Background()
 
@@ -209,7 +211,9 @@ func (rm *replicaManager) consumeReplica(name, origin string) (jetstream.Consume
 		return nil, err
 	}
 
-	c, err := s.OrderedConsumer(ctx, jetstream.OrderedConsumerConfig{})
+	c, err := s.OrderedConsumer(ctx, jetstream.OrderedConsumerConfig{
+		DeliverPolicy: jetstream.DeliverLastPerSubjectPolicy,
+	})
 	if err != nil {
 		return nil, err
 	}

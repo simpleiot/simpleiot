@@ -24,6 +24,9 @@ For more details or to discuss releases, please visit the
 - **A setting changed right after adding a node is no longer lost.** Adding a
   child restarts its parent's client, and a point written while the client was
   being rebuilt could reach neither the old client nor the new one.
+- **An instance that stores data synced from devices no longer spends minutes at
+  full CPU after it starts.** It used to reread everything each device had ever
+  sent; it now reads only the latest value of each point.
 
 ## [0.28.2] - 2026-09-21
 

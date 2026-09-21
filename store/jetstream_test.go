@@ -1495,3 +1495,91 @@ func TestDbJetStreamDeliveryFanOut(t *testing.T) {
 		t.Fatal("value lost:", val)
 	}
 }
+
+// TestDbJetStreamReplicaStartsAtTips checks that a replica consumer starts
+// at the last message of each subject instead of replaying the stream. The
+// caches only hold tips, and a replay of a large replica took minutes of CPU
+// at every start. Points written after the consumer starts still arrive.
+func TestDbJetStreamReplicaStartsAtTips(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
+
+	downID := uuid.New().String()
+	nodeID := uuid.New().String()
+
+	ctx := context.Background()
+	s, err := db.js.CreateStream(ctx, jetstream.StreamConfig{
+		Name:     streamName(downID, downID),
+		Subjects: []string{streamCaptureSubject(downID, downID)},
+	})
+	if err != nil {
+		t.Fatal("Error creating replica stream:", err)
+	}
+
+	publish := func(typ string, v float64, ts time.Time) {
+		t.Helper()
+		p := data.NewPointFloat(typ, "", v)
+		p.Time = ts
+		p.Origin = downID
+		pts := data.Points{p}
+		_, err := db.js.Publish(ctx,
+			nodePointSubject(downID, downID, nodeID, typ, ""), pts.Encode())
+		if err != nil {
+			t.Fatal("Error publishing point:", err)
+		}
+	}
+
+	// a long history on one subject and a single point on another
+	const history = 500
+	base := time.Now().Add(-time.Hour)
+	for i := 0; i < history; i++ {
+		publish(data.PointTypeValue, float64(i), base.Add(time.Duration(i)*time.Second))
+	}
+	publish(data.PointTypeDescription, 1, base)
+
+	rm := db.runReplicaManager()
+	defer rm.Stop()
+
+	var info *jetstream.ConsumerInfo
+	start := time.Now()
+	for {
+		lister := s.ListConsumers(ctx)
+		for ci := range lister.Info() {
+			info = ci
+		}
+		if info != nil && info.NumPending == 0 && info.Delivered.Consumer > 0 {
+			break
+		}
+		if time.Since(start) > 10*time.Second {
+			t.Fatalf("replica consumer did not catch up: %+v", info)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	if info.Delivered.Consumer != 2 {
+		t.Errorf("replica consumer delivered %v messages, expected the 2 subject tips",
+			info.Delivered.Consumer)
+	}
+
+	// a point written after the consumer started is merged
+	publish(data.PointTypeValue, 1000, time.Now())
+
+	start = time.Now()
+	for {
+		db.pointMu.Lock()
+		var v float64
+		for _, p := range db.pointCache[nodeID] {
+			if p.Type == data.PointTypeValue {
+				v = p.Val()
+			}
+		}
+		db.pointMu.Unlock()
+		if v == 1000 {
+			break
+		}
+		if time.Since(start) > 10*time.Second {
+			t.Fatalf("point written after start not merged, value: %v", v)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
