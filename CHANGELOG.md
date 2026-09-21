@@ -13,7 +13,7 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
-## [0.28.2] - 2026-09-21
+## [0.28.3] - 2026-09-21
 
 - **SIOT stays within a memory limit set for its service.** When systemd's
   `MemoryMax` or a container limit applies, SIOT frees memory more eagerly as it
