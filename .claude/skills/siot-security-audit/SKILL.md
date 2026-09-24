@@ -65,9 +65,15 @@ process and publish on its full-access connection, so a value in a point that
 names a target (a node ID, a URL, a file path, a recipient) is acted on with the
 server's authority, not the writer's.
 
-The third: **what happens when the value is absurd?** No goroutine recovers from
-a panic, so a point or a frame that panics one client stops the process, and a
-stored point does so again at every start.
+The third: **what happens when the value is absurd?** `runRecovered` in
+`client/recover.go` wraps each client's `Run` and the manager's callbacks, but
+not goroutines a client starts itself, nor the store's and server's NATS
+handlers. A panic in one of those stops the process, and a stored point that
+causes it does so again at every start.
+
+The fourth: **what does an allowed subject accept as its body?** A JetStream API
+subject in a grant takes a whole configuration, and a node creation takes any
+node type; the permission on the subject says nothing about either.
 
 ## Where enforcement lives
 

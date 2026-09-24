@@ -494,7 +494,9 @@ func isLoopback(addr net.Addr) bool {
 //
 //   - find the upstream root and check whether it is adopted
 //   - announce itself under the root
-//   - push its origin stream into the replica stream inst_X_X
+//   - push its origin stream into the replica stream inst_X_X, which the
+//     upstream creates (see ensureDeviceStream), since a stream create
+//     request carries a whole configuration
 //   - discover and pull the streams other origins write into its
 //     boundary, which are enumerated because a stream name is one subject
 //     token and cannot be matched by prefix
@@ -512,7 +514,6 @@ func devicePermissions(pubKey, deviceID, rootID string, origins []string) *serve
 		fmt.Sprintf("ep.%v.%v", X, rootID),
 		fmt.Sprintf("inst.%v.%v.>", X, X),
 		"$JS.API.STREAM.INFO." + own,
-		"$JS.API.STREAM.CREATE." + own,
 		"$JS.API.STREAM.NAMES",
 	}
 
@@ -802,6 +803,15 @@ func (a *authorizer) refreshCred(credID string) {
 		if !a.deviceLive(credID, deviceID) {
 			disabled = true
 		}
+		// the stream is in place before the credential authorizes
+		// anything, so the device never needs to create it
+		if !disabled && pubKey != "" {
+			if err := a.ensureDeviceStream(deviceID); err != nil {
+				log.Printf("NATS auth: credential %v authorizes nothing until its stream is ready: %v",
+					credID, err)
+				disabled = true
+			}
+		}
 	case 0:
 		disabled = true
 	default:
@@ -881,6 +891,58 @@ func (a *authorizer) deviceLive(credID, deviceID string) bool {
 	}
 
 	return true
+}
+
+// ensureDeviceStream makes sure the replica stream a device pushes into,
+// inst_X_X, exists with the configuration the store expects: capturing
+// inst.X.X.> and nothing else, and copying nowhere. A stream that differs
+// was not made by this instance or by a sync client, so it is replaced;
+// what it held is dropped with it. The store applies its storage policy
+// when it finds the stream.
+func (a *authorizer) ensureDeviceStream(deviceID string) error {
+	name := fmt.Sprintf("inst_%v_%v", deviceID, deviceID)
+	subject := fmt.Sprintf("inst.%v.%v.>", deviceID, deviceID)
+
+	js, err := jetstream.New(a.nc)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	s, err := js.Stream(ctx, name)
+	switch {
+	case err == nil:
+		if deviceStreamOK(s.CachedInfo().Config, subject) {
+			return nil
+		}
+		log.Printf("NATS auth: replacing replica stream %v, its configuration is not one this instance creates",
+			name)
+		if err := js.DeleteStream(ctx, name); err != nil {
+			return fmt.Errorf("error deleting stream %v: %w", name, err)
+		}
+	case !errors.Is(err, jetstream.ErrStreamNotFound):
+		return fmt.Errorf("error reading stream %v: %w", name, err)
+	}
+
+	_, err = js.CreateStream(ctx, jetstream.StreamConfig{
+		Name:     name,
+		Subjects: []string{subject},
+	})
+	if err != nil {
+		return fmt.Errorf("error creating stream %v: %w", name, err)
+	}
+
+	return nil
+}
+
+// deviceStreamOK reports whether a replica stream's configuration captures
+// only the device's own subjects and sends nothing anywhere else.
+func deviceStreamOK(cfg jetstream.StreamConfig, subject string) bool {
+	return len(cfg.Subjects) == 1 && cfg.Subjects[0] == subject &&
+		cfg.RePublish == nil && cfg.Mirror == nil && len(cfg.Sources) == 0 &&
+		cfg.SubjectTransform == nil
 }
 
 // refreshDevice rereads every credential under a device.

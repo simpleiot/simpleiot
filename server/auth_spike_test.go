@@ -168,14 +168,19 @@ func TestAuthSpike(t *testing.T) {
 
 	jsDev, _ := jetstream.New(dev)
 
-	// push side: create own replica stream and write into it
+	// push side: the upstream creates the device's replica stream, since a
+	// create request carries a whole configuration; the device reads it and
+	// writes into it (creating it is refused below)
 	if _, err := jsDev.Stream(ctx, "inst_X_X"); !errors.Is(err, jetstream.ErrStreamNotFound) {
 		t.Fatal("expected stream not found, got:", err)
 	}
-	if _, err := jsDev.CreateStream(ctx, jetstream.StreamConfig{
+	if _, err := jsFull.CreateStream(ctx, jetstream.StreamConfig{
 		Name: "inst_X_X", Subjects: []string{"inst.X.X.>"},
 	}); err != nil {
-		t.Fatal("device create own stream:", err)
+		t.Fatal("upstream create device stream:", err)
+	}
+	if _, err := jsDev.Stream(ctx, "inst_X_X"); err != nil {
+		t.Fatal("device read own stream:", err)
 	}
 	if _, err := jsDev.Publish(ctx, "inst.X.X.n1.p.value.0", []byte("1")); err != nil {
 		t.Fatal("device publish own stream:", err)
@@ -242,6 +247,11 @@ func TestAuthSpike(t *testing.T) {
 	if _, err := jsDev.Publish(short(), "inst.Y.Y.n1.p.value.0", []byte("x"),
 		jetstream.WithRetryAttempts(0)); err == nil {
 		t.Fatal("expected publish into another boundary to fail")
+	}
+	if _, err := jsDev.CreateStream(short(), jetstream.StreamConfig{
+		Name: "inst_X_X", Subjects: []string{"inst.X.X.>", "auth.>"},
+	}); err == nil {
+		t.Fatal("expected the device creating its own stream to fail")
 	}
 	if _, err := jsDev.Stream(short(), "inst_Y_Y"); err == nil {
 		t.Fatal("expected stream info on another boundary to fail")

@@ -1,12 +1,15 @@
 package client_test
 
 import (
+	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/nats-io/nkeys"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
@@ -439,5 +442,77 @@ func TestDeviceInboxScope(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("device could subscribe to the shared inbox")
+	}
+}
+
+// TestDeviceStreamConfig checks that the upstream, not the device, decides
+// how the device's replica stream is configured: a stream left with extra
+// subjects and a republish is replaced when the credential goes live, and
+// the device cannot create one of its own.
+func TestDeviceStreamConfig(t *testing.T) {
+	ncU, rootU, optsU, stopU := credUpstream(t)
+	defer stopU()
+
+	jsU, err := jetstream.New(ncU)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+
+	// a stream a device made before the upstream created them itself
+	_, err = jsU.CreateStream(ctx, jetstream.StreamConfig{
+		Name:      "inst_dev-stream_dev-stream",
+		Subjects:  []string{"inst.dev-stream.dev-stream.>", "auth.>"},
+		Storage:   jetstream.MemoryStorage,
+		RePublish: &jetstream.RePublish{Source: ">", Destination: "_INBOX_X.cap.>"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	seed, pub, err := client.GenerateDeviceKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	kp, err := nkeys.FromSeed([]byte(seed))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	enrollDevice(t, ncU, rootU, "dev-stream", "cred-stream", pub)
+
+	var nc *nats.Conn
+	waitFor(t, 10*time.Second, "credential not accepted", func() bool {
+		nc, err = nats.Connect(optsU.NatsServer, nats.Nkey(pub, kp.Sign),
+			nats.CustomInboxPrefix(client.InboxPrefix(pub)), nats.NoReconnect())
+		return err == nil
+	})
+	defer nc.Close()
+
+	s, err := jsU.Stream(ctx, "inst_dev-stream_dev-stream")
+	if err != nil {
+		t.Fatal("device stream missing:", err)
+	}
+	cfg := s.CachedInfo().Config
+	if !slices.Equal(cfg.Subjects, []string{"inst.dev-stream.dev-stream.>"}) || cfg.RePublish != nil {
+		t.Fatalf("stream not replaced: subjects %v, republish %v", cfg.Subjects, cfg.RePublish)
+	}
+
+	// the device can see its stream but not configure one
+	jsD, err := jetstream.New(nc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := jsD.Stream(ctx, "inst_dev-stream_dev-stream"); err != nil {
+		t.Fatal("device cannot read its stream:", err)
+	}
+	cctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	_, err = jsD.CreateStream(cctx, jetstream.StreamConfig{
+		Name:     "inst_dev-stream_dev-stream",
+		Subjects: []string{"inst.dev-stream.dev-stream.>", "auth.>"},
+	})
+	if err == nil {
+		t.Fatal("device created its own stream")
 	}
 }
