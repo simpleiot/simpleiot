@@ -1529,6 +1529,13 @@ func TestDbJetStreamReplicaStartsAtTips(t *testing.T) {
 		}
 	}
 
+	// the node is in the replica's boundary, so its points are merged
+	edge := data.Points{data.NewPointString(data.PointTypeNodeType, "", data.NodeTypeVariable)}
+	_, err = db.js.Publish(ctx, edgePointSubject(downID, downID, downID, nodeID), edge.Encode())
+	if err != nil {
+		t.Fatal("Error publishing edge:", err)
+	}
+
 	// a long history on one subject and a single point on another
 	const history = 500
 	base := time.Now().Add(-time.Hour)
@@ -1556,8 +1563,8 @@ func TestDbJetStreamReplicaStartsAtTips(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 	}
 
-	if info.Delivered.Consumer != 2 {
-		t.Errorf("replica consumer delivered %v messages, expected the 2 subject tips",
+	if info.Delivered.Consumer != 3 {
+		t.Errorf("replica consumer delivered %v messages, expected the 3 subject tips",
 			info.Delivered.Consumer)
 	}
 

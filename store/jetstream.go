@@ -98,6 +98,13 @@ type DbJetStream struct {
 	// stream per process
 	streamMu sync.Mutex
 	streams  map[string]jetstream.Stream
+
+	// held keeps replica stream messages that are not yet in their
+	// boundary, by the node each waits on, then by subject (see
+	// holdReplica)
+	heldMu    sync.Mutex
+	held      map[string]map[string]heldReplica
+	heldCount int
 }
 
 // streamName returns the stream name for a (boundary, origin) pair.
@@ -180,6 +187,7 @@ func NewJetStreamDb(nc *nats.Conn, rootID string, cfg JsConfig) (*DbJetStream, e
 		pointCache:  make(map[string]data.Points),
 		pointOrigin: make(map[string]map[string]string),
 		streams:     make(map[string]jetstream.Stream),
+		held:        make(map[string]map[string]heldReplica),
 	}
 
 	log.Println("STORE: retention:", db.retentionDescription())
@@ -674,6 +682,7 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 	}
 
 	db.edgeCache.MergeEdgePoints(parentID, nodeID, nodeType, origin, writePoints)
+	db.releaseReplica(nodeID)
 
 	// a fully deleted node keeps its subjects where they are; an
 	// undelete migrates them if ownership or delivery moved in the
@@ -834,15 +843,35 @@ func (db *DbJetStream) purgeNodeSubjects(nodeID string, boundaries []string) err
 func (db *DbJetStream) loadAllStreams() error {
 	ctx := context.Background()
 
+	// streams this instance trusts load first, so the tree a downstream
+	// instance's writes are checked against (see replicaWait) is in place
+	// before them
+	var replicas []jetstream.StreamConfig
+
 	lister := db.js.ListStreams(ctx, jetstream.WithStreamListSubject("inst.>"))
 	for si := range lister.Info() {
+		boundary, origin, ok := streamBoundaryOrigin(si.Config)
+		if ok && origin != db.meta.RootID && boundary != db.meta.RootID {
+			replicas = append(replicas, si.Config)
+			continue
+		}
 		err := db.loadStream(si.Config)
 		if err != nil {
 			log.Printf("STORE: error loading stream %v: %v", si.Config.Name, err)
 		}
 	}
+	if err := lister.Err(); err != nil {
+		return err
+	}
 
-	return lister.Err()
+	for _, cfg := range replicas {
+		err := db.loadStream(cfg)
+		if err != nil {
+			log.Printf("STORE: error loading stream %v: %v", cfg.Name, err)
+		}
+	}
+
+	return nil
 }
 
 // loadStream merges one stream's subject tips into the edge and point
@@ -889,6 +918,11 @@ func (db *DbJetStream) loadPointSubjects(s jetstream.Stream, origin, filter stri
 		msg, err := s.GetLastMsgForSubject(ctx, subject)
 		if err != nil {
 			log.Printf("error getting last msg for %v: %v", subject, err)
+			continue
+		}
+
+		if origin != db.meta.RootID {
+			db.mergeReplicaMsg(subject, msg.Data, origin, false)
 			continue
 		}
 
@@ -944,6 +978,14 @@ func (db *DbJetStream) loadEdgeSubjects(s jetstream.Stream, origin, filter strin
 			continue
 		}
 
+		if origin != db.meta.RootID {
+			// a replica's edges are checked against its boundary;
+			// subjects come in no particular order, so an edge whose
+			// parent has not been placed yet is held until it is
+			db.mergeReplicaMsg(subject, msg.Data, origin, false)
+			continue
+		}
+
 		pts, err := data.DecodePoints(msg.Data)
 		if err != nil {
 			log.Printf("error decoding edge points from %v: %v", subject, err)
@@ -959,6 +1001,7 @@ func (db *DbJetStream) loadEdgeSubjects(s jetstream.Stream, origin, filter strin
 		}
 
 		db.edgeCache.MergeEdgePoints(parentID, childID, nodeType, origin, pts)
+		db.releaseReplica(childID)
 	}
 }
 

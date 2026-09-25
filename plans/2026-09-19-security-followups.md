@@ -181,8 +181,19 @@ pushes; a stream with extra subjects or a republish is reported at start-up.
 
 ### 9. Keep a device's replicated writes inside its boundary
 
-- [ ] Drop any point or edge in `inst.X.X.>` whose node, or edge parent, is not
+- [x] Drop any point or edge in `inst.X.X.>` whose node, or edge parent, is not
       in boundary `X`.
+
+**Done:** `replicaWait` (`store/replica.go`) runs on the replica consumer and
+the start-up load. A point needs its node in `X`; an edge needs its parent in
+`X`, and a child that is new, already in `X`, or not part of the upstream's own
+tree (`ownedHere`), and must not close a loop. A refused message is held and
+logged, and merged when an edge places it, since a consumer delivers subject
+tips in stream order and the start-up load in no order; trusted streams load
+first. `TestDeviceReplicaBoundary` covers the three writes below, before and
+after a restart. Left open: a device that knows the ID of a node in another
+device's subtree can attach it under `X`, and a replicated `pass` point is still
+stored unhashed.
 
 **Problem (_proven_):** `mergeReplicaMsg` in `store/replica.go` merges every
 `<node>.p.*` and `<parent>.ep.<child>` from a device's stream into the upstream

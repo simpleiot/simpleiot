@@ -239,10 +239,8 @@ since a stream create request carries a whole configuration (extra subjects, a
 republish, sources) and not just a name. A stream by that name whose
 configuration the upstream did not create is replaced, with what it held.
 
-One gap is open, and until it closes a device credential is authority over the
-whole instance: the store merges everything in `inst.X.X.>` without checking
-that each node is inside boundary `X`, so a device can write points and edges
-anywhere in the upstream tree (follow-ups item 9).
+The upstream merges what a device writes to `inst.X.X.>` only where it stays
+inside boundary `X`; see [What the store checks](#what-the-store-checks).
 
 Two things to know about the boundary of this model:
 
@@ -271,12 +269,24 @@ refuses new ones; devices already enrolled are unaffected.
 
 ### What the store checks
 
-JetStream does not record who published a message, so the permission set is the
-enforcement point and the store cannot tell a device's write from anyone else's.
-What it does check: when it finds a replica stream for a boundary that is not a
-node in its tree, it logs a warning naming the stream. That is what a write that
-got past the permissions looks like, and also what a device deleted from the
-tree while its stream remains looks like, so the stream is still consumed.
+The permission set keeps a device's writes in its own stream, `inst_X_X`. The
+store then decides what in that stream reaches the tree:
+
+- a point is merged when its node is `X` or under `X`;
+- an edge is merged when its parent is `X` or under `X`, and its child is new,
+  already under `X`, or in another device's subtree. A node of the upstream's
+  own tree, one reached from its root without passing through a device, cannot
+  be moved under `X` this way, and neither can an edge close a loop.
+
+A message that does not qualify is held and logged, and merged if a later edge
+places it inside the boundary, since a stream delivers messages in the order
+they were written rather than tree order. The start-up load applies the same
+rule. Streams the instance wrote itself, and those its own upstream writes for
+it, are trusted.
+
+When the store finds a replica stream for a boundary that is not a node in its
+tree, it logs a warning naming the stream. That is what a device deleted from
+the tree while its stream remains looks like, so the stream is still consumed.
 
 ### Browser
 
@@ -386,8 +396,7 @@ which has the detail and the proposed change for each.
 | Area     | Limitation                                                                                                                                                                                                         | Plan item |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
 | Users    | Any account can add an `update`, `ntp`, `networkManager`, or `browser` node in its own group, and the server acts on it: an account is control of the host. See [What an account can do](#what-an-account-can-do). | 1         |
-| Devices  | Points and edges a device replicates are not checked against its boundary, so a device can write anywhere in the upstream tree.                                                                                    | 9         |
-| Users    | Any account can create a device credential, an auto-approve enrollment token, or a `sync` node in its own group; with items 8 and 9 each is control of the instance.                                               | 10        |
+| Users    | Any account can create a device credential, an auto-approve enrollment token, or a `sync` node in its own group; a `sync` node replicates the whole tree to a server the user runs and accepts writes back.        | 10        |
 | Devices  | `SIOT_DEVICE_AUTH=required` does not limit the shared token through the HTTP port's WebSocket proxy, since the check reads only the first frame.                                                                   | 11        |
 | Users    | Any member of a group can write any node under it, including another member's password.                                                                                                                            | 2         |
 | Users    | The sign-in limiter keys on the account, so a known email can be locked out for up to five minutes at a time by anyone who can reach the sign-in page.                                                             | 4         |
@@ -401,8 +410,9 @@ What the audit found sound: the binary point and node decoders bound every
 length and count; no client runs a command through a shell, disables TLS
 verification, or builds a database query from strings; the metrics scraper
 bounds its reads; a credentialed device cannot publish to NATS subjects outside
-its own boundary (what the store does with them is item 9); point types and keys
-cannot carry NATS wildcards; the JWT check rejects other signing algorithms; the
-web UI renders node values as text, keeps its token out of URLs and logs, and
-loads no third-party script; no secrets are committed to the repository; and
-`govulncheck` reports no called vulnerability in the current source.
+its own boundary, and the store merges only what stays inside it; point types
+and keys cannot carry NATS wildcards; the JWT check rejects other signing
+algorithms; the web UI renders node values as text, keeps its token out of URLs
+and logs, and loads no third-party script; no secrets are committed to the
+repository; and `govulncheck` reports no called vulnerability in the current
+source.

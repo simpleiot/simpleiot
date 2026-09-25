@@ -516,3 +516,129 @@ func TestDeviceStreamConfig(t *testing.T) {
 		t.Fatal("device created its own stream")
 	}
 }
+
+// TestDeviceReplicaBoundary has a credentialed device write into its own
+// stream the way the second audit did: points for the upstream root, a
+// user under the root, and an upstream group adopted into its subtree.
+// None of it reaches the upstream tree, before or after a restart, while
+// a node of its own does, even with its points sent before its edge.
+func TestDeviceReplicaBoundary(t *testing.T) {
+	ncU, rootU, optsU, stopU := credUpstream(t)
+	stopped := false
+	defer func() {
+		if !stopped {
+			stopU()
+		}
+	}()
+
+	group := client.Group{ID: "grp-b", Parent: rootU.ID, Description: "upstream group"}
+	if err := client.SendNodeType(ncU, group, "test"); err != nil {
+		t.Fatal(err)
+	}
+
+	seed, pub, err := client.GenerateDeviceKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	kp, err := nkeys.FromSeed([]byte(seed))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const dev = "dev-b"
+	enrollDevice(t, ncU, rootU, dev, "cred-b", pub)
+
+	var nc *nats.Conn
+	waitFor(t, 10*time.Second, "credential not accepted", func() bool {
+		nc, err = nats.Connect(optsU.NatsServer, nats.Nkey(pub, kp.Sign),
+			nats.CustomInboxPrefix(client.InboxPrefix(pub)), nats.NoReconnect())
+		return err == nil
+	})
+	defer nc.Close()
+
+	jsD, err := jetstream.New(nc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+
+	publish := func(subject string, pts data.Points) {
+		t.Helper()
+		for i := range pts {
+			pts[i].Time = time.Now()
+		}
+		if _, err := jsD.Publish(ctx, "inst.dev-b.dev-b."+subject, pts.Encode()); err != nil {
+			t.Fatalf("publish %v: %v", subject, err)
+		}
+	}
+	nodeType := func(typ string) data.Points {
+		return data.Points{data.NewPointString(data.PointTypeNodeType, "", typ)}
+	}
+
+	// outside the boundary
+	publish(rootU.ID+".p.description.0",
+		data.Points{data.NewPointString(data.PointTypeDescription, "", "taken")})
+	publish(rootU.ID+".ep.evil-user", nodeType(data.NodeTypeUser))
+	publish("evil-user.p.email.0", data.Points{data.NewPointString(data.PointTypeEmail, "", "evil")})
+	publish("evil-user.p.pass.0", data.Points{data.NewPointString(data.PointTypePass, "", "pw")})
+	publish(dev+".ep.grp-b", nodeType(data.NodeTypeGroup))
+	publish("grp-b.p.description.0",
+		data.Points{data.NewPointString(data.PointTypeDescription, "", "taken")})
+
+	// inside it, points first
+	publish("dev-var.p.description.0",
+		data.Points{data.NewPointString(data.PointTypeDescription, "", "device var")})
+	publish(dev+".ep.dev-var", nodeType(data.NodeTypeVariable))
+
+	check := func(ncU *nats.Conn) {
+		t.Helper()
+
+		waitFor(t, 10*time.Second, "device node did not arrive", func() bool {
+			nodes, err := client.GetNodes(ncU, dev, "dev-var", "", false)
+			return err == nil && len(nodes) == 1 && nodes[0].Desc() == "device var"
+		})
+
+		root, err := client.GetRootNode(ncU)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if root.Desc() == "taken" {
+			t.Error("device wrote the upstream root")
+		}
+
+		if nodes, _ := client.GetNodes(ncU, "all", "evil-user", "", true); len(nodes) > 0 {
+			t.Errorf("device created a user outside its boundary: %+v", nodes)
+		}
+		if nodes, _ := client.UserCheck(ncU, "evil", "pw"); len(nodes) > 0 {
+			t.Error("user written by the device signed in")
+		}
+
+		groups, err := client.GetNodes(ncU, "all", "grp-b", "", true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, g := range groups {
+			if g.Parent != rootU.ID {
+				t.Errorf("device adopted an upstream group under %v", g.Parent)
+			}
+			if g.Desc() == "taken" {
+				t.Error("device wrote an upstream group")
+			}
+		}
+	}
+
+	check(ncU)
+
+	// the start-up load applies the same rule
+	nc.Close()
+	stopU()
+	stopped = true
+
+	ncU, _, stopU, err = server.TestServerOptsKeepStore(optsU)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stopped = false
+
+	check(ncU)
+}
