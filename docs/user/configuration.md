@@ -28,6 +28,12 @@ The following are currently defined:
     The Yoe Distribution populates `VERSION_ID` with the update version, which
     is probably more appropriate for embedded systems built with Yoe. See
     [ref/version](../ref/version.md).
+  - `GOMEMLIMIT`: the Go runtime's soft memory limit. When it is not set and
+    SIOT runs under a cgroup memory limit, such as a systemd unit's `MemoryMax`,
+    SIOT sets the Go limit to 90% of the cgroup limit, so the garbage collector
+    works harder as memory nears the limit rather than the process being killed
+    on reaching it. Set it to override that, or to `off` to run with no Go
+    limit.
 - **NATS configuration**
   - `SIOT_NATS_PORT`: Port to run NATS on (default is 4222). The HTTP and
     monitoring ports follow it, so setting this alone moves a second instance on

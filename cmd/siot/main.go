@@ -127,6 +127,8 @@ func runServer(args []string, version string, id string) error {
 	options.AppVersion = version
 	options.ID = id
 
+	setMemoryLimit()
+
 	if options.LogNats {
 		client.Log(options.NatsServer, options.AuthToken)
 		select {}
