@@ -30,6 +30,12 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+### Fixed
+
+- **Negative whole numbers keep their sign.** A value such as `-1` written as an
+  integer, for example from an imported file, was read back as `255`. Values
+  already stored read back correctly after upgrading.
+
 ## [0.28.3] - 2026-09-21
 
 - **SIOT stays within a memory limit set for its service.** When systemd's

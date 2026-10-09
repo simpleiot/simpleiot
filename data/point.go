@@ -237,13 +237,15 @@ func (p *Point) ValueInt() (int64, error) {
 		return 0, fmt.Errorf("point is not an int")
 	}
 
+	// PutInt stores a value in the fewest bytes that hold it, so each
+	// width is read back as signed
 	switch len(p.Data) {
 	case 1:
-		return int64(p.Data[0]), nil
+		return int64(int8(p.Data[0])), nil
 	case 2:
-		return int64(binary.LittleEndian.Uint16(p.Data)), nil
+		return int64(int16(binary.LittleEndian.Uint16(p.Data))), nil
 	case 4:
-		return int64(binary.LittleEndian.Uint32(p.Data)), nil
+		return int64(int32(binary.LittleEndian.Uint32(p.Data))), nil
 	case 8:
 		return int64(binary.LittleEndian.Uint64(p.Data)), nil
 	default:
@@ -285,19 +287,15 @@ func (p *Point) PutString(v string) {
 // PutInt populates an int in a point
 func (p *Point) PutInt(v int64) {
 	p.DataType = PointDataTypeInt
-	absValue := v
-	if v < 0 {
-		absValue = -v
-	}
 
 	switch {
-	case absValue < 128: // Use 1 byte
+	case v >= math.MinInt8 && v <= math.MaxInt8: // Use 1 byte
 		p.Data = make([]byte, 1)
 		p.Data[0] = byte(v) // Directly cast to byte
-	case absValue < 32768: // Use 2 bytes
+	case v >= math.MinInt16 && v <= math.MaxInt16: // Use 2 bytes
 		p.Data = make([]byte, 2)
 		binary.LittleEndian.PutUint16(p.Data, uint16(v))
-	case absValue < 2147483648: // Use 4 bytes
+	case v >= math.MinInt32 && v <= math.MaxInt32: // Use 4 bytes
 		p.Data = make([]byte, 4)
 		binary.LittleEndian.PutUint32(p.Data, uint32(v))
 	default: // Use 8 bytes
