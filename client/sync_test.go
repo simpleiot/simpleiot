@@ -32,6 +32,8 @@ func TestSync(t *testing.T) {
 		Parent:      rootD.ID,
 		Description: "sync to up",
 		URI:         server.TestServerOptions2.NatsServer,
+		// the shortest period a point allows
+		BytesReportPeriod: 1,
 	}
 
 	err = client.SendNodeType(ncD, sync, "test")
@@ -141,6 +143,8 @@ func TestSyncDetachUpstream(t *testing.T) {
 		Parent:      rootD.ID,
 		Description: "sync to up",
 		URI:         server.TestServerOptions2.NatsServer,
+		// the shortest period a point allows
+		BytesReportPeriod: 1,
 	}
 
 	err = client.SendNodeType(ncD, sync, "test")
@@ -205,6 +209,8 @@ func TestSyncOfflineCatchup(t *testing.T) {
 		Parent:      rootD.ID,
 		Description: "sync to up",
 		URI:         server.TestServerOptions2.NatsServer,
+		// the shortest period a point allows
+		BytesReportPeriod: 1,
 	}
 
 	err = client.SendNodeType(ncD, sync, "test")
@@ -277,4 +283,67 @@ func TestSyncOfflineCatchup(t *testing.T) {
 		nodes, err := client.GetNodesType[client.Device](ncD, "all", rootD.ID)
 		return err == nil && len(nodes) > 0 && nodes[0].Description == "offline config"
 	})
+}
+
+// TestSyncBytes verifies the sync node reports its upstream traffic and
+// that a reset starts one total over without touching the other.
+func TestSyncBytes(t *testing.T) {
+	_, _, stopU, err := server.TestServer("2")
+	if err != nil {
+		t.Fatal("Error starting upstream test server: ", err)
+	}
+	defer stopU()
+
+	ncD, rootD, stopD, err := server.TestServer()
+	if err != nil {
+		t.Fatal("Error starting downstream test server: ", err)
+	}
+	defer stopD()
+
+	sync := client.Sync{
+		ID:          "sync-id",
+		Parent:      rootD.ID,
+		Description: "sync to up",
+		URI:         server.TestServerOptions2.NatsServer,
+		// the shortest period a point allows
+		BytesReportPeriod: 1,
+	}
+
+	err = client.SendNodeType(ncD, sync, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	getSync := func() client.Sync {
+		nodes, err := client.GetNodesType[client.Sync](ncD, rootD.ID, sync.ID)
+		if err != nil || len(nodes) == 0 {
+			return client.Sync{}
+		}
+		return nodes[0]
+	}
+
+	// adoption and replication alone carry several KB
+	var before client.Sync
+	waitFor(t, 10*time.Second, "sync bytes not reported", func() bool {
+		before = getSync()
+		return before.TxBytes > 1000 && before.RxBytes > 1000
+	})
+
+	// a point with no origin on the client's own node is taken to be its
+	// own write, so mark this one as coming from a user
+	reset := data.NewPointFloat(data.PointTypeTxBytesReset, "", 1)
+	reset.Origin = "test"
+	err = client.SendNodePoint(ncD, sync.ID, reset, true)
+	if err != nil {
+		t.Fatal("error sending reset: ", err)
+	}
+
+	waitFor(t, 10*time.Second, "tx bytes not reset", func() bool {
+		s := getSync()
+		return !s.TxBytesReset && s.TxBytes < before.TxBytes
+	})
+
+	if s := getSync(); s.RxBytes < before.RxBytes {
+		t.Fatalf("rx bytes went from %v to %v on a tx reset", before.RxBytes, s.RxBytes)
+	}
 }

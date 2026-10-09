@@ -37,10 +37,13 @@ view o =
             :: (if o.expDetail then
                     let
                         opts =
-                            oToInputO o 100
+                            oToInputO o 180
 
                         textInput =
                             NodeInputs.nodeTextInput opts "0"
+
+                        numberInput =
+                            NodeInputs.nodeNumberInput opts "0"
 
                         checkboxInput =
                             NodeInputs.nodeCheckboxInput opts "0"
@@ -61,6 +64,9 @@ view o =
                     , viewIf (authToken == "") <| textInput Point.typeEnrollToken "Enroll Token" "optional, from the upstream"
                     , checkboxInput Point.typeDisabled "Disabled"
                     , counterWithReset Point.typeSyncCount Point.typeSyncCountReset "Sync Count"
+                    , counterWithReset Point.typeTxBytes Point.typeTxBytesReset "Tx Bytes"
+                    , counterWithReset Point.typeRxBytes Point.typeRxBytesReset "Rx Bytes"
+                    , numberInput Point.typeBytesReportPeriod "Report Period (s)"
                     ]
 
                 else

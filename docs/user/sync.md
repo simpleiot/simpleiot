@@ -113,6 +113,13 @@ sync nodes the way you would treat the token itself.
 The count of synchronizations is a point the client maintains, so an export of a
 running node carries it as well.
 
+The client also maintains `txBytes` and `rxBytes`, the total bytes sent to and
+received from the upstream. These count at the network socket, so they include
+TLS, NATS protocol, and reconnect traffic, which is useful when estimating
+cellular data usage. The totals continue across restarts and update every
+`bytesReportPeriod` seconds, once an hour when it is not set. `txBytesReset` and
+`rxBytesReset` start each one over. Enrollment requests are not included.
+
 ## Device credentials
 
 Every instance has a device key, generated the first time it starts and kept in

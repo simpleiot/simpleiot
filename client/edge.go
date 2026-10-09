@@ -24,8 +24,11 @@ type EdgeOptions struct {
 	// CACert is a PEM certificate chain the upstream has to present,
 	// for an instance that pins its upstream rather than trusting the
 	// system store. Empty keeps the system store.
-	CACert       string
-	NoEcho       bool
+	CACert string
+	NoEcho bool
+	// Counter, when set, totals the bytes sent and received on the
+	// connection, including TLS and NATS protocol traffic.
+	Counter      *ConnCounter
 	Connected    func()
 	Disconnected func()
 	Reconnected  func()
@@ -87,9 +90,14 @@ func EdgeConnect(eo EdgeOptions) (*nats.Conn, error) {
 		_ = nats.ReconnectBufSize(128 * 1024)(o)
 		_ = nats.ReconnectWait(10 * time.Second)(o)
 		_ = nats.MaxReconnects(-1)(o)
-		_ = nats.SetCustomDialer(&net.Dialer{
+		dialer := &net.Dialer{
 			KeepAlive: -1,
-		})(o)
+		}
+		if eo.Counter != nil {
+			_ = nats.SetCustomDialer(&countingDialer{Dialer: dialer, Counter: eo.Counter})(o)
+		} else {
+			_ = nats.SetCustomDialer(dialer)(o)
+		}
 
 		_ = nats.CustomReconnectDelay(func(attempts int) time.Duration {
 			delay := ExpBackoff(attempts, 6*time.Minute)

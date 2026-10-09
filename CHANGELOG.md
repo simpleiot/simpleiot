@@ -28,6 +28,13 @@ For more details or to discuss releases, please visit the
   outside its boundary; before, a device could change the upstream root or add a
   user that signed in with access to the whole tree.
 
+### Added
+
+- **Sync nodes show how much data they send and receive.** The totals include
+  encryption and protocol overhead, so they help estimate cellular data usage.
+  They update hourly by default, a period set on the sync node, and can be
+  reset. See [Synchronization](docs/user/sync.md#schema).
+
 ### Changed
 
 ### Fixed

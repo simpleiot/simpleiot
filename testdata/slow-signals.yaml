@@ -1,0 +1,105 @@
+# Ten slow signal generators, each writing one point a minute, for
+# watching steady low-rate traffic such as a sync node's tx/rx bytes.
+#
+#   siot import < testdata/slow-signals.yaml
+apiVersion: 1
+nodes:
+  - group:
+      description: Slow signals
+      children:
+        - signalGenerator:
+            description: Ambient temperature
+            signalType: sine
+            units: °C
+            minValue: 15
+            maxValue: 30
+            frequency: 0.0000115741 # one cycle a day
+            sampleRate: 0.0166667 # one sample a minute
+            roundTo: 0.1
+        - signalGenerator:
+            description: Enclosure temperature
+            signalType: random walk
+            units: °C
+            minValue: 20
+            maxValue: 50
+            initialValue: 35
+            minIncrement: -0.5
+            maxIncrement: 0.5
+            sampleRate: 0.0166667
+            roundTo: 0.1
+        - signalGenerator:
+            description: Relative humidity
+            signalType: sine
+            units: "%"
+            minValue: 30
+            maxValue: 80
+            frequency: 0.0000231481 # one cycle every 12 hours
+            sampleRate: 0.0166667
+            roundTo: 1
+        - signalGenerator:
+            description: Barometric pressure
+            signalType: random walk
+            units: hPa
+            minValue: 980
+            maxValue: 1040
+            initialValue: 1013
+            minIncrement: -0.3
+            maxIncrement: 0.3
+            sampleRate: 0.0166667
+            roundTo: 0.1
+        - signalGenerator:
+            description: Tank level
+            signalType: triangle
+            units: "%"
+            minValue: 5
+            maxValue: 95
+            frequency: 0.0000694444 # one cycle every 4 hours
+            sampleRate: 0.0166667
+            roundTo: 0.1
+        - signalGenerator:
+            description: Line pressure
+            signalType: random walk
+            units: psi
+            minValue: 40
+            maxValue: 80
+            initialValue: 60
+            minIncrement: -1
+            maxIncrement: 1
+            sampleRate: 0.0166667
+            roundTo: 0.1
+        - signalGenerator:
+            description: Battery voltage
+            signalType: triangle
+            units: V
+            minValue: 11.8
+            maxValue: 13.8
+            frequency: 0.0000115741
+            sampleRate: 0.0166667
+            roundTo: 0.01
+        - signalGenerator:
+            description: Solar power
+            signalType: sine
+            units: W
+            minValue: 0
+            maxValue: 400
+            frequency: 0.0000115741
+            sampleRate: 0.0166667
+            roundTo: 1
+        - signalGenerator:
+            description: Flow rate
+            signalType: random walk
+            units: gpm
+            minValue: 0
+            maxValue: 20
+            initialValue: 10
+            minIncrement: -0.5
+            maxIncrement: 0.5
+            sampleRate: 0.0166667
+            roundTo: 0.1
+        - signalGenerator:
+            description: Pump running
+            signalType: square
+            minValue: 0
+            maxValue: 1
+            frequency: 0.000138889 # on for an hour, off for an hour
+            sampleRate: 0.0166667
