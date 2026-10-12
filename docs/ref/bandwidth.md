@@ -298,18 +298,23 @@ with the compression described [above](#compression). Each analog input changes
 significantly 24 times a day and each discrete input 20 times, on top of its
 refresh. The link drops twice a day.
 
-| Use                                       | Send on change and compression | Also batching and a push consumer |
-| ----------------------------------------- | ------------------------------ | --------------------------------- |
-| Refresh of unchanged inputs (1,440 a day) | 2.3 MB                         | 1.3 MB                            |
-| Changes (340 a day)                       | 0.6 MB                         | 0.3 MB                            |
-| Sync byte counters (hourly)               | 0.1 MB                         | 0.04 MB                           |
-| Configuration keepalive                   | 2.2 MB                         | none                              |
-| Configuration changes from the upstream   | under 0.1 MB                   | under 0.1 MB                      |
-| Connection pings                          | 0.2 MB (every 2 minutes)       | 0.1 MB (every 5 minutes)          |
-| Reconnects, with a full TLS handshake     | 0.4 MB                         | 0.4 MB                            |
-| TLS record overhead                       | 5.7 MB                         | 0.8 MB                            |
-| IP and TCP headers                        | 22 MB                          | 2.8 MB                            |
-| **Total**                                 | **about 34 MB**                | **about 6 MB**                    |
+The first column adds only send on change and compression. The second adds the
+rest of the practical options on this page: batching every 5 minutes, a `Fetch`
+keepalive with a 30-minute expiry and a 15-minute heartbeat (see
+[The keepalive](#the-keepalive)), and connection pings every 5 minutes.
+
+| Use                                       | Send on change and compression | All practical options    |
+| ----------------------------------------- | ------------------------------ | ------------------------ |
+| Refresh of unchanged inputs (1,440 a day) | 2.3 MB                         | 1.3 MB                   |
+| Changes (340 a day)                       | 0.6 MB                         | 0.3 MB                   |
+| Sync byte counters (hourly)               | 0.1 MB                         | 0.04 MB                  |
+| Configuration keepalive                   | 2.2 MB                         | 0.1 MB                   |
+| Configuration changes from the upstream   | under 0.1 MB                   | under 0.1 MB             |
+| Connection pings                          | 0.2 MB (every 2 minutes)       | 0.1 MB (every 5 minutes) |
+| Reconnects, with a full TLS handshake     | 0.4 MB                         | 0.4 MB                   |
+| TLS record overhead                       | 5.7 MB                         | 0.9 MB                   |
+| IP and TCP headers                        | 22 MB                          | 3.5 MB                   |
+| **Total**                                 | **about 34 MB**                | **about 7 MB**           |
 
 The estimates assume:
 
@@ -320,15 +325,20 @@ The estimates assume:
 - each TLS 1.3 record adds about 22 bytes, and a full handshake about 5 KB;
 - batching sends whatever has changed every 5 minutes, in about three packets
   per burst;
-- the push consumer sends configuration only when it changes, with no idle
-  heartbeat.
+- the `Fetch` keepalive sends a pull request, receives one heartbeat, and
+  receives one expiry notice every 30 minutes, about 80 bytes compressed.
+
+Shorter IDs, subject aliases, and shorter reply inboxes are left out. With
+compression keeping its state across messages, the repeated IDs they remove
+already cost only a few bytes per point.
 
 Compression shrinks what each message carries, but every message still costs a
 packet, its headers, a TLS record, and an acknowledgment. Once messages are tens
 of bytes, those per-packet costs are most of the bill: the configuration
 keepalive's heartbeat every 30 seconds costs about 9 MB a month in headers
 alone. Send on change and compression get the payload under budget; reaching 10
-MB also takes fewer packets, which is what batching and a push consumer provide.
+MB also takes fewer packets, which is what batching, a long `Fetch` heartbeat,
+and less frequent pings provide.
 
 The ping interval is the remaining fixed cost. Pings keep the carrier's NAT
 mapping alive, and carriers differ in how long an idle TCP connection survives,
