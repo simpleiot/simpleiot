@@ -58,21 +58,24 @@ instance on the upstream.
 
 ### Phase 2: Pull `inst_X_R` by name
 
-- [ ] In `runSession`, after the push pump starts, start the pull pump with
+- [x] In `runSession`, after the push pump starts, start the pull pump with
       `runPump(ctx, jsRemote, jsLocal, X, rootRemote.ID, X)`. Then wait on
       `ctx.Done()`.
-- [ ] Remove `scanPulls`, the `pulls` map, the ticker, and `syncPullScanPeriod`.
-- [ ] `runPump` creates a missing destination stream but expects the source to
+- [x] Remove `scanPulls`, the `pulls` map, the ticker, and `syncPullScanPeriod`.
+- [x] `runPump` creates a missing destination stream but expects the source to
       exist. If `inst_X_R` is missing upstream, the upstream is older than Phase
       1: log it and keep the push pump running, rather than returning an error
       that would end the session. Configuration then arrives after the next
       reconnect. Do not add a polling fallback (no compatibility shims).
-- [ ] Tests (`client/sync_test.go`):
-  - [ ] A configuration write on the hub after the device connects reaches the
-        device without a reconnect. `TestSync` likely covers this already;
-        confirm it no longer depends on the rescan.
-  - [ ] Pre-provisioned configuration arrives on first connect.
-- [ ] `go test -race ./client/...`, `golangci-lint run`. Commit.
+- [x] Tests (`client/sync_test.go`):
+  - [x] A configuration write on the hub after the device connects reaches the
+        device without a reconnect. `TestSync` covers it: its first hub write
+        comes after the device connects.
+  - [x] Pre-provisioned configuration arrives on first connect
+        (`TestSyncPreProvisioned`).
+- [x] Docs: `docs/ref/sync.md`, Life of a connection, steps 2 and 4;
+      `CHANGELOG.md`, Changed.
+- [x] `go test -race ./client/...`, `golangci-lint run`. Commit.
 
 ### Phase 3: Narrow the device credential
 
@@ -84,8 +87,6 @@ instance on the upstream.
 - [ ] Update `server/auth_test.go` for the narrower grant. A device asking for
       `$JS.API.STREAM.NAMES` or another origin's stream is refused.
 - [ ] Docs:
-  - [ ] `docs/ref/sync.md`, Life of a connection: step 2 (already drafted) and
-        step 4. Rewrite step 4 to say the device pulls `inst_X_R` by name.
   - [ ] `docs/ref/security.md`, What a device credential allows: remove the
         "Discover streams" row and the `STREAM.NAMES` limitation, list only
         `inst_X_R` for pull, and replace the paragraph on enumerating origins

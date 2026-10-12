@@ -122,6 +122,59 @@ func TestSync(t *testing.T) {
 	fmt.Println("sync test finished")
 }
 
+// TestSyncPreProvisioned verifies that configuration the upstream writes
+// for a device before the device ever connects arrives on its first
+// connection, with no reconnect.
+func TestSyncPreProvisioned(t *testing.T) {
+	ncU, rootU, stopU, err := server.TestServer("2")
+	if err != nil {
+		t.Fatal("Error starting upstream test server: ", err)
+	}
+	defer stopU()
+
+	ncD, rootD, stopD, err := server.TestServer()
+	if err != nil {
+		t.Fatal("Error starting downstream test server: ", err)
+	}
+	defer stopD()
+
+	dev := client.Device{ID: rootD.ID, Parent: rootU.ID, Description: "provisioned"}
+	err = client.SendNodeType(ncU, dev, "test")
+	if err != nil {
+		t.Fatal("Error creating device node upstream: ", err)
+	}
+
+	v := client.Variable{ID: "varProvisioned", Parent: rootD.ID, Description: "provisioned"}
+	err = client.SendNodeType(ncU, v, "test")
+	if err != nil {
+		t.Fatal("Error creating variable upstream: ", err)
+	}
+
+	sync := client.Sync{
+		ID:          "sync-id",
+		Parent:      rootD.ID,
+		Description: "sync to up",
+		URI:         server.TestServerOptions2.NatsServer,
+	}
+	err = client.SendNodeType(ncD, sync, "test")
+	if err != nil {
+		t.Fatal("Error sending node: ", err)
+	}
+
+	waitFor(t, 10*time.Second, "provisioned variable not synced down", func() bool {
+		nodes, err := client.GetNodesType[client.Variable](ncD, "all", v.ID)
+		return err == nil && len(nodes) > 0
+	})
+
+	nodes, err := client.GetNodesType[client.Sync](ncD, "all", sync.ID)
+	if err != nil || len(nodes) == 0 {
+		t.Fatal("Error getting sync node: ", err)
+	}
+	if nodes[0].SyncCount != 1 {
+		t.Fatal("expected one sync session, got: ", nodes[0].SyncCount)
+	}
+}
+
 // TestSyncDetachUpstream verifies the Stage 3 detach semantics: when
 // the upstream deletes a device node, the device does not force itself
 // back into the tree — only the upstream can restore the edge.

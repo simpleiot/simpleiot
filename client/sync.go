@@ -85,10 +85,6 @@ type SyncClient struct {
 	sessionDone   chan struct{}
 }
 
-// syncPullScanPeriod is how often the pull side rescans the upstream
-// for new origin streams in this instance's boundary.
-const syncPullScanPeriod = 2 * time.Second
-
 // syncBytesReportDefault is how often the sync client reports upstream
 // traffic totals when the node does not set a period. The report is
 // itself synced upstream, so it is kept infrequent for metered links.
@@ -526,66 +522,19 @@ func (up *SyncClient) runSession(ctx context.Context, ncRemote *nats.Conn) error
 	}
 	defer pushCC.Stop()
 
-	// pull upstream-origin streams for our boundary; rescan for new
-	// ones (e.g. the first time the upstream writes configuration)
-	pulls := make(map[string]pumpStopper)
-	defer func() {
-		for _, cc := range pulls {
-			cc.Stop()
-		}
-	}()
-
-	ticker := time.NewTicker(syncPullScanPeriod)
-	defer ticker.Stop()
-
-	for {
-		up.scanPulls(ctx, jsLocal, jsRemote, X, pulls)
-
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-ticker.C:
-		}
-	}
-}
-
-// scanPulls discovers upstream-origin streams for our boundary and
-// starts a pull pump for each new one. It asks for names rather than
-// configurations, which is the one JetStream listing a device credential
-// allows (see server/auth.go); every stream in our boundary is named
-// inst_<boundary>_<origin>, so the origin is the rest of the name.
-func (up *SyncClient) scanPulls(ctx context.Context, jsLocal, jsRemote jetstream.JetStream,
-	boundary string, pulls map[string]pumpStopper) {
-
-	lister := jsRemote.StreamNames(ctx,
-		jetstream.WithStreamListSubject(fmt.Sprintf("inst.%v.>", boundary)))
-
-	prefix := fmt.Sprintf("inst_%v_", boundary)
-
-	for name := range lister.Name() {
-		o, ok := strings.CutPrefix(name, prefix)
-		if !ok || o == "" || o == boundary {
-			continue
-		}
-		if _, running := pulls[name]; running {
-			continue
-		}
-
-		cc, err := runPump(ctx, jsRemote, jsLocal, boundary, o, boundary)
-		if err != nil {
-			log.Printf("Sync %v: error starting pull replication %v: %v\n",
-				up.config.Description, name, err)
-			continue
-		}
-
-		log.Printf("Sync %v: replicating %v from upstream\n",
-			up.config.Description, name)
-		pulls[name] = cc
-	}
-	if err := lister.Err(); err != nil && ctx.Err() == nil {
-		log.Printf("Sync %v: error listing upstream streams: %v\n",
+	// pull the stream the upstream writes our configuration to; the
+	// upstream creates it when it adopts us, so it is named rather than
+	// discovered
+	pullCC, err := runPump(ctx, jsRemote, jsLocal, X, rootRemote.ID, X)
+	if err != nil {
+		log.Printf("Sync %v: no configuration from upstream until it reconnects: %v\n",
 			up.config.Description, err)
+	} else {
+		defer pullCC.Stop()
 	}
+
+	<-ctx.Done()
+	return nil
 }
 
 // StreamBoundaryOrigin extracts the boundary and origin IDs from a

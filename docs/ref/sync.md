@@ -97,14 +97,16 @@ the single-writer property intact everywhere.
    WebSocket).
 2. **Adoption:** if the upstream tree has no node with this instance's root ID,
    the client announces itself with one edge message; the upstream persists a
-   device node under its root. (This is an ordinary untagged write — from the
-   upstream's view it is its own edge, in its own boundary.)
+   device node under its root and creates `inst_X_R`, the stream it will write
+   the device's configuration to. (The announcement is an ordinary untagged
+   write — from the upstream's view it is its own edge, in its own boundary.)
 3. The push pump ensures the replica stream exists upstream and starts copying;
    the device's whole tree — structure, configuration, and history — arrives
    through it, from sequence 1 on first connect.
-4. The pull pump discovers upstream-origin streams for this instance's boundary
-   and copies them down; the first hub-side configuration write creates
-   `inst_X_R`, and the device picks it up on its next scan.
+4. The pull pump copies `inst_X_R` down, naming the stream directly. The
+   upstream creates it when it adopts the device, so it is there to pull before
+   the hub writes any configuration. Nothing lists or polls the upstream's
+   streams, so an idle connection carries little beyond keepalives.
 5. Each store's replica consumers merge the arriving messages and re-broadcast
    changed tips locally.
 

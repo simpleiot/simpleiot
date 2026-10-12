@@ -11,6 +11,14 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Changed
+
+- **An idle sync connection uses much less data.** A device checked the upstream
+  for new streams every 2 seconds, about 20 MB a day with nothing to sync; it no
+  longer polls. Upgrade the upstream with its devices: a device on this release
+  receives configuration from an older upstream only after it reconnects. See
+  [Synchronization](docs/ref/sync.md#life-of-a-connection).
+
 ## [0.28.4] - 2026-10-12
 
 ### Security
