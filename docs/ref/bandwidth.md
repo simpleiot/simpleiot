@@ -165,11 +165,29 @@ let a cellular radio stay idle longer, which saves power.
 
 ### Compression
 
-Point messages repeat the same subjects over and over, which compresses well.
-NATS supports compression on WebSocket connections (`Compression` in the client
-options, with compression enabled on the server's WebSocket listener), and sync
-already accepts `ws://` URIs. Leaf node connections support S2 compression as
-well, but would change how sync connects and authenticates.
+Point messages repeat the same subjects over and over, which compresses well
+when the compressor can remember earlier messages. NATS supports compression on
+WebSocket connections (`Compression` in the client options, with compression
+enabled on the server's WebSocket listener), and sync already accepts `ws://`
+URIs.
+
+A test build with compression turned on in the client, the server's WebSocket
+listener, and the HTTP port's WebSocket proxy measured this, with a point
+written every 5 seconds:
+
+| Link                        | Total   |
+| --------------------------- | ------- |
+| `nats://`                   | 102 B/s |
+| `ws://` without compression | 104 B/s |
+| `ws://` with compression    | 84 B/s  |
+
+WebSocket framing adds about 2%, and compression saves about 19%. The saving is
+modest because the NATS client and the WebSocket library both compress each
+message on its own, with no dictionary shared across messages, so a subject
+repeated on every point is never reused. Leaf node connections support S2
+compression with a shared context, which would compress repeated subjects much
+further, but would change how sync connects and authenticates. Shorter IDs and
+batch acknowledgment each promise a larger saving.
 
 ### A push consumer for configuration
 
