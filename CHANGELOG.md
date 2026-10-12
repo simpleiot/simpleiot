@@ -11,11 +11,20 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Security
+
+- **A device can no longer list the instances on its upstream.** A device
+  credential now grants only the device's own stream and the one stream holding
+  its configuration. See
+  [What a device credential allows](docs/ref/security.md#what-a-device-credential-allows).
+
 ### Changed
 
 - **An idle sync connection uses much less data.** A device checked the upstream
   for new streams every 2 seconds, about 20 MB a day with nothing to sync; it no
-  longer polls. Upgrade the upstream with its devices: a device on this release
+  longer polls. Upgrade devices and their upstream together: a device on an
+  older release that connects with a device credential no longer receives
+  configuration from an upstream on this release, and a device on this release
   receives configuration from an older upstream only after it reconnects. See
   [Synchronization](docs/ref/sync.md#life-of-a-connection).
 

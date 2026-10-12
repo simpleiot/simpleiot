@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -535,19 +534,6 @@ func (up *SyncClient) runSession(ctx context.Context, ncRemote *nats.Conn) error
 
 	<-ctx.Done()
 	return nil
-}
-
-// StreamBoundaryOrigin extracts the boundary and origin IDs from a
-// boundary-origin stream's capture subject ("inst.<b>.<o>.>").
-func StreamBoundaryOrigin(cfg jetstream.StreamConfig) (boundary, origin string, ok bool) {
-	if len(cfg.Subjects) != 1 {
-		return "", "", false
-	}
-	tok := strings.Split(cfg.Subjects[0], ".")
-	if len(tok) != 4 || tok[0] != "inst" || tok[3] != ">" {
-		return "", "", false
-	}
-	return tok[1], tok[2], true
 }
 
 // pumpWindowSize is how many messages a pump sends before waiting for the

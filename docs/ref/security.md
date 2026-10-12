@@ -213,43 +213,35 @@ A device with root ID `X`, connecting to an upstream with root ID `R`, is
 granted these subjects and nothing else. Permissions are derived from the device
 ID at connect time; nothing about them is stored or configurable.
 
-| Purpose                              | Subjects                                                                                                                                                               |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Find the upstream root               | `nodes.root.all`                                                                                                                                                       |
-| Check whether it is adopted          | `nodes.all.X`                                                                                                                                                          |
-| Announce itself under the root       | `ep.X.R`                                                                                                                                                               |
-| Push its origin stream               | `inst.X.X.>`, `$JS.API.STREAM.INFO.inst_X_X`                                                                                                                           |
-| Discover streams for its boundary    | `$JS.API.STREAM.NAMES`                                                                                                                                                 |
-| Pull each origin `o` writing into it | `$JS.API.STREAM.INFO.inst_X_o`, `$JS.API.CONSUMER.CREATE.inst_X_o.>`, `$JS.API.CONSUMER.INFO.inst_X_o.*`, `$JS.API.CONSUMER.MSG.NEXT.inst_X_o.*`, `$JS.ACK.inst_X_o.>` |
-| Receive replies                      | subscribe `_INBOX_<key>.>`, the connection's own inbox                                                                                                                 |
+| Purpose                        | Subjects                                                                                                                                                               |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Find the upstream root         | `nodes.root.all`                                                                                                                                                       |
+| Check whether it is adopted    | `nodes.all.X`                                                                                                                                                          |
+| Announce itself under the root | `ep.X.R`                                                                                                                                                               |
+| Push its origin stream         | `inst.X.X.>`, `$JS.API.STREAM.INFO.inst_X_X`                                                                                                                           |
+| Pull its configuration         | `$JS.API.STREAM.INFO.inst_X_R`, `$JS.API.CONSUMER.CREATE.inst_X_R.>`, `$JS.API.CONSUMER.INFO.inst_X_R.*`, `$JS.API.CONSUMER.MSG.NEXT.inst_X_R.*`, `$JS.ACK.inst_X_R.>` |
+| Receive replies                | subscribe `_INBOX_<key>.>`, the connection's own inbox                                                                                                                 |
 
 A device never needs `p.>`, `up.>`, `auth.*`, `admin.*`, or another instance's
 streams, and the permission set refuses them. Replies arrive on an inbox named
 for the device's public key rather than the `_INBOX.>` every client on a server
 shares, so one device cannot read another's replies; the device sets the same
-prefix on its connection. Stream names are one subject token and cannot be
-matched by prefix, so the origins a device may pull from (the upstream itself,
-and any higher upstream writing configuration for the device) are enumerated
-when it connects. When a new origin stream appears for a device's boundary, the
-upstream closes the device's connection and it reconnects with the new stream
-included.
+prefix on its connection.
 
 The upstream creates `inst_X_X` itself before a credential authorizes anything,
 since a stream create request carries a whole configuration (extra subjects, a
 republish, sources) and not just a name. A stream by that name whose
-configuration the upstream did not create is replaced, with what it held.
+configuration the upstream did not create is replaced, with what it held. The
+upstream also creates `inst_X_R`, the stream it writes the device's
+configuration to, when it adopts the device, so the device pulls it by name and
+never lists the upstream's streams.
 
 The upstream merges what a device writes to `inst.X.X.>` only where it stays
 inside boundary `X`; see [What the store checks](#what-the-store-checks).
 
-Two things to know about the boundary of this model:
-
-- `$JS.API.STREAM.NAMES` answers with the names of every stream on the upstream,
-  which are instance IDs. A credentialed device can therefore learn which other
-  instances exist, but nothing about them.
-- An instance with no shared token is open, and accepts a device key it does not
-  know the way it accepts a connection with no credentials at all: with full
-  access. A key it does know is scoped as above.
+An instance with no shared token is open, and accepts a device key it does not
+know the way it accepts a connection with no credentials at all: with full
+access. A key it does know is scoped as above.
 
 ### Revocation
 

@@ -64,7 +64,7 @@ func spikeServer(t *testing.T, a *authorizer) (*server.Server, string, string) {
 }
 
 // spikeAuthorizer returns an authorizer that knows one device X with one
-// credential, on an upstream with root R that has an origin stream for X.
+// credential, on an upstream with root R.
 func spikeAuthorizer(t *testing.T, token string) (*authorizer, nkeys.KeyPair) {
 	t.Helper()
 
@@ -79,7 +79,6 @@ func spikeAuthorizer(t *testing.T, token string) (*authorizer, nkeys.KeyPair) {
 	a.rootID = "R"
 	a.creds[pub] = &credEntry{credID: "cred-x", deviceID: "X"}
 	a.credIDs["cred-x"] = pub
-	a.origins["X"] = map[string]bool{"R": true}
 
 	return a, kp
 }
@@ -186,19 +185,6 @@ func TestAuthSpike(t *testing.T) {
 		t.Fatal("device publish own stream:", err)
 	}
 
-	// discovery: names for the boundary
-	var names []string
-	lister := jsDev.StreamNames(ctx, jetstream.WithStreamListSubject("inst.X.>"))
-	for n := range lister.Name() {
-		names = append(names, n)
-	}
-	if err := lister.Err(); err != nil {
-		t.Fatal("stream names:", err)
-	}
-	if len(names) != 2 {
-		t.Fatalf("expected inst_X_R and inst_X_X, got %v", names)
-	}
-
 	// pull side: durable consumer on the upstream origin stream
 	src, err := jsDev.Stream(ctx, "inst_X_R")
 	if err != nil {
@@ -255,6 +241,21 @@ func TestAuthSpike(t *testing.T) {
 	}
 	if _, err := jsDev.Stream(short(), "inst_Y_Y"); err == nil {
 		t.Fatal("expected stream info on another boundary to fail")
+	}
+	if _, err := jsFull.CreateStream(ctx, jetstream.StreamConfig{
+		Name: "inst_X_Y", Subjects: []string{"inst.X.Y.>"},
+	}); err != nil {
+		t.Fatal("upstream create stream for another origin:", err)
+	}
+	if _, err := jsDev.Stream(short(), "inst_X_Y"); err == nil {
+		t.Fatal("expected stream info on another origin in the boundary to fail")
+	}
+	lister := jsDev.StreamNames(short())
+	for n := range lister.Name() {
+		t.Errorf("device listed stream %v", n)
+	}
+	if lister.Err() == nil {
+		t.Fatal("expected listing stream names to fail")
 	}
 	if _, err := dev.Request("nodes.all.Y", nil, 300*time.Millisecond); err == nil {
 		t.Fatal("expected node request on another device to fail")

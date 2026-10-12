@@ -79,24 +79,26 @@ instance on the upstream.
 
 ### Phase 3: Narrow the device credential
 
-- [ ] `devicePermissions` (`server/auth.go`): grant the pull subjects for
+- [x] `devicePermissions` (`server/auth.go`): grant the pull subjects for
       `inst_X_R` only, and drop `$JS.API.STREAM.NAMES`.
-- [ ] Remove the per-device origin tracking that only fed the grant: the
+- [x] Remove the per-device origin tracking that only fed the grant: the
       `origins` field, `loadOrigins` and its enqueue on stream changes,
       `originsFor`, and the `grant` comparison in `enforce`.
-- [ ] Update `server/auth_test.go` for the narrower grant. A device asking for
-      `$JS.API.STREAM.NAMES` or another origin's stream is refused.
-- [ ] Docs:
-  - [ ] `docs/ref/security.md`, What a device credential allows: remove the
+- [x] Remove `client.StreamBoundaryOrigin`, whose only caller was `loadOrigins`.
+- [x] Update `server/auth_test.go` and `server/auth_spike_test.go` for the
+      narrower grant. A device asking for `$JS.API.STREAM.NAMES` or another
+      origin's stream is refused.
+- [x] Docs:
+  - [x] `docs/ref/security.md`, What a device credential allows: remove the
         "Discover streams" row and the `STREAM.NAMES` limitation, list only
         `inst_X_R` for pull, and replace the paragraph on enumerating origins
         and reconnecting.
-  - [ ] `CHANGELOG.md`: the Changed entry is drafted. Add a Security entry
+  - [x] `CHANGELOG.md`: the Changed entry is drafted. Add a Security entry
         saying a device can no longer list the instances on its upstream.
-- [ ] Add a note to follow-ups items 1 and 2: multi-hop and nested boundaries
+- [x] Add a note to follow-ups items 1 and 2: multi-hop and nested boundaries
       need their own way for a device to learn of, and be granted, origins
       beyond its upstream.
-- [ ] `go test -race ./client/... ./server/...`, `golangci-lint run`. Commit.
+- [x] `go test -race ./client/... ./server/...`, `golangci-lint run`. Commit.
 
 ### Phase 4: Measure
 
