@@ -25,4 +25,4 @@
 | 2026-09-19-security-followups.md                 | **IN PROGRESS** (items 7, 8, 9 done)                                                    | d4855615      |
 | 2026-09-19-jetstream-sync-followups.md           | **NOT STARTED**                                                                         | a85c26f6      |
 | 2026-09-19-shared-nodes-across-devices.md        | **COMPLETE**                                                                            | cda79cb7      |
-| 2026-10-12-sync-idle-traffic.md                  | **IN PROGRESS** (Phases 1-3 done)                                                       | 4c0e082d      |
+| 2026-10-12-sync-idle-traffic.md                  | **COMPLETE** (field check on edge-bw-test pending)                                      | 4c0e082d      |

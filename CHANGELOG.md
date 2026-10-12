@@ -20,13 +20,13 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
-- **An idle sync connection uses much less data.** A device checked the upstream
-  for new streams every 2 seconds, about 20 MB a day with nothing to sync; it no
-  longer polls. Upgrade devices and their upstream together: a device on an
-  older release that connects with a device credential no longer receives
-  configuration from an upstream on this release, and a device on this release
-  receives configuration from an older upstream only after it reconnects. See
-  [Synchronization](docs/ref/sync.md#life-of-a-connection).
+- **An idle sync connection uses about a quarter of the data.** An idle device
+  used about 25 MB a day, mostly checking the upstream for new streams every 2
+  seconds; it now uses about 6 MB. Upgrade devices and their upstream together:
+  a device on an older release that connects with a device credential no longer
+  receives configuration from an upstream on this release, and a device on this
+  release receives configuration from an older upstream only after it
+  reconnects. See [Synchronization](docs/ref/sync.md#life-of-a-connection).
 
 ## [0.28.4] - 2026-10-12
 

@@ -102,12 +102,19 @@ instance on the upstream.
 
 ### Phase 4: Measure
 
-- [ ] Rebuild and restart the edge in `/scratch/siot/edge-test2` (port 4422) and
-      its upstream.
-- [ ] Sample `ss -tin` on the upstream connection 60 s apart, and compare with
-      the Grafana `edge-sync` dashboard for `edge-bw-test` over 24 h.
-- [ ] Replace the "about 20 MB a day" estimate in the changelog with the
-      measured saving. Commit.
+- [x] Measured on a scratch upstream and device on this machine rather than the
+      edge in `/scratch/siot/edge-test2`, whose upstream is the production
+      server. Same configuration both times (one sync node, bytes reported every
+      60 s), 180 s sampled with `ss -tin` after 30 s to settle:
+
+      | Build                 | Sent    | Received | Per day  |
+      | --------------------- | ------- | -------- | -------- |
+      | `4c0e082d` (before)   | 128 B/s | 165 B/s  | 25.3 MB  |
+      | Phase 3 (after)       | 38 B/s  | 31 B/s   | 6.0 MB   |
+
+- [x] Replace the estimate in the changelog with the measured saving. Commit.
+- [ ] Confirm on the `edge-sync` Grafana dashboard for `edge-bw-test` once the
+      edge and its upstream run this release.
 - [ ] If the remainder still matters on cellular, list the next contributors
       (pull consumer idle heartbeats, long `inst.*` publish subjects,
       once-a-minute metrics and byte reports) as follow-ups rather than
