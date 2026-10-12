@@ -259,3 +259,47 @@ rely on in-order redelivery, which would need to be reworked for push delivery.
 TLS session resumption would shorten the handshake on each reconnect, and the
 device could skip requests whose answers it already holds, such as the upstream
 root, when it reconnects to the same upstream.
+
+### A 10 MB a month budget
+
+A hypothetical device shows how these ideas add up. It has 10 analog and 5
+discrete inputs, sends on change with a 15-minute refresh, and syncs over TLS
+with the compression described [above](#compression). Each analog input changes
+significantly 24 times a day and each discrete input 20 times, on top of its
+refresh. The link drops twice a day.
+
+| Use                                       | Send on change and compression | Also batching and a push consumer |
+| ----------------------------------------- | ------------------------------ | --------------------------------- |
+| Refresh of unchanged inputs (1,440 a day) | 2.3 MB                         | 1.3 MB                            |
+| Changes (340 a day)                       | 0.6 MB                         | 0.3 MB                            |
+| Sync byte counters (hourly)               | 0.1 MB                         | 0.04 MB                           |
+| Configuration keepalive                   | 2.2 MB                         | none                              |
+| Configuration changes from the upstream   | under 0.1 MB                   | under 0.1 MB                      |
+| Connection pings                          | 0.2 MB (every 2 minutes)       | 0.1 MB (every 5 minutes)          |
+| Reconnects, with a full TLS handshake     | 0.4 MB                         | 0.4 MB                            |
+| TLS record overhead                       | 5.7 MB                         | 0.8 MB                            |
+| IP and TCP headers                        | 22 MB                          | 2.8 MB                            |
+| **Total**                                 | **about 34 MB**                | **about 6 MB**                    |
+
+The estimates assume:
+
+- a point compresses to 54 bytes, or 31 bytes when a batch shares one
+  acknowledgment;
+- each packet carries 52 bytes of IP and TCP header, and each message sent on
+  its own takes about three packets once TCP acknowledgments are counted;
+- each TLS 1.3 record adds about 22 bytes, and a full handshake about 5 KB;
+- batching sends whatever has changed every 5 minutes, in about three packets
+  per burst;
+- the push consumer sends configuration only when it changes, with no idle
+  heartbeat.
+
+Compression shrinks what each message carries, but every message still costs a
+packet, its headers, a TLS record, and an acknowledgment. Once messages are tens
+of bytes, those per-packet costs are most of the bill: the configuration
+keepalive's heartbeat every 30 seconds costs about 9 MB a month in headers
+alone. Send on change and compression get the payload under budget; reaching 10
+MB also takes fewer packets, which is what batching and a push consumer provide.
+
+The ping interval is the remaining fixed cost. Pings keep the carrier's NAT
+mapping alive, and carriers differ in how long an idle TCP connection survives,
+so measure on the target network before stretching it.
