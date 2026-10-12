@@ -34,10 +34,22 @@ const (
 	PointTypeErrorCountResetHR  = "errorCountResetHR"
 	PointTypeSyncCount          = "syncCount"
 	PointTypeSyncCountReset     = "syncCountReset"
-	PointTypeReadOnly           = "readOnly"
-	PointTypeURI                = "uri"
-	PointTypeDisabled           = "disabled"
-	PointTypeControlled         = "controlled"
+
+	// PointTypeRxBytes and PointTypeTxBytes total the bytes a client
+	// receives and sends on its link.
+	PointTypeRxBytes      = "rxBytes"
+	PointTypeTxBytes      = "txBytes"
+	PointTypeRxBytesReset = "rxBytesReset"
+	PointTypeTxBytesReset = "txBytesReset"
+
+	// PointTypeBytesReportPeriod is how often, in seconds, a client
+	// reports rxBytes and txBytes.
+	PointTypeBytesReportPeriod = "bytesReportPeriod"
+
+	PointTypeReadOnly   = "readOnly"
+	PointTypeURI        = "uri"
+	PointTypeDisabled   = "disabled"
+	PointTypeControlled = "controlled"
 
 	// Edge points that say what an edge means for the node below it.
 	// A node that owns something outside the tree -- a bus, a line, a

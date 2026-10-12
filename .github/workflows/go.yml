@@ -49,5 +49,5 @@ jobs:
         with:
           # Pinned so CI matches the version developers run locally. Bump
           # this deliberately, along with any fixes new checks require.
-          version: v2.13.2
+          version: v2.14.0
           args: --timeout=5m

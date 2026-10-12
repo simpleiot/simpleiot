@@ -11,7 +11,47 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Security
+
+- **Built with Go 1.27.2 and `golang.org/x/net` v0.60.0.** These releases fix
+  vulnerabilities in the HTTP, HTTP/2, and TLS code that Simple IoT uses.
+
+## [0.28.4] - 2026-10-12
+
+### Security
+
+- **Any account can currently take over an instance.** A second audit found that
+  any account can create a device credential, an auto-approve enrollment token,
+  or a `sync` node. Until the fix lands, give accounts only to people you trust
+  with the whole instance. `SIOT_DEVICE_AUTH=required` also does not limit the
+  shared token through the WebSocket proxy. See
+  [Known limitations](docs/ref/security.md#known-limitations).
+- **The upstream creates each device's replica stream, and a device can no
+  longer configure it.** A device could create its stream with extra subjects
+  and a republish, and so read sign-in requests and every point write. An
+  existing stream with such a configuration is replaced at the next start.
+- **A device's writes stay inside its own subtree on the upstream.** The
+  upstream ignores, and logs, any point or edge a device replicates for a node
+  outside its boundary; before, a device could change the upstream root or add a
+  user that signed in with access to the whole tree.
+
+### Added
+
+- **Sync nodes show how much data they send and receive.** The totals include
+  encryption and protocol overhead, so they help estimate cellular data usage.
+  They update hourly by default, a period set on the sync node, and can be
+  reset. See [Synchronization](docs/user/sync.md#schema).
+
 ### Changed
+
+### Fixed
+
+- **The device node no longer lists deleted points or repeats its tags.** Tags
+  appear only in the Tags section.
+
+- **Negative whole numbers keep their sign.** A value such as `-1` written as an
+  integer, for example from an imported file, was read back as `255`. Values
+  already stored read back correctly after upgrading.
 
 ## [0.28.3] - 2026-09-21
 

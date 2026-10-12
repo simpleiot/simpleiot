@@ -196,6 +196,11 @@ module Api.Point exposing
     , typeSwitchSet
     , typeSyncCount
     , typeSyncCountReset
+    , typeTxBytes
+    , typeRxBytes
+    , typeTxBytesReset
+    , typeRxBytesReset
+    , typeBytesReportPeriod
     , typeSyncParent
     , typeSysState
     , typeTag
@@ -517,6 +522,31 @@ typeSyncCount =
 typeSyncCountReset : String
 typeSyncCountReset =
     "syncCountReset"
+
+
+typeTxBytes : String
+typeTxBytes =
+    "txBytes"
+
+
+typeRxBytes : String
+typeRxBytes =
+    "rxBytes"
+
+
+typeTxBytesReset : String
+typeTxBytesReset =
+    "txBytesReset"
+
+
+typeRxBytesReset : String
+typeRxBytesReset =
+    "rxBytesReset"
+
+
+typeBytesReportPeriod : String
+typeBytesReportPeriod =
+    "bytesReportPeriod"
 
 
 typeErrorCountHR : String

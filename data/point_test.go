@@ -117,3 +117,21 @@ func TestDecodeSerialHrPayload(t *testing.T) {
 		}
 	}
 }
+
+func TestPointIntRoundTrip(t *testing.T) {
+	for _, v := range []int64{
+		0, 1, -1, 127, -128, 128, -129, 32767, -32768, 32768, -32769,
+		2147483647, -2147483648, 2147483648, -2147483649,
+		math.MaxInt64, math.MinInt64,
+	} {
+		var p Point
+		p.PutInt(v)
+		got, err := p.ValueInt()
+		if err != nil {
+			t.Fatalf("%v: %v", v, err)
+		}
+		if got != v {
+			t.Errorf("PutInt(%v) read back as %v", v, got)
+		}
+	}
+}

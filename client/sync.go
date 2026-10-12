@@ -37,6 +37,16 @@ type Sync struct {
 	Disabled       bool   `point:"disabled"`
 	SyncCount      int    `point:"syncCount"`
 	SyncCountReset bool   `point:"syncCountReset"`
+	// TxBytes and RxBytes total the traffic on the upstream
+	// connection, including TLS and NATS protocol overhead. The client
+	// maintains them and reports every BytesReportPeriod seconds.
+	TxBytes      float64 `point:"txBytes"`
+	RxBytes      float64 `point:"rxBytes"`
+	TxBytesReset bool    `point:"txBytesReset"`
+	RxBytesReset bool    `point:"rxBytesReset"`
+	// BytesReportPeriod is how often, in seconds, TxBytes and RxBytes
+	// are reported. Unset reports hourly.
+	BytesReportPeriod float64 `point:"bytesReportPeriod"`
 }
 
 // SyncClient handles a connection to an upstream instance by
@@ -68,6 +78,9 @@ type SyncClient struct {
 	ncRemote  *nats.Conn
 	sessions  int
 
+	// counter totals upstream traffic across reconnects
+	counter *ConnCounter
+
 	sessionCancel context.CancelFunc
 	sessionDone   chan struct{}
 }
@@ -75,6 +88,11 @@ type SyncClient struct {
 // syncPullScanPeriod is how often the pull side rescans the upstream
 // for new origin streams in this instance's boundary.
 const syncPullScanPeriod = 2 * time.Second
+
+// syncBytesReportDefault is how often the sync client reports upstream
+// traffic totals when the node does not set a period. The report is
+// itself synced upstream, so it is kept infrequent for metered links.
+const syncBytesReportDefault = time.Hour
 
 // SyncErrorPending is the sync node's error while an enrollment waits for
 // approval on the upstream.
@@ -100,6 +118,7 @@ func NewSyncClient(nc *nats.Conn, config Sync) Client {
 		newEdgePoints: make(chan NewPoints),
 		chConnected:   make(chan bool),
 		chClosed:      make(chan struct{}, 1),
+		counter:       &ConnCounter{},
 	}
 }
 
@@ -111,6 +130,13 @@ func (up *SyncClient) Run() error {
 		return fmt.Errorf("error getting root node: %v", err)
 	}
 
+	// continue the totals saved on the node
+	up.counter.SetSent(uint64(up.config.TxBytes))
+	up.counter.SetRecv(uint64(up.config.RxBytes))
+
+	bytesTicker := time.NewTicker(up.bytesReportPeriod())
+	defer bytesTicker.Stop()
+
 	connectTimer := time.NewTimer(time.Millisecond * 10)
 	connected := false
 
@@ -120,6 +146,9 @@ done:
 		case <-up.stop:
 			log.Println("Stopping sync client:", up.config.Description)
 			break done
+
+		case <-bytesTicker.C:
+			up.reportBytes()
 
 		case <-connectTimer.C:
 			err := up.connect()
@@ -180,6 +209,8 @@ done:
 					up.stopSession()
 					up.disconnect()
 					connectTimer.Reset(10 * time.Millisecond)
+				case data.PointTypeBytesReportPeriod:
+					bytesTicker.Reset(up.bytesReportPeriod())
 				}
 			}
 
@@ -198,6 +229,30 @@ done:
 				}
 			}
 
+			if up.config.TxBytesReset {
+				up.config.TxBytesReset = false
+				up.counter.SetSent(0)
+				up.reportBytes()
+
+				err = SendNodePoint(up.nc, up.config.ID,
+					data.NewPointFloat(data.PointTypeTxBytesReset, "", 0), false)
+				if err != nil {
+					log.Println("Error resetting sync tx bytes:", err)
+				}
+			}
+
+			if up.config.RxBytesReset {
+				up.config.RxBytesReset = false
+				up.counter.SetRecv(0)
+				up.reportBytes()
+
+				err = SendNodePoint(up.nc, up.config.ID,
+					data.NewPointFloat(data.PointTypeRxBytesReset, "", 0), false)
+				if err != nil {
+					log.Println("Error resetting sync rx bytes:", err)
+				}
+			}
+
 		case pts := <-up.newEdgePoints:
 			err := data.MergeEdgePoints(pts.ID, pts.Parent, pts.Points, &up.config)
 			if err != nil {
@@ -208,6 +263,7 @@ done:
 
 	up.stopSession()
 	up.disconnect()
+	up.reportBytes()
 
 	return nil
 }
@@ -262,6 +318,7 @@ func (up *SyncClient) connect() error {
 	}
 
 	opts.CACert = up.config.CACert
+	opts.Counter = up.counter
 
 	if up.config.AuthToken == "" {
 		// no token: connect with this instance's device key, which the
@@ -292,6 +349,33 @@ func (up *SyncClient) connect() error {
 	}
 
 	return nil
+}
+
+// bytesReportPeriod is the traffic report period, bounded so a period
+// point of any value is safe to build a ticker from.
+func (up *SyncClient) bytesReportPeriod() time.Duration {
+	return pointDuration(up.config.BytesReportPeriod, time.Second,
+		syncBytesReportDefault, time.Second)
+}
+
+// reportBytes sends the upstream traffic totals to the sync node when
+// they have changed since the last report.
+func (up *SyncClient) reportBytes() {
+	sent := float64(up.counter.Sent())
+	recv := float64(up.counter.Recv())
+	if sent == up.config.TxBytes && recv == up.config.RxBytes {
+		return
+	}
+	up.config.TxBytes = sent
+	up.config.RxBytes = recv
+
+	err := SendPoints(up.nc, SubjectNodePoints(up.config.ID), data.Points{
+		data.NewPointFloat(data.PointTypeTxBytes, "", sent),
+		data.NewPointFloat(data.PointTypeRxBytes, "", recv),
+	}, false)
+	if err != nil {
+		log.Println("Error sending sync bytes:", err)
+	}
 }
 
 // enroll asks the upstream for a credential for this instance's key using

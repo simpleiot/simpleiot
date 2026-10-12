@@ -22,6 +22,6 @@
 | 2026-08-24-primary-mirror-edges.md               | **COMPLETE**                                                                            | fc017969      |
 | 2026-08-26-shelly-push-and-generic-components.md | **COMPLETE** (Phase 4 CoIoT for Gen1 not done)                                          | 98e0fa88      |
 | 2026-09-01-ui-over-nats.md                       | **COMPLETE** (in-process server client not done; see plan)                              | b373fc73      |
-| 2026-09-19-security-followups.md                 | **NOT STARTED**                                                                         | d4855615      |
+| 2026-09-19-security-followups.md                 | **IN PROGRESS** (items 7, 8, 9 done)                                                    | d4855615      |
 | 2026-09-19-jetstream-sync-followups.md           | **NOT STARTED**                                                                         | a85c26f6      |
 | 2026-09-19-shared-nodes-across-devices.md        | **COMPLETE**                                                                            | cda79cb7      |

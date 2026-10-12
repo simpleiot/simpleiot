@@ -51,6 +51,7 @@ func (db *DbJetStream) mergeRemoteEdgePoints(nodeID, parentID string, points dat
 		}
 	}
 	db.edgeCache.MergeEdgePoints(parentID, nodeID, nodeType, origin, points)
+	db.releaseReplica(nodeID)
 }
 
 // replicaManager tracks running replica stream consumers.
@@ -59,10 +60,9 @@ type replicaManager struct {
 	mu      sync.Mutex
 	running map[string]jetstream.ConsumeContext
 	// unknown records replica streams whose boundary is not a node this
-	// instance knows, so each is reported once. The permission set is what
-	// keeps a device inside its own boundary; this is the store noticing
-	// when something got past it, or when a device was removed from the
-	// tree and its stream is still here.
+	// instance knows, so each is reported once: a device was removed from
+	// the tree and its stream is still here. What a stream may write is
+	// checked per message (see replicaWait).
 	unknown map[string]bool
 	stop    chan struct{}
 	done    chan struct{}
@@ -225,7 +225,7 @@ func (rm *replicaManager) consumeReplica(name, origin string) (jetstream.Consume
 	caughtUp := false
 
 	return c.Consume(func(msg jetstream.Msg) {
-		changed := rm.db.mergeReplicaMsg(msg.Subject(), msg.Data(), origin)
+		changed := rm.db.mergeReplicaMsg(msg.Subject(), msg.Data(), origin, true)
 
 		backlog := uint64(0)
 		if meta, err := msg.Metadata(); err == nil {
@@ -259,7 +259,13 @@ func (rm *replicaManager) consumeReplica(name, origin string) (jetstream.Consume
 // returning true if it changed a subject tip. The storage subject is
 // inst.<boundary>.<origin>.<nodeID>.p.<type>.<key> for node points or
 // inst.<boundary>.<origin>.<parentID>.ep.<childID> for edge points.
-func (db *DbJetStream) mergeReplicaMsg(subject string, payload []byte, origin string) bool {
+//
+// A message from a downstream instance is merged only when it stays
+// inside the stream's boundary (see replicaWait); one that does not is
+// held, and merged if a later edge places it there. live says the
+// message came from a replica consumer, so a held message is broadcast
+// when it is released.
+func (db *DbJetStream) mergeReplicaMsg(subject string, payload []byte, origin string, live bool) bool {
 	tok := strings.Split(subject, ".")
 
 	pts, err := data.DecodePoints(payload)
@@ -271,6 +277,10 @@ func (db *DbJetStream) mergeReplicaMsg(subject string, payload []byte, origin st
 	switch {
 	case len(tok) == 7 && tok[4] == "p":
 		nodeID := tok[3]
+		if wait := db.replicaWait(tok[1], origin, nodeID, ""); wait != "" {
+			db.holdReplica(wait, subject, payload, origin, live)
+			return false
+		}
 		changed := false
 		for _, p := range pts {
 			if p.Type == "" {
@@ -292,16 +302,196 @@ func (db *DbJetStream) mergeReplicaMsg(subject string, payload []byte, origin st
 			// and must not become a second root here
 			return false
 		}
+		if wait := db.replicaWait(tok[1], origin, parentID, childID); wait != "" {
+			db.holdReplica(wait, subject, payload, origin, live)
+			return false
+		}
 		nodeType := ""
 		for _, p := range pts {
 			if p.Type == data.PointTypeNodeType {
 				nodeType = p.Txt()
 			}
 		}
-		return db.edgeCache.MergeEdgePoints(parentID, childID, nodeType, origin, pts)
+		changed := db.edgeCache.MergeEdgePoints(parentID, childID, nodeType, origin, pts)
+		db.releaseReplica(childID)
+		return changed
 	}
 
 	return false
+}
+
+// replicaWait decides whether a replica stream message may be merged. A
+// downstream instance writes its own boundary, so a point is merged only
+// when its node is in the stream's boundary, and an edge only when its
+// parent is and its child is not a node of this instance's own tree.
+// Without this, a device could write the upstream root, or add a user
+// under it and sign in with the whole tree in scope.
+//
+// Streams this instance wrote, and streams for its own root boundary
+// (written by its upstream), are trusted. For the rest, replicaWait
+// returns "" when the message may be merged, or else the node whose place
+// in the tree has to change first: the message is held until an edge
+// reaching that node is merged. childID is "" for a node point.
+func (db *DbJetStream) replicaWait(boundary, origin, nodeID, childID string) string {
+	self := db.meta.RootID
+	if origin == self || boundary == self {
+		return ""
+	}
+
+	if !db.inBoundary(nodeID, boundary) {
+		return nodeID
+	}
+
+	if childID == "" {
+		return ""
+	}
+
+	if db.ownedHere(childID) && !db.inBoundary(childID, boundary) {
+		return childID
+	}
+
+	if _, ok := db.edgeCache.Get(nodeID, childID); !ok && db.isUnder(nodeID, childID) {
+		// same rule as edgePoints: a new edge must not close a loop
+		// through the tree
+		return childID
+	}
+
+	return ""
+}
+
+// ownedHere reports whether a node is part of this instance's own tree
+// rather than a device's: some chain of its edges, deleted or not, reaches
+// this instance's root without passing through a device boundary. A
+// device may place a node it created, or one another instance mirrored
+// into a device, but not one of these. The answer does not depend on
+// the order edges arrive in, so the start-up load and the live consumer
+// agree.
+func (db *DbJetStream) ownedHere(id string) bool {
+	self := db.meta.RootID
+	visited := map[string]bool{id: true}
+	frontier := []string{id}
+
+	for len(frontier) > 0 {
+		n := frontier[0]
+		frontier = frontier[1:]
+
+		for _, e := range db.edgeCache.Parents(n) {
+			up := e.Up
+			if up == "root" || up == self {
+				return true
+			}
+			if visited[up] {
+				continue
+			}
+			visited[up] = true
+			if db.edgeCache.IsBoundary(up, self) {
+				continue
+			}
+			frontier = append(frontier, up)
+		}
+	}
+
+	return false
+}
+
+// inBoundary reports whether a node is in a boundary: the boundary node
+// itself, a node under it, or a deleted node every one of whose edges has
+// a parent in it, so a downstream instance can still write the nodes it
+// deleted and restore them.
+func (db *DbJetStream) inBoundary(id, boundary string) bool {
+	if id == boundary || db.isUnder(id, boundary) {
+		return true
+	}
+
+	parents := db.edgeCache.Parents(id)
+	if len(parents) == 0 {
+		return false
+	}
+	for _, e := range parents {
+		if e.Up != boundary && !db.isUnder(e.Up, boundary) {
+			return false
+		}
+	}
+	return true
+}
+
+// maxHeldReplica caps the replica messages held waiting for an edge. A
+// message past the cap is dropped; it stays in its stream and is
+// considered again at the next start.
+const maxHeldReplica = 100000
+
+// heldReplica is a replica stream message waiting for an edge.
+type heldReplica struct {
+	payload []byte
+	origin  string
+	live    bool
+}
+
+// holdReplica keeps a message refused by replicaWait until an edge
+// reaches the node it waits on. A message arriving before the edge that
+// places its node is normal (a consumer delivers the last message of
+// each subject in stream order, not tree order), so each refusal is
+// logged once per node, and a message still held says the downstream
+// instance wrote outside its boundary.
+func (db *DbJetStream) holdReplica(wait, subject string, payload []byte, origin string, live bool) {
+	db.heldMu.Lock()
+	defer db.heldMu.Unlock()
+
+	byNode := db.held[wait]
+	if byNode == nil {
+		if db.heldCount >= maxHeldReplica {
+			log.Printf("STORE: dropping replica msg %v: %v held already", subject, db.heldCount)
+			return
+		}
+		byNode = make(map[string]heldReplica)
+		db.held[wait] = byNode
+		log.Printf("STORE: holding replica msg %v until node %v is in its boundary", subject, wait)
+	}
+
+	if _, ok := byNode[subject]; !ok {
+		db.heldCount++
+	}
+	byNode[subject] = heldReplica{payload: payload, origin: origin, live: live}
+}
+
+// releaseReplica merges the held messages waiting on a node or any node
+// below it, after an edge that may have placed them in their boundary.
+// Those that are still outside it are held again.
+func (db *DbJetStream) releaseReplica(id string) {
+	db.heldMu.Lock()
+	empty := len(db.held) == 0
+	db.heldMu.Unlock()
+	if empty {
+		return
+	}
+
+	visited := map[string]bool{id: true}
+	frontier := []string{id}
+
+	for len(frontier) > 0 {
+		n := frontier[0]
+		frontier = frontier[1:]
+
+		db.heldMu.Lock()
+		byNode := db.held[n]
+		delete(db.held, n)
+		db.heldCount -= len(byNode)
+		db.heldMu.Unlock()
+
+		for subject, h := range byNode {
+			if db.mergeReplicaMsg(subject, h.payload, h.origin, h.live) && h.live {
+				db.broadcastReplica(subject, h.payload, h.origin)
+			}
+		}
+
+		for _, e := range db.edgeCache.Children(n) {
+			if e.IsTombstone() || visited[e.Down] {
+				continue
+			}
+			visited[e.Down] = true
+			frontier = append(frontier, e.Down)
+		}
+	}
 }
 
 // broadcastReplica re-broadcasts a replica stream message on the core
