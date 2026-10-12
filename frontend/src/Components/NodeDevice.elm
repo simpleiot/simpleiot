@@ -103,7 +103,11 @@ view o =
                                 Nothing ->
                                     ""
                     in
-                    [ viewPoints <| Point.filterSpecialPoints <| List.sortWith Point.sort o.node.points
+                    [ viewPoints <|
+                        List.filter (\p -> p.typ /= Point.typeTag) <|
+                            Point.filterSpecialPoints <|
+                                Point.filterDeleted <|
+                                    List.sortWith Point.sort o.node.points
                     , text ("Last update: " ++ Iso8601.toDateTimeString o.zone latestPointTime)
                     , text
                         ("Time since last update: "

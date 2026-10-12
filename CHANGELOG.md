@@ -39,6 +39,9 @@ For more details or to discuss releases, please visit the
 
 ### Fixed
 
+- **The device node no longer lists deleted points or repeats its tags.** Tags
+  appear only in the Tags section.
+
 - **Negative whole numbers keep their sign.** A value such as `-1` written as an
   integer, for example from an imported file, was read back as `255`. Values
   already stored read back correctly after upgrading.
