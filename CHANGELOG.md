@@ -11,11 +11,6 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
-### Security
-
-- **Built with Go 1.27.2 and `golang.org/x/net` v0.60.0.** These releases fix
-  vulnerabilities in the HTTP, HTTP/2, and TLS code that Simple IoT uses.
-
 ## [0.28.4] - 2026-10-12
 
 ### Security
@@ -34,6 +29,8 @@ For more details or to discuss releases, please visit the
   upstream ignores, and logs, any point or edge a device replicates for a node
   outside its boundary; before, a device could change the upstream root or add a
   user that signed in with access to the whole tree.
+- **Built with Go 1.27.2 and `golang.org/x/net` v0.60.0.** These releases fix
+  vulnerabilities in the HTTP, HTTP/2, and TLS code that Simple IoT uses.
 
 ### Added
 
