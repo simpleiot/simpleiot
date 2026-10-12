@@ -197,6 +197,25 @@ example, would also put more data in each packet, so the IP and TCP headers the
 carrier bills are shared across many points. Fewer, larger transmissions also
 let a cellular radio stay idle longer, which saves power.
 
+With the 88% [compression](#compression) below, a point's publish is about 31
+bytes and an acknowledgment about 23. Sent on its own, a point also takes about
+three packets (52 bytes of IP and TCP header each, once TCP acknowledgments are
+counted) and two TLS records (about 22 bytes each), so the packaging outweighs
+the point. A burst shares that packaging, and a single acknowledgment, across
+every point in it. For a device writing one point a minute:
+
+| How points are sent          | Per point | Per month |
+| ---------------------------- | --------- | --------- |
+| One at a time, uncompressed  | 650 B     | 28 MB     |
+| One at a time, compressed    | 254 B     | 11 MB     |
+| Every 5 minutes, compressed  | 76 B      | 3.3 MB    |
+| Every 15 minutes, compressed | 46 B      | 2.0 MB    |
+
+The cost is latency upstream: a change reaches the upstream up to one burst
+interval late. Rules on the device still act at once, since they read the local
+store, and a change that should not wait, such as an alarm, could send its burst
+immediately.
+
 ### Compression
 
 Point messages repeat the same subjects over and over, which compresses well
