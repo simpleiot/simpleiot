@@ -106,3 +106,80 @@ For a device on a plan of tens of megabytes a month:
 - Watch `txBytes`, `rxBytes`, and the sync count for a few days after
   deployment. A rising sync count means reconnects, which cost data even when
   nothing changes.
+
+## Ideas
+
+None of these are implemented. They are directions for bringing the cost of a
+point, and of an idle connection, down further. The estimates are rough and each
+idea needs measuring before it is adopted.
+
+### Shorter IDs
+
+Node and instance IDs are UUIDs written as 36 characters. The same 128 bits
+encoded as base64url take 22 characters, and base64url uses only characters that
+are valid in NATS subject tokens and stream names. A point's subject carries
+three IDs and the acknowledgment names a stream built from two, so shorter IDs
+would save about 70 bytes per point. IDs are stored and shown to users, so this
+changes every existing tree.
+
+### Leave the boundary and origin out of the wire subject
+
+Every publish repeats `inst.<device>.<device>.` because the upstream's replica
+stream captures that subject. The upstream already knows which device a
+credentialed connection belongs to, so the device could publish a short subject
+such as `d.<node>.p.<type>.<key>` and the upstream could rewrite it into the
+stored form. NATS offers two places to do that: a subject transform on the
+replica stream (`SubjectTransform` in the stream configuration), or a subject
+mapping on the device's account. The device's local stream keeps the full
+subjects, so the pump would rewrite them as it sends.
+
+### Short aliases for boundary and origin pairs
+
+Where the full subject has to cross the link, the upstream could assign each
+(boundary, origin) pair a short alias when the device enrolls, stored on its
+credential node: `inst.<device>.<device>` becomes, say, `a.17`. The replica
+stream would capture `a.17.>` and transform it to the stored form. The same idea
+could extend to node IDs, with a per-device table of short node numbers, at the
+cost of keeping that table consistent on both sides.
+
+### Shorter reply inboxes
+
+Each request and each acknowledgment carries a reply inbox that starts with the
+device's 56-character public key. Any prefix the upstream can derive from the
+key works for scoping replies, for example a 22-character hash, which would save
+about 35 bytes in each direction per point.
+
+### Batching
+
+The pump publishes each point as its own message and waits for its own
+acknowledgment, which is about 40% of a point's cost. NATS 2.12 and later can
+acknowledge a batch as a whole: atomic batch publish (`AllowAtomicPublish`)
+stores a batch all at once and acknowledges only its last message, and fast
+batch publish (`AllowBatchPublish`) acknowledges periodically. Either fits the
+pump's existing windows, and would remove most acknowledgments.
+
+Holding points on the device and sending them in bursts, every few minutes for
+example, would also put more data in each packet, so the IP and TCP headers the
+carrier bills are shared across many points. Fewer, larger transmissions also
+let a cellular radio stay idle longer, which saves power.
+
+### Compression
+
+Point messages repeat the same subjects over and over, which compresses well.
+NATS supports compression on WebSocket connections (`Compression` in the client
+options, with compression enabled on the server's WebSocket listener), and sync
+already accepts `ws://` URIs. Leaf node connections support S2 compression as
+well, but would change how sync connects and authenticates.
+
+### A push consumer for configuration
+
+A push consumer delivers configuration from the upstream without the device
+renewing a pull request, so it needs no idle heartbeat and would remove most of
+the 18 MB a month an idle device spends on the keepalive. The pump's windows
+rely on in-order redelivery, which would need to be reworked for push delivery.
+
+### Faster reconnects
+
+TLS session resumption would shorten the handshake on each reconnect, and the
+device could skip requests whose answers it already holds, such as the upstream
+root, when it reconnects to the same upstream.
