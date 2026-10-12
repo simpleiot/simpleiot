@@ -18,6 +18,12 @@ For more details or to discuss releases, please visit the
   its configuration. See
   [What a device credential allows](docs/ref/security.md#what-a-device-credential-allows).
 
+### Added
+
+- **A bandwidth reference shows how to fit a device on a metered cellular
+  plan.** It lists where a device's upstream traffic comes from, what each point
+  costs, and which settings reduce it. See [Bandwidth](docs/ref/bandwidth.md).
+
 ### Changed
 
 - **Store metrics are off by default.** The `metricNats*` points on the root
