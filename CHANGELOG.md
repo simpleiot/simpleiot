@@ -26,13 +26,15 @@ For more details or to discuss releases, please visit the
   and set how often they are reported with **Metrics period**. Values already on
   the node stay until removed. See
   [Reliability](docs/ref/reliability.md#point-metrics).
-- **An idle sync connection uses about a quarter of the data.** An idle device
-  used about 25 MB a day, mostly checking the upstream for new streams every 2
-  seconds; it now uses about 6 MB. Upgrade devices and their upstream together:
-  a device on an older release that connects with a device credential no longer
-  receives configuration from an upstream on this release, and a device on this
-  release receives configuration from an older upstream only after it
-  reconnects. See [Synchronization](docs/ref/sync.md#life-of-a-connection).
+- **An idle sync connection uses far less data.** An idle device used about 25
+  MB a day, mostly checking the upstream for new streams every 2 seconds. It no
+  longer polls, and it renews its subscription to the upstream every 5 minutes
+  instead of every 30 seconds. With store metrics off, it now uses about 2 MB a
+  day. Upgrade devices and their upstream together: a device on an older release
+  that connects with a device credential no longer receives configuration from
+  an upstream on this release, and a device on this release receives
+  configuration from an older upstream only after it reconnects. See
+  [Synchronization](docs/ref/sync.md#life-of-a-connection).
 
 ## [0.28.4] - 2026-10-12
 

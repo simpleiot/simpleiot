@@ -543,6 +543,13 @@ func (up *SyncClient) runSession(ctx context.Context, ncRemote *nats.Conn) error
 // outstanding async publishes.
 const pumpWindowSize = 256
 
+// pumpPullExpiry is how long a pump's pull request stays open on an idle
+// stream before it is renewed. Each renewal and each idle heartbeat (every
+// 30 s, the longest the client allows) crosses the link to the upstream, so
+// a long expiry keeps an idle connection quiet. A lost connection is caught
+// by the reconnect, which starts a new session and new pumps.
+const pumpPullExpiry = 5 * time.Minute
+
 // pumpRetryPeriod is how long a pump waits before resending a window the
 // receiving side did not accept.
 const pumpRetryPeriod = 5 * time.Second
@@ -650,7 +657,8 @@ func runPump(ctx context.Context, src, dst jetstream.JetStream,
 		return nil, fmt.Errorf("error creating sync consumer on %v: %v", name, err)
 	}
 
-	it, err := c.Messages(jetstream.PullMaxMessages(pumpWindowSize))
+	it, err := c.Messages(jetstream.PullMaxMessages(pumpWindowSize),
+		jetstream.PullExpiry(pumpPullExpiry))
 	if err != nil {
 		return nil, fmt.Errorf("error iterating %v: %v", name, err)
 	}
