@@ -183,11 +183,35 @@ written every 5 seconds:
 
 WebSocket framing adds about 2%, and compression saves about 19%. The saving is
 modest because the NATS client and the WebSocket library both compress each
-message on its own, with no dictionary shared across messages, so a subject
-repeated on every point is never reused. Leaf node connections support S2
-compression with a shared context, which would compress repeated subjects much
-further, but would change how sync connects and authenticates. Shorter IDs and
-batch acknowledgment each promise a larger saving.
+message on its own, so a subject repeated on every point is never reused.
+
+A compressor that keeps its state across messages does far better. Replaying a
+recorded sync stream (a point every 5 seconds, plus the idle traffic) through
+compressors that flush after every write, so no message waits:
+
+| Compression                         | Bytes, both directions | Saving |
+| ----------------------------------- | ---------------------- | ------ |
+| None                                | 30,921                 |        |
+| Deflate, each message on its own    | 24,654                 | 20%    |
+| Deflate, state kept across messages | 3,601                  | 88%    |
+| Same, with a 4 KB window            | 3,792                  | 88%    |
+| zstd, state kept across messages    | 3,736                  | 88%    |
+
+A point's publish shrinks from about 260 bytes to about 30, because the subject,
+reply inbox, and stream name repeat almost exactly from one message to the next.
+This is the largest single saving on this page, and it needs no change to
+subjects, IDs, or how sync replicates streams.
+
+Neither the NATS client nor the server offers this on a client connection, so
+Simple IoT would provide the transport itself: a connection wrapper that
+compresses each write with deflate or zstd and flushes it, used by the sync
+client's dialer for a new URI scheme, and a listener on the upstream that
+decompresses and hands the connection to the embedded NATS server. TLS sits
+outside the compression, since compressed ciphertext saves nothing.
+
+With messages this small, the IP and TCP headers on each packet (about 52 bytes,
+plus acknowledgment packets) become most of what the carrier bills, so
+compression pairs well with sending points in bursts.
 
 ### A push consumer for configuration
 
