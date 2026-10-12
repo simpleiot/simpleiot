@@ -545,8 +545,9 @@ const pumpWindowSize = 256
 
 // pumpPullExpiry is how long a pump's pull request stays open on an idle
 // stream before it is renewed. Each renewal and each idle heartbeat (every
-// 30 s, the longest the client allows) crosses the link to the upstream, so
-// a long expiry keeps an idle connection quiet. A lost connection is caught
+// 30 s, the longest Messages allows; Fetch allows up to half the expiry)
+// crosses the link to the upstream, so a long expiry keeps an idle
+// connection quiet. A lost connection is caught
 // by the reconnect, which starts a new session and new pumps.
 const pumpPullExpiry = 5 * time.Minute
 

@@ -59,9 +59,14 @@ minutes and is then renewed, and the upstream sends an idle heartbeat every 30
 seconds so the device can tell that the request is still alive. Together these
 cost about 2 KB every 5 minutes.
 
-30 seconds is the longest heartbeat interval the NATS client allows for a pull
-consumer, so this is the floor for the current design. A push consumer would
-need no heartbeat at all and could bring an idle device close to zero; that is
+The pump reads with the NATS client's `Messages`, which caps the heartbeat at 30
+seconds. `Fetch` has no such cap: its heartbeat only has to be shorter than half
+the request's expiry. A pump that fetched with a 30-minute expiry and a
+15-minute heartbeat would send three messages every 30 minutes instead of twelve
+every 5, bringing the keepalive from 18 MB to about 1 MB a month and sending
+about one twentieth of the packets. A lost pull request would then take up to 30
+minutes to notice; a dropped connection is still caught within minutes by the
+connection pings. A push consumer would need no heartbeat at all; that is
 possible future work.
 
 Connection pings are separate and small, a few bytes every couple of minutes.
@@ -262,6 +267,10 @@ client's dialer for a new URI scheme, and a listener on the upstream that
 decompresses and hands the connection to the embedded NATS server. TLS sits
 outside the compression, since compressed ciphertext saves nothing.
 
+Leaf node connections support S2 compression, but the NATS server compresses
+each flush on its own, starting a new stream every time. A point a minute is a
+flush a minute, so a leaf node saves about what per-message compression does.
+
 With messages this small, the IP and TCP headers on each packet (about 52 bytes,
 plus acknowledgment packets) become most of what the carrier bills, so
 compression pairs well with sending points in bursts.
@@ -272,6 +281,8 @@ A push consumer delivers configuration from the upstream without the device
 renewing a pull request, so it needs no idle heartbeat and would remove most of
 the 18 MB a month an idle device spends on the keepalive. The pump's windows
 rely on in-order redelivery, which would need to be reworked for push delivery.
+Fetching with a long heartbeat (see [The keepalive](#the-keepalive)) gets most
+of the same saving with no change to how the pump orders deliveries.
 
 ### Faster reconnects
 
