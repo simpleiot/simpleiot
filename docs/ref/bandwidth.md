@@ -113,6 +113,40 @@ None of these are implemented. They are directions for bringing the cost of a
 point, and of an idle connection, down further. The estimates are rough and each
 idea needs measuring before it is adopted.
 
+### Send on change
+
+The fewest bytes come from points that are never written. The GPIO, IIO, Modbus,
+and 1-Wire clients already publish a value only when it changes (IIO with a
+`minChange` deadband), and republish it every 10 minutes even when it does not,
+so a graph and an upstream always have a recent sample. That refresh is most of
+what an unchanging input costs.
+
+The filtering belongs in the client that reads the input, which knows the
+signal's units and noise, so local rules, local history, and the upstream all
+see the same points and sync stays a faithful copy of the device's stream. A
+shared helper for the IO clients could offer:
+
+- a deadband for every analog input, as an absolute change or a percent of
+  range, compared against the last published value so slow drift is still
+  reported;
+- a refresh of 15 minutes for unchanged values;
+- a minimum interval, so a noisy input cannot flood the link;
+- a debounce for discrete inputs, so a chattering contact sends one change.
+
+The cost of one unchanging input, per month:
+
+| Refresh    | Points a day | Today  | With 88% compression |
+| ---------- | ------------ | ------ | -------------------- |
+| 10 minutes | 144          | 1.9 MB | 0.23 MB              |
+| 15 minutes | 96           | 1.3 MB | 0.16 MB              |
+
+Ten unchanging inputs on a 15-minute refresh cost about 13 MB a month today, and
+about 1.6 MB with the compression described [below](#compression). Compression
+would bring the keepalive from 18 MB to about 2 MB a month as well, which leaves
+most of a 30 MB plan for changes. At that size the IP and TCP headers on each
+packet, which compression does not reach, become the larger cost, so sending
+points in bursts matters more.
+
 ### Shorter IDs
 
 Node and instance IDs are UUIDs written as 36 characters. The same 128 bits
