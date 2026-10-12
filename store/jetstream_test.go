@@ -1590,3 +1590,68 @@ func TestDbJetStreamReplicaStartsAtTips(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 	}
 }
+
+// A device's sync client pulls inst_<device>_<root> by name, so the stream
+// exists as soon as the device joins the tree, with nothing written to it
+// yet, and is recreated at startup for devices already in the tree.
+func TestDbJetStreamDeviceStream(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "siot-js-test-*")
+	if err != nil {
+		t.Fatal("Error creating temp dir:", err)
+	}
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	ns, nc := newTestNatsServer(t, tmpDir)
+
+	db, err := NewJetStreamDb(nc, "", JsConfig{})
+	if err != nil {
+		t.Fatal("Error creating JetStream db:", err)
+	}
+
+	rootID := db.rootNodeID()
+	devID := uuid.New().String()
+	mkTestNode(t, db, rootID, devID, data.NodeTypeDevice, "")
+
+	ctx := context.Background()
+	name := streamName(devID, rootID)
+
+	s, err := db.js.Stream(ctx, name)
+	if err != nil {
+		t.Fatalf("expected %v to exist after adoption: %v", name, err)
+	}
+	info, err := s.Info(ctx)
+	if err != nil {
+		t.Fatal("Error getting stream info:", err)
+	}
+	if info.State.Msgs != 0 {
+		t.Fatalf("expected %v to be empty, it holds %v messages",
+			name, info.State.Msgs)
+	}
+
+	// a hub upgraded with devices already in its tree creates the
+	// streams at startup
+	err = db.js.DeleteStream(ctx, name)
+	if err != nil {
+		t.Fatal("Error deleting stream:", err)
+	}
+
+	nc.Close()
+	ns.Shutdown()
+	ns.WaitForShutdown()
+
+	ns, nc = newTestNatsServer(t, tmpDir)
+	defer func() {
+		nc.Close()
+		ns.Shutdown()
+	}()
+
+	db, err = NewJetStreamDb(nc, "", JsConfig{})
+	if err != nil {
+		t.Fatal("Error re-opening JetStream db:", err)
+	}
+
+	_, err = db.js.Stream(ctx, name)
+	if err != nil {
+		t.Fatalf("expected %v to be recreated at startup: %v", name, err)
+	}
+}
