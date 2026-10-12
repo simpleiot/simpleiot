@@ -1069,6 +1069,14 @@ func (db *DbJetStream) loadNodePoints(boundary, nodeID string) error {
 	return lister.Err()
 }
 
+// cachedNodePoints returns a copy of a node's points from the point
+// cache, empty if the node has none cached.
+func (db *DbJetStream) cachedNodePoints(id string) data.Points {
+	db.pointMu.RLock()
+	defer db.pointMu.RUnlock()
+	return append(data.Points{}, db.pointCache[id]...)
+}
+
 // ensureNodePointsCached makes sure the point cache holds an entry for
 // the node, loading current points from JetStream on a miss. After
 // this returns, an empty entry means the node has no points.

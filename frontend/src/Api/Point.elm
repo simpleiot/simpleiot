@@ -41,6 +41,7 @@ module Api.Point exposing
     , typeBinary
     , typeBitRate
     , typeBucket
+    , typeBytesReportPeriod
     , typeChannel
     , typeChannelType
     , typeChip
@@ -173,6 +174,8 @@ module Api.Point exposing
     , typeRotate
     , typeRoundTo
     , typeRx
+    , typeRxBytes
+    , typeRxBytesReset
     , typeRxReset
     , typeSID
     , typeSampleFrequency
@@ -193,14 +196,11 @@ module Api.Point exposing
     , typeSparkplug
     , typeSpeed
     , typeStart
+    , typeStoreMetrics
+    , typeStoreMetricsPeriod
     , typeSwitchSet
     , typeSyncCount
     , typeSyncCountReset
-    , typeTxBytes
-    , typeRxBytes
-    , typeTxBytesReset
-    , typeRxBytesReset
-    , typeBytesReportPeriod
     , typeSyncParent
     , typeSysState
     , typeTag
@@ -212,6 +212,8 @@ module Api.Point exposing
     , typeTopicSchema
     , typeTouchQuirk
     , typeTx
+    , typeTxBytes
+    , typeTxBytesReset
     , typeTxReset
     , typeType
     , typeURI
@@ -547,6 +549,16 @@ typeRxBytesReset =
 typeBytesReportPeriod : String
 typeBytesReportPeriod =
     "bytesReportPeriod"
+
+
+typeStoreMetrics : String
+typeStoreMetrics =
+    "storeMetrics"
+
+
+typeStoreMetricsPeriod : String
+typeStoreMetricsPeriod =
+    "storeMetricsPeriod"
 
 
 typeErrorCountHR : String
@@ -1661,6 +1673,8 @@ valueSim =
 specialPoints : List String
 specialPoints =
     [ typeDescription
+    , typeStoreMetrics
+    , typeStoreMetricsPeriod
     , typeVersionHW
     , typeVersionOS
     , typeVersionApp

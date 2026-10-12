@@ -20,6 +20,12 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+- **Store metrics are off by default.** The `metricNats*` points on the root
+  device node were reported every minute and replicated upstream, about 2.8 MB a
+  day on an idle device. Turn them on with **Store metrics** on the device node,
+  and set how often they are reported with **Metrics period**. Values already on
+  the node stay until removed. See
+  [Reliability](docs/ref/reliability.md#point-metrics).
 - **An idle sync connection uses about a quarter of the data.** An idle device
   used about 25 MB a day, mostly checking the upstream for new streams every 2
   seconds; it now uses about 6 MB. Upgrade devices and their upstream together:

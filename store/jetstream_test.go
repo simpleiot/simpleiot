@@ -1655,3 +1655,43 @@ func TestDbJetStreamDeviceStream(t *testing.T) {
 		t.Fatalf("expected %v to be recreated at startup: %v", name, err)
 	}
 }
+
+// Store metrics are off by default and are configured from the root node's
+// storeMetrics and storeMetricsPeriod points.
+func TestStoreMetricsConfig(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
+
+	st := &Store{db: db}
+	rootID := db.rootNodeID()
+
+	enabled, period := st.metricsConfig(rootID)
+	if enabled || period != metricsPeriodDefault {
+		t.Fatalf("default: got %v %v, want off %v", enabled, period, metricsPeriodDefault)
+	}
+
+	err := db.nodePoints(rootID, data.Points{
+		data.NewPointFloat(data.PointTypeStoreMetrics, "", 1),
+		data.NewPointFloat(data.PointTypeStoreMetricsPeriod, "", 300),
+	})
+	if err != nil {
+		t.Fatal("Error writing points:", err)
+	}
+
+	enabled, period = st.metricsConfig(rootID)
+	if !enabled || period != 5*time.Minute {
+		t.Fatalf("configured: got %v %v, want on 5m", enabled, period)
+	}
+
+	err = db.nodePoints(rootID, data.Points{
+		data.NewPointFloat(data.PointTypeStoreMetricsPeriod, "", 1),
+	})
+	if err != nil {
+		t.Fatal("Error writing points:", err)
+	}
+
+	_, period = st.metricsConfig(rootID)
+	if period != metricsPeriodFloor {
+		t.Fatalf("short period: got %v, want %v", period, metricsPeriodFloor)
+	}
+}

@@ -126,6 +126,9 @@ view o =
                                 ++ versionApp
                             )
                     , NodeInputs.nodeKeyValueInput opts Point.typeTag "Tags" "Add Tag"
+                    , NodeInputs.nodeCheckboxInput opts "0" Point.typeStoreMetrics "Store metrics"
+                    , viewIf (Point.getBool o.node.points Point.typeStoreMetrics "") <|
+                        NodeInputs.nodeNumberInput opts "0" Point.typeStoreMetricsPeriod "Metrics period (s)"
                     ]
 
                 else
