@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.28.4] - 2026-10-12
+
 ### Security
 
 - **Any account can currently take over an instance.** A second audit found that
