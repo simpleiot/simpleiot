@@ -112,7 +112,8 @@ func (f *fakeMCU) respond(h client.SMPHeader, body any) {
 		f.rig.t.Errorf("fake MCU: %v", err)
 		return
 	}
-	f.write(client.SMPEncodeFrames(pkt))
+	// The Zephyr shell prints its prompt ahead of the response.
+	f.write(append([]byte("uart:~$ "), client.SMPEncodeFrames(pkt)...))
 }
 
 // images returns the image state the MCU reports. Slot 1 is only valid once

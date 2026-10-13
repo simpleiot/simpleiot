@@ -276,3 +276,34 @@ func TestSMPResponses(t *testing.T) {
 		t.Error("found a slot that is not there")
 	}
 }
+
+// TestSMPFrameAfterPrompt uses a response captured from Zephyr's mcumgr shell
+// transport, where the frame follows the shell prompt on the same line.
+func TestSMPFrameAfterPrompt(t *testing.T) {
+	line := []byte("\x1b[1;32muart:~$ \x1b[m\x06\x09ABQLAAAKAAABAL9hcmVoZWxsb//0JA==")
+
+	i := smpFrameStart(line)
+	if i < 0 {
+		t.Fatal("frame after the prompt not found")
+	}
+
+	var r smpReassembler
+	pkt, err := r.add(line[i:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pkt == nil {
+		t.Fatal("expected a complete packet")
+	}
+	h, _, err := smpParsePacket(pkt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if h.op != smpOpWriteRsp || h.group != 0 || h.id != 0 {
+		t.Errorf("got op %v group %v id %v, expected an echo write response", h.op, h.group, h.id)
+	}
+
+	if smpFrameStart([]byte("pt fwVersion 0 STR 1.0.0")) >= 0 {
+		t.Error("point line taken for an SMP frame")
+	}
+}

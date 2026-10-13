@@ -170,9 +170,24 @@ func smpEncodeFrames(pkt []byte) []byte {
 	return out.Bytes()
 }
 
-// isSMPFrame reports whether a console line is an SMP frame.
+// smpFrameStart returns where an SMP frame starts in a console line, or -1 if
+// the line holds none. A frame does not always start the line: the Zephyr
+// shell prints its prompt before the response, even with echo and colors off.
+// The marker bytes never occur in base64 text, so the first marker found is
+// the frame's start.
+func smpFrameStart(line []byte) int {
+	start := -1
+	for _, m := range [][]byte{smpMarkerFirst, smpMarkerCont} {
+		if i := bytes.Index(line, m); i >= 0 && (start < 0 || i < start) {
+			start = i
+		}
+	}
+	return start
+}
+
+// isSMPFrame reports whether a console line holds an SMP frame.
 func isSMPFrame(line []byte) bool {
-	return bytes.HasPrefix(line, smpMarkerFirst) || bytes.HasPrefix(line, smpMarkerCont)
+	return smpFrameStart(line) >= 0
 }
 
 // smpReassembler collects frames into packets.

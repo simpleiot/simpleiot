@@ -822,9 +822,10 @@ exitSerialClient:
 					sd.fwScheduleCheck()
 				}
 
-				// SMP frames share the console with everything else
-				if isSMPFrame(rd) {
-					sd.fwHandleFrame(rd)
+				// SMP frames share the console with everything else,
+				// and may follow the shell prompt on the same line
+				if i := smpFrameStart(rd); i >= 0 {
+					sd.fwHandleFrame(rd[i:])
 					break
 				}
 
