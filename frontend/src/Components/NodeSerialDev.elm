@@ -86,6 +86,9 @@ view o =
                         button =
                             NodeInputs.nodeButtonActionText opts "0"
 
+                        buttonAction =
+                            NodeInputs.nodeButtonAction opts "0"
+
                         log =
                             Point.getText o.node.points Point.typeLog "0"
 
@@ -115,6 +118,29 @@ view o =
 
                         progress =
                             round <| Point.getValue o.node.points Point.typeProgress "0"
+
+                        errorS =
+                            Point.getText o.node.points Point.typeError "0"
+
+                        fwVersion =
+                            Point.getText o.node.points Point.typeFwVersion "0"
+
+                        fwStaged =
+                            Point.getText o.node.points Point.typeFwStagedVersion "0"
+
+                        fwPending =
+                            Point.getBool o.node.points Point.typeFwPending "0"
+
+                        -- the MCU reports "" or "none" when no image is staged
+                        fwStagedS =
+                            if fwStaged == "" || fwStaged == "none" then
+                                "none"
+
+                            else
+                                fwStaged
+
+                        fwUploading =
+                            isShell && progress > 0 && progress < 100
 
                         files =
                             List.filter
@@ -160,6 +186,34 @@ view o =
                         text <|
                             "  Last log: "
                                 ++ log
+                    , viewIf (errorS /= "") <|
+                        text <|
+                            "  Error: "
+                                ++ errorS
+                    , viewIf isShell <| horizontalRule
+                    , viewIf isShell <|
+                        textInput Point.typeFirmwarePath "Firmware image" "/lib/firmware/mcu.signed.bin"
+                    , viewIf (isShell && fwVersion /= "") <|
+                        text <|
+                            "  Running firmware: "
+                                ++ fwVersion
+                    , viewIf (isShell && fwVersion /= "") <|
+                        text <|
+                            "  Staged firmware: "
+                                ++ fwStagedS
+                                ++ (if fwPending then
+                                        " (pending)"
+
+                                    else
+                                        ""
+                                   )
+                    , viewIf fwUploading <|
+                        text <|
+                            "  Firmware upload: "
+                                ++ String.fromInt progress
+                                ++ " %"
+                    , viewIf (isShell && fwPending) <|
+                        buttonAction Point.typeFwApply 1 "Apply firmware now" Style.colors.blue
                     , viewIf (not isShell && List.length files > 0) <| horizontalRule
                     , viewIf (not isShell && List.length files > 0 && not downloading) <|
                         optionInput Point.typeDownload
