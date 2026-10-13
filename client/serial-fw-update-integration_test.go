@@ -36,6 +36,9 @@ type fakeMCU struct {
 	applyLines   []string
 	// dropOnce lists upload offsets whose response is lost once
 	dropOnce map[uint64]bool
+	// revert simulates MCUboot reverting the image: after the mark, the MCU
+	// reports it staged but no longer pending
+	revert bool
 
 	stop chan struct{}
 	done chan struct{}
@@ -192,8 +195,13 @@ func (f *fakeMCU) handle(pkt []byte) {
 		}
 		f.marked = true
 		f.respond(h, f.images())
-		f.write([]byte("pt fwStagedVersion 0 STR " + f.staged + "\r\n" +
-			"pt fwPending 0 INT 1\r\n"))
+		pending := "1"
+		if f.revert {
+			pending = "0"
+		}
+		f.write([]byte("pt fwVersion 0 STR " + f.running + "\r\n" +
+			"pt fwStagedVersion 0 STR " + f.staged + "\r\n" +
+			"pt fwPending 0 INT " + pending + "\r\n"))
 
 	default:
 		f.rig.t.Errorf("fake MCU: unexpected SMP request %+v", h)
@@ -329,5 +337,33 @@ func TestSerialFwUpdateNoVersionReported(t *testing.T) {
 
 	if _, frames, _, _ := f.state(); frames != 0 {
 		t.Errorf("got %v SMP frames, expected none without a fwVersion report", frames)
+	}
+}
+
+// An image the MCU did not keep is not uploaded again until the file
+// changes or SIOT restarts.
+func TestSerialFwUpdateNoRepeatAfterRevert(t *testing.T) {
+	path, _, tlvHash := writeImage(t)
+	rig, teardown := setupShellRig(t, func(c *client.SerialDev) {
+		c.FirmwarePath = path
+	})
+	f := &fakeMCU{
+		rig: rig, running: "1.0.0", staged: "1.1.0", tlvHash: tlvHash,
+		revert: true, dropOnce: map[uint64]bool{},
+		stop: make(chan struct{}), done: make(chan struct{}),
+	}
+	go f.run()
+	defer func() {
+		f.close()
+		teardown()
+	}()
+
+	rig.waitFor("not-kept error", 15*time.Second, func(n client.SerialDev) bool {
+		return strings.Contains(n.Error, "did not keep firmware 1.1.0 (still running 1.0.0)")
+	})
+
+	<-time.After(3 * time.Second)
+	if starts, _, marked, _ := f.state(); starts != 1 || !marked {
+		t.Errorf("got %v upload starts (marked %v), expected exactly 1", starts, marked)
 	}
 }

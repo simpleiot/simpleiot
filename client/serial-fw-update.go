@@ -71,6 +71,10 @@ type fwUpdate struct {
 	err string
 	// retryAt holds off automatic retries after a failed update.
 	retryAt time.Time
+	// tried is the TLV hash of the last image staged and marked for test.
+	// Each image is tried once per process: if the MCU does not keep it,
+	// uploading it again would only repeat the same outcome.
+	tried []byte
 
 	check   *time.Timer
 	timeout *time.Timer
@@ -228,10 +232,8 @@ func (sd *SerialDevClient) fwCheck() {
 		return
 	}
 
-	// a usable file and a sensible report: whatever was wrong before is not
-	sd.fwClearError()
-
 	if img.version.compare(running) <= 0 {
+		sd.fwClearError()
 		if sd.config.Debug >= 2 {
 			log.Printf("Serial %v: MCU runs firmware %v, image is %v, no update",
 				sd.config.Description, running, img.version)
@@ -242,6 +244,7 @@ func (sd *SerialDevClient) fwCheck() {
 	if sd.fw.pending {
 		staged, err := parseMcubootVersion(sd.fw.staged)
 		if err == nil && staged.compare(img.version) == 0 {
+			sd.fwClearError()
 			if sd.config.Debug >= 2 {
 				log.Printf("Serial %v: firmware %v already staged on the MCU",
 					sd.config.Description, img.version)
@@ -249,6 +252,16 @@ func (sd *SerialDevClient) fwCheck() {
 			return
 		}
 	}
+
+	// Staged before, yet the MCU neither runs it nor has it pending: MCUboot
+	// reverted it, rejected it, or the mark was lost.
+	if bytes.Equal(sd.fw.tried, img.hash) {
+		sd.fwSetError(fmt.Errorf("MCU did not keep firmware %v (still running %v); "+
+			"not retrying until the file changes or SIOT restarts", img.version, running))
+		return
+	}
+
+	sd.fwClearError()
 
 	log.Printf("Serial %v: uploading MCU firmware %v (running %v), %v bytes",
 		sd.config.Description, img.version, running, len(img.data))
@@ -474,6 +487,7 @@ func (sd *SerialDevClient) fwMarkTestRsp(body []byte) {
 	// before its report from uploading the same image again
 	sd.fw.staged = v
 	sd.fw.pending = true
+	sd.fw.tried = sd.fw.img.hash
 
 	sd.fwStop()
 	sd.fw.retryAt = time.Time{}
