@@ -62,14 +62,49 @@ Anything on the console that is not a point line is tolerated. Zephyr log
 messages become `log` points, and the boot banner, shell prompt, and command
 output are ignored rather than counted as errors.
 
-High-rate data, file transfer, and packet acknowledgement are not available in
-shell mode, and the UI hides those controls when it is selected. Nodes that need
-them should stay on the binary protocol.
+High-rate data, File node downloads, and packet acknowledgement are not
+available in shell mode, and the UI hides those controls when it is selected.
+Nodes that need them should stay on the binary protocol. Shell mode can update
+the MCU firmware instead; see [Firmware update](#firmware-update).
 
 **Timeout** is how many seconds the link may be silent before the node is marked
 not connected, defaulting to 60. An open serial port says nothing about whether
 anything is alive on the other end, particularly on a USB port that survives an
 MCU reset.
+
+### Firmware update
+
+In shell mode, Simple IoT can install new MCU firmware over the same serial
+link. The MCU runs [MCUboot](https://docs.mcuboot.com/) and mcumgr (SMP) over
+its shell, and the image ships as a file in the Linux OS update.
+
+**Firmware image** (`firmwarePath`) is the absolute path of a signed MCUboot
+image, such as `/lib/firmware/mcu.signed.bin`. Leave it empty to turn the
+feature off. Simple IoT checks the image when the MCU connects, when the path or
+the file changes, and when the MCU reports new version points. It uploads the
+image only when:
+
+- the MCU reports `fwVersion`, so firmware without update support is left alone
+- the image version is newer than `fwVersion`, compared as numbers (major,
+  minor, revision, build); an equal or older image is never sent
+- the image is not already staged, with `fwPending` 1 and `fwStagedVersion`
+  equal to the image version
+
+The image goes to the MCU's second slot and is marked for test. The MCU decides
+when to apply it, and Simple IoT never resets the MCU. **Apply firmware now**
+writes `fwApply` 1 to ask the MCU to apply a pending image right away.
+
+The MCU reports these points:
+
+| Point             | Type | Meaning                                               |
+| ----------------- | ---- | ----------------------------------------------------- |
+| `fwVersion`       | STR  | running image, `M.m.r`, with `.b` when build is not 0 |
+| `fwStagedVersion` | STR  | image in the second slot, or `none`                   |
+| `fwPending`       | INT  | 1 when the staged image waits to be applied           |
+
+The node's `progress` point shows the upload in percent. A file that is not a
+valid MCUboot image, or an upload the MCU does not complete, is reported in the
+node's `error` point, and a failed upload is tried again after 5 minutes.
 
 ## Log Console Output
 
@@ -103,9 +138,10 @@ Binary protocol:
 Shell protocol:
 
 - 0: no debug information
-- 2: log malformed point lines, oversize lines, and warnings about points the
-  MCU will truncate
-- 4: log points decoded and each `p` command written to the MCU
+- 2: log malformed point lines, oversize lines, malformed SMP frames, warnings
+  about points the MCU will truncate, and why a firmware image was not sent
+- 4: log points decoded, each `p` command written to the MCU, and each SMP
+  request and response
 - 9: log raw serial data received, before line assembly
 
 Level 1 has no shell-mode meaning; console output is the separate checkbox
@@ -123,6 +159,7 @@ nodes:
       debug: 0
       description: Lab bench
       disabled: 0
+      firmwarePath: /lib/firmware/mcu.signed.bin
       logConsole: 1
       maxMessageLength: 1024
       port: /dev/ttyACM0

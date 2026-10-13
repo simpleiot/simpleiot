@@ -10,6 +10,7 @@ require (
 	github.com/dim13/cobs v0.1.0
 	github.com/donovanhide/eventsource v0.0.0-20210830082556-c59027999da0
 	github.com/fsnotify/fsnotify v1.9.0
+	github.com/fxamacker/cbor/v2 v2.9.6
 	github.com/go-audio/wav v1.1.0
 	github.com/goccy/go-yaml v1.17.1
 	github.com/godbus/dbus/v5 v5.1.0
@@ -79,6 +80,7 @@ require (
 	github.com/tklauser/numcpus v0.10.0 // indirect
 	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/ttacon/libphonenumber v1.2.1 // indirect
+	github.com/x448/float16 v0.8.4 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	golang.org/x/mod v0.41.0 // indirect

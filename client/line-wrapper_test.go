@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"strings"
 	"testing"
 )
 
@@ -212,3 +213,33 @@ type writeCapture struct {
 
 func (w *writeCapture) Read(_ []byte) (int, error) { return 0, io.EOF }
 func (w *writeCapture) Close() error               { return nil }
+
+func TestLineWrapperPassesSMPFrames(t *testing.T) {
+	pkt := bytes.Repeat([]byte{0x09, 0x20, 0x0d}, 70)
+	enc := smpEncodeFrames(pkt)
+	// a console may end lines in \r\n and print a prompt before a frame
+	in := "uart:~$ " + strings.ReplaceAll(string(enc), "\n", "\r\n")
+
+	lw := NewLineWrapper(&chunkReader{chunks: [][]byte{[]byte(in)}}, 1024)
+	got := readLines(t, lw, 1024)
+	exp := strings.Split(strings.TrimSuffix(string(enc), "\n"), "\n")
+	if len(got) != len(exp) {
+		t.Fatalf("got %d lines, expected %d", len(got), len(exp))
+	}
+
+	var r smpReassembler
+	var out []byte
+	for i := range exp {
+		if got[i] != exp[i] {
+			t.Fatalf("line %d: got %q, expected %q", i, got[i], exp[i])
+		}
+		p, err := r.add([]byte(got[i]))
+		if err != nil {
+			t.Fatal(err)
+		}
+		out = p
+	}
+	if !bytes.Equal(out, pkt) {
+		t.Error("packet did not survive the line wrapper")
+	}
+}
