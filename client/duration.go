@@ -41,3 +41,9 @@ func pointDuration(v float64, unit, def, floor time.Duration) time.Duration {
 
 	return d
 }
+
+// PointDuration is pointDuration for packages outside client that build a
+// period from a point.
+func PointDuration(v float64, unit, def, floor time.Duration) time.Duration {
+	return pointDuration(v, unit, def, floor)
+}

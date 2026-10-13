@@ -16,6 +16,7 @@ type Metric struct {
 	nc           *nats.Conn
 	nodeID       string
 	reportPeriod time.Duration
+	disabled     bool
 
 	// internal state
 	lastReport time.Time
@@ -41,10 +42,28 @@ func (m *Metric) SetNodeID(id string) {
 	m.nodeID = id
 }
 
+// Configure turns reporting on or off and sets how often it reports. A
+// disabled metric discards samples and sends nothing.
+func (m *Metric) Configure(enabled bool, reportPeriod time.Duration) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	if !enabled && !m.disabled {
+		m.avg.ResetAverage()
+	}
+	if enabled && m.disabled {
+		m.lastReport = time.Now()
+	}
+	m.disabled = !enabled
+	m.reportPeriod = reportPeriod
+}
+
 // AddSample adds a sample and reports it if reportPeriod has expired
 func (m *Metric) AddSample(s float64) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
+	if m.disabled {
+		return nil
+	}
 	now := time.Now()
 	p := data.Point{Time: now}
 	p.PutFloat(s)

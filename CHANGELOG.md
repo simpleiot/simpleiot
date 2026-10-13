@@ -11,6 +11,39 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.28.5] - 2026-10-12
+
+### Security
+
+- **A device can no longer list the instances on its upstream.** A device
+  credential now grants only the device's own stream and the one stream holding
+  its configuration. See
+  [What a device credential allows](docs/ref/security.md#what-a-device-credential-allows).
+
+### Added
+
+- **A bandwidth reference shows how to fit a device on a metered cellular
+  plan.** It lists where a device's upstream traffic comes from, what each point
+  costs, and which settings reduce it. See [Bandwidth](docs/ref/bandwidth.md).
+
+### Changed
+
+- **Store metrics are off by default.** The `metricNats*` points on the root
+  device node were reported every minute and replicated upstream, about 2.8 MB a
+  day on an idle device. Turn them on with **Store metrics** on the device node,
+  and set how often they are reported with **Metrics period**. Values already on
+  the node stay until removed. See
+  [Reliability](docs/ref/reliability.md#point-metrics).
+- **An idle sync connection uses far less data.** An idle device used about 25
+  MB a day, mostly checking the upstream for new streams every 2 seconds. It no
+  longer polls, and it renews its subscription to the upstream every 5 minutes
+  instead of every 30 seconds. With store metrics off, it now uses about 2 MB a
+  day. Upgrade devices and their upstream together: a device on an older release
+  that connects with a device credential no longer receives configuration from
+  an upstream on this release, and a device on this release receives
+  configuration from an older upstream only after it reconnects. See
+  [Synchronization](docs/ref/sync.md#life-of-a-connection).
+
 ## [0.28.4] - 2026-10-12
 
 ### Security

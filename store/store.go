@@ -15,7 +15,12 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
-var reportMetricsPeriod = time.Minute
+// metricsPeriodDefault is how often the store reports its metrics when
+// they are on and the root node has no storeMetricsPeriod point.
+var metricsPeriodDefault = time.Minute
+
+// metricsPeriodFloor is the shortest period storeMetricsPeriod may set.
+const metricsPeriodFloor = 10 * time.Second
 
 // pointErrorPeriod is how often a node is told about points that were
 // rejected. A device with a bad point type or key normally sends it at its
@@ -77,7 +82,7 @@ func NewStore(p Params) (*Store, error) {
 	}
 
 	log.Println("store connecting to nats server:", p.Server)
-	return &Store{
+	st := &Store{
 		params:        p,
 		nc:            p.Nc,
 		db:            db,
@@ -89,14 +94,23 @@ func NewStore(p Params) (*Store, error) {
 		chStopMetrics: make(chan struct{}),
 		chWaitStart:   make(chan struct{}),
 		metricCycleNodePoint: client.NewMetric(p.Nc, "",
-			data.PointTypeMetricNatsCycleNodePoint, reportMetricsPeriod),
+			data.PointTypeMetricNatsCycleNodePoint, metricsPeriodDefault),
 		metricCycleNodeEdgePoint: client.NewMetric(p.Nc, "",
-			data.PointTypeMetricNatsCycleNodeEdgePoint, reportMetricsPeriod),
+			data.PointTypeMetricNatsCycleNodeEdgePoint, metricsPeriodDefault),
 		metricCycleNode: client.NewMetric(p.Nc, "",
-			data.PointTypeMetricNatsCycleNode, reportMetricsPeriod),
+			data.PointTypeMetricNatsCycleNode, metricsPeriodDefault),
 		metricCycleNodeChildren: client.NewMetric(p.Nc, "",
-			data.PointTypeMetricNatsCycleNodeChildren, reportMetricsPeriod),
-	}, nil
+			data.PointTypeMetricNatsCycleNodeChildren, metricsPeriodDefault),
+	}
+
+	// metrics are off until StartMetrics reads the root node's settings
+	for _, m := range []*client.Metric{st.metricCycleNodePoint,
+		st.metricCycleNodeEdgePoint, st.metricCycleNode,
+		st.metricCycleNodeChildren} {
+		m.Configure(false, metricsPeriodDefault)
+	}
+
+	return st, nil
 }
 
 // UserFromToken returns the user a JWT was issued to and when it expires.
@@ -246,9 +260,18 @@ func (st *Store) StartMetrics(nodeID string) error {
 	st.metricCycleNodeChildren.SetNodeID(nodeID)
 
 	st.metricPendingNodePoint = client.NewMetric(st.nc, nodeID,
-		data.PointTypeMetricNatsPendingNodePoint, reportMetricsPeriod)
+		data.PointTypeMetricNatsPendingNodePoint, metricsPeriodDefault)
 	st.metricPendingNodeEdgePoint = client.NewMetric(st.nc, nodeID,
-		data.PointTypeMetricNatsPendingNodeEdgePoint, reportMetricsPeriod)
+		data.PointTypeMetricNatsPendingNodeEdgePoint, metricsPeriodDefault)
+
+	metrics := []*client.Metric{
+		st.metricCycleNodePoint,
+		st.metricCycleNodeEdgePoint,
+		st.metricCycleNode,
+		st.metricCycleNodeChildren,
+		st.metricPendingNodePoint,
+		st.metricPendingNodeEdgePoint,
+	}
 
 	t := time.NewTimer(time.Millisecond)
 
@@ -258,6 +281,17 @@ func (st *Store) StartMetrics(nodeID string) error {
 			return errors.New("Store stopping metrics")
 
 		case <-t.C:
+			// the settings are root node points, so they can be changed
+			// here or from an upstream; read them on every pass
+			enabled, period := st.metricsConfig(nodeID)
+			for _, m := range metrics {
+				m.Configure(enabled, period)
+			}
+			t.Reset(time.Second * 10)
+			if !enabled {
+				continue
+			}
+
 			pendingNodePoints, _, err := st.subscriptions["nodePoints"].Pending()
 			if err != nil {
 				log.Println("Error getting pendingNodePoints:", err)
@@ -277,9 +311,18 @@ func (st *Store) StartMetrics(nodeID string) error {
 			if err != nil {
 				log.Println("Error handling metric:", err)
 			}
-			t.Reset(time.Second * 10)
 		}
 	}
+}
+
+// metricsConfig reads whether metrics are on, and how often they are
+// reported, from the root node's storeMetrics and storeMetricsPeriod points.
+func (st *Store) metricsConfig(rootID string) (bool, time.Duration) {
+	pts := st.db.cachedNodePoints(rootID)
+	enabled, _ := pts.ValueBool(data.PointTypeStoreMetrics, "")
+	v, _ := pts.Value(data.PointTypeStoreMetricsPeriod, "")
+	return enabled, client.PointDuration(v, time.Second, metricsPeriodDefault,
+		metricsPeriodFloor)
 }
 
 // StopMetrics ...

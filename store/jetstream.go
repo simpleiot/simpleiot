@@ -222,7 +222,35 @@ func NewJetStreamDb(nc *nats.Conn, rootID string, cfg JsConfig) (*DbJetStream, e
 		}
 	}
 
+	var devices []string
+	for _, e := range db.edgeCache.AllByType(data.NodeTypeDevice) {
+		if !e.IsTombstone() {
+			devices = append(devices, e.Down)
+		}
+	}
+	err = db.ensureDeviceStreams(devices)
+	if err != nil {
+		return nil, err
+	}
+
 	return db, nil
+}
+
+// ensureDeviceStreams creates this instance's origin stream for each
+// device boundary, inst_<device>_<root>. A device pulls that stream by
+// name when it syncs, so it has to exist before anything is written to
+// it.
+func (db *DbJetStream) ensureDeviceStreams(deviceIDs []string) error {
+	for _, id := range deviceIDs {
+		if id == db.meta.RootID {
+			continue
+		}
+		_, err := db.ensureOriginStream(id)
+		if err != nil {
+			return fmt.Errorf("error creating stream for device %v: %v", id, err)
+		}
+	}
+	return nil
 }
 
 func (db *DbJetStream) loadMeta() error {
@@ -684,6 +712,16 @@ func (db *DbJetStream) edgePoints(nodeID, parentID string, points data.Points) e
 	db.edgeCache.MergeEdgePoints(parentID, nodeID, nodeType, origin, writePoints)
 	db.releaseReplica(nodeID)
 
+	// a device joining the tree gets the stream this instance writes its
+	// configuration to now, so the device can pull it by name from its
+	// first connection
+	if !ok && !newTombstone && nodeType == data.NodeTypeDevice {
+		err = db.ensureDeviceStreams([]string{nodeID})
+		if err != nil {
+			return err
+		}
+	}
+
 	// a fully deleted node keeps its subjects where they are; an
 	// undelete migrates them if ownership or delivery moved in the
 	// meantime
@@ -1029,6 +1067,14 @@ func (db *DbJetStream) loadNodePoints(boundary, nodeID string) error {
 	}
 
 	return lister.Err()
+}
+
+// cachedNodePoints returns a copy of a node's points from the point
+// cache, empty if the node has none cached.
+func (db *DbJetStream) cachedNodePoints(id string) data.Points {
+	db.pointMu.RLock()
+	defer db.pointMu.RUnlock()
+	return append(data.Points{}, db.pointCache[id]...)
 }
 
 // ensureNodePointsCached makes sure the point cache holds an entry for

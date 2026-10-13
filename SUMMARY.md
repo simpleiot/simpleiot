@@ -48,6 +48,7 @@
 - [Data](docs/ref/data.md)
   - [Store](docs/ref/store.md)
   - [Synchronization](docs/ref/sync.md)
+  - [Bandwidth](docs/ref/bandwidth.md)
 - [Reliability](docs/ref/reliability.md)
   - [High Availability](docs/ref/high-availability.md)
 - [API](docs/ref/api.md)

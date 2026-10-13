@@ -1,9 +1,7 @@
 <a href="https://simpleiot.org"><img src="docs/images/siot-logo.png?raw=true" width="250" alt="Simple IoT logo"></a>
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/simpleiot/simpleiot.svg)](https://pkg.go.dev/github.com/simpleiot/simpleiot)
-![Go](https://github.com/simpleiot/simpleiot/workflows/Go/badge.svg?branch=master)
 [![Scc Count Badge](https://sloc.xyz/github/simpleiot/simpleiot/?category=code)](https://github.com/simpleiot/simpleiot/)
-[![Go Report Card](https://goreportcard.com/badge/github.com/simpleiot/simpleiot)](https://goreportcard.com/report/github.com/simpleiot/simpleiot)
 
 **Simple IoT enables you to add remote sensor data, telemetry, configuration,
 and device management to your project or product.**

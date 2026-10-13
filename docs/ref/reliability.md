@@ -24,6 +24,12 @@ Points and other data flow through the NATS messaging system, therefore it is
 perhaps the first place to look. We track several metrics that are written to
 the root device node to help track how the system is performing.
 
+These metrics are off by default. Turn them on with **Store metrics** on the
+root device node (the `storeMetrics` point), and set how often they are reported
+with `storeMetricsPeriod`, in seconds (60 when unset, 10 at the least). They are
+ordinary points on the root node, so they replicate upstream like any other
+data, and an upstream can turn them on for a device it syncs with.
+
 The NATS client buffers messages that are received for each subscription and
 then messages are
 [dispatched serially one message at a time](https://docs.nats.io/developing-with-nats/receiving/async).

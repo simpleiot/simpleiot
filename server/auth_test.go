@@ -16,7 +16,7 @@ import (
 )
 
 func TestDevicePermissions(t *testing.T) {
-	p := devicePermissions("UKEY", "X", "R", []string{"R", "R2"})
+	p := devicePermissions("UKEY", "X", "R")
 
 	wantPub := []string{
 		"nodes.root.all",
@@ -24,17 +24,11 @@ func TestDevicePermissions(t *testing.T) {
 		"ep.X.R",
 		"inst.X.X.>",
 		"$JS.API.STREAM.INFO.inst_X_X",
-		"$JS.API.STREAM.NAMES",
 		"$JS.API.STREAM.INFO.inst_X_R",
 		"$JS.API.CONSUMER.CREATE.inst_X_R.>",
 		"$JS.API.CONSUMER.INFO.inst_X_R.*",
 		"$JS.API.CONSUMER.MSG.NEXT.inst_X_R.*",
 		"$JS.ACK.inst_X_R.>",
-		"$JS.API.STREAM.INFO.inst_X_R2",
-		"$JS.API.CONSUMER.CREATE.inst_X_R2.>",
-		"$JS.API.CONSUMER.INFO.inst_X_R2.*",
-		"$JS.API.CONSUMER.MSG.NEXT.inst_X_R2.*",
-		"$JS.ACK.inst_X_R2.>",
 	}
 
 	if !slices.Equal(p.Publish.Allow, wantPub) {
@@ -52,18 +46,13 @@ func TestDevicePermissions(t *testing.T) {
 
 	// nothing a device must never touch is in the list
 	for _, s := range p.Publish.Allow {
-		for _, bad := range []string{"p.", "up.", "auth.", "admin.", "inst.Y", "$JS.API.STREAM.LIST", "$JS.API.STREAM.CREATE"} {
+		for _, bad := range []string{"p.", "up.", "auth.", "admin.", "inst.Y", "$JS.API.STREAM.LIST", "$JS.API.STREAM.NAMES", "$JS.API.STREAM.CREATE"} {
 			if len(s) >= len(bad) && s[:len(bad)] == bad {
 				t.Errorf("publish allow includes %v", s)
 			}
 		}
 	}
 
-	// the device's own ID is never an origin to pull from
-	p = devicePermissions("UKEY", "X", "R", []string{"X", "R"})
-	if slices.Contains(p.Publish.Allow, "$JS.API.STREAM.INFO.inst_X_X.>") {
-		t.Error("device's own stream listed as a pull origin")
-	}
 }
 
 // fakeClient is a ClientAuthentication for exercising Check without a

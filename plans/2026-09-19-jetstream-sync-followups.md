@@ -23,13 +23,18 @@ stands alone.
 - [ ] Sync a device that sits beneath another device's boundary.
 
 **Problem:** the sync client pushes and pulls only the streams of its own root
-boundary (`client/sync.go`, `scanPulls`). A device X under device Y on the hub
-has its own boundary; nothing replicates `inst_X_*` through Y.
+boundary (`runSession` in `client/sync.go`). A device X under device Y on the
+hub has its own boundary; nothing replicates `inst_X_*` through Y.
 
 **Change:** have the sync client discover the device boundaries in its tree
 (`OwningBoundary` already resolves nested boundaries, see
-`TestOwningBoundaryNested`) and run a push and a pull scan per boundary, and
-extend `devicePermissions` in `server/auth.go` to grant the nested boundaries.
+`TestOwningBoundaryNested`) and run a push and a pull per boundary, and extend
+`devicePermissions` in `server/auth.go` to grant the nested boundaries.
+
+A device pulls only `inst_X_R` by name and is granted only that stream (see the
+[sync idle traffic plan](2026-10-12-sync-idle-traffic.md)). Nesting adds origins
+beyond the upstream, so this item also needs a way for a device to learn of them
+and be granted them, without polling the upstream.
 
 **Verify:** a point written on a nested device reaches the hub, and a write on
 the hub reaches the nested device.
@@ -43,6 +48,9 @@ but no test covers it.
 
 **Change:** a test in `client/sync_test.go` with three instances, covering
 points and node create/delete in both directions and an intermediate restart.
+Configuration the hub writes for the device lands in `inst_X_H`, an origin the
+device neither pulls nor is granted (see item 1), so expect this to need the
+same origin discovery.
 
 **Verify:** the test passes; any defect it finds gets its own item.
 

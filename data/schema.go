@@ -46,6 +46,13 @@ const (
 	// reports rxBytes and txBytes.
 	PointTypeBytesReportPeriod = "bytesReportPeriod"
 
+	// PointTypeStoreMetrics turns on the store's metricNats* metrics on an
+	// instance's root node. Off when unset.
+	PointTypeStoreMetrics = "storeMetrics"
+	// PointTypeStoreMetricsPeriod is how often, in seconds, the store
+	// reports its metrics.
+	PointTypeStoreMetricsPeriod = "storeMetricsPeriod"
+
 	PointTypeReadOnly   = "readOnly"
 	PointTypeURI        = "uri"
 	PointTypeDisabled   = "disabled"

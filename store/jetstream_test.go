@@ -1590,3 +1590,108 @@ func TestDbJetStreamReplicaStartsAtTips(t *testing.T) {
 		time.Sleep(50 * time.Millisecond)
 	}
 }
+
+// A device's sync client pulls inst_<device>_<root> by name, so the stream
+// exists as soon as the device joins the tree, with nothing written to it
+// yet, and is recreated at startup for devices already in the tree.
+func TestDbJetStreamDeviceStream(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "siot-js-test-*")
+	if err != nil {
+		t.Fatal("Error creating temp dir:", err)
+	}
+	defer func() { _ = os.RemoveAll(tmpDir) }()
+
+	ns, nc := newTestNatsServer(t, tmpDir)
+
+	db, err := NewJetStreamDb(nc, "", JsConfig{})
+	if err != nil {
+		t.Fatal("Error creating JetStream db:", err)
+	}
+
+	rootID := db.rootNodeID()
+	devID := uuid.New().String()
+	mkTestNode(t, db, rootID, devID, data.NodeTypeDevice, "")
+
+	ctx := context.Background()
+	name := streamName(devID, rootID)
+
+	s, err := db.js.Stream(ctx, name)
+	if err != nil {
+		t.Fatalf("expected %v to exist after adoption: %v", name, err)
+	}
+	info, err := s.Info(ctx)
+	if err != nil {
+		t.Fatal("Error getting stream info:", err)
+	}
+	if info.State.Msgs != 0 {
+		t.Fatalf("expected %v to be empty, it holds %v messages",
+			name, info.State.Msgs)
+	}
+
+	// a hub upgraded with devices already in its tree creates the
+	// streams at startup
+	err = db.js.DeleteStream(ctx, name)
+	if err != nil {
+		t.Fatal("Error deleting stream:", err)
+	}
+
+	nc.Close()
+	ns.Shutdown()
+	ns.WaitForShutdown()
+
+	ns, nc = newTestNatsServer(t, tmpDir)
+	defer func() {
+		nc.Close()
+		ns.Shutdown()
+	}()
+
+	db, err = NewJetStreamDb(nc, "", JsConfig{})
+	if err != nil {
+		t.Fatal("Error re-opening JetStream db:", err)
+	}
+
+	_, err = db.js.Stream(ctx, name)
+	if err != nil {
+		t.Fatalf("expected %v to be recreated at startup: %v", name, err)
+	}
+}
+
+// Store metrics are off by default and are configured from the root node's
+// storeMetrics and storeMetricsPeriod points.
+func TestStoreMetricsConfig(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
+
+	st := &Store{db: db}
+	rootID := db.rootNodeID()
+
+	enabled, period := st.metricsConfig(rootID)
+	if enabled || period != metricsPeriodDefault {
+		t.Fatalf("default: got %v %v, want off %v", enabled, period, metricsPeriodDefault)
+	}
+
+	err := db.nodePoints(rootID, data.Points{
+		data.NewPointFloat(data.PointTypeStoreMetrics, "", 1),
+		data.NewPointFloat(data.PointTypeStoreMetricsPeriod, "", 300),
+	})
+	if err != nil {
+		t.Fatal("Error writing points:", err)
+	}
+
+	enabled, period = st.metricsConfig(rootID)
+	if !enabled || period != 5*time.Minute {
+		t.Fatalf("configured: got %v %v, want on 5m", enabled, period)
+	}
+
+	err = db.nodePoints(rootID, data.Points{
+		data.NewPointFloat(data.PointTypeStoreMetricsPeriod, "", 1),
+	})
+	if err != nil {
+		t.Fatal("Error writing points:", err)
+	}
+
+	_, period = st.metricsConfig(rootID)
+	if period != metricsPeriodFloor {
+		t.Fatalf("short period: got %v, want %v", period, metricsPeriodFloor)
+	}
+}

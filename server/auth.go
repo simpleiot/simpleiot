@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -124,16 +123,12 @@ type authorizer struct {
 	// node ID back to the hash.
 	enroll    map[string]*enrollEntry
 	enrollIDs map[string]string
-	// origins lists, for each boundary, the origins that have a stream on
-	// this instance. Permissions for the pull side are enumerated from it.
-	origins map[string]map[string]bool
 	// conns records live device connections by connection ID.
 	conns map[uint64]authConn
 
 	nc  *nats.Conn
 	ns  *server.Server
 	sub *nats.Subscription
-	adv *nats.Subscription
 	// work carries index maintenance out of the NATS callbacks.
 	work chan func()
 	// connects carries successful device authentications out of Check.
@@ -155,7 +150,6 @@ func newAuthorizer(token, deviceAuth string) *authorizer {
 		devices:    make(map[string]map[string]bool),
 		enroll:     make(map[string]*enrollEntry),
 		enrollIDs:  make(map[string]string),
-		origins:    make(map[string]map[string]bool),
 		conns:      make(map[uint64]authConn),
 		work:       make(chan func(), 1024),
 		connects:   make(chan string, 256),
@@ -338,14 +332,12 @@ func (a *authorizer) checkNkey(c server.ClientAuthentication, opts *server.Clien
 		return false
 	}
 
-	origins := a.originsFor(e.deviceID)
-	perms := devicePermissions(opts.Nkey, e.deviceID, a.rootID, origins)
+	perms := devicePermissions(opts.Nkey, e.deviceID, a.rootID)
 
 	c.RegisterUser(&server.User{Username: opts.Nkey, Permissions: perms})
 
 	a.conns[c.GetID()] = authConn{
 		pubKey: opts.Nkey,
-		grant:  strings.Join(origins, ","),
 		added:  time.Now(),
 	}
 
@@ -432,24 +424,6 @@ func (a *authorizer) Device(pubKey string) (string, bool) {
 	return e.deviceID, true
 }
 
-// originsFor lists the origins a device may pull from, sorted so the list
-// doubles as a fingerprint of the grant. Lock must be held.
-func (a *authorizer) originsFor(deviceID string) []string {
-	set := map[string]bool{a.rootID: true}
-	for o := range a.origins[deviceID] {
-		set[o] = true
-	}
-	delete(set, deviceID)
-
-	origins := make([]string, 0, len(set))
-	for o := range set {
-		origins = append(origins, o)
-	}
-	sort.Strings(origins)
-
-	return origins
-}
-
 // verifyNonce checks that the signature was made over the connection nonce
 // by the holder of the public key's seed. The signature is encoded the way
 // nats.go sends it.
@@ -497,16 +471,16 @@ func isLoopback(addr net.Addr) bool {
 //   - push its origin stream into the replica stream inst_X_X, which the
 //     upstream creates (see ensureDeviceStream), since a stream create
 //     request carries a whole configuration
-//   - discover and pull the streams other origins write into its
-//     boundary, which are enumerated because a stream name is one subject
-//     token and cannot be matched by prefix
+//   - pull inst_X_R, the stream this instance writes the device's
+//     configuration to, which the store creates when it adopts the device
 //   - receive replies
 //
 // A device never needs p.>, up.>, auth.*, admin.*, or any other instance's
 // streams.
-func devicePermissions(pubKey, deviceID, rootID string, origins []string) *server.Permissions {
+func devicePermissions(pubKey, deviceID, rootID string) *server.Permissions {
 	X := deviceID
 	own := fmt.Sprintf("inst_%v_%v", X, X)
+	pull := fmt.Sprintf("inst_%v_%v", X, rootID)
 
 	pub := []string{
 		"nodes.root.all",
@@ -514,21 +488,11 @@ func devicePermissions(pubKey, deviceID, rootID string, origins []string) *serve
 		fmt.Sprintf("ep.%v.%v", X, rootID),
 		fmt.Sprintf("inst.%v.%v.>", X, X),
 		"$JS.API.STREAM.INFO." + own,
-		"$JS.API.STREAM.NAMES",
-	}
-
-	for _, o := range origins {
-		if o == X {
-			continue
-		}
-		s := fmt.Sprintf("inst_%v_%v", X, o)
-		pub = append(pub,
-			"$JS.API.STREAM.INFO."+s,
-			"$JS.API.CONSUMER.CREATE."+s+".>",
-			"$JS.API.CONSUMER.INFO."+s+".*",
-			"$JS.API.CONSUMER.MSG.NEXT."+s+".*",
-			"$JS.ACK."+s+".>",
-		)
+		"$JS.API.STREAM.INFO." + pull,
+		"$JS.API.CONSUMER.CREATE." + pull + ".>",
+		"$JS.API.CONSUMER.INFO." + pull + ".*",
+		"$JS.API.CONSUMER.MSG.NEXT." + pull + ".*",
+		"$JS.ACK." + pull + ".>",
 	}
 
 	return &server.Permissions{
@@ -559,15 +523,6 @@ func (a *authorizer) start(nc *nats.Conn, ns *server.Server, users userAuthority
 	if err != nil {
 		return fmt.Errorf("error subscribing to tree changes: %w", err)
 	}
-
-	a.adv, err = nc.Subscribe("$JS.EVENT.ADVISORY.STREAM.*.*", func(_ *nats.Msg) {
-		a.enqueue(a.loadOrigins)
-	})
-	if err != nil {
-		return fmt.Errorf("error subscribing to stream advisories: %w", err)
-	}
-
-	a.loadOrigins()
 
 	creds, err := client.GetNodes(nc, "all", "all", data.NodeTypeDeviceCred, true)
 	if err != nil && !errors.Is(err, data.ErrDocumentNotFound) {
@@ -615,9 +570,6 @@ func (a *authorizer) start(nc *nats.Conn, ns *server.Server, users userAuthority
 func (a *authorizer) stopIndex() {
 	if a.sub != nil {
 		_ = a.sub.Unsubscribe()
-	}
-	if a.adv != nil {
-		_ = a.adv.Unsubscribe()
 	}
 
 	a.mu.Lock()
@@ -959,44 +911,6 @@ func (a *authorizer) refreshDevice(deviceID string) {
 	}
 }
 
-// loadOrigins lists the boundary-origin streams on this instance and
-// records, per boundary, which origins write into it. A device whose grant
-// no longer matches is reconnected by enforce so it picks the new streams
-// up.
-func (a *authorizer) loadOrigins() {
-	js, err := jetstream.New(a.nc)
-	if err != nil {
-		log.Println("NATS auth: error creating JetStream context:", err)
-		return
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	origins := make(map[string]map[string]bool)
-	lister := js.ListStreams(ctx, jetstream.WithStreamListSubject("inst.>"))
-	for si := range lister.Info() {
-		b, o, ok := client.StreamBoundaryOrigin(si.Config)
-		if !ok || b == o {
-			continue
-		}
-		if origins[b] == nil {
-			origins[b] = make(map[string]bool)
-		}
-		origins[b][o] = true
-	}
-	if err := lister.Err(); err != nil {
-		log.Println("NATS auth: error listing streams:", err)
-		return
-	}
-
-	a.mu.Lock()
-	a.origins = origins
-	a.mu.Unlock()
-
-	a.enforce()
-}
-
 // noteConnect records a successful device connection on its credential
 // node.
 func (a *authorizer) noteConnect(pubKey string) {
@@ -1095,8 +1009,7 @@ func (a *authorizer) liveConns() map[uint64]string {
 
 // enforce closes every device connection whose credential no longer
 // authorizes what it was granted: the credential was disabled, deleted, or
-// re-keyed, its device was detached, or its boundary gained a stream it
-// should now pull. It also closes every user connection whose anchors have
+// re-keyed, or its device was detached. It also closes every user connection whose anchors have
 // changed, so the browser reconnects and is granted the new set, or is
 // refused if the user is gone.
 func (a *authorizer) enforce() {
@@ -1141,10 +1054,6 @@ func (a *authorizer) enforce() {
 			continue
 		}
 		if !ok || e.disabled {
-			closeIDs = append(closeIDs, cid)
-			continue
-		}
-		if ac.grant != strings.Join(a.originsFor(e.deviceID), ",") {
 			closeIDs = append(closeIDs, cid)
 		}
 	}
