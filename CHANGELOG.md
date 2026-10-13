@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.28.5] - 2026-10-12
+
 ### Security
 
 - **A device can no longer list the instances on its upstream.** A device
