@@ -154,12 +154,30 @@ points in bursts matters more.
 
 ### Shorter IDs
 
-Node and instance IDs are UUIDs written as 36 characters. The same 128 bits
-encoded as base64url take 22 characters, and base64url uses only characters that
-are valid in NATS subject tokens and stream names. A point's subject carries
-three IDs and the acknowledgment names a stream built from two, so shorter IDs
-would save about 70 bytes per point. IDs are stored and shown to users, so this
-changes every existing tree.
+Node and instance IDs are UUIDs written as 36 characters. A point's subject
+carries three IDs and the acknowledgment names a stream built from two, so each
+character saved in an ID saves 5 bytes per point. The same 128 bits can be
+written more compactly:
+
+| Encoding         | Example                                | Length | Saving per point | Limitations                                                                      |
+| ---------------- | -------------------------------------- | ------ | ---------------- | -------------------------------------------------------------------------------- |
+| UUID             | `6f1c2b9e-4a3d-4e8f-9b21-7c5d0e3a8f42` | 36     |                  |                                                                                  |
+| base64url        | `bxwrnko9To-bIXxdDjqPQg`               | 22     | 70 bytes         | `_` conflicts with the stream name separator; case-sensitive; may start with `-` |
+| base32           | `n4ocxhskhvhi7gzbproq4oupii`           | 26     | 50 bytes         | none                                                                             |
+| Crockford base32 | `dwe2q7ja7n78z6s1fhegwemf88`           | 26     | 50 bytes         | none; omits `i`, `l`, `o`, and `u`, so IDs are easier to read and copy           |
+
+All four use only characters valid in NATS subject tokens and stream names, and
+the code treats IDs as opaque strings, so any of them can stay as text without
+decoding. Base64url's `_` makes stream names (`inst_<boundary>_<origin>`)
+ambiguous: two different boundary and origin pairs can produce the same name.
+Its mixed case lets two stream names share a directory on case-insensitive
+filesystems, and an ID starting with `-` reads as a flag on the command line.
+Lowercase base32 avoids all three for 4 more characters per ID.
+
+Compression that keeps state across messages (see [below](#compression)) turns a
+repeated ID into a short reference whatever its length, so shorter IDs matter
+most for the first messages after a reconnect and for stored subjects. IDs are
+stored and shown to users, so this changes every existing tree.
 
 ### Leave the boundary and origin out of the wire subject
 
@@ -266,6 +284,47 @@ compresses each write with deflate or zstd and flushes it, used by the sync
 client's dialer for a new URI scheme, and a listener on the upstream that
 decompresses and hands the connection to the embedded NATS server. TLS sits
 outside the compression, since compressed ciphertext saves nothing.
+
+The two ends never exchange compression state. Each direction has its own
+compressor and decompressor, and both build the same history from the bytes that
+pass through them. A repeated subject is sent as a reference to bytes earlier in
+the window, which the decompressor has already written to its own output. This
+relies on the connection delivering every byte in order, which TCP and TLS
+provide. The flush after each message (`Z_SYNC_FLUSH` for deflate, a block flush
+for zstd) sends the pending output without clearing the history.
+
+The window sets how far back a reference can reach and how much history the
+decompressor keeps. Subjects repeat every few hundred bytes, so a 4 KB window
+compresses nearly as well as the 32 KB default while the device holds only 4 KB
+per direction. Both ends must agree on the size: zstd and zlib record it in
+their headers, and raw deflate would need it fixed by configuration. Go's
+`compress/flate` cannot shrink the compressor's window, so a 4 KB window needs
+zstd or another library.
+
+Compression adds almost no latency. The window is history the compressor
+searches, not a block the receiver waits to fill: once a message's flushed bytes
+arrive, the decompressor can decode all of it, since every reference points to
+data it has already produced. Each flush adds a few bytes (about 5 for deflate,
+3 for a zstd block header), which the figures above include, and compressing a
+message of a few hundred bytes takes microseconds. The wrapper should flush once
+for each write the NATS client makes, since the client already batches its
+protocol messages. Its read side should return decoded data as soon as it is
+available rather than waiting to fill the caller's buffer.
+
+The history belongs to one connection. When the link drops, the NATS client
+reconnects on a new connection and both ends start empty, so no resync is
+needed. A lost or corrupted byte closes the connection rather than leaving the
+two ends out of step. The first messages after a reconnect compress less well
+until the history fills; a preset dictionary of common subject prefixes, built
+into both ends, would reduce that.
+
+Syncing by replicating streams makes this compression work especially well. The
+pump sends a stream's messages in sequence over one connection, so each publish
+looks like the one before it: the same subject prefix, reply inbox, and stream
+name, with only the point and sequence number changing. The acknowledgments
+coming back repeat the same way. Because the stream records what the upstream
+has stored, nothing is lost when a reconnect discards the compression history:
+the pump resumes from the last acknowledged sequence.
 
 Leaf node connections support S2 compression, but the NATS server compresses
 each flush on its own, starting a new stream every time. A point a minute is a

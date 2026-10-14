@@ -353,6 +353,21 @@ const (
 	PointTypeUptime           = "uptime"
 	PointTypeMaxMessageLength = "maxMessageLength"
 	PointTypeSyncParent       = "syncParent"
+	// PointTypeFirmwarePath names a signed MCUboot image on the local
+	// filesystem. In shell mode, an image newer than the MCU's running
+	// firmware is uploaded over SMP and marked for test.
+	PointTypeFirmwarePath = "firmwarePath"
+	// PointTypeFwVersion is the version of the image the MCU is running,
+	// reported by the MCU as "major.minor.revision[.build]".
+	PointTypeFwVersion = "fwVersion"
+	// PointTypeFwStagedVersion is the version of the image waiting in the
+	// MCU's second slot, or "" or "none" when there is none.
+	PointTypeFwStagedVersion = "fwStagedVersion"
+	// PointTypeFwPending is 1 when the staged image is marked for test and
+	// waits for the MCU to apply it.
+	PointTypeFwPending = "fwPending"
+	// PointTypeFwApply set to 1 asks the MCU to apply a pending image now.
+	PointTypeFwApply = "fwApply"
 
 	// CAN bus clients
 	NodeTypeCanBus               = "canBus"

@@ -41,6 +41,7 @@ var serialConfigTypes = map[string]bool{
 	data.PointTypeDebug:            true,
 	data.PointTypeDisabled:         true,
 	data.PointTypeDownload:         true,
+	data.PointTypeFirmwarePath:     true,
 }
 
 // dropSerialConfigPoints returns the points from the wire that are not
@@ -96,7 +97,10 @@ type SerialDev struct {
 	Connected         bool   `point:"connected"`
 	Download          string `point:"download"`
 	Progress          int    `point:"progress"`
-	Files             []File `child:"file"`
+	// FirmwarePath names a signed MCUboot image to install on the MCU.
+	// Shell protocol only; empty turns the feature off.
+	FirmwarePath string `point:"firmwarePath"`
+	Files        []File `child:"file"`
 }
 
 type sendData struct {
@@ -133,6 +137,8 @@ type SerialDevClient struct {
 	// lastConnectedSend is when the connected point was last published, used
 	// to pace the shell mode re-assert.
 	lastConnectedSend time.Time
+	// fw is the MCU firmware update state, shell protocol only.
+	fw fwUpdate
 }
 
 // serialPort is the framing layer between the raw port and the client. Read
@@ -183,6 +189,7 @@ func NewSerialDevClient(nc *nats.Conn, config SerialDev) Client {
 		newEdgePoints: make(chan NewPoints),
 		natsSub:       SubjectNodePoints(config.ID),
 		sendPointsCh:  make(chan sendData),
+		fw:            newFwUpdate(),
 	}
 
 	ret.populateNatsSubjects()
@@ -406,6 +413,17 @@ func (sd *SerialDevClient) Run() error {
 		}
 	}
 
+	// the image file arrives with an OS update, so watch its directory
+	// rather than the file, which may not exist yet
+	if sd.config.FirmwarePath != "" {
+		err := watcher.Add(filepath.Dir(sd.config.FirmwarePath))
+		if err != nil {
+			log.Println("Error adding watcher for:", sd.config.FirmwarePath)
+		}
+	}
+	defer sd.fw.check.Stop()
+	defer sd.fw.timeout.Stop()
+
 	checkPortDur := time.Second * 10
 	timerCheckPort := time.NewTimer(checkPortDur)
 
@@ -554,6 +572,7 @@ func (sd *SerialDevClient) Run() error {
 		}
 		sd.port = nil
 
+		sd.fwLinkDown()
 		sd.setConnected(false)
 	}
 
@@ -752,6 +771,7 @@ exitSerialClient:
 				if !connected {
 					log.Printf("Serial %v: no data for %v, marking disconnected",
 						sd.config.Description, silent.Round(time.Second))
+					sd.fwLinkDown()
 				}
 				sd.setConnected(connected)
 
@@ -772,8 +792,15 @@ exitSerialClient:
 			if err != nil {
 				log.Println("Error sending error points:", err)
 			}
+		case <-sd.fw.check.C:
+			sd.fwCheck()
+		case <-sd.fw.timeout.C:
+			sd.fwTimeout()
 		case e, ok := <-watcher.Events:
 			if ok {
+				if sd.fwFileEvent(e.Name) {
+					sd.fwConfigChanged()
+				}
 				if e.Name == sd.config.Port {
 					switch e.Op {
 					case fsnotify.Remove:
@@ -792,10 +819,21 @@ exitSerialClient:
 				// decoding is only classification.
 				if !sd.config.Connected {
 					sd.setConnected(true)
+					sd.fwScheduleCheck()
+				}
+
+				// SMP frames share the console with everything else,
+				// and may follow the shell prompt on the same line
+				if i := smpFrameStart(rd); i >= 0 {
+					sd.fwHandleFrame(rd[i:])
+					break
 				}
 
 				shellPoints, shellAdmin := sd.handleShellLine(string(rd))
 				shellPoints = dropSerialConfigPoints(shellPoints)
+				for _, p := range shellPoints {
+					sd.fwReport(p)
+				}
 				sd.config.Rx++
 				sd.ratePointCount += len(shellPoints)
 
@@ -932,6 +970,8 @@ exitSerialClient:
 		case pts := <-sd.newPoints:
 			op := false
 			updateNatsSubjects := false
+			fwPathChanged := false
+			fwApply := false
 			for _, p := range pts.Points {
 				// check if any of the config changes should cause us to re-open the port
 				if p.Type == data.PointTypePort ||
@@ -971,6 +1011,20 @@ exitSerialClient:
 					sd.port.SetDebug(int(p.Val()))
 				}
 
+				if p.Type == data.PointTypeFirmwarePath {
+					if p.Txt() != "" {
+						err := watcher.Add(filepath.Dir(p.Txt()))
+						if err != nil {
+							log.Println("Error adding watcher for:", p.Txt())
+						}
+					}
+					fwPathChanged = true
+				}
+
+				if p.Type == data.PointTypeFwApply && p.Val() != 0 && sd.shell() {
+					fwApply = true
+				}
+
 				if p.Type == data.PointTypeDownload {
 					if p.Txt() == "" {
 						log.Println("Stopping download: ", dlState.name)
@@ -993,6 +1047,14 @@ exitSerialClient:
 
 			if op {
 				openPort()
+			}
+
+			if fwPathChanged {
+				sd.fwConfigChanged()
+			}
+
+			if fwApply {
+				sd.fwApply()
 			}
 
 			if sd.port == nil {
@@ -1085,7 +1147,13 @@ exitSerialClient:
 						// for these and should not be told about them
 						data.PointTypeProtocol,
 						data.PointTypeTimeout,
-						data.PointTypeLogConsole:
+						data.PointTypeLogConsole,
+						data.PointTypeFirmwarePath:
+						continue
+					}
+
+					// sent by fwApply with the type the MCU expects
+					if p.Type == data.PointTypeFwApply && sd.shell() {
 						continue
 					}
 

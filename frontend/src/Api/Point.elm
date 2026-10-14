@@ -92,12 +92,17 @@ module Api.Point exposing
     , typeExpires
     , typeFallbackServer
     , typeFilePath
+    , typeFirmwarePath
     , typeFirstName
     , typeFixQuality
     , typeFixType
     , typeFrequency
     , typeFrom
     , typeFullscreen
+    , typeFwApply
+    , typeFwPending
+    , typeFwStagedVersion
+    , typeFwVersion
     , typeGpsSource
     , typeGpsdAddress
     , typeHRDest
@@ -632,6 +637,35 @@ valueProtocolShell =
 typeLogConsole : String
 typeLogConsole =
     "logConsole"
+
+
+{-| MCU firmware update, shell protocol only. firmwarePath names the image
+file; the MCU reports the fw\* version points; fwApply asks it to apply a
+pending image now.
+-}
+typeFirmwarePath : String
+typeFirmwarePath =
+    "firmwarePath"
+
+
+typeFwVersion : String
+typeFwVersion =
+    "fwVersion"
+
+
+typeFwStagedVersion : String
+typeFwStagedVersion =
+    "fwStagedVersion"
+
+
+typeFwPending : String
+typeFwPending =
+    "fwPending"
+
+
+typeFwApply : String
+typeFwApply =
+    "fwApply"
 
 
 typeModbusIOType : String
@@ -1682,6 +1716,11 @@ specialPoints =
     , typeProtocol
     , typeTimeout
     , typeLogConsole
+    , typeFirmwarePath
+    , typeFwVersion
+    , typeFwStagedVersion
+    , typeFwPending
+    , typeFwApply
     , typeSyncParent
     , typeHRDest
     , typeMaxMessageLength
