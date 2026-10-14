@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.28.6] - 2026-10-14
+
 ### Added
 
 - **Serial nodes in shell mode can update the MCU firmware.** Set **Firmware
