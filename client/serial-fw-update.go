@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -76,8 +77,23 @@ type fwUpdate struct {
 	// uploading it again would only repeat the same outcome.
 	tried []byte
 
+	// applyAt is when an apply request was sent to the MCU with an image
+	// pending. When the MCU acknowledges it, SIOT shuts the OS down so the
+	// MCU can install the image; zero when no request is outstanding.
+	applyAt time.Time
+
 	check   *time.Timer
 	timeout *time.Timer
+}
+
+// fwApplyAckWindow is how long after an apply request the MCU's
+// acknowledgment still triggers a shutdown.
+const fwApplyAckWindow = 30 * time.Second
+
+// fwPoweroff shuts the OS down so the MCU can install a pending image at the
+// end of its power-down sequence. It is a variable so tests can replace it.
+var fwPoweroff = func() error {
+	return exec.Command("systemctl", "poweroff").Run()
 }
 
 func newFwUpdate() fwUpdate {
@@ -139,6 +155,9 @@ func (sd *SerialDevClient) fwReport(p data.Point) bool {
 			return true
 		}
 		sd.fw.pending = pending
+	case data.PointTypeFwApply:
+		sd.fwApplyAck(p)
+		return true
 	default:
 		return false
 	}
@@ -498,13 +517,22 @@ func (sd *SerialDevClient) fwMarkTestRsp(body []byte) {
 	sd.fwScheduleCheck()
 }
 
-// fwApply asks the MCU to apply a pending image now.
+// fwApply asks the MCU to apply a pending image now. The MCU records that
+// the AGX should be powered back on after the update and acknowledges with
+// fwApply 0; fwApplyAck then shuts the OS down, and the MCU installs the image
+// at the end of its power-down sequence.
 func (sd *SerialDevClient) fwApply() {
 	if !sd.shell() || sd.port == nil {
 		return
 	}
 
-	log.Printf("Serial %v: asking the MCU to apply its pending firmware", sd.config.Description)
+	if sd.fw.pending {
+		log.Printf("Serial %v: asking the MCU to apply its pending firmware", sd.config.Description)
+		sd.fw.applyAt = time.Now()
+	} else {
+		log.Printf("Serial %v: apply requested, but the MCU reports no pending firmware",
+			sd.config.Description)
+	}
 
 	p := data.NewPointInt(data.PointTypeFwApply, "", 1)
 	p.Time = time.Now()
@@ -517,5 +545,27 @@ func (sd *SerialDevClient) fwApply() {
 		data.NewPointFloat(data.PointTypeFwApply, "", 0), false)
 	if err != nil {
 		log.Println("Serial: error clearing fwApply:", err)
+	}
+}
+
+// fwApplyAck handles the MCU's acknowledgment of an apply request. If an
+// image is pending, the OS is shut down; the MCU then installs the image and
+// powers the AGX back on.
+func (sd *SerialDevClient) fwApplyAck(p data.Point) {
+	if p.Val() != 0 || sd.fw.applyAt.IsZero() {
+		return
+	}
+
+	requested := sd.fw.applyAt
+	sd.fw.applyAt = time.Time{}
+
+	if time.Since(requested) > fwApplyAckWindow || !sd.fw.pending {
+		return
+	}
+
+	log.Printf("Serial %v: MCU accepted the firmware apply request; shutting down so it can install",
+		sd.config.Description)
+	if err := fwPoweroff(); err != nil {
+		sd.fwSetError(fmt.Errorf("shutting down to apply firmware: %w", err))
 	}
 }

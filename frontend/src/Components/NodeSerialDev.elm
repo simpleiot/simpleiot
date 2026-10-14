@@ -213,7 +213,7 @@ view o =
                                 ++ String.fromInt progress
                                 ++ " %"
                     , viewIf (isShell && fwPending) <|
-                        buttonAction Point.typeFwApply 1 "Apply firmware now" Style.colors.blue
+                        buttonAction Point.typeFwApply 1 "Apply firmware now (restarts this system)" Style.colors.blue
                     , viewIf (not isShell && List.length files > 0) <| horizontalRule
                     , viewIf (not isShell && List.length files > 0 && not downloading) <|
                         optionInput Point.typeDownload

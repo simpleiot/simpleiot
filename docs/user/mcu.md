@@ -92,7 +92,11 @@ image only when:
 
 The image goes to the MCU's second slot and is marked for test. The MCU decides
 when to apply it, and Simple IoT never resets the MCU. **Apply firmware now**
-writes `fwApply` 1 to ask the MCU to apply a pending image right away.
+writes `fwApply` 1 to ask the MCU to apply a pending image right away. When the
+MCU acknowledges with `fwApply` 0, Simple IoT shuts this system down
+(`systemctl poweroff`); the MCU installs the image during its power-down
+sequence and powers the system back on. With no image pending, the request does
+nothing.
 
 Each image is uploaded at most once while Simple IoT runs. If the MCU later
 reports the old version with nothing pending, because MCUboot reverted or

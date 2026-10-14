@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -89,6 +90,8 @@ func (f *fakeMCU) run() {
 			f.mu.Lock()
 			f.applyLines = append(f.applyLines, line)
 			f.mu.Unlock()
+			// the firmware acknowledges every apply request
+			f.write([]byte("pt fwApply 0 INT 0\r\n"))
 		case client.IsSMPFrame([]byte(line)):
 			f.mu.Lock()
 			f.smpFrames++
@@ -266,7 +269,13 @@ func TestSerialFwUpdate(t *testing.T) {
 		t.Errorf("got %v upload starts, expected exactly 1", s)
 	}
 
-	// Apply now is forwarded with the type the firmware expects.
+	// Apply now is forwarded with the type the firmware expects, and the
+	// MCU's acknowledgment shuts the OS down.
+	var poweroffs atomic.Int32
+	defer client.SetFwPoweroff(func() error {
+		poweroffs.Add(1)
+		return nil
+	})()
 	rig.setPoint(data.PointTypeFwApply, 1)
 	start := time.Now()
 	for {
@@ -283,6 +292,56 @@ func TestSerialFwUpdate(t *testing.T) {
 			t.Fatal("timeout waiting for the fwApply write")
 		}
 		<-time.After(20 * time.Millisecond)
+	}
+
+	start = time.Now()
+	for poweroffs.Load() == 0 {
+		if time.Since(start) > 3*time.Second {
+			t.Fatal("timeout waiting for the shutdown after the MCU acknowledged apply")
+		}
+		<-time.After(20 * time.Millisecond)
+	}
+	<-time.After(500 * time.Millisecond)
+	if n := poweroffs.Load(); n != 1 {
+		t.Errorf("got %v shutdowns, expected exactly 1", n)
+	}
+}
+
+// TestSerialFwUpdateApplyNothingPending checks that Apply now does not shut
+// the OS down when the MCU has no image waiting.
+func TestSerialFwUpdateApplyNothingPending(t *testing.T) {
+	rig, f, _, teardown := setupFwRig(t, "2.0.0")
+	defer teardown()
+
+	var poweroffs atomic.Int32
+	defer client.SetFwPoweroff(func() error {
+		poweroffs.Add(1)
+		return nil
+	})()
+
+	rig.waitFor("connected", 3*time.Second, func(n client.SerialDev) bool {
+		return n.Connected
+	})
+	<-time.After(1500 * time.Millisecond)
+
+	rig.setPoint(data.PointTypeFwApply, 1)
+	start := time.Now()
+	for {
+		f.mu.Lock()
+		n := len(f.applyLines)
+		f.mu.Unlock()
+		if n > 0 {
+			break
+		}
+		if time.Since(start) > 3*time.Second {
+			t.Fatal("timeout waiting for the fwApply write")
+		}
+		<-time.After(20 * time.Millisecond)
+	}
+	<-time.After(1 * time.Second)
+
+	if n := poweroffs.Load(); n != 0 {
+		t.Errorf("got %v shutdowns with no firmware pending, expected none", n)
 	}
 }
 

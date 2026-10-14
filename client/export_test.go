@@ -52,3 +52,11 @@ func SMPParse(pkt []byte) (SMPHeader, []byte, error) {
 func SMPPacket(h SMPHeader, body any) ([]byte, error) {
 	return smpPacket(h.Op, h.Group, h.ID, h.Seq, body)
 }
+
+// SetFwPoweroff replaces the shutdown run for an apply request and returns a
+// function that restores the original.
+func SetFwPoweroff(f func() error) func() {
+	orig := fwPoweroff
+	fwPoweroff = f
+	return func() { fwPoweroff = orig }
+}
