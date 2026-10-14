@@ -1,0 +1,49 @@
+# A push button and an LED on a Raspberry Pi 40-pin header, with a rule that
+# lights the LED while the button is held. See README.md in this directory for
+# the wiring.
+#
+#   siot serve -provisioningDir testdata/rpi-gpio
+#   siot import < testdata/rpi-gpio/10-rpi-gpio.yaml
+apiVersion: 1
+nodes:
+  - group:
+      description: RPi GPIO test
+      children:
+        - gpio:
+            description: Test switch
+            chip: pinctrl-rp1
+            line: GPIO17
+            direction: input
+            bias: pullUp
+            activeLow: 1
+            debounce: 20
+        - gpio:
+            description: Test LED
+            chip: pinctrl-rp1
+            line: GPIO27
+            direction: output
+            initialValue: 0
+        - rule:
+            description: LED follows switch
+            children:
+              - condition:
+                  description: Switch pressed
+                  conditionType: pointValue
+                  nodeID: Test switch
+                  pointType: value
+                  valueType: onOff
+                  value: 1
+              - action:
+                  description: LED on
+                  action: setValue
+                  nodeID: Test LED
+                  pointType: valueSet
+                  valueType: onOff
+                  value: 1
+              - actionInactive:
+                  description: LED off
+                  action: setValue
+                  nodeID: Test LED
+                  pointType: valueSet
+                  valueType: onOff
+                  value: 0
