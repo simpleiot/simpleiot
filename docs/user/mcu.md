@@ -111,6 +111,19 @@ The node's `progress` point shows the upload in percent. A file that is not a
 valid MCUboot image, or an upload the MCU does not complete, is reported in the
 node's `error` point, and a failed upload is tried again after 5 minutes.
 
+Once the MCU reports `fwVersion`, the serial node shows the update state below
+the **Firmware image** field:
+
+- **Running firmware** is the version the MCU runs now.
+- **Staged firmware** is the version in the second slot, or `none`, followed by
+  `(pending)` while it waits to be applied.
+- **Firmware upload** shows the percentage while an upload runs.
+- **Apply firmware now** appears while an image is pending.
+- **Error** shows the node's `error` point when it is set, in either protocol.
+
+The [serial protocol reference](../ref/serial.md#firmware-update-smp) describes
+how the image travels over the console.
+
 ## Log Console Output
 
 **Log console output** mirrors every line the MCU prints to the Simple IoT

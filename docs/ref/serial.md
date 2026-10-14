@@ -220,6 +220,8 @@ classifies what remains:
 - a `pt ` line that parses is a point
 - a line matching the Zephyr log format
   (`[HH:MM:SS.mmm,uuu] <lvl> module: text`) becomes a `log` point
+- a line holding an SMP frame goes to the firmware update; see
+  [Firmware update (SMP)](#firmware-update-smp)
 - anything else is ignored
 
 Unrecognized lines are not errors. A console legitimately carries a boot banner,
@@ -298,6 +300,45 @@ siot dump              request every cached point
 There is no time synchronization step, since the firmware has no clock to set.
 `connected` becomes true when the first line arrives, not when the port opens,
 and reverts after `timeout` seconds of silence.
+
+### Firmware update (SMP)
+
+When `firmwarePath` is set, SIOT installs MCU firmware with mcumgr's Simple
+Management Protocol (SMP) over the same console. The MCU needs MCUboot and the
+mcumgr shell transport. See [Firmware update](../user/mcu.md#firmware-update)
+for when an image is sent.
+
+An SMP packet is an 8 byte header and a CBOR body, carried as base64 text in
+frames of one line each, as in Zephyr's `serial_util.c`:
+
+```
+stream = base64( BE16(len(packet)+2) || packet || BE16(CRC-16/XMODEM) )
+frame  = marker || base64 text || "\n"
+```
+
+The first frame of a packet starts with the bytes `0x06 0x09`, and later frames
+start with `0x04 0x14`. A frame is at most 127 bytes. The Zephyr shell prints
+its prompt before a response, even with echo and colors off, so SIOT looks for a
+marker anywhere in a line rather than only at its start. The marker bytes never
+occur in base64 text.
+
+The update uses the image management group:
+
+1. **Upload** the image to slot 1 in 512 byte chunks. The first chunk carries
+   the image length and SHA-256 and waits up to 30 seconds, since the MCU may
+   erase the slot first. Later requests wait 5 seconds.
+2. **Read image state** and check that the slot 1 hash matches the image's
+   SHA-256 TLV.
+3. **Mark for test** (`confirm` false) and check that the slot is pending.
+
+A request with no response is resent, and an upload resumes from the last offset
+the MCU acknowledged. Three timeouts in a row abort the update and set `error`,
+and SIOT tries again after 5 minutes. SIOT never resets the MCU or confirms the
+image. MCUboot and the firmware decide when to apply it, and **Apply firmware
+now** sends `fwApply` to the MCU as an `INT` 1.
+
+SMP requests are written from the same goroutine as `p` commands, so the two
+never interleave on the port.
 
 ### Not supported
 
