@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.28.7] - 2026-10-15
+
 ### Added
 
 - **New MCU firmware can install automatically.** Turn on **Auto apply
