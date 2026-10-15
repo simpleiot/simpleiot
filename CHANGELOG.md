@@ -11,6 +11,22 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Added
+
+- **New MCU firmware can install automatically.** Turn on **Auto apply
+  firmware** on a shell-mode serial node, and each newly staged image is applied
+  right away, so an OS update that carries new MCU firmware finishes in one
+  restart. See [Firmware update](docs/user/mcu.md#firmware-update).
+
+### Changed
+
+- **Apply firmware now restarts the system reliably.** Simple IoT shuts the
+  system down once the MCU accepts the request, so the MCU can install the image
+  and power the system back on. Previously this relied on the MCU pressing the
+  system's power button, which some systems ignore.
+- **Apply firmware now acts immediately.** The button no longer needs a Save
+  afterward.
+
 ## [0.28.6] - 2026-10-14
 
 ### Added
@@ -19,9 +35,7 @@ For more details or to discuss releases, please visit the
   image** to a signed MCUboot image on the device, and Simple IoT installs it
   when it is newer than what the MCU runs, so MCU firmware ships inside the OS
   update. The MCU applies it on its own schedule, or right away with **Apply
-  firmware now**, which shuts the system down so the MCU can install it and then
-  powers it back on. **Auto apply firmware** does that as soon as an image is
-  staged. See [Firmware update](docs/user/mcu.md#firmware-update).
+  firmware now**. See [Firmware update](docs/user/mcu.md#firmware-update).
 
 ## [0.28.5] - 2026-10-12
 
