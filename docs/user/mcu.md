@@ -108,13 +108,15 @@ reports the old version with nothing pending, because MCUboot reverted or
 rejected the image, Simple IoT reports this in the `error` point and does not
 upload the image again until the file changes or Simple IoT restarts.
 
-The MCU reports these points:
+The firmware update uses these points, all with key `0`:
 
-| Point             | Type | Meaning                                               |
-| ----------------- | ---- | ----------------------------------------------------- |
-| `fwVersion`       | STR  | running image, `M.m.r`, with `.b` when build is not 0 |
-| `fwStagedVersion` | STR  | image in the second slot, or `none`                   |
-| `fwPending`       | INT  | 1 when the staged image waits to be applied           |
+| Point             | Type | Direction   | Meaning                                                           |
+| ----------------- | ---- | ----------- | ----------------------------------------------------------------- |
+| `fwVersion`       | STR  | MCU to SIOT | running image, `M.m.r`, with `.b` when build is not 0             |
+| `fwStagedVersion` | STR  | MCU to SIOT | image waiting to be applied, or `none`                            |
+| `fwPending`       | INT  | MCU to SIOT | 1 when an image waits to be applied                               |
+| `fwApply`         | INT  | SIOT to MCU | 1 asks the MCU to apply the pending image now                     |
+| `fwApply`         | INT  | MCU to SIOT | 0 acknowledges a request; SIOT then shuts down if one was pending |
 
 The node's `progress` point shows the upload in percent. A file that is not a
 valid MCUboot image, or an upload the MCU does not complete, is reported in the
@@ -124,8 +126,8 @@ Once the MCU reports `fwVersion`, the serial node shows the update state below
 the **Firmware image** field:
 
 - **Running firmware** is the version the MCU runs now.
-- **Staged firmware** is the version in the second slot, or `none`, followed by
-  `(pending)` while it waits to be applied.
+- **Staged firmware** is the version waiting to be applied, or `none`, followed
+  by `(pending)` while it waits.
 - **Firmware upload** shows the percentage while an upload runs.
 - **Apply firmware now** appears while an image is pending.
 - **Auto apply firmware** sets `fwAutoApply`; applying restarts the system.
@@ -133,6 +135,25 @@ the **Firmware image** field:
 
 The [serial protocol reference](../ref/serial.md#firmware-update-smp) describes
 how the image travels over the console.
+
+#### What the MCU firmware must do
+
+Simple IoT handles the upload; applying the image is up to the firmware. To work
+with Simple IoT, the firmware:
+
+- reports `fwVersion`, `fwStagedVersion`, and `fwPending` when they change, and
+  repeats them now and then (every 60 seconds, for example), since a report
+  stamped while the system clock is wrong can be kept as stale
+- reports `fwStagedVersion` as `none` when nothing waits to be applied, such as
+  the previous image MCUboot keeps after a swap
+- answers every `fwApply` 1 with `fwApply` 0, which also clears the request on
+  the Simple IoT side so it is not sent again after a reconnect
+- ignores `fwApply` when no image is pending, apart from the acknowledgment
+- installs a pending image when the system it powers is off, for example by
+  rebooting into MCUboot at the end of its power-down sequence, and powers the
+  system back on afterward when the install was requested with `fwApply`
+- confirms a new image itself once it runs correctly, so MCUboot reverts an
+  image that fails; Simple IoT never confirms or resets the MCU
 
 ## Log Console Output
 
@@ -188,6 +209,7 @@ nodes:
       description: Lab bench
       disabled: 0
       firmwarePath: /lib/firmware/mcu.signed.bin
+      fwAutoApply: 0
       logConsole: 1
       maxMessageLength: 1024
       port: /dev/ttyACM0
