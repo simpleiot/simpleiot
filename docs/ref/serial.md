@@ -334,8 +334,15 @@ The update uses the image management group:
 A request with no response is resent, and an upload resumes from the last offset
 the MCU acknowledged. Three timeouts in a row abort the update and set `error`,
 and SIOT tries again after 5 minutes. SIOT never resets the MCU or confirms the
-image. MCUboot and the firmware decide when to apply it, and **Apply firmware
-now** sends `fwApply` to the MCU as an `INT` 1.
+image. MCUboot and the firmware decide when to apply it.
+
+To apply a pending image now, SIOT writes `p fwApply 0 INT 1 <time>`, either
+when **Apply firmware now** is pressed or, with `fwAutoApply` set, as soon as an
+image is marked for test. The firmware answers `pt fwApply 0 INT 0`. If that
+acknowledgment arrives within 30 seconds of a request made while `fwPending` is
+1, SIOT shuts the system down with `systemctl poweroff`; the firmware installs
+the image during its power-down sequence and powers the system back on. With no
+image pending, SIOT sends the request but does not shut down.
 
 SMP requests are written from the same goroutine as `p` commands, so the two
 never interleave on the port.

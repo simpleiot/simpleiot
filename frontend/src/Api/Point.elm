@@ -100,6 +100,7 @@ module Api.Point exposing
     , typeFrom
     , typeFullscreen
     , typeFwApply
+    , typeFwAutoApply
     , typeFwPending
     , typeFwStagedVersion
     , typeFwVersion
@@ -666,6 +667,11 @@ typeFwPending =
 typeFwApply : String
 typeFwApply =
     "fwApply"
+
+
+typeFwAutoApply : String
+typeFwAutoApply =
+    "fwAutoApply"
 
 
 typeModbusIOType : String
@@ -1721,6 +1727,7 @@ specialPoints =
     , typeFwStagedVersion
     , typeFwPending
     , typeFwApply
+    , typeFwAutoApply
     , typeSyncParent
     , typeHRDest
     , typeMaxMessageLength

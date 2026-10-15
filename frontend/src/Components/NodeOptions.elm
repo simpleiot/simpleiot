@@ -33,6 +33,7 @@ type alias NodeOptions msg =
     , children : List NodeView
     , nodes : List (Tree NodeView)
     , onEditNodePoint : List Point -> msg
+    , onSendNodePoints : List Point -> msg
     , onEditScratch : String -> msg
     , onUploadFile : Bool -> msg
     , onGenerateKey : msg

@@ -368,6 +368,9 @@ const (
 	PointTypeFwPending = "fwPending"
 	// PointTypeFwApply set to 1 asks the MCU to apply a pending image now.
 	PointTypeFwApply = "fwApply"
+	// PointTypeFwAutoApply set to 1 applies a newly staged image right away,
+	// as if fwApply were set once the upload completes.
+	PointTypeFwAutoApply = "fwAutoApply"
 
 	// CAN bus clients
 	NodeTypeCanBus               = "canBus"

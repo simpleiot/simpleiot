@@ -88,9 +88,12 @@ siot_build_frontend() {
 	# siot_run export > nodes.yaml) captures only the program output
 	(cd "frontend" && npx elm-spa build >&2) || return 1
 	siot_build_frontend_js || return 1
-	gzip -f frontend/public/dist/elm.js || return 1
+	# -n leaves the file name and time out of the gzip header, so an
+	# unchanged input produces a byte-identical file and does not show up as
+	# modified in git.
+	gzip -nf frontend/public/dist/elm.js || return 1
 	for f in $siot_frontend_js_files; do
-		gzip -f "frontend/public/dist/$f" || return 1
+		gzip -nf "frontend/public/dist/$f" || return 1
 	done
 	return 0
 }
