@@ -232,9 +232,20 @@ func writeImage(t *testing.T) (path string, img, tlvHash []byte) {
 
 func setupFwRig(t *testing.T, running string) (*shellTestRig, *fakeMCU, []byte, func()) {
 	t.Helper()
+	return setupFwRigWith(t, running, nil)
+}
+
+// setupFwRigWith is setupFwRig with extra serial node configuration.
+func setupFwRigWith(t *testing.T, running string, cfg func(*client.SerialDev)) (
+	*shellTestRig, *fakeMCU, []byte, func(),
+) {
+	t.Helper()
 	path, img, tlvHash := writeImage(t)
 	rig, teardown := setupShellRig(t, func(c *client.SerialDev) {
 		c.FirmwarePath = path
+		if cfg != nil {
+			cfg(c)
+		}
 	})
 	f := startFakeMCU(rig, running, "1.1.0", tlvHash)
 	return rig, f, img, func() {
@@ -425,5 +436,43 @@ func TestSerialFwUpdateNoRepeatAfterRevert(t *testing.T) {
 	<-time.After(3 * time.Second)
 	if starts, _, marked, _ := f.state(); starts != 1 || !marked {
 		t.Errorf("got %v upload starts (marked %v), expected exactly 1", starts, marked)
+	}
+}
+
+// TestSerialFwUpdateAutoApply checks that with fwAutoApply set, a newly
+// staged image is applied right away and the system shuts down once.
+func TestSerialFwUpdateAutoApply(t *testing.T) {
+	var poweroffs atomic.Int32
+	defer client.SetFwPoweroff(func() error {
+		poweroffs.Add(1)
+		return nil
+	})()
+
+	rig, f, _, teardown := setupFwRigWith(t, "1.0.0", func(c *client.SerialDev) {
+		c.FwAutoApply = true
+	})
+	defer teardown()
+
+	rig.waitFor("upload to finish", 15*time.Second, func(n client.SerialDev) bool {
+		return n.Progress == 100
+	})
+
+	start := time.Now()
+	for poweroffs.Load() == 0 {
+		if time.Since(start) > 5*time.Second {
+			t.Fatal("timeout waiting for the automatic apply to shut down")
+		}
+		<-time.After(20 * time.Millisecond)
+	}
+	<-time.After(1 * time.Second)
+
+	f.mu.Lock()
+	applies := len(f.applyLines)
+	f.mu.Unlock()
+	if applies != 1 {
+		t.Errorf("got %v fwApply writes, expected exactly 1", applies)
+	}
+	if n := poweroffs.Load(); n != 1 {
+		t.Errorf("got %v shutdowns, expected exactly 1", n)
 	}
 }

@@ -12,6 +12,7 @@ import FormatNumber exposing (format)
 import FormatNumber.Locales exposing (Decimals(..), usLocale)
 import Round
 import Time
+import UI.Form as Form
 import UI.Icon as Icon
 import UI.NodeInputs as NodeInputs
 import UI.Style as Style
@@ -85,9 +86,6 @@ view o =
 
                         button =
                             NodeInputs.nodeButtonActionText opts "0"
-
-                        buttonAction =
-                            NodeInputs.nodeButtonAction opts "0"
 
                         log =
                             Point.getText o.node.points Point.typeLog "0"
@@ -193,6 +191,8 @@ view o =
                     , viewIf isShell <| horizontalRule
                     , viewIf isShell <|
                         textInput Point.typeFirmwarePath "Firmware image" "/lib/firmware/mcu.signed.bin"
+                    , viewIf isShell <|
+                        checkboxInput Point.typeFwAutoApply "Apply new firmware automatically (restarts this system)"
                     , viewIf (isShell && fwVersion /= "") <|
                         text <|
                             "  Running firmware: "
@@ -213,7 +213,13 @@ view o =
                                 ++ String.fromInt progress
                                 ++ " %"
                     , viewIf (isShell && fwPending) <|
-                        buttonAction Point.typeFwApply 1 "Apply firmware now (restarts this system)" Style.colors.blue
+                        -- sent right away rather than staged for Save,
+                        -- since it is an action, not a setting
+                        Form.button
+                            { label = "Apply firmware now (restarts this system)"
+                            , color = Style.colors.blue
+                            , onPress = o.onSendNodePoints [ Point.Point Point.typeFwApply "0" o.now 1 1 "" 0 ]
+                            }
                     , viewIf (not isShell && List.length files > 0) <| horizontalRule
                     , viewIf (not isShell && List.length files > 0 && not downloading) <|
                         optionInput Point.typeDownload

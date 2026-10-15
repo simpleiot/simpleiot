@@ -226,6 +226,7 @@ type Msg
     | SelectAddNodeType String
     | ApiDelete String String
     | ApiPostPoints String
+    | ApiSendPoints String (List Point)
     | ApiPostAddNode Int
     | ApiPostMoveNode Int String String String
     | ApiPutMirrorNode Int String String String
@@ -313,6 +314,9 @@ updateInner shared msg model =
 
         UploadFile id binary ->
             ( model, Effect.fromCmd <| File.Select.file [ "" ] (UploadSelected id binary) )
+
+        ApiSendPoints id points ->
+            ( model, sendPoints model id points )
 
         GenerateKey id ->
             ( model
@@ -1258,6 +1262,7 @@ viewNode model parent node children depth =
                     , nodes = model.nodes
                     , expDetail = node.expDetail
                     , onEditNodePoint = EditNodePoint node.feID
+                    , onSendNodePoints = ApiSendPoints node.node.id
                     , onUploadFile = UploadFile node.node.id
                     , onGenerateKey = GenerateKey node.node.id
                     , generatedToken = model.generatedToken

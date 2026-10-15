@@ -42,6 +42,7 @@ var serialConfigTypes = map[string]bool{
 	data.PointTypeDisabled:         true,
 	data.PointTypeDownload:         true,
 	data.PointTypeFirmwarePath:     true,
+	data.PointTypeFwAutoApply:      true,
 }
 
 // dropSerialConfigPoints returns the points from the wire that are not
@@ -100,7 +101,11 @@ type SerialDev struct {
 	// FirmwarePath names a signed MCUboot image to install on the MCU.
 	// Shell protocol only; empty turns the feature off.
 	FirmwarePath string `point:"firmwarePath"`
-	Files        []File `child:"file"`
+	// FwAutoApply applies a newly staged image right away instead of
+	// waiting for the MCU's own schedule. Applying shuts the OS down; the
+	// MCU installs the image and powers the system back on.
+	FwAutoApply bool   `point:"fwAutoApply"`
+	Files       []File `child:"file"`
 }
 
 type sendData struct {

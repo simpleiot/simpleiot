@@ -513,6 +513,12 @@ func (sd *SerialDevClient) fwMarkTestRsp(body []byte) {
 	sd.fwClearError()
 	sd.fwPublishProgress(100)
 
+	if sd.config.FwAutoApply {
+		log.Printf("Serial %v: applying MCU firmware %v now (fwAutoApply)", sd.config.Description, v)
+		sd.fwApply()
+		return
+	}
+
 	// the file may have changed while the upload ran
 	sd.fwScheduleCheck()
 }
