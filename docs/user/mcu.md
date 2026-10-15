@@ -96,7 +96,12 @@ writes `fwApply` 1 to ask the MCU to apply a pending image right away. When the
 MCU acknowledges with `fwApply` 0, Simple IoT shuts this system down
 (`systemctl poweroff`); the MCU installs the image during its power-down
 sequence and powers the system back on. With no image pending, the request does
-nothing.
+nothing. The button takes effect immediately; there is no Save step.
+
+**Apply new firmware automatically** (`fwAutoApply`) applies each newly staged
+image right away, as if **Apply firmware now** were pressed when the upload
+finishes. Use it when MCU updates should not wait for the next power-off, for
+example to finish an OS update in one restart.
 
 Each image is uploaded at most once while Simple IoT runs. If the MCU later
 reports the old version with nothing pending, because MCUboot reverted or
@@ -123,6 +128,7 @@ the **Firmware image** field:
   `(pending)` while it waits to be applied.
 - **Firmware upload** shows the percentage while an upload runs.
 - **Apply firmware now** appears while an image is pending.
+- **Apply new firmware automatically** sets `fwAutoApply`.
 - **Error** shows the node's `error` point when it is set, in either protocol.
 
 The [serial protocol reference](../ref/serial.md#firmware-update-smp) describes

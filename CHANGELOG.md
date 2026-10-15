@@ -20,7 +20,8 @@ For more details or to discuss releases, please visit the
   when it is newer than what the MCU runs, so MCU firmware ships inside the OS
   update. The MCU applies it on its own schedule, or right away with **Apply
   firmware now**, which shuts the system down so the MCU can install it and then
-  powers it back on. See [Firmware update](docs/user/mcu.md#firmware-update).
+  powers it back on. **Apply new firmware automatically** does that as soon as
+  an image is staged. See [Firmware update](docs/user/mcu.md#firmware-update).
 
 ## [0.28.5] - 2026-10-12
 
