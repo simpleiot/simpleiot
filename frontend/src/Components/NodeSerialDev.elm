@@ -192,7 +192,7 @@ view o =
                     , viewIf isShell <|
                         textInput Point.typeFirmwarePath "Firmware image" "/lib/firmware/mcu.signed.bin"
                     , viewIf isShell <|
-                        checkboxInput Point.typeFwAutoApply "Apply new firmware automatically (restarts this system)"
+                        checkboxInput Point.typeFwAutoApply "Auto apply firmware"
                     , viewIf (isShell && fwVersion /= "") <|
                         text <|
                             "  Running firmware: "
