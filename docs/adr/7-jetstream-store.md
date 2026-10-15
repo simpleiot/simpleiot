@@ -531,6 +531,48 @@ and startup enumeration touches every stream.
   instance root boundary when more than one boundary can reach them); mirroring
   across device boundaries remains an open design point for Stage 3.
 
+### Leaf node sourcing compared with sync client replication (2026-10-15)
+
+Sourcing over a leaf connection changes only how the replicas are copied. The
+boundary-origin streams stay, since each stream still has a single writer, and
+the store still consumes replicas, merges tips into its caches, and
+re-broadcasts them with `Siot-Origin`.
+
+What sourcing would bring:
+
+- **Less SIOT code.** The pump in `client/sync.go` (`runSession`, `runPump`,
+  `fillWindow`, `sendWindow`) and replica stream creation go away. The NATS
+  server handles catch-up, ordering, flow control, heartbeats, and stalled
+  sources, and replicas are configured with `Sources` so nothing in SIOT can
+  publish to them directly.
+- **Replication independent of the SIOT client lifecycle.** It runs inside the
+  NATS server, so it continues while the sync client restarts or reloads its
+  configuration.
+- **Code used by many deployments.** Sourcing over leaf connections is
+  maintained and exercised by the NATS project rather than only by SIOT tests.
+- **Built-in observability.** `StreamInfo.Sources` reports lag and last activity
+  per replica, and standard NATS tooling shows replication state.
+- **One link for all traffic.** A leaf connection also carries core NATS
+  subjects, so a hub could reach request/reply services on a device without SIOT
+  relaying each subject. This also means the subjects crossing the link must be
+  scoped carefully, and per-device credentials need an equivalent for leaf
+  connections.
+
+Where it does not help:
+
+- **Bandwidth.** The NATS server compresses each leaf flush on its own (see
+  [bandwidth](../ref/bandwidth.md)), so leaf connections are unlikely to beat
+  the pump's batched windows on Cat-M links, and the leaf protocol's overhead on
+  those links is unmeasured.
+- **Multi-hop.** The pump chains through intermediate instances naturally;
+  chained sourcing is unverified.
+
+Sourcing requires a JetStream domain per instance (static server configuration,
+while instance identity is known only after the store starts), a leafnode
+listener and remote configuration, and leaf-connection authorization. It is
+worth adopting if it is simpler and no more expensive on constrained links once
+those are in place.
+
 ## Experiments
 
 Several proof-of-concept experiments have been run to prove the feasibility of
@@ -695,7 +737,8 @@ tracks progress.
 6. JetStream sourcing over leaf connections remains the intended replacement for
    durable-consumer replication, pending a way to drive server domain
    configuration from instance identity (identity is known only after the store
-   initializes).
+   initializes). See
+   [Leaf node sourcing compared with sync client replication](#leaf-node-sourcing-compared-with-sync-client-replication-2026-10-15).
 7. Chained (multi-hop) sourcing is unverified; the single-hop spike passed
    (`store/leafnode_spike_test.go`).
 
