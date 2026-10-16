@@ -19,6 +19,11 @@ For more details or to discuss releases, please visit the
   rejected (for example, one signed with the wrong key) restarted the system
   repeatedly.
 
+### Changed
+
+- **Serial node errors are easier to read.** Long errors wrap and appear in a
+  red box.
+
 ## [0.28.7] - 2026-10-15
 
 ### Added
