@@ -371,6 +371,10 @@ const (
 	// PointTypeFwAutoApply set to 1 applies a newly staged image right away,
 	// as if fwApply were set once the upload completes.
 	PointTypeFwAutoApply = "fwAutoApply"
+	// PointTypeFwAttemptHash is the hash of the last image staged on the MCU.
+	// It persists across restarts so an image the MCU did not keep is not
+	// uploaded again. Clear it to retry the same image.
+	PointTypeFwAttemptHash = "fwAttemptHash"
 
 	// CAN bus clients
 	NodeTypeCanBus               = "canBus"

@@ -103,10 +103,13 @@ away, as if **Apply firmware now** were pressed when the upload finishes. Use it
 when MCU updates should not wait for the next power-off, for example to finish
 an OS update in one restart.
 
-Each image is uploaded at most once while Simple IoT runs. If the MCU later
-reports the old version with nothing pending, because MCUboot reverted or
-rejected the image, Simple IoT reports this in the `error` point and does not
-upload the image again until the file changes or Simple IoT restarts.
+Each image is uploaded at most once. Once the MCU marks an image for test,
+Simple IoT stores the image's hash in the `fwAttemptHash` point, which persists
+across restarts. If the MCU later reports the old version with nothing pending,
+because MCUboot reverted or rejected the image, Simple IoT reports this in the
+`error` point and does not upload the image again until the file changes. This
+also prevents a restart loop with **Auto apply firmware** on. Clear
+`fwAttemptHash` to retry the same image.
 
 The firmware update uses these points, all with key `0`:
 
@@ -117,6 +120,7 @@ The firmware update uses these points, all with key `0`:
 | `fwPending`       | INT  | MCU to SIOT | 1 when an image waits to be applied                               |
 | `fwApply`         | INT  | SIOT to MCU | 1 asks the MCU to apply the pending image now                     |
 | `fwApply`         | INT  | MCU to SIOT | 0 acknowledges a request; SIOT then shuts down if one was pending |
+| `fwAttemptHash`   | STR  | SIOT only   | hash of the last image staged on the MCU; not sent to the MCU     |
 
 The node's `progress` point shows the upload in percent. A file that is not a
 valid MCUboot image, or an upload the MCU does not complete, is reported in the

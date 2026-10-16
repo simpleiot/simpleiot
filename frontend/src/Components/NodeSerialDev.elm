@@ -185,9 +185,14 @@ view o =
                             "  Last log: "
                                 ++ log
                     , viewIf (errorS /= "") <|
-                        text <|
-                            "  Error: "
-                                ++ errorS
+                        paragraph
+                            [ width (fill |> maximum 500)
+                            , padding 8
+                            , Border.width 1
+                            , Border.rounded 4
+                            , Border.color Style.colors.red
+                            ]
+                            [ text <| "Error: " ++ errorS ]
                     , viewIf isShell <| horizontalRule
                     , viewIf isShell <|
                         textInput Point.typeFirmwarePath "Firmware image" "/lib/firmware/mcu.signed.bin"

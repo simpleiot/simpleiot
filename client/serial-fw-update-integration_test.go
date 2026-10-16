@@ -3,6 +3,7 @@ package client_test
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strings"
@@ -272,6 +273,9 @@ func TestSerialFwUpdate(t *testing.T) {
 	if n := rig.getNode(); n.Error != "" {
 		t.Errorf("got error %q after a successful update", n.Error)
 	}
+	rig.waitFor("attempt to be recorded", 3*time.Second, func(n client.SerialDev) bool {
+		return n.FwAttemptHash != ""
+	})
 
 	// The MCU now reports the image as staged and pending, so nothing
 	// further is sent.
@@ -412,7 +416,7 @@ func TestSerialFwUpdateNoVersionReported(t *testing.T) {
 }
 
 // An image the MCU did not keep is not uploaded again until the file
-// changes or SIOT restarts.
+// changes or fwAttemptHash is cleared.
 func TestSerialFwUpdateNoRepeatAfterRevert(t *testing.T) {
 	path, _, tlvHash := writeImage(t)
 	rig, teardown := setupShellRig(t, func(c *client.SerialDev) {
@@ -437,6 +441,51 @@ func TestSerialFwUpdateNoRepeatAfterRevert(t *testing.T) {
 	if starts, _, marked, _ := f.state(); starts != 1 || !marked {
 		t.Errorf("got %v upload starts (marked %v), expected exactly 1", starts, marked)
 	}
+}
+
+// TestSerialFwUpdateNoRepeatAfterRestart checks that the attempt survives a
+// restart: an image MCUboot rejected after an apply, which restarts SIOT, is
+// not uploaded and applied again in a loop. Clearing fwAttemptHash retries it.
+func TestSerialFwUpdateNoRepeatAfterRestart(t *testing.T) {
+	var poweroffs atomic.Int32
+	defer client.SetFwPoweroff(func() error {
+		poweroffs.Add(1)
+		return nil
+	})()
+
+	path, _, tlvHash := writeImage(t)
+	rig, teardown := setupShellRig(t, func(c *client.SerialDev) {
+		c.FirmwarePath = path
+		c.FwAutoApply = true
+		c.FwAttemptHash = hex.EncodeToString(tlvHash)
+	})
+	f := startFakeMCU(rig, "1.0.0", "1.1.0", tlvHash)
+	defer func() {
+		f.close()
+		teardown()
+	}()
+
+	rig.waitFor("not-kept error", 15*time.Second, func(n client.SerialDev) bool {
+		return strings.Contains(n.Error, "did not keep firmware 1.1.0 (still running 1.0.0)")
+	})
+	<-time.After(2 * time.Second)
+	if starts, _, _, _ := f.state(); starts != 0 {
+		t.Fatalf("got %v upload starts, expected none for an image already tried", starts)
+	}
+	if n := poweroffs.Load(); n != 0 {
+		t.Fatalf("got %v shutdowns, expected none", n)
+	}
+
+	p := data.NewPointString(data.PointTypeFwAttemptHash, "", "")
+	p.Origin = "test"
+	if err := client.SendNodePoint(rig.nc, rig.nodeID, p, true); err != nil {
+		t.Fatal(err)
+	}
+
+	rig.waitFor("upload after clearing fwAttemptHash", 15*time.Second,
+		func(n client.SerialDev) bool {
+			return n.Progress == 100 && n.FwAttemptHash == hex.EncodeToString(tlvHash)
+		})
 }
 
 // TestSerialFwUpdateAutoApply checks that with fwAutoApply set, a newly
