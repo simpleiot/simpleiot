@@ -18,6 +18,12 @@ For more details or to discuss releases, please visit the
   until that sample finished and logged a timeout. CPU readings are unchanged
   and still cover one period.
 
+- **The version an instance runs is recorded even when it starts up busy.** A
+  store still recovering its streams could not confirm the write in time, and
+  the version was reported once and then dropped, so the UI kept showing the
+  previous release until some later restart happened to be quick enough. The
+  write is now retried until it lands.
+
 - **A point write is no longer reported as failed when the store is merely
   slow.** Writes waited one second for confirmation, which a store recovering
   at start-up or working through a backlog can exceed; they now wait as long as
