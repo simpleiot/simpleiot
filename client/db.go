@@ -168,9 +168,16 @@ func (dbc *DbClient) blockingWriter() api.WriteAPIBlocking {
 // over the phrup wire subjects, where the best that can be done is a
 // buffered, best-effort write.
 type DbClient struct {
-	nc            *nats.Conn
-	config        Db
-	stop          chan struct{}
+	nc     *nats.Conn
+	config Db
+	stop   chan struct{}
+
+	// ctx is cancelled by Stop. The requests this client makes to the
+	// database and to JetStream take it, so a shutdown ends the one in
+	// flight rather than the client manager waiting out its timeout.
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	newPoints     chan NewPoints
 	newEdgePoints chan NewPoints
 	chStreamMsgs  chan dbStreamMsg
@@ -252,10 +259,14 @@ const (
 
 // NewDbClient ...
 func NewDbClient(nc *nats.Conn, config Db) Client {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &DbClient{
 		nc:            nc,
 		config:        config,
 		stop:          make(chan struct{}),
+		ctx:           ctx,
+		cancel:        cancel,
 		newPoints:     make(chan NewPoints),
 		newEdgePoints: make(chan NewPoints),
 		chStreamMsgs:  make(chan dbStreamMsg, 64),
@@ -578,9 +589,19 @@ func (dbc *DbClient) flushPending() {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), dbWriteTimeout)
+	ctx, cancel := context.WithTimeout(dbc.ctx, dbWriteTimeout)
 	err := writeAPI.WritePoint(ctx, points...)
 	cancel()
+
+	if dbc.ctx.Err() != nil {
+		// the client is stopping, so the write ended with it rather than
+		// being refused. Return the points to the stream without counting
+		// a failure against the database: they are redelivered and written
+		// when the client runs again. A write that did land in that moment
+		// is simply written again, with the same timestamps.
+		retry(0)
+		return
+	}
 
 	switch {
 	case err == nil:
@@ -637,7 +658,9 @@ func dbWriteRetryable(err error) bool {
 // DeliverAll so their initial catch-up is captured. A consumer that
 // already exists resumes where it stopped.
 func (dbc *DbClient) scanStreams(js jetstream.JetStream, firstScan bool) {
-	ctx := context.Background()
+	// the client's context, so a scan that is waiting on a busy store ends
+	// when the client is stopped
+	ctx := dbc.ctx
 
 	lister := js.ListStreams(ctx, jetstream.WithStreamListSubject("inst.>"))
 	for si := range lister.Info() {
@@ -648,6 +671,9 @@ func (dbc *DbClient) scanStreams(js jetstream.JetStream, firstScan bool) {
 
 		s, err := js.Stream(ctx, name)
 		if err != nil {
+			if ctx.Err() != nil {
+				return
+			}
 			log.Printf("DB: error getting stream %v: %v", name, err)
 			continue
 		}
@@ -681,12 +707,18 @@ func (dbc *DbClient) scanStreams(js jetstream.JetStream, firstScan bool) {
 				cfg.DeliverPolicy = jetstream.DeliverNewPolicy
 			}
 		default:
+			if ctx.Err() != nil {
+				return
+			}
 			log.Printf("DB: error getting consumer on %v: %v", name, err)
 			continue
 		}
 
 		c, err := s.CreateOrUpdateConsumer(ctx, cfg)
 		if err != nil {
+			if ctx.Err() != nil {
+				return
+			}
 			log.Printf("DB: error creating consumer on %v: %v", name, err)
 			continue
 		}
@@ -780,6 +812,9 @@ func (dbc *DbClient) walkUp(id string, visited map[string]bool) bool {
 
 // Stop sends a signal to the Run function to exit
 func (dbc *DbClient) Stop(_ error) {
+	// cancel first, so a request that is in flight ends now and the main
+	// loop reaches the stop channel rather than finishing the request
+	dbc.cancel()
 	close(dbc.stop)
 }
 

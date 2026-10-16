@@ -11,6 +11,16 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.28.10] - 2026-10-16
+
+### Fixed
+
+- **A restart no longer waits on the database client.** A write to a database
+  slow to answer, or a scan for new streams on a busy store, held the client
+  open until it finished, so shutting down paused and the client manager logged
+  a timeout. Points in a write that ends this way stay in the stream and are
+  written when the client runs again.
+
 ## [0.28.9] - 2026-10-16
 
 ### Fixed
