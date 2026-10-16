@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.28.8] - 2026-10-16
+
 ### Fixed
 
 - **No restart loop when the MCU rejects new firmware.** Simple IoT remembers an
