@@ -250,7 +250,12 @@ func (m *MetricsClient) sysPeriodic() {
 
 	}
 
-	perc, err := cpu.Percent(time.Duration(m.config.Period)*time.Second, false)
+	// A zero interval reads utilization since the previous call rather than
+	// sleeping for one, so the ticker above sets the sampling window, the
+	// reading for a window arrives when the window ends, and Run returns as
+	// soon as the client is stopped. gopsutil records the starting point when
+	// its cpu package loads, so the first reading covers the time since then.
+	perc, err := cpu.Percent(0, false)
 	if err != nil {
 		log.Println("Metrics error:", err)
 	} else {

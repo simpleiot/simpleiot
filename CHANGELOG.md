@@ -11,6 +11,13 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Fixed
+
+- **A restart no longer waits on the system metrics client.** It sampled CPU
+  usage by sleeping for a full metrics period, so stopping Simple IoT paused
+  until that sample finished and logged a timeout. CPU readings are unchanged
+  and still cover one period.
+
 ## [0.28.8] - 2026-10-16
 
 ### Fixed
