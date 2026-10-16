@@ -442,7 +442,7 @@ func (s *Server) Run() error {
 			return err
 		}
 
-		reportVersions(s.nc, o.AppVersion, o.OSVersionField)
+		reportVersions(cancelVersions, s.nc, o.AppVersion, o.OSVersionField)
 
 		<-cancelVersions
 		logLS("LS: Exited: version reporting")

@@ -10,6 +10,14 @@ import (
 	"github.com/simpleiot/simpleiot/data"
 )
 
+// pointAckTimeout is how long a write waits for the store to confirm a point.
+// The store answers in milliseconds once it is running, but it can take
+// seconds while it recovers streams at start-up or works through a backlog,
+// and a write that is only slow should not be reported as a failure. A store
+// that is not there at all still fails immediately, because NATS reports that
+// no one is listening. This matches the timeout node requests use.
+const pointAckTimeout = 20 * time.Second
+
 // SendNodePoint sends a node point using the nats protocol
 func SendNodePoint(nc *nats.Conn, nodeID string, point data.Point, ack bool) error {
 	points := data.Points{point}
@@ -59,7 +67,7 @@ func SendPoints(nc *nats.Conn, baseSubject string, points data.Points, ack bool)
 		d := pts.Encode()
 
 		if ack {
-			msg, err := nc.Request(subject, d, time.Second)
+			msg, err := nc.Request(subject, d, pointAckTimeout)
 			if err != nil {
 				return err
 			}
@@ -87,7 +95,7 @@ func SendPointsBatch(nc *nats.Conn, subject string, points data.Points, ack bool
 	d := points.Encode()
 
 	if ack {
-		msg, err := nc.Request(subject, d, time.Second)
+		msg, err := nc.Request(subject, d, pointAckTimeout)
 		if err != nil {
 			return err
 		}
