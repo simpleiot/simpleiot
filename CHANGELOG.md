@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.28.10] - 2026-10-16
+
 ### Fixed
 
 - **A restart no longer waits on the database client.** A write to a database
