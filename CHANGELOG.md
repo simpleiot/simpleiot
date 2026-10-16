@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.28.9] - 2026-10-16
+
 ### Fixed
 
 - **A restart no longer waits on the system metrics client.** It sampled CPU
@@ -25,8 +27,8 @@ For more details or to discuss releases, please visit the
   write is now retried until it lands.
 
 - **A point write is no longer reported as failed when the store is merely
-  slow.** Writes waited one second for confirmation, which a store recovering
-  at start-up or working through a backlog can exceed; they now wait as long as
+  slow.** Writes waited one second for confirmation, which a store recovering at
+  start-up or working through a backlog can exceed; they now wait as long as
   other requests do. A store that is not running still fails immediately.
 
 ## [0.28.8] - 2026-10-16
