@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -72,10 +73,6 @@ type fwUpdate struct {
 	err string
 	// retryAt holds off automatic retries after a failed update.
 	retryAt time.Time
-	// tried is the TLV hash of the last image staged and marked for test.
-	// Each image is tried once per process: if the MCU does not keep it,
-	// uploading it again would only repeat the same outcome.
-	tried []byte
 
 	// applyAt is when an apply request was sent to the MCU with an image
 	// pending. When the MCU acknowledges it, SIOT shuts the OS down so the
@@ -273,10 +270,13 @@ func (sd *SerialDevClient) fwCheck() {
 	}
 
 	// Staged before, yet the MCU neither runs it nor has it pending: MCUboot
-	// reverted it, rejected it, or the mark was lost.
-	if bytes.Equal(sd.fw.tried, img.hash) {
+	// reverted it, rejected it, or the mark was lost. The attempt is a node
+	// point, so this holds across restarts, including the one an apply
+	// causes; without it, an image MCUboot rejects is applied in a loop.
+	if sd.config.FwAttemptHash == hex.EncodeToString(img.hash) {
 		sd.fwSetError(fmt.Errorf("MCU did not keep firmware %v (still running %v); "+
-			"not retrying until the file changes or SIOT restarts", img.version, running))
+			"not retrying until the file changes or fwAttemptHash is cleared",
+			img.version, running))
 		return
 	}
 
@@ -506,7 +506,7 @@ func (sd *SerialDevClient) fwMarkTestRsp(body []byte) {
 	// before its report from uploading the same image again
 	sd.fw.staged = v
 	sd.fw.pending = true
-	sd.fw.tried = sd.fw.img.hash
+	sd.fwRecordAttempt(sd.fw.img.hash)
 
 	sd.fwStop()
 	sd.fw.retryAt = time.Time{}
@@ -521,6 +521,18 @@ func (sd *SerialDevClient) fwMarkTestRsp(body []byte) {
 
 	// the file may have changed while the upload ran
 	sd.fwScheduleCheck()
+}
+
+// fwRecordAttempt stores the hash of an image staged on the MCU. It must
+// be stored before any apply, which restarts SIOT.
+func (sd *SerialDevClient) fwRecordAttempt(hash []byte) {
+	h := hex.EncodeToString(hash)
+	err := SendNodePoint(sd.nc, sd.config.ID,
+		data.NewPointString(data.PointTypeFwAttemptHash, "", h), true)
+	if err != nil {
+		log.Println("Serial: error sending fwAttemptHash:", err)
+	}
+	sd.config.FwAttemptHash = h
 }
 
 // fwApply asks the MCU to apply a pending image now. The MCU records that

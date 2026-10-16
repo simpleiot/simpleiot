@@ -11,6 +11,14 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Fixed
+
+- **No restart loop when the MCU rejects new firmware.** Simple IoT remembers an
+  image the MCU did not keep, across restarts, and does not upload or apply it
+  again. Previously, with **Auto apply firmware** on, an image that MCUboot
+  rejected (for example, one signed with the wrong key) restarted the system
+  repeatedly.
+
 ## [0.28.7] - 2026-10-15
 
 ### Added

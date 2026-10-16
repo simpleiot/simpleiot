@@ -43,6 +43,7 @@ var serialConfigTypes = map[string]bool{
 	data.PointTypeDownload:         true,
 	data.PointTypeFirmwarePath:     true,
 	data.PointTypeFwAutoApply:      true,
+	data.PointTypeFwAttemptHash:    true,
 }
 
 // dropSerialConfigPoints returns the points from the wire that are not
@@ -104,8 +105,12 @@ type SerialDev struct {
 	// FwAutoApply applies a newly staged image right away instead of
 	// waiting for the MCU's own schedule. Applying shuts the OS down; the
 	// MCU installs the image and powers the system back on.
-	FwAutoApply bool   `point:"fwAutoApply"`
-	Files       []File `child:"file"`
+	FwAutoApply bool `point:"fwAutoApply"`
+	// FwAttemptHash is the hash (hex) of the last image staged on the MCU.
+	// An image with this hash that the MCU did not keep is not uploaded
+	// again, across restarts.
+	FwAttemptHash string `point:"fwAttemptHash"`
+	Files         []File `child:"file"`
 }
 
 type sendData struct {
@@ -1026,6 +1031,11 @@ exitSerialClient:
 					fwPathChanged = true
 				}
 
+				// cleared to retry an image the MCU did not keep
+				if p.Type == data.PointTypeFwAttemptHash {
+					fwPathChanged = true
+				}
+
 				if p.Type == data.PointTypeFwApply && p.Val() != 0 && sd.shell() {
 					fwApply = true
 				}
@@ -1153,7 +1163,8 @@ exitSerialClient:
 						data.PointTypeProtocol,
 						data.PointTypeTimeout,
 						data.PointTypeLogConsole,
-						data.PointTypeFirmwarePath:
+						data.PointTypeFirmwarePath,
+						data.PointTypeFwAttemptHash:
 						continue
 					}
 
