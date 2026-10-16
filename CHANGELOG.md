@@ -11,6 +11,14 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Fixed
+
+- **A restart no longer waits on the store's scan for replica streams.** The
+  scan ran to its own timeout against a store still recovering, which held up
+  a shutdown that arrived while it was in progress. Streams it had not reached
+  are found by the scan the next start makes, and no point is written or
+  acknowledged by this path.
+
 ## [0.28.10] - 2026-10-16
 
 ### Fixed
