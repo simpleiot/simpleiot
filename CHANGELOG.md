@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-10-20
+
 ### Breaking changes
 
 - **An enrollment token works only under the root or a group, and in one
