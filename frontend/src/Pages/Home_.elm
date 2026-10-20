@@ -1642,6 +1642,7 @@ viewAddNode customNodeType parent add =
                             , Input.option Node.typeVariable nodeDescVariable
                             , Input.option Node.typeSignalGenerator nodeDescSignalGenerator
                             , Input.option Node.typeFile nodeDescFile
+                            , Input.option Node.typeEnrollToken nodeDescEnrollToken
                             ]
 
                         else

@@ -140,17 +140,17 @@ follow-ups.
 
 ### Phase 3: CLI and UI
 
-- [ ] `siot cred token -parent ID|DESCRIPTION` creates the token under that node
+- [x] `siot cred token -parent ID|DESCRIPTION` creates the token under that node
       (default: the root), resolving a description the way `findDevice` does for
       devices. Refuse a parent that is not the root or a group.
-- [ ] `siot cred list` shows `enrolledBy` for each credential.
-- [ ] Frontend: offer **Enrollment token** in the add-node list under a `group`
+- [x] `siot cred list` shows `enrolledBy` for each credential.
+- [x] Frontend: offer **Enrollment token** in the add-node list under a `group`
       (`viewAddNode` in `frontend/src/Pages/Home_.elm`; it is offered only under
       devices today). Show `enrolledBy` on the device credential view
       (`Components/NodeDeviceCred.elm`) as the token's description and the group
       it sits in, so a pending credential from another group's token stands out.
       A user who cannot see the token's group sees the raw ID.
-- [ ] `siot_test_frontend`, `cd frontend && npx elm-review`. Commit.
+- [x] `siot_test_frontend`, `cd frontend && npx elm-review`. Commit.
 
 ### Phase 4: Documentation and changelog
 
