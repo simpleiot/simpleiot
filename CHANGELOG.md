@@ -13,10 +13,14 @@ For more details or to discuss releases, please visit the
 
 ### Fixed
 
+- **Moving a node no longer risks a conflict in the database client's tag
+  cache.** Clearing the cache after a move could overlap with points being
+  tagged at the same moment.
+
 - **A restart no longer waits on the store's scan for replica streams.** The
-  scan ran to its own timeout against a store still recovering, which held up
-  a shutdown that arrived while it was in progress. Streams it had not reached
-  are found by the scan the next start makes, and no point is written or
+  scan ran to its own timeout against a store still recovering, which held up a
+  shutdown that arrived while it was in progress. Streams it had not reached are
+  found by the scan the next start makes, and no point is written or
   acknowledged by this path.
 
 ## [0.28.10] - 2026-10-16

@@ -69,7 +69,7 @@ func newNodeCache(tagPointTypes []string, boundary string) nodeCache {
 // (into key "node.tag.*" where * is the name of each tag) to the specified
 // `tags` map, returning true if the node was found in the cache. If the node is
 // not present in the cache, false is returned and tags is unmodified.
-func (c nodeCache) CopyTags(nodeID string, tags map[string]string) bool {
+func (c *nodeCache) CopyTags(nodeID string, tags map[string]string) bool {
 	c.Lock.RLock()
 	defer c.Lock.RUnlock()
 
@@ -91,7 +91,7 @@ func (c nodeCache) CopyTags(nodeID string, tags map[string]string) bool {
 // does not exist for the node, the node is retrieved along with the tag
 // points of its ancestors up to the Boundary node, and the cache is
 // subsequently updated.
-func (c nodeCache) Update(nc *nats.Conn, pts NewPoints) error {
+func (c *nodeCache) Update(nc *nats.Conn, pts NewPoints) error {
 	c.Lock.Lock()
 	defer c.Lock.Unlock()
 
@@ -157,7 +157,7 @@ func (c nodeCache) Update(nc *nats.Conn, pts NewPoints) error {
 // node (its tags are included) or when no living parents remain. instances
 // is the fetch result for the node itself, used to seed the first level.
 // Must be called with the write lock held.
-func (c nodeCache) mergeAncestorTags(nc *nats.Conn, id string,
+func (c *nodeCache) mergeAncestorTags(nc *nats.Conn, id string,
 	instances []data.NodeEdge, tags map[tagEntry]string) error {
 	if len(c.TagPointTypes) == 0 || id == c.Boundary {
 		return nil
@@ -241,7 +241,7 @@ func parentIDs(instances []data.NodeEdge, visited map[string]bool) []string {
 // configured tag point types. Used to decide when a cache clear is needed,
 // since a tag edit on any node can change the inherited tags of every node
 // beneath it.
-func (c nodeCache) hasTagPointType(pts data.Points) bool {
+func (c *nodeCache) hasTagPointType(pts data.Points) bool {
 	for _, p := range pts {
 		if _, found := slices.BinarySearch(c.TagPointTypes, p.Type); found {
 			return true
