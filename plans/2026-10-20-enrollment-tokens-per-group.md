@@ -117,16 +117,17 @@ follow-ups.
 
 ### Phase 2: Enroller creates the device in the token's group
 
-- [ ] In `enroller.enroll`, refuse a token with more than one parent, and read
+- [x] In `enroller.enroll`, refuse a token with more than one parent, and read
       the parent with one `GetNodes` call; refuse it unless it is the root or a
       live `group`. Log the reason on each refusal. Create a new device under
-      that parent instead of `e.auth.root()`.
-- [ ] For an existing device, leave its edges alone and create the credential
+      that parent instead of `e.auth.root()`. "Live" means a path of live edges
+      leads to the root, so a group under a deleted group is refused too.
+- [x] For an existing device, leave its edges alone and create the credential
       pending regardless of `autoApprove` (replaces the `hasLive` special case).
-- [ ] Write `enrolledBy` (token node ID) on the new `deviceCred`. Add
+- [x] Write `enrolledBy` (token node ID) on the new `deviceCred`. Add
       `PointTypeEnrolledBy` to `data/schema.go` and the field to
       `client.DeviceCred`.
-- [ ] Tests, alongside `TestSyncEnroll` in `client/sync_enroll_test.go`: two
+- [x] Tests, alongside `TestSyncEnroll` in `client/sync_enroll_test.go`: two
       tokens in two groups, each enrolls a device into its own group; a root
       token still enrolls under the root; a token under a device is refused; a
       mirrored token is refused; a token under a deleted group is refused; a
@@ -135,7 +136,7 @@ follow-ups.
       its credential and connection, and a re-enrollment with a new key leaves
       it in group B with a pending credential; an auto-approve token naming an
       existing device with no live credential gets a pending credential.
-- [ ] `go test -race ./server/... ./client/...`, `golangci-lint run`. Commit.
+- [x] `go test -race ./server/... ./client/...`, `golangci-lint run`. Commit.
 
 ### Phase 3: CLI and UI
 
