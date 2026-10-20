@@ -199,13 +199,26 @@ nothing else. The token is presented together with a key, which signs the
 connection nonce, so the upstream gives the connection an inbox of its own. The
 request has to name that same key, since its reply can only be delivered to that
 key's inbox; a request naming another key is refused. The device ID has to be
-usable as a subject token (no period, wildcard, or whitespace). A device that
-already has a live credential gets any further key as pending, whatever the
-token says, so a token holder cannot take over a known device; and at most 100
-devices may wait for approval at once. It exists so a device with no credential
-can ask for one; see
+usable as a subject token (no period, wildcard, or whitespace). It exists so a
+device with no credential can ask for one; see
 [Devices that enroll themselves](../user/sync.md#2-devices-that-enroll-themselves).
 Only a hash of the token is stored, in an `enrollToken` node.
+
+A token is honored only under the root or a live `group` node, and in one place.
+A token under a device or a deleted group, or one mirrored into two groups,
+enrolls nothing, and the enroller logs why. A device the enrollment creates is
+placed under the token's parent, approved at once only when the token says so. A
+device node that already exists, with or without a credential, gets any further
+key as pending whatever the token says, and its edges are left alone; so a token
+holder cannot take over a known device, move one, or undo a credential that was
+disabled to revoke it. At most 100 devices may wait for approval at once,
+counted when a device is created.
+
+A token holder can still name an existing device in another group and queue a
+pending credential there, and learns from the reply whether an ID exists
+(`approved` for a new device, `pending` for an existing one). Each credential
+records the token that made it as `enrolledBy`, which is how an operator tells a
+credential from another group's token before approving it.
 
 ### What a device credential allows
 
@@ -255,7 +268,8 @@ tries again every minute. Enabling the credential again lets it back in with
 what it queued.
 
 Disabling or deleting an enrollment token closes connections made with it and
-refuses new ones; devices already enrolled are unaffected.
+refuses new ones; devices already enrolled are unaffected. Moving a token
+changes where the next new device is created and nothing else.
 
 `lastConnect` and `connected` on each credential are maintained by the upstream.
 

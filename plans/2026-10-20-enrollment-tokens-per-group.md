@@ -26,17 +26,28 @@ What the code already gives us:
   the token's parent with no extra lookup. `handleUp` already refreshes a token
   on an edge change, so moving a token is picked up.
 - `enrollToken` is already tree scoped in `data/edge_role.go`.
+- A device under a group already connects: `deviceLive` checks only that the
+  credential sits under a live `device` node, and the grant does not include the
+  parent, so moving a device does not close its connection.
+- The root is a `device` node, so the add-node list under the root already
+  offers an enrollment token; it is the `group` list that lacks one.
 
 ## Approach
 
-1. **The token's parent is the destination.** The authorizer records the parent
-   of each live token edge. The enroller creates a new device node under that
-   parent instead of under the root. A token is honored only under the root or a
-   `group` node; one anywhere else (under a device, say) is treated as not live,
-   so a misplaced token enrolls nothing.
+1. **The token's parent is the destination.** The authorizer records the parents
+   of each token's live edges, which it already has from `refreshEnroll`, and
+   does no further lookup. The enroller reads the parent at enroll time and
+   creates a new device node under it instead of under the root. A token is
+   honored only under the root or a live `group` node; one anywhere else (under
+   a device, say) enrolls nothing. The check has to be at enroll time:
+   `DeleteNode` tombstones only the group's own edges, so a token under a
+   deleted group keeps a live edge, and the authorizer never hears about the
+   group's tombstone since `handleUp` keys on the token's node ID. Without the
+   check a deleted group would keep collecting devices nobody can see.
 2. **One destination per token.** A token mirrored into two places is ambiguous,
-   so the enroller refuses it and logs why. Making a second token for the second
-   group is the supported setup.
+   so the enroller refuses it. Making a second token for the second group is the
+   supported setup. Both refusals happen in the enroller, not at connect time,
+   with the reason logged, so an operator can see why a token enrolls nothing.
 3. **An existing device stays where it is.** A device that was enrolled and then
    moved still carries its original token in its image, so a re-enrollment (a
    new key after a re-flash) must not move it back or be refused for being
@@ -51,9 +62,21 @@ What the code already gives us:
    which a new key would otherwise undo. With a token per group, the holder of
    group A's token could do this to a device in group B. A device whose
    credential was deleted so it can re-enroll waits for one approval.
+
+   Two limits of this remain and are documented rather than closed here. The
+   holder of group A's token can still name a device ID in group B and queue a
+   pending credential there, which an operator approving by habit could grant;
+   `enrolledBy` (item 6) is the mitigation, and the UI shows the token's group
+   next to a pending credential so the mismatch is visible at approval time. The
+   reply also tells an auto-approve token holder whether an ID exists:
+   `approved` for a new device, `pending` for an existing one.
+
 5. **The pending limit stays global.** `maxPendingEnrollments` (100) still
-   counts all pending devices. A per-token limit is a possible follow-up; it is
-   not needed for placement.
+   counts all pending devices. It is checked only when a device is created, so
+   credentials queued on existing devices are not bounded by it; that is
+   unchanged, and with item 4 it is the only path for an existing device, so it
+   is noted in the security follow-ups. A per-token limit is a possible
+   follow-up; it is not needed for placement.
 6. **Credentials record their token.** The enroller writes the token's node ID
    on the new `deviceCred` as `enrolledBy`, so an operator can see which token
    brought a device in and revoke accordingly. (`enrollToken` is already the
@@ -68,78 +91,88 @@ land in that group. Item 10's proposed fix (only the shared token or a
 root-anchored principal may create `enrollToken` nodes) closes that, and still
 lets an admin place tokens in any group. Its note that "the authorizer can also
 ignore enrollment tokens that are not under the root" becomes "not under the
-root or a group". Land item 10's `enrollToken` restriction before or with Phase
-2 of this plan, and update item 10's text in Phase 1.
+root or a group". This plan does not wait on item 10: today such a token enrolls
+devices to the root, and after Phase 2 they land in the user's own group, which
+is less exposure, not more. Update item 10's text in Phase 1 and add the
+unbounded pending credentials on existing devices (item 5 above) to the
+follow-ups.
 
 ## Phases
 
 ### Phase 1: Authorizer tracks the token's parent
 
-- [ ] Add `parent string` to `enrollEntry`. In `refreshEnroll`, collect the
-      parents of the live edges. Record the parent when there is exactly one;
-      mark the entry ambiguous when there are several.
-- [ ] Look up the parent's type and treat the token as not live unless the
-      parent is the root or a `group`. Re-check when the token's edges change
-      (already wired through `handleUp`).
+- [ ] Add `parents []string` to `enrollEntry`. In `refreshEnroll`, collect the
+      parents of the live edges; no type lookup here. The entry is refreshed
+      when the token's edges change (already wired through `handleUp`).
 - [ ] Replace `EnrollToken(token) (autoApprove, ok bool)` with a method that
-      returns the token's node ID, parent, and `autoApprove` together, so the
+      returns the token's node ID, parents, and `autoApprove` together, so the
       enroller reads one consistent entry.
 - [ ] Update item 10 in `plans/2026-09-19-security-followups.md` as described
-      above.
+      above, and add a follow-up for the unbounded pending credentials on
+      existing devices.
 - [ ] Tests in `server/auth_test.go`: a token under a group reports that group;
-      a token under a device is refused; a mirrored token is refused; moving a
-      token from the root to a group changes its parent.
+      a mirrored token reports both parents; moving a token from the root to a
+      group changes its parent.
 - [ ] `go test -race ./server/...`, `golangci-lint run`. Commit.
 
 ### Phase 2: Enroller creates the device in the token's group
 
-- [ ] In `enroller.enroll`, create a new device under the token's parent instead
-      of `e.auth.root()`.
+- [ ] In `enroller.enroll`, refuse a token with more than one parent, and read
+      the parent with one `GetNodes` call; refuse it unless it is the root or a
+      live `group`. Log the reason on each refusal. Create a new device under
+      that parent instead of `e.auth.root()`.
 - [ ] For an existing device, leave its edges alone and create the credential
       pending regardless of `autoApprove` (replaces the `hasLive` special case).
 - [ ] Write `enrolledBy` (token node ID) on the new `deviceCred`. Add
       `PointTypeEnrolledBy` to `data/schema.go` and the field to
       `client.DeviceCred`.
-- [ ] Tests: two tokens in two groups, each enrolls a device into its own group;
-      a root token still enrolls under the root; a token that is moved between
-      enrollments sends the next new device to the new place; a device enrolled
-      by group A's token and moved to group B keeps its credential and
-      connection, and a re-enrollment with a new key leaves it in group B with a
-      pending credential; an auto-approve token naming an existing device with
-      no live credential gets a pending credential.
+- [ ] Tests, alongside `TestSyncEnroll` in `client/sync_enroll_test.go`: two
+      tokens in two groups, each enrolls a device into its own group; a root
+      token still enrolls under the root; a token under a device is refused; a
+      mirrored token is refused; a token under a deleted group is refused; a
+      token that is moved between enrollments sends the next new device to the
+      new place; a device enrolled by group A's token and moved to group B keeps
+      its credential and connection, and a re-enrollment with a new key leaves
+      it in group B with a pending credential; an auto-approve token naming an
+      existing device with no live credential gets a pending credential.
 - [ ] `go test -race ./server/... ./client/...`, `golangci-lint run`. Commit.
 
 ### Phase 3: CLI and UI
 
-- [ ] `siot cred token -parent ID` creates the token under that node (default:
-      the root). Refuse a parent that is not the root or a group.
+- [ ] `siot cred token -parent ID|DESCRIPTION` creates the token under that node
+      (default: the root), resolving a description the way `findDevice` does for
+      devices. Refuse a parent that is not the root or a group.
 - [ ] `siot cred list` shows `enrolledBy` for each credential.
 - [ ] Frontend: offer **Enrollment token** in the add-node list under a `group`
       (`viewAddNode` in `frontend/src/Pages/Home_.elm`; it is offered only under
       devices today). Show `enrolledBy` on the device credential view
-      (`Components/NodeDeviceCred.elm`) as the token's description when it can
-      be resolved.
+      (`Components/NodeDeviceCred.elm`) as the token's description and the group
+      it sits in, so a pending credential from another group's token stands out.
+      A user who cannot see the token's group sees the raw ID.
 - [ ] `siot_test_frontend`, `cd frontend && npx elm-review`. Commit.
 
 ### Phase 4: Documentation and changelog
 
-- [ ] `docs/user/sync.md`, "Devices that enroll themselves": tokens may sit in
+- [x] `docs/user/sync.md`, "Devices that enroll themselves": tokens may sit in
       the root or any group, and a new device lands in the group of the token it
       used; after that it can be moved like any node. Add a short example with
       one token per customer group.
-- [ ] `docs/ref/security.md`: an enrollment token is honored only under the root
-      or a group; mirrored tokens are refused; auto-approve covers only a device
-      the enrollment creates, and a key for an existing device always waits for
-      an operator.
-- [ ] Update the `NodeTypeEnrollToken` comment in `data/schema.go` ("kept under
+- [x] `docs/ref/security.md`: an enrollment token is honored only under the root
+      or a live group; mirrored tokens are refused; auto-approve covers only a
+      device the enrollment creates, and a key for an existing device always
+      waits for an operator. Note what a token holder can still do to a device
+      in another group (queue a pending credential, learn that its ID exists)
+      and that `enrolledBy` is how an operator tells.
+- [x] Update the `NodeTypeEnrollToken` comment in `data/schema.go` ("kept under
       the upstream root").
-- [ ] `CHANGELOG.md` entry under `[Unreleased]`. Commit.
+- [x] `CHANGELOG.md` entry under `[Unreleased]`.
+- [ ] Commit.
 
 ## Incompatibilities to note in the changelog
 
-- A token that is not under the root or a group, or that is mirrored into more
-  than one place, stops enrolling devices. Tokens created by `siot cred token`
-  or the UI so far sit under the root and keep working.
+- A token that is not under the root or a live group, or that is mirrored into
+  more than one place, stops enrolling devices. Tokens created by
+  `siot cred token` or the UI so far sit under the root and keep working.
 - An auto-approve token no longer approves a key for a device node that already
   exists, such as one created by hand before the device first connects; that
   credential waits for an operator. A device that already has a live credential
