@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.28.11] - 2026-10-20
+
 ### Breaking changes
 
 - **Serial packets containing a run of 254 or more non-zero bytes are now COBS
