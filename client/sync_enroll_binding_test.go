@@ -41,7 +41,7 @@ func TestEnrollBinding(t *testing.T) {
 		t.Fatalf("device key reply carries the seed: %s", msg.Data)
 	}
 
-	token := makeEnrollToken(t, ncU, rootU, "et-1", true)
+	token := makeEnrollToken(t, ncU, rootU.ID, "et-1", true)
 	time.Sleep(500 * time.Millisecond)
 
 	startEnrollSync(t, ncD, rootD, optsU.NatsServer, token)

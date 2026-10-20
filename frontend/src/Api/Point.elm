@@ -78,6 +78,7 @@ module Api.Point exposing
     , typeEmail
     , typeEnd
     , typeEnrollToken
+    , typeEnrolledBy
     , typeError
     , typeErrorCount
     , typeErrorCountCRC
@@ -1152,6 +1153,11 @@ typeExpires =
 typeEnrollToken : String
 typeEnrollToken =
     "enrollToken"
+
+
+typeEnrolledBy : String
+typeEnrolledBy =
+    "enrolledBy"
 
 
 typeControlled : String

@@ -18,8 +18,9 @@ import (
 // enroller answers enrollment requests: a device that holds an enrollment
 // token asks for a credential for its key, and gets one under its device
 // node, pending approval unless the token approves automatically. The
-// device node is created when it does not exist yet, so a unit fresh from
-// an image shows up in the tree with its credential waiting.
+// device node is created when it does not exist yet, under the node the
+// token sits in, so a unit fresh from an image shows up in its group with
+// its credential waiting.
 type enroller struct {
 	nc   *nats.Conn
 	auth *authorizer
@@ -80,7 +81,7 @@ const maxPendingEnrollments = 100
 // subject does, since only the connection holding the key can subscribe
 // to that key's inbox.
 func (e *enroller) enroll(req client.EnrollRequest, reply string) (string, error) {
-	autoApprove, ok := e.auth.EnrollToken(req.Token)
+	tok, ok := e.auth.EnrollToken(req.Token)
 	if !ok {
 		return "", errors.New("enrollment token refused")
 	}
@@ -95,7 +96,10 @@ func (e *enroller) enroll(req client.EnrollRequest, reply string) (string, error
 		return "", errors.New("key does not match the connection")
 	}
 
-	rootID := e.auth.root()
+	parent, err := e.destination(tok)
+	if err != nil {
+		return "", err
+	}
 
 	nodes, err := client.GetNodes(e.nc, "all", req.DeviceID, "", true)
 	if err != nil && !errors.Is(err, data.ErrDocumentNotFound) {
@@ -111,7 +115,7 @@ func (e *enroller) enroll(req client.EnrollRequest, reply string) (string, error
 		if n >= maxPendingEnrollments {
 			return "", errors.New("too many devices are waiting for approval")
 		}
-		dev := client.Device{ID: req.DeviceID, Parent: rootID, Description: req.Description}
+		dev := client.Device{ID: req.DeviceID, Parent: parent, Description: req.Description}
 		if err := client.SendNodeType(e.nc, dev, "enroll"); err != nil {
 			return "", fmt.Errorf("error creating device node: %w", err)
 		}
@@ -120,15 +124,17 @@ func (e *enroller) enroll(req client.EnrollRequest, reply string) (string, error
 		return "", errors.New("device is detached on this instance")
 	}
 
+	// a device that already exists is known, wherever it sits now; a key
+	// for it waits for an operator whatever the token says, so a token
+	// holder cannot take over a device by naming its ID, nor undo a
+	// credential that was disabled to revoke it
+	created := len(nodes) == 0
+
 	creds, err := client.GetNodesType[client.DeviceCred](e.nc, req.DeviceID, "all")
 	if err != nil && !errors.Is(err, data.ErrDocumentNotFound) {
 		return "", fmt.Errorf("error reading credentials: %w", err)
 	}
 
-	// a device that already has a live credential is known; a second key
-	// for it waits for an operator whatever the token says, so a token
-	// holder cannot take over a device by naming its ID
-	hasLive := false
 	for _, c := range creds {
 		if c.PubKey == req.PubKey {
 			if c.Pending || c.Disabled {
@@ -136,14 +142,9 @@ func (e *enroller) enroll(req client.EnrollRequest, reply string) (string, error
 			}
 			return client.EnrollApproved, nil
 		}
-		if !c.Pending && !c.Disabled {
-			hasLive = true
-		}
 	}
 
-	if hasLive {
-		autoApprove = false
-	}
+	autoApprove := tok.autoApprove && created
 
 	cred := client.DeviceCred{
 		ID:          uuid.New().String(),
@@ -151,6 +152,7 @@ func (e *enroller) enroll(req client.EnrollRequest, reply string) (string, error
 		Description: "enrolled " + time.Now().Format(time.RFC3339),
 		PubKey:      req.PubKey,
 		Pending:     !autoApprove,
+		EnrolledBy:  tok.nodeID,
 	}
 	if err := client.SendNodeType(e.nc, cred, "enroll"); err != nil {
 		return "", fmt.Errorf("error creating credential: %w", err)
@@ -161,6 +163,88 @@ func (e *enroller) enroll(req client.EnrollRequest, reply string) (string, error
 	}
 
 	return client.EnrollPending, nil
+}
+
+// errTokenPlacement is what a device is told when its token sits where it
+// cannot enroll. The reason, which names nodes, goes to the log only.
+var errTokenPlacement = errors.New("enrollment token is not in the root or a group")
+
+// destination returns the node a token creates new devices under: its one
+// parent, when that is the root or a group still in the tree. A token in
+// two places is ambiguous, and one under a device or a deleted group would
+// put devices where nobody looks.
+func (e *enroller) destination(tok enrollTokenInfo) (string, error) {
+	if len(tok.parents) != 1 {
+		log.Printf("Enrollment token %v is in %v places, refusing it; use one token per group",
+			tok.nodeID, len(tok.parents))
+		return "", errTokenPlacement
+	}
+
+	parent := tok.parents[0]
+	rootID := e.auth.root()
+	if parent == rootID {
+		return parent, nil
+	}
+
+	edges, err := client.GetNodes(e.nc, "all", parent, "", false)
+	if err != nil && !errors.Is(err, data.ErrDocumentNotFound) {
+		return "", fmt.Errorf("error reading enrollment token parent: %w", err)
+	}
+	if len(edges) == 0 || edges[0].Type != data.NodeTypeGroup {
+		typ := "deleted"
+		if len(edges) > 0 {
+			typ = edges[0].Type
+		}
+		log.Printf("Enrollment token %v is under a %v node, not the root or a group, refusing it",
+			tok.nodeID, typ)
+		return "", errTokenPlacement
+	}
+
+	ok, err := e.inTree(edges, rootID)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		log.Printf("Enrollment token %v is under group %v, which is no longer in the tree, refusing it",
+			tok.nodeID, parent)
+		return "", errTokenPlacement
+	}
+
+	return parent, nil
+}
+
+// inTree reports whether a path of live edges leads from a node, given its
+// own live edges, up to the root. Deleting a group tombstones only the
+// group's own edges, so a group under a deleted group still has a live edge
+// of its own.
+func (e *enroller) inTree(edges []data.NodeEdge, rootID string) (bool, error) {
+	seen := map[string]bool{}
+	var queue []string
+	for _, ed := range edges {
+		queue = append(queue, ed.Parent)
+	}
+
+	for len(queue) > 0 {
+		id := queue[0]
+		queue = queue[1:]
+		if id == rootID {
+			return true, nil
+		}
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+
+		up, err := client.GetNodes(e.nc, "all", id, "", false)
+		if err != nil && !errors.Is(err, data.ErrDocumentNotFound) {
+			return false, fmt.Errorf("error reading node %v: %w", id, err)
+		}
+		for _, ed := range up {
+			queue = append(queue, ed.Parent)
+		}
+	}
+
+	return false, nil
 }
 
 // pendingDevices counts the devices with a credential waiting for

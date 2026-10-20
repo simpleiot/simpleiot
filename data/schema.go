@@ -310,9 +310,14 @@ const (
 	// that an operator has not approved yet. It authorizes nothing until
 	// cleared.
 	PointTypePending = "pending"
+	// PointTypeEnrolledBy is the enrollment token node a device used to
+	// enroll a credential, so an operator can tell which token, and which
+	// group, a pending credential came through.
+	PointTypeEnrolledBy = "enrolledBy"
 
-	// NodeTypeEnrollToken is a fleet-wide token, kept under the upstream
-	// root, that lets a device with no credential ask for one. It holds
+	// NodeTypeEnrollToken is a token, kept under the upstream root or a
+	// group, that lets a device with no credential ask for one. A device
+	// the enrollment creates is placed under the token's parent. It holds
 	// only a hash of the token. A sync node carries the token itself as
 	// enrollToken.
 	NodeTypeEnrollToken  = "enrollToken"

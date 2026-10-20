@@ -1,7 +1,8 @@
 module Components.NodeDeviceCred exposing (view)
 
+import Api.Node exposing (Node)
 import Api.Point as Point
-import Components.NodeOptions exposing (NodeOptions, oToInputO)
+import Components.NodeOptions exposing (NodeOptions, findNode, oToInputO)
 import Element exposing (..)
 import Element.Border as Border
 import Element.Font as Font
@@ -27,6 +28,9 @@ view o =
 
         pending =
             Point.getBool o.node.points Point.typePending ""
+
+        enrolledBy =
+            enrolledByText o
     in
     column
         [ width fill
@@ -40,7 +44,15 @@ view o =
             , text <|
                 Point.getText o.node.points Point.typeDescription ""
             , viewIf disabled <| text "(disabled)"
-            , viewIf pending <| el [ Font.color colors.orange ] <| text "(pending approval)"
+            , viewIf pending <|
+                el [ Font.color colors.orange ] <|
+                    text <|
+                        case enrolledBy of
+                            Just by ->
+                                "(pending approval, enrolled with " ++ by ++ ")"
+
+                            Nothing ->
+                                "(pending approval)"
             , viewIf (connected && not disabled && not pending) <| text "(connected)"
             ]
             :: (if o.expDetail then
@@ -62,12 +74,53 @@ view o =
                     , checkboxInput Point.typeDisabled "Disabled"
                     , viewIf pending <| checkboxInput Point.typePending "Pending"
                     , viewIf pending <| text "Uncheck Pending to approve this device."
+                    , text <| "Enrolled with: " ++ Maybe.withDefault "added by hand" enrolledBy
                     , text <| "Last connect: " ++ formatLastConnect o.zone lastConnect
                     ]
 
                 else
                     []
                )
+
+
+{-| The enrollment token a credential came through, as its description and
+the node it sits in, so a credential from another group's token stands out
+at approval time. A token the user cannot see shows as its ID.
+-}
+enrolledByText : NodeOptions msg -> Maybe String
+enrolledByText o =
+    let
+        id =
+            Point.getText o.node.points Point.typeEnrolledBy ""
+    in
+    if id == "" then
+        Nothing
+
+    else
+        Just <|
+            case findNode o.nodes id of
+                Just token ->
+                    nodeName token ++ " in " ++ placeName o token.parent
+
+                Nothing ->
+                    id
+
+
+placeName : NodeOptions msg -> String -> String
+placeName o id =
+    findNode o.nodes id
+        |> Maybe.map nodeName
+        |> Maybe.withDefault id
+
+
+nodeName : Node -> String
+nodeName n =
+    case Point.getText n.points Point.typeDescription "" of
+        "" ->
+            n.id
+
+        desc ->
+            desc
 
 
 formatLastConnect : Time.Zone -> Float -> String

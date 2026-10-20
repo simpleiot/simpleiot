@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -53,10 +54,22 @@ type credEntry struct {
 
 // enrollEntry is what the authorizer knows about one enrollment token.
 type enrollEntry struct {
-	nodeID      string
+	nodeID string
+	// parents are the parents of the token's live edges. A device the
+	// token enrolls is created under the parent, so the enroller honors
+	// a token only when there is exactly one.
+	parents     []string
 	disabled    bool
 	autoApprove bool
 	expires     int64
+}
+
+// enrollTokenInfo is what the enroller needs from one live enrollment
+// token, read from the index in one piece.
+type enrollTokenInfo struct {
+	nodeID      string
+	parents     []string
+	autoApprove bool
 }
 
 // authConn records what a device or user connection was granted, so a
@@ -356,20 +369,8 @@ func (a *authorizer) root() string {
 	return a.rootID
 }
 
-// enrollNode returns the node ID of the live enrollment token a value
-// matches, if any.
-func (a *authorizer) enrollNode(token string) (string, bool) {
-	if token == "" {
-		return "", false
-	}
-
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-
-	return a.enrollNodeLocked(token)
-}
-
-// enrollNodeLocked is enrollNode for a caller already holding the lock.
+// enrollNodeLocked returns the node ID of the live enrollment token a
+// value matches, if any. The caller holds the lock.
 func (a *authorizer) enrollNodeLocked(token string) (string, bool) {
 	if token == "" {
 		return "", false
@@ -387,18 +388,23 @@ func (e *enrollEntry) live() bool {
 	return !e.disabled && (e.expires == 0 || time.Now().Unix() < e.expires)
 }
 
-// EnrollToken reports whether an enrollment token is live and whether
-// credentials it enrolls are approved straight away.
-func (a *authorizer) EnrollToken(token string) (autoApprove, ok bool) {
-	id, ok := a.enrollNode(token)
-	if !ok {
-		return false, false
-	}
-
+// EnrollToken returns the node, parents, and approval setting of a live
+// enrollment token, and false when the token is not live.
+func (a *authorizer) EnrollToken(token string) (enrollTokenInfo, bool) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
-	return a.enroll[a.enrollIDs[id]].autoApprove, true
+	id, ok := a.enrollNodeLocked(token)
+	if !ok {
+		return enrollTokenInfo{}, false
+	}
+	e := a.enroll[a.enrollIDs[id]]
+
+	return enrollTokenInfo{
+		nodeID:      e.nodeID,
+		parents:     slices.Clone(e.parents),
+		autoApprove: e.autoApprove,
+	}, true
 }
 
 // enrollPermissions is all an enrollment token allows: one request, and
@@ -653,7 +659,8 @@ func (a *authorizer) refreshEnroll(nodeID string) {
 	}
 
 	var t client.EnrollToken
-	found, live := false, false
+	var parents []string
+	found := false
 	for _, e := range edges {
 		if e.Type != data.NodeTypeEnrollToken {
 			continue
@@ -663,14 +670,15 @@ func (a *authorizer) refreshEnroll(nodeID string) {
 			log.Printf("NATS auth: error decoding enrollment token %v: %v", nodeID, err)
 			return
 		}
-		if ts, _ := e.IsTombstone(); !ts {
-			live = true
+		if ts, _ := e.IsTombstone(); !ts && !slices.Contains(parents, e.Parent) {
+			parents = append(parents, e.Parent)
 		}
 	}
 
 	if !found {
 		return
 	}
+	live := len(parents) > 0
 
 	a.mu.Lock()
 	if old, ok := a.enrollIDs[nodeID]; ok && old != t.TokenHash {
@@ -680,6 +688,7 @@ func (a *authorizer) refreshEnroll(nodeID string) {
 	if t.TokenHash != "" {
 		a.enroll[t.TokenHash] = &enrollEntry{
 			nodeID:      nodeID,
+			parents:     parents,
 			disabled:    t.Disabled || !live,
 			autoApprove: t.AutoApprove,
 			expires:     int64(t.Expires),

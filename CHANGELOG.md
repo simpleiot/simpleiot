@@ -11,6 +11,29 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-10-20
+
+### Breaking changes
+
+- **An enrollment token works only under the root or a group, and in one
+  place.** A token under a device or a deleted group, or one mirrored into two
+  groups, enrolls nothing, and the upstream log says why. Tokens created so far
+  sit under the root and keep working.
+- **Auto approve covers only a device the enrollment creates.** A key for a
+  device node that already exists, such as one added by hand before the unit
+  first connected, now waits for an operator. A device that already had a live
+  credential was pending in this case before.
+
+### Added
+
+- **An enrollment token places new devices in its own group.** Put a token in a
+  group and give it to the devices meant for that group; each appears there on
+  first connect instead of under the root, and can be moved like any node
+  afterwards. `siot cred token -parent` and the add-node list under a group
+  create one. Each credential records the token that made it as `enrolledBy`.
+  See
+  [devices that enroll themselves](docs/user/sync.md#2-devices-that-enroll-themselves).
+
 ## [0.28.11] - 2026-10-20
 
 ### Breaking changes
