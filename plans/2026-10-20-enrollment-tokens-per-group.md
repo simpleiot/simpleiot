@@ -101,19 +101,19 @@ follow-ups.
 
 ### Phase 1: Authorizer tracks the token's parent
 
-- [ ] Add `parents []string` to `enrollEntry`. In `refreshEnroll`, collect the
+- [x] Add `parents []string` to `enrollEntry`. In `refreshEnroll`, collect the
       parents of the live edges; no type lookup here. The entry is refreshed
       when the token's edges change (already wired through `handleUp`).
-- [ ] Replace `EnrollToken(token) (autoApprove, ok bool)` with a method that
+- [x] Replace `EnrollToken(token) (autoApprove, ok bool)` with a method that
       returns the token's node ID, parents, and `autoApprove` together, so the
       enroller reads one consistent entry.
-- [ ] Update item 10 in `plans/2026-09-19-security-followups.md` as described
+- [x] Update item 10 in `plans/2026-09-19-security-followups.md` as described
       above, and add a follow-up for the unbounded pending credentials on
       existing devices.
-- [ ] Tests in `server/auth_test.go`: a token under a group reports that group;
+- [x] Tests in `server/auth_test.go`: a token under a group reports that group;
       a mirrored token reports both parents; moving a token from the root to a
       group changes its parent.
-- [ ] `go test -race ./server/...`, `golangci-lint run`. Commit.
+- [x] `go test -race ./server/...`, `golangci-lint run`. Commit.
 
 ### Phase 2: Enroller creates the device in the token's group
 
@@ -166,7 +166,7 @@ follow-ups.
 - [x] Update the `NodeTypeEnrollToken` comment in `data/schema.go` ("kept under
       the upstream root").
 - [x] `CHANGELOG.md` entry under `[Unreleased]`.
-- [ ] Commit.
+- [x] Commit.
 
 ## Incompatibilities to note in the changelog
 

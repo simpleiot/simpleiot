@@ -80,10 +80,11 @@ const maxPendingEnrollments = 100
 // subject does, since only the connection holding the key can subscribe
 // to that key's inbox.
 func (e *enroller) enroll(req client.EnrollRequest, reply string) (string, error) {
-	autoApprove, ok := e.auth.EnrollToken(req.Token)
+	tok, ok := e.auth.EnrollToken(req.Token)
 	if !ok {
 		return "", errors.New("enrollment token refused")
 	}
+	autoApprove := tok.autoApprove
 
 	if err := data.CheckSubjectToken("device ID", req.DeviceID); err != nil {
 		return "", err
