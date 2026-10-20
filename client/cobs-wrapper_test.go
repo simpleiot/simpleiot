@@ -26,7 +26,7 @@ func TestCobs(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		e := cobs.Encode(tc.dec)
+		e := cobsEncode(tc.dec)
 
 		fmt.Printf("Encoding %v -> %v\n", test.HexDump(tc.dec), test.HexDump(e))
 
@@ -56,7 +56,7 @@ func TestCobsLong(t *testing.T) {
 		b[i] = 5
 	}
 
-	e := cobs.Encode(b)
+	e := cobsEncode(b)
 
 	c, err := cobsDecodeInplace(e)
 	if err != nil {
@@ -70,6 +70,60 @@ func TestCobsLong(t *testing.T) {
 	}
 }
 
+func TestCobs254Run(t *testing.T) {
+	// a run of 254 non-zero bytes fills a 0xff block, which has no
+	// implied zero, so a following zero needs a block of its own
+	run := make([]byte, 254)
+	for i := range run {
+		run[i] = byte(i + 1)
+	}
+
+	cat := func(s ...[]byte) []byte {
+		return bytes.Join(s, nil)
+	}
+
+	testCases := []struct {
+		name     string
+		dec, enc []byte
+	}{
+		{"run then zero", cat(run, []byte{0x0, 0x11}),
+			cat([]byte{0xff}, run, []byte{0x1, 0x2, 0x11, 0x0})},
+		{"run at end", run,
+			cat([]byte{0xff}, run, []byte{0x1, 0x0})},
+		{"zero then run", cat([]byte{0x0}, run),
+			cat([]byte{0x1, 0xff}, run, []byte{0x1, 0x0})},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			e := cobsEncode(tc.dec)
+			if !bytes.Equal(tc.enc, e) {
+				t.Fatalf("enc failed, got: %v, exp: %v",
+					test.HexDump(e), test.HexDump(tc.enc))
+			}
+
+			c, err := cobsDecodeInplace(e)
+			if err != nil {
+				t.Fatal("Error decoding: ", err)
+			}
+
+			if !bytes.Equal(tc.dec, e[:c]) {
+				t.Fatalf("Decode failed: %v", test.HexDump(e[:c]))
+			}
+		})
+	}
+
+	// a 254 run at the end may also be sent without the final 0x01 block
+	e := cat([]byte{0xff}, run, []byte{0x0})
+	c, err := cobsDecodeInplace(e)
+	if err != nil {
+		t.Fatal("Error decoding: ", err)
+	}
+	if !bytes.Equal(run, e[:c]) {
+		t.Fatalf("Decode of short form failed: %v", test.HexDump(e[:c]))
+	}
+}
+
 func TestCobsRead(t *testing.T) {
 	d := []byte{1, 2, 3, 0, 4, 5, 6}
 
@@ -77,7 +131,7 @@ func TestCobsRead(t *testing.T) {
 
 	cw := NewCobsWrapper(b, 500)
 
-	_, _ = a.Write(append([]byte{0}, cobs.Encode(d)...))
+	_, _ = a.Write(append([]byte{0}, cobsEncode(d)...))
 
 	buf := make([]byte, 500)
 
@@ -111,7 +165,7 @@ func TestCobsReadNoLeadingNull(t *testing.T) {
 
 	cw := NewCobsWrapper(b, 500)
 
-	_, _ = a.Write(cobs.Encode(d))
+	_, _ = a.Write(cobsEncode(d))
 
 	buf := make([]byte, 500)
 
@@ -174,7 +228,7 @@ func TestCobsWrite(t *testing.T) {
 		t.Fatal("COBS encoded packet must start with 0")
 	}
 
-	if !reflect.DeepEqual(cobs.Decode(buf[1:]), d) {
+	if !reflect.DeepEqual(cobs.TrimNull(cobs.Decode(buf[1:len(buf)-1])), d) {
 		t.Fatal("cw.Write, buf is not same")
 	}
 }
@@ -186,7 +240,7 @@ func TestCobsWrapperPartialPacket(t *testing.T) {
 
 	cw := NewCobsWrapper(b, 500)
 
-	de := cobs.Encode(d)
+	de := cobsEncode(d)
 
 	// write part of packet
 	_, _ = a.Write(de[0:4])
@@ -237,7 +291,7 @@ func TestCobsMultipleLeadingNull(t *testing.T) {
 
 	cw := NewCobsWrapper(b, 500)
 
-	_, _ = a.Write(append([]byte{0, 0, 0, 0}, cobs.Encode(d)...))
+	_, _ = a.Write(append([]byte{0, 0, 0, 0}, cobsEncode(d)...))
 
 	buf := make([]byte, 500)
 
@@ -270,7 +324,7 @@ func TestCobsPartialThenNew(t *testing.T) {
 
 	cw := NewCobsWrapper(b, 500)
 
-	de := append([]byte{0}, cobs.Encode(d)...)
+	de := append([]byte{0}, cobsEncode(d)...)
 
 	// write partial packet
 	_, _ = a.Write(de[0:4])
@@ -302,7 +356,7 @@ func TestCobsWriteTwoThenRead(t *testing.T) {
 
 	cw := NewCobsWrapper(b, 500)
 
-	de := cobs.Encode(d)
+	de := cobsEncode(d)
 
 	// write two packets
 	_, _ = a.Write(append(de, de...))

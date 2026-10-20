@@ -756,7 +756,7 @@ func (dbc *DbClient) scanStreams(js jetstream.JetStream, firstScan bool) {
 		log.Printf("DB: consuming stream %v", name)
 		dbc.consumers[name] = cc
 	}
-	if err := lister.Err(); err != nil {
+	if err := lister.Err(); err != nil && ctx.Err() == nil {
 		log.Println("DB: error listing streams:", err)
 	}
 }

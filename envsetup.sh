@@ -10,7 +10,7 @@ RECOMMENDED_ELM_VERSION=0.19.1
 # map tools from project go modules
 
 air() {
-	go run github.com/cosmtrek/air "$@"
+	go run github.com/air-verse/air "$@"
 }
 
 siot_install_proto_gen_go() {

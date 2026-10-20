@@ -11,6 +11,35 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.28.11] - 2026-10-20
+
+### Breaking changes
+
+- **Serial packets containing a run of 254 or more non-zero bytes are now COBS
+  encoded to the specification.** Previously a zero that followed such a run was
+  dropped, so the packet arrived corrupted. A packet that ends in such a run now
+  carries an extra `0x01` block before the delimiter. MCU firmware with a
+  standard COBS decoder needs no change; firmware written to match the earlier
+  encoding should be checked. See [serial](docs/ref/serial.md).
+
+### Changed
+
+- **Go dependencies are updated to their latest releases**, including NATS
+  server 2.15.1 and nats.go 1.54.0. The `siot_watch` hot reloader now comes from
+  `github.com/air-verse/air`, the project's new home.
+
+### Fixed
+
+- **Moving a node no longer risks a conflict in the database client's tag
+  cache.** Clearing the cache after a move could overlap with points being
+  tagged at the same moment.
+
+- **A restart no longer waits on the store's scan for replica streams.** The
+  scan ran to its own timeout against a store still recovering, which held up a
+  shutdown that arrived while it was in progress. Streams it had not reached are
+  found by the scan the next start makes, and no point is written or
+  acknowledged by this path.
+
 ## [0.28.10] - 2026-10-16
 
 ### Fixed
