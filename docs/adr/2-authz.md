@@ -3,7 +3,13 @@
 - Author: Blake Miner
 - Issue: https://github.com/simpleiot/simpleiot/issues/268
 - PR / Discussion: https://github.com/simpleiot/simpleiot/pull/283
-- Status: Brainstorming
+- Status: Superseded
+
+> This proposal was not implemented. Simple IoT authenticates every connection
+> through an authorizer inside the server rather than NATS accounts, and scopes
+> users by the groups they belong to. See
+> [Authentication and authorization](../ref/auth.md) for the current model and
+> [Security](../ref/security.md) for the mechanisms.
 
 ## Problem
 

@@ -59,6 +59,7 @@
 - [Serial Devices](docs/ref/serial.md)
 - [Version](docs/ref/version.md)
 - [Security](docs/ref/security.md)
+- [Authentication and authorization](docs/ref/auth.md)
 - [Research](docs/ref/research.md)
 
 # Architecture Decision Records
