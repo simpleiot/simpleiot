@@ -32,7 +32,7 @@ See [template.md](template.md) for a template to get started.
 | Index                                           | Description                                 |
 | ----------------------------------------------- | ------------------------------------------- |
 | [ADR-1](1-consider-changing-point-data-type.md) | Consider changing/expanding point data type |
-| [ADR-2](2-authz.md)                             | Authorization considerations.               |
+| [ADR-2](2-authz.md)                             | Authorization considerations (superseded)   |
 | [ADR-3](3-node-lifecycle.md)                    | Node lifecycle                              |
 | [ADR-4](4-time.md)                              | Notes on storing and transferring time      |
 | [ADR-5](5-time-validation.md)                   | How do we ensure we have valid time         |
