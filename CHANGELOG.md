@@ -11,6 +11,11 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Security
+
+- **Built with Go 1.27.3.** This release stops trusting compromised
+  intermediate certificates when verifying TLS connections.
+
 ## [0.29.0] - 2026-10-20
 
 ### Breaking changes
