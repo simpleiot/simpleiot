@@ -13,10 +13,12 @@ For more details or to discuss releases, please visit the
 
 ### Added
 
-- **A new web UI is available at `/v2`.** It is built with Svelte and signs in
-  with the same account as the UI at `/`, which is unchanged. The `/v2` UI
-  replaces the one at `/` in a later release. Run `siot_setup` again after
-  upgrading a checkout, since it now installs the `ui/` dependencies as well.
+- **A new web UI is available at `/v2`.** It does everything the UI at `/` does,
+  and adds a link to each node, remembered expansion, search, keyboard
+  navigation, and a dark theme. Both share one sign-in, and the UI at `/` is
+  unchanged until the `/v2` UI replaces it in a later release. See the
+  [UI guide](docs/user/ui.md). Run `siot_setup` again after upgrading a
+  checkout, since it now installs the `ui/` dependencies as well.
 
 ## [0.29.1] - 2026-10-22
 

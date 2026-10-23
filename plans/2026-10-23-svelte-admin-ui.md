@@ -260,72 +260,72 @@ components, notification display, removing Elm.
 
 ### Phase 0: Scaffold, serving, and build
 
-- [ ] Create `ui/` with SvelteKit, `adapter-static`, Svelte 5, TypeScript
+- [x] Create `ui/` with SvelteKit, `adapter-static`, Svelte 5, TypeScript
       `strict`, `eslint`, `prettier`, `vitest`, and `svelte-check` in
       `npm run build`. Set `paths.base`, `ssr = false`, the fallback page. Add
       `ui/node_modules` and `ui/.svelte-kit` to `.gitignore` (the `node_modules`
       rule exists; check `.svelte-kit`).
-- [ ] Theme tokens in `ui/src/app.css`: the light theme from `UI/Style.elm`, a
+- [x] Theme tokens in `ui/src/app.css`: the light theme from `UI/Style.elm`, a
       dark theme, `prefers-color-scheme`, and the header toggle.
-- [ ] Sign-in page (`POST /v1/auth`, same `localStorage` key and shape as Elm),
+- [x] Sign-in page (`POST /v1/auth`, same `localStorage` key and shape as Elm),
       the layout with the route guard, and a placeholder tree page that shows
       the signed-in user's email and a sign-out button.
-- [ ] `ui/embed.go` (`all:build`), the `/v2` route in `api/server.go` with the
+- [x] `ui/embed.go` (`all:build`), the `/v2` route in `api/server.go` with the
       SPA fallback, the immutable cache header, the policy hashes computed from
       `index.html`, and `-dev` serving from `./ui/build`. Tests: the hash test,
       a fallback test, and the existing `TestImportMapHash` still passing.
-- [ ] `envsetup.sh`: `siot_build_ui`, `siot_test_ui`, `siot_watch_ui`, the Vite
+- [x] `envsetup.sh`: `siot_build_ui`, `siot_test_ui`, `siot_watch_ui`, the Vite
       dev proxy, and the calls from `siot_install_frontend_deps`,
       `siot_build_frontend`, `siot_test_frontend`, and `siot_watch`.
       `.github/workflows/go.yml` needs no change if those functions cover it;
       confirm.
-- [ ] `ui/README.md` with the commands, and the changelog entry.
-- [ ] `siot_test` passes. Commit.
+- [x] `ui/README.md` with the commands, and the changelog entry.
+- [x] `siot_test` passes. Commit.
 
 ### Phase 1: Client layer
 
-- [ ] `frontend/lib/siot-nats.d.ts` and `"types"` in its `package.json`; `ui/`
+- [x] `frontend/lib/siot-nats.d.ts` and `"types"` in its `package.json`; `ui/`
       depends on `simpleiot-js` as a file dependency.
-- [ ] `ui/src/lib/siot/schema.ts` (point types, point values, node types) and
+- [x] `ui/src/lib/siot/schema.ts` (point types, point values, node types) and
       the Go test in `data/` that checks it against `data/schema.go`.
-- [ ] `ui/src/lib/siot/point.ts`: the `Point` type, the helpers, and the tests
+- [x] `ui/src/lib/siot/point.ts`: the `Point` type, the helpers, and the tests
       from `frontend/tests/Point.elm`.
-- [ ] `ui/src/lib/siot/node.ts`: the `Node` type, `edgeRole`, and `description`.
+- [x] `ui/src/lib/siot/node.ts`: the `Node` type, `edgeRole`, and `description`.
       No type lists: those come from the registry.
-- [ ] `ui/src/lib/nodes/registry.ts`: `defineNodeType`, the descriptor type, the
+- [x] `ui/src/lib/nodes/registry.ts`: `defineNodeType`, the descriptor type, the
       glob-built registry, and the query functions, with a test over a stub set
       of types.
-- [ ] `ui/src/lib/siot/tree.ts`: the port of `Utils/NodeTree.elm` with its
+- [x] `ui/src/lib/siot/tree.ts`: the port of `Utils/NodeTree.elm` with its
       tests.
-- [ ] `ui/src/lib/siot/connection.ts`: the port of `main.js`, with tests for the
+- [x] `ui/src/lib/siot/connection.ts`: the port of `main.js`, with tests for the
       batching and merge logic (the NATS client is mocked).
-- [ ] `ui/src/lib/siot/http.ts`: the HTTP operations.
-- [ ] `ui/src/lib/util/`: `duration.ts`, `iso8601.ts`, `time.ts` (schedules),
+- [x] `ui/src/lib/siot/http.ts`: the HTTP operations.
+- [x] `ui/src/lib/util/`: `duration.ts`, `iso8601.ts`, `time.ts` (schedules),
       `sanitize.ts`, with the tests from `frontend/tests/`.
-- [ ] `siot_test` passes. Commit.
+- [x] `siot_test` passes. Commit.
 
 ### Phase 2: The node tree
 
-- [ ] `tree.svelte.ts` store: connect on load, fetch anchors, expand and
+- [x] `tree.svelte.ts` store: connect on load, fetch anchors, expand and
       collapse, apply points and edge points, fetch new children, refetch on
       reconnect and on tab visibility, keep the watch list in step, pending
       edits with optimistic save, and the error banner.
-- [ ] `NodeTree.svelte` and `NodeRow.svelte` with `Raw.svelte` as the only
+- [x] `NodeTree.svelte` and `NodeRow.svelte` with `Raw.svelte` as the only
       editor, so every node type is already usable. Include the raw view toggle
       and "add point", the mirror badge, and the connection badge. The registry
       holds descriptors without editors for every type at this point, so the add
       lists, child expansion, owner rule, and sort order all work before any
       editor is ported.
-- [ ] Node operations: add (the per-parent type list and the custom type),
+- [x] Node operations: add (the per-parent type list and the custom type),
       delete (with the primary, mirror, and plain wording), copy and paste
       (move, mirror, duplicate, and the owning-parent rule), send message, copy
       ID, and refetch of the parent after each.
-- [ ] Deep links (`/v2/nodes/[id]`), the URL following the open detail, and
+- [x] Deep links (`/v2/nodes/[id]`), the URL following the open detail, and
       "copy link".
-- [ ] Unsaved-edits guard.
-- [ ] Check against the Elm UI side by side on one server: add, edit, move,
+- [x] Unsaved-edits guard.
+- [x] Check against the Elm UI side by side on one server: add, edit, move,
       mirror, delete, and live points from a signal generator.
-- [ ] Update `docs/ref/frontend.md` with a section on the Svelte UI and
+- [x] Update `docs/ref/frontend.md` with a section on the Svelte UI and
       `docs/user/ui.md` with a note on `/v2`. Commit.
 
 ### Phase 3: Input kit and node editors
@@ -333,41 +333,41 @@ components, notification display, removing Elm.
 Port by hand, one file per Elm component, keeping each editor's fields, labels,
 defaults, and conditional fields. Commit after each batch.
 
-- [ ] 3a: the input kit (`ui/src/lib/inputs/`), the shared editor header, and
+- [x] 3a: the input kit (`ui/src/lib/inputs/`), the shared editor header, and
       the simple editors: Group, NetworkManager, NTP, SparkplugGroup, Shelly,
       Browser, SparkplugDevice, SparkplugNode, OneWire, Mqtt, CanBus, MqttSub,
       NetworkManagerConn, Db, NetworkManagerDevice, User, Provisioning,
       MessageService, Sync, Rule, ProvisioningFile.
-- [ ] 3b: Iio, Modbus, IioChannel, Variable, EnrollToken (generate key, shown
+- [x] 3b: Iio, Modbus, IioChannel, Variable, EnrollToken (generate key, shown
       once), MqttDevice, OneWireIO, DeviceCred, File (upload, text and binary,
       and the provisioning status), Particle, SignalGenerator, Device, Gpio,
       Update.
-- [ ] 3c: ModbusIO, Action and ActionInactive, Metrics, Gps, Condition (the
+- [x] 3c: ModbusIO, Action and ActionInactive, Metrics, Gps, Condition (the
       schedule input), ShellyIO, SerialDev (sends points directly for its
       actions).
-- [ ] Every type in the Elm editor map has a registered editor; a test checks
+- [x] Every type in the Elm editor map has a registered editor; a test checks
       the registry against the node types in `schema.ts`, and another checks
       that no file outside `ui/src/lib/nodes/` names a node type. Commit.
 
 ### Phase 4: Search, remembered expansion, keyboard
 
-- [ ] Remembered expansion and open details per user.
-- [ ] Search box, the one-time deep fetch, filtering with ancestors, and
+- [x] Remembered expansion and open details per user.
+- [x] Search box, the one-time deep fetch, filtering with ancestors, and
       restoring the expansion state.
-- [ ] Keyboard navigation with the ARIA tree roles.
-- [ ] Docs for the three in `docs/user/ui.md`. Commit.
+- [x] Keyboard navigation with the ARIA tree roles.
+- [x] Docs for the three in `docs/user/ui.md`. Commit.
 
 ### Phase 5: Browser test, docs, and wrap-up
 
-- [ ] `ui/e2e/` Playwright smoke test and `siot_test_ui_browser`, documented as
+- [x] `ui/e2e/` Playwright smoke test and `siot_test_ui_browser`, documented as
       opt-in in `ui/README.md` and `docs/ref/development.md`.
-- [ ] `CLAUDE.md`: the `ui/` directory in Key Directories, the Frontend
+- [x] `CLAUDE.md`: the `ui/` directory in Key Directories, the Frontend
       Architecture section, the Committing section for `ui/build`, and the build
       commands.
-- [ ] Release process: `ui/build` committed in the release commit beside
+- [x] Release process: `ui/build` committed in the release commit beside
       `frontend/public/dist`; update the comments in `envsetup.sh` and
       `release.yml`.
-- [ ] Changelog entry final, plans index updated. Commit.
+- [x] Changelog entry final, plans index updated. Commit.
 
 ### Follow-ups (not in this plan)
 

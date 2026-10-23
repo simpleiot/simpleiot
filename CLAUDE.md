@@ -31,8 +31,11 @@ siot_install_frontend_deps
 # Build everything (frontend + backend)
 siot_build
 
-# Build frontend only (Elm SPA)
+# Build frontend only (Elm SPA and the Svelte UI)
 siot_build_frontend
+
+# Build the Svelte UI only
+siot_build_ui
 
 # Build backend only (Go binary)
 siot_build_backend
@@ -56,6 +59,8 @@ siot_test
 
 # Test individual components
 siot_test_frontend
+siot_test_ui          # Svelte UI: prettier, eslint, svelte-check, vitest
+siot_test_ui_browser # opt-in Playwright smoke test against a scratch siot
 go test -race ./...
 ```
 
@@ -88,7 +93,8 @@ cd frontend && npx elm-test
 - `api/` - HTTP API handlers and routing
 - `data/` - Core data structures (Node, Point, etc.)
 - `store/` - JetStream storage layer (boundary-origin streams, see ADR-7)
-- `frontend/` - Elm-based web UI
+- `frontend/` - Elm-based web UI, served at `/`
+- `ui/` - Svelte web UI, served at `/v2`; replaces the Elm UI in a later release
 - `modbus/` - Modbus protocol implementation
 - `network/` - Network management utilities
 
@@ -132,6 +138,28 @@ canary for nats-server upgrades. See [security](docs/ref/security.md) and
 [device credentials](docs/user/sync.md#device-credentials).
 
 ### Frontend Architecture
+
+Two UIs share one sign-in during the move from Elm to Svelte. Changes to the
+admin UI go in both until the Svelte UI replaces the Elm one.
+
+The Svelte UI (`ui/`) is a SvelteKit app built with `adapter-static`, embedded
+by `ui/embed.go`, and served at `/v2` by `api/ui.go`:
+
+- **Node types register themselves**: each type is a directory in
+  `ui/src/lib/nodes/<type>/` with an `index.ts` descriptor (where it may be
+  added, children, owning parent, sort order) and an `Editor.svelte`. Adding a
+  node type is adding a directory; a test fails if a type in `schema.ts` has no
+  editor, or if a file outside `src/lib/nodes` steers behavior by a type name.
+- **Editors are props-only** and built from the input kit in
+  `ui/src/lib/inputs/`; only the page and the store
+  (`ui/src/lib/siot/tree.svelte.ts`) talk to the server.
+- **Constants**: `ui/src/lib/siot/schema.ts` mirrors `data/schema.go`, and
+  `data/schema_ts_test.go` checks it, so renaming a point or node type means
+  changing both.
+- **Checks**: strict TypeScript, `svelte-check` fails the build, vitest unit
+  tests, prettier and eslint.
+
+The Elm UI (`frontend/`):
 
 - **Elm SPA**: Single-page application using elm-spa framework
 - **Components**: Node-specific UI components in `Components/` directory
@@ -198,21 +226,24 @@ branch, switch branches, or start a worktree unless I ask for one.
 ## Committing
 
 Leave the built frontend files in `frontend/public/dist` (`elm.js.gz`,
-`siot-nats.js.gz`, `codec.js.gz`, `nats.js.gz`) out of commits. The frontend
-build regenerates them constantly, so they show up as modified during normal
-work. They are committed only right before a release, in their own commit. When
-staging changes, stage the files you edited rather than using `git add -A` or
-`git commit -a`, and if a built artifact does get committed by mistake, drop it
-with `git restore --source=HEAD~1 --staged frontend/public/dist/elm.js.gz` (or
-the file in question) followed by `git commit --amend`.
+`siot-nats.js.gz`, `codec.js.gz`, `nats.js.gz`) and `ui/build` out of commits.
+The frontend build regenerates them constantly, so they show up as modified
+during normal work. They are committed only right before a release, in their own
+commit. `ui/build` is ignored by Git and its file names change with each build,
+so that commit stages it with `git add -f -A ui/build`. When staging changes,
+stage the files you edited rather than using `git add -A` or `git commit -a`,
+and if a built artifact does get committed by mistake, drop it with
+`git restore --source=HEAD~1 --staged frontend/public/dist/elm.js.gz` (or the
+file in question) followed by `git commit --amend`.
 
 ## Important Notes
 
 - Always source `envsetup.sh` before running build commands
-- Frontend build generates compressed files in `frontend/public/dist` (see
-  Committing above — they are not committed with regular changes). The
-  JavaScript there is copied from `frontend/lib` and `nats.ws`, not bundled;
-  `siot_build_frontend_js` refreshes it during development
+- Frontend build generates compressed files in `frontend/public/dist` and
+  `ui/build` (see Committing above — they are not committed with regular
+  changes). The Elm UI's JavaScript in `frontend/public/dist` is copied from
+  `frontend/lib` and `nats.ws`, not bundled; `siot_build_frontend_js` refreshes
+  it during development. The Svelte UI bundles both with Vite
 - NATS JetStream stores all application data (one stream per boundary/origin
   pair; see ADR-7)
 - System supports TLS with certificates via `siot_mkcert` and `siot_run_tls`

@@ -105,7 +105,9 @@ siot_build_frontend() {
 # elm.js; index.html stays as is, since the server reads it for the
 # content security policy.
 siot_build_ui() {
-	(cd ui && npm run --silent build >&2) || return 1
+	# npm i <package> skips the postinstall script that keeps Go out of
+	# node_modules, so it runs here as well
+	(cd ui && npm run --silent postinstall && npm run --silent build >&2) || return 1
 	find ui/build/_app -type f ! -name '*.gz' -exec gzip -nf {} + || return 1
 	return 0
 }
@@ -235,6 +237,49 @@ siot_test_frontend_js() {
 	(cd frontend/lib && npm test || return 1) || return 1
 }
 
+# The browser smoke test (ui/e2e) is opt-in: it is not part of siot_test or
+# CI. It builds siot with the UI, starts it with a fresh data directory on
+# scratch ports (SIOT_E2E_NATS_PORT, 15222 by default, and the HTTP port one
+# above), runs Playwright against it, and stops it. Run
+# `(cd ui && npx playwright install chromium)` once first, or set
+# SIOT_E2E_CHANNEL=chrome to use an installed Chrome.
+siot_test_ui_browser() {
+	siot_build_frontend || return 1
+	_e2e_dir=$(mktemp -d) || return 1
+	go build -o "$_e2e_dir/siot" ./cmd/siot || {
+		rm -rf "$_e2e_dir"
+		return 1
+	}
+	_e2e_nats=${SIOT_E2E_NATS_PORT:-15222}
+	_e2e_http=$((_e2e_nats + 1))
+	SIOT_DATA="$_e2e_dir/data" SIOT_NATS_PORT=$_e2e_nats SIOT_HTTP_PORT=$_e2e_http \
+		"$_e2e_dir/siot" serve >"$_e2e_dir/siot.log" 2>&1 &
+	_e2e_pid=$!
+	_e2e_up=0
+	for _ in $(seq 1 60); do
+		if curl -sf -o /dev/null "http://localhost:$_e2e_http/v2/"; then
+			_e2e_up=1
+			break
+		fi
+		sleep 0.5
+	done
+	_e2e_rc=1
+	if [ $_e2e_up = 1 ]; then
+		(cd ui && SIOT_E2E_URL="http://localhost:$_e2e_http" npx playwright test)
+		_e2e_rc=$?
+	else
+		echo "siot did not start; see $_e2e_dir/siot.log" >&2
+	fi
+	kill $_e2e_pid
+	wait $_e2e_pid 2>/dev/null
+	if [ $_e2e_rc = 0 ]; then
+		rm -rf "$_e2e_dir"
+	else
+		echo "siot log kept in $_e2e_dir/siot.log" >&2
+	fi
+	return $_e2e_rc
+}
+
 siot_frontend_fix() {
 	(cd frontend && npx elm-review --fix-all)
 }
@@ -352,7 +397,10 @@ siot_goreleaser_build() {
 #
 #   1. move the CHANGELOG.md "[Unreleased]" entries under a
 #      "## [X.Y.Z] - <date>" heading, rebuild the frontend assets
-#      (siot_build_frontend), and commit both to master
+#      (siot_build_frontend), and commit both to master. The assets are
+#      frontend/public/dist/*.gz and ui/build; ui/build is ignored by Git
+#      and its file names change with each build, so stage it with
+#      `git add -f -A ui/build`
 #   2. siot_tag
 #
 # Pushing the tag starts the Release workflow (.github/workflows/release.yml),

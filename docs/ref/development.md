@@ -42,6 +42,9 @@ following:
 - Starts [`elm-watch`](https://github.com/lydell/elm-watch) on the Elm code.
   `elm-watch` will automatically update the UI without losing state any time an
   Elm file changes.
+- Starts the Vite dev server for the Svelte UI at `http://localhost:5173/v2/`,
+  which reloads on each change and passes API and NATS requests through to the
+  running siot.
 - Runs the Go backend and rebuilds it anytime a Go module changes (only tested
   on Linux and MacOS, but should be easy to set up Windows as well)
 
@@ -140,6 +143,12 @@ examples of running tests:
 - Run only a specific: `go test -race ./client -run BackoffTest` (run takes a
   RegEx)
 - `siot_test` runs tests as well as vet/lint, frontend tests, etc.
+- `siot_test_ui` runs the Svelte UI checks alone: prettier, eslint,
+  `svelte-check`, and the vitest unit tests.
+- `siot_test_ui_browser` runs the Playwright smoke test of the Svelte UI against
+  a siot it starts with a fresh data directory. It is opt-in, and not part of
+  `siot_test` or CI. Run `(cd ui && npx playwright install chromium)` once
+  first, or set `SIOT_E2E_CHANNEL=chrome` to use an installed Chrome.
 
 The leading `./` is important, otherwise Go things you are giving it a package
 name, not a directory. The `...` tells Go to recursively test all sub

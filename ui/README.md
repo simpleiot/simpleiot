@@ -19,6 +19,16 @@ From the repository root, after `. envsetup.sh`:
 In `ui/` itself: `npm run dev`, `npm run build`, `npm run check`, `npm test`,
 `npm run lint`, and `npm run format`.
 
+## Browser test
+
+`e2e/` holds a Playwright smoke test: sign in, add a node, edit its description,
+and see the edit saved after a reload. It is opt-in and not part of `siot_test`
+or CI. `siot_test_ui_browser` builds siot, starts it with a fresh data directory
+on scratch ports (`SIOT_E2E_NATS_PORT`, 15222 by default, and the HTTP port one
+above), runs the test, and stops the server. Install a browser for it once with
+`npx playwright install chromium`, or set `SIOT_E2E_CHANNEL=chrome` to use an
+installed Chrome.
+
 ## Build output
 
 `build/` is ignored by Git and committed only in the release commit, as the Elm
