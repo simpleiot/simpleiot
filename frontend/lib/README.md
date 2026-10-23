@@ -14,7 +14,8 @@ group (the _anchor_) it is made under. See the
 `npm i simpleiot-js`
 
 The package is an ES module and depends on
-[nats.ws](https://github.com/nats-io/nats.ws).
+[nats.ws](https://github.com/nats-io/nats.ws). TypeScript declarations are in
+`siot-nats.d.ts` and `codec.d.ts`.
 
 ## Usage
 
