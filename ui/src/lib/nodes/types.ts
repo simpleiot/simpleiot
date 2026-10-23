@@ -34,6 +34,8 @@ export interface EditorProps {
 	copy: Clipboard | null
 	scratch: string
 	generatedToken: GeneratedToken | null
+	// findNode looks up a node on the page by ID
+	findNode: (id: string) => Node | undefined
 	// onEditPoints records edits to save; onSendPoints sends points at once
 	onEditPoints: (points: Point[]) => void
 	onSendPoints: (points: Point[]) => void

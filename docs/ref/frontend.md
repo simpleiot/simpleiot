@@ -1,5 +1,46 @@
 # Frontend
 
+Two web UIs are served during the move from Elm to Svelte: the Elm UI at `/` and
+the Svelte UI at `/v2`. They share one sign-in, and the Svelte UI replaces the
+Elm UI once it covers every node type.
+
+## Svelte UI
+
+The Svelte UI is a [SvelteKit](https://svelte.dev/docs/kit) single-page app in
+[`ui/`](https://github.com/simpleiot/simpleiot/tree/master/ui), built with
+`adapter-static` and embedded in the `siot` binary (`ui/embed.go`). The server
+answers any path under `/v2` with no file with `index.html`, so a link to a node
+loads the app. See `ui/README.md` for the build, test, and dev server commands.
+
+### Code Structure
+
+- `src/routes`: the pages. `/` and `/nodes/[id]` both render the tree; the
+  second opens the tree down to one node.
+- `src/lib/siot`: the client layer. `connection.ts` owns the NATS connection
+  (built on `frontend/lib`), `tree.ts` holds the pure tree code, and
+  `tree.svelte.ts` is the store the page reads: the tree, pending edits, and the
+  node operation in progress. `http.ts` has the operations that go over HTTP,
+  and `schema.ts` the point and node types, which a Go test checks against
+  `data/schema.go`.
+- `src/lib/nodes`: one directory per node type, with its editor and a descriptor
+  (`index.ts`) that says where the type may be added, whether it takes children,
+  which parent owns it, and how it sorts. The registry collects the directories,
+  so the tree page names no node types; adding a type is adding a directory.
+- `src/lib/inputs`: the inputs editors are built from. Each reads its point from
+  the node and reports an edit; none talks to the server.
+- `src/lib/components`: the tree, its rows, the operation panel, and the shared
+  editor frame.
+
+Editors take props and report through callbacks, and only the page and the store
+talk to the server, so an editor can be reused and tested on its own. Edits stay
+pending until saved, and a save shows at once, before the server confirms it.
+
+### Checks
+
+TypeScript runs in `strict` mode, and `svelte-check` fails the build on any
+error or warning. `npm test` runs the vitest unit tests for the tree, point,
+connection, and time code; `npm run lint` runs prettier and eslint.
+
 ## Elm Reference Implementation
 
 The reference Simple IoT frontend is implemented in Elm as a Single Page

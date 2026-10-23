@@ -4,6 +4,7 @@
 	import { resolve } from "$app/paths"
 	import { page } from "$app/state"
 	import { auth } from "#lib/auth.svelte.ts"
+	import { store } from "#lib/siot/store.ts"
 	import { applyTheme } from "#lib/theme.svelte.ts"
 	import type { Snippet } from "svelte"
 
@@ -16,6 +17,9 @@
 	// every page but sign-in needs a user, and a signed-in user has no use
 	// for the sign-in page
 	$effect(() => {
+		if (!auth.user) {
+			void store.stop()
+		}
 		if (!auth.user && !onSignIn) {
 			void goto(resolve("/sign-in"), { replaceState: true })
 		} else if (auth.user && onSignIn) {

@@ -40,6 +40,9 @@ export default ts.config(
 			// svelte/prefer-const knows $props() destructuring is reassigned
 			"prefer-const": "off",
 			"svelte/prefer-const": ["error", { destructuring: "all" }],
+			// the store keeps immutable values in $state.raw; local Sets and
+			// Dates are not state
+			"svelte/prefer-svelte-reactivity": "off",
 		},
 	},
 	{
