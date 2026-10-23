@@ -1,4 +1,4 @@
-// Package ui embeds the built Svelte UI served at /v2.
+// Package ui embeds the built Svelte UI.
 package ui
 
 import "embed"

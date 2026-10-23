@@ -42,7 +42,7 @@ following:
 - Starts [`elm-watch`](https://github.com/lydell/elm-watch) on the Elm code.
   `elm-watch` will automatically update the UI without losing state any time an
   Elm file changes.
-- Starts the Vite dev server for the Svelte UI at `http://localhost:5173/v2/`,
+- Starts the Vite dev server for the Svelte UI at `http://localhost:5173/`,
   which reloads on each change and passes API and NATS requests through to the
   running siot.
 - Runs the Go backend and rebuilds it anytime a Go module changes (only tested

@@ -1,16 +1,16 @@
 # Frontend
 
-Two web UIs are served during the move from Elm to Svelte: the Elm UI at `/` and
-the Svelte UI at `/v2`. They share one sign-in, and the Svelte UI replaces the
-Elm UI once it covers every node type.
+Two web UIs are served during the move from Elm to Svelte: the Svelte UI at `/`
+and the Elm UI at `/old`. They share one sign-in. The Elm UI will be removed in
+a later release.
 
 ## Svelte UI
 
 The Svelte UI is a [SvelteKit](https://svelte.dev/docs/kit) single-page app in
 [`ui/`](https://github.com/simpleiot/simpleiot/tree/master/ui), built with
 `adapter-static` and embedded in the `siot` binary (`ui/embed.go`). The server
-answers any path under `/v2` with no file with `index.html`, so a link to a node
-loads the app. See `ui/README.md` for the build, test, and dev server commands.
+answers any path it has no file for with `index.html`, so a link to a node loads
+the app. See `ui/README.md` for the build, test, and dev server commands.
 
 ### Code Structure
 

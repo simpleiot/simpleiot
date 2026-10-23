@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// uiHandler serves the Svelte UI at /v2 from its build output. The UI is
+// uiHandler serves the Svelte UI from its build output. The UI is
 // a single-page app, so a path with no file is answered with index.html
 // and the app routes it in the browser.
 type uiHandler struct {
@@ -54,7 +54,6 @@ func (h *uiHandler) computeScriptSrc() string {
 	return strings.Join(append([]string{"'self'"}, uiScriptHashes(page)...), " ")
 }
 
-// ServeHTTP serves a request with the /v2 prefix already removed.
 func (h *uiHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	scriptSrc := h.scriptSrc
 	if h.dev {

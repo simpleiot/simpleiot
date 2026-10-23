@@ -3,8 +3,8 @@ import { expect, test } from "@playwright/test"
 // Signs in with the default account of a fresh instance, adds a node,
 // edits its description, and checks the edit is saved.
 test("sign in, add a node, edit it, and see it saved", async ({ page }) => {
-	await page.goto("/v2/")
-	await expect(page).toHaveURL(/\/v2\/sign-in$/)
+	await page.goto("/")
+	await expect(page).toHaveURL(/\/sign-in$/)
 	await page.getByLabel("Email").fill("admin")
 	await page.getByLabel("Password").fill("admin")
 	await page.getByRole("button", { name: "Sign In" }).click()
@@ -27,7 +27,7 @@ test("sign in, add a node, edit it, and see it saved", async ({ page }) => {
 	const key = (await added.getAttribute("data-key")) ?? ""
 	const variable = page.locator(`[role="treeitem"][data-key="${key}"]`)
 	await variable.getByRole("button", { name: "Open details" }).click()
-	await expect(page).toHaveURL(/\/v2\/nodes\/[\w-]+$/)
+	await expect(page).toHaveURL(/\/nodes\/[\w-]+$/)
 
 	const desc = variable.getByLabel("Description")
 	await desc.fill("Tank level")

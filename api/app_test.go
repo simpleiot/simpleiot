@@ -18,7 +18,7 @@ func TestFontsAreCacheable(t *testing.T) {
 	for path, want := range map[string]string{
 		"/fonts/a.css":  "public, max-age=31536000, immutable",
 		"/fonts/a.woff": "public, max-age=31536000, immutable",
-		"/":             "",
+		"/old/":         "",
 	} {
 		rec := httptest.NewRecorder()
 		app.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))

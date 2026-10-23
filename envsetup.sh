@@ -100,7 +100,7 @@ siot_build_frontend() {
 	return 0
 }
 
-# The Svelte UI served at /v2. npm run build runs svelte-check first, so a
+# The Svelte UI, served at /. npm run build runs svelte-check first, so a
 # type error fails the build. The hashed files under _app are gzipped like
 # elm.js; index.html stays as is, since the server reads it for the
 # content security policy.
@@ -188,8 +188,8 @@ siot_watch_elm() {
 	(cd frontend && npx elm-watch hot) || false
 }
 
-# The Vite dev server serves the Svelte UI at http://localhost:5173/v2/ and
-# proxies the API and the NATS WebSocket to siot's HTTP port (SIOT_HTTP_PORT,
+# The Vite dev server serves the Svelte UI at http://localhost:5173/ and
+# proxies the API, the Elm UI at /old, and the NATS WebSocket to siot's HTTP port (SIOT_HTTP_PORT,
 # or one above SIOT_NATS_PORT, as siot itself picks it).
 siot_watch_ui() {
 	(cd ui && npx vite dev) || false
@@ -257,7 +257,7 @@ siot_test_ui_browser() {
 	_e2e_pid=$!
 	_e2e_up=0
 	for _ in $(seq 1 60); do
-		if curl -sf -o /dev/null "http://localhost:$_e2e_http/v2/"; then
+		if curl -sf -o /dev/null "http://localhost:$_e2e_http/"; then
 			_e2e_up=1
 			break
 		fi

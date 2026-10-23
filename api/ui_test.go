@@ -12,7 +12,7 @@ import (
 	"github.com/simpleiot/simpleiot/ui"
 )
 
-// TestUIScriptHashes checks the policy the /v2 page is served with allows
+// TestUIScriptHashes checks the policy the Svelte UI is served with allows
 // the inline script that starts the app, since a browser refuses the
 // script, and with it the whole UI, when the hash does not match.
 func TestUIScriptHashes(t *testing.T) {
@@ -59,14 +59,13 @@ func TestUIFallback(t *testing.T) {
 		body   string
 		cache  string
 	}{
-		{"/v2", http.StatusOK, page, "no-cache"},
-		{"/v2/", http.StatusOK, page, "no-cache"},
-		{"/v2/sign-in", http.StatusOK, page, "no-cache"},
-		{"/v2/nodes/abc-123", http.StatusOK, page, "no-cache"},
-		{"/v2/siot-logo.svg", http.StatusOK, "<svg/>", ""},
-		{"/v2/_app/version.json", http.StatusOK, "{}", ""},
-		{"/v2/_app/immutable/entry/a.js", http.StatusOK, "a()", "public, max-age=31536000, immutable"},
-		{"/v2/_app/immutable/entry/missing.js", http.StatusNotFound, "", ""},
+		{"/", http.StatusOK, page, "no-cache"},
+		{"/sign-in", http.StatusOK, page, "no-cache"},
+		{"/nodes/abc-123", http.StatusOK, page, "no-cache"},
+		{"/siot-logo.svg", http.StatusOK, "<svg/>", ""},
+		{"/_app/version.json", http.StatusOK, "{}", ""},
+		{"/_app/immutable/entry/a.js", http.StatusOK, "a()", "public, max-age=31536000, immutable"},
+		{"/_app/immutable/entry/missing.js", http.StatusNotFound, "", ""},
 	} {
 		rec := httptest.NewRecorder()
 		app.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, c.path, nil))
@@ -85,10 +84,25 @@ func TestUIFallback(t *testing.T) {
 		}
 	}
 
-	// the Elm UI keeps its own policy
-	rec := httptest.NewRecorder()
-	(&App{PublicHandler: http.NotFoundHandler(), UIHandler: app.UIHandler}).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/x", nil))
-	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, importMapHash) {
-		t.Errorf("policy at / %q lacks the import map hash", csp)
+	// the Elm UI at /old keeps its own policy and routes sign-in itself
+	elm := fstest.MapFS{
+		"index.html": {Data: []byte("<html>elm</html>")},
+		"main.js":    {Data: []byte("main()")},
+	}
+	app.PublicHandler = http.FileServer(http.FS(elm))
+	for path, body := range map[string]string{
+		"/old":         "<html>elm</html>",
+		"/old/":        "<html>elm</html>",
+		"/old/sign-in": "<html>elm</html>",
+		"/old/main.js": "main()",
+	} {
+		rec := httptest.NewRecorder()
+		app.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if rec.Code != http.StatusOK || rec.Body.String() != body {
+			t.Errorf("%v: status %v body %q, want %q", path, rec.Code, rec.Body.String(), body)
+		}
+		if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, importMapHash) {
+			t.Errorf("%v: policy %q lacks the import map hash", path, csp)
+		}
 	}
 }

@@ -13,15 +13,13 @@ nodes.
 
 ![nodes](images/nodes.png)
 
-A new version of the interface is available at `/v2` (for example
-[http://localhost:4223/v2/](http://localhost:4223/v2/)). It works the same way
-and signs in with the same account. It also gives each node its own address:
-opening a node's detail changes the address to `/v2/nodes/<id>`, and opening
-that address later shows the tree expanded down to the node. The link button in
-a node's detail copies the address. The interface follows the system's light or
-dark setting, and the moon and sun button in the header switches between them.
+Each node has its own address: opening a node's detail changes the address to
+`/nodes/<id>`, and opening that address later shows the tree expanded down to
+the node. The link button in a node's detail copies the address. The interface
+follows the system's light or dark setting, and the moon and sun button in the
+header switches between them.
 
-The `/v2` interface also:
+The interface also:
 
 - **Remembers what you had open.** The nodes you expanded and the details you
   opened come back when you reload the page or sign in again on the same
@@ -36,6 +34,10 @@ The `/v2` interface also:
   In a node's form, Enter saves and Escape discards.
 - **Asks before losing changes.** With unsaved edits, closing the tab, leaving
   the page, or signing out asks first.
+
+The previous interface is still available at `/old` (for example
+[http://localhost:4223/old/](http://localhost:4223/old/)) and signs in with the
+same account. It will be removed in a later release.
 
 The `Node` is the base unit of configuration. Each node contains `Points` which
 describe various attributes of a node. When you expand a node, the information

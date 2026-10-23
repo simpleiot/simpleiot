@@ -93,8 +93,8 @@ cd frontend && npx elm-test
 - `api/` - HTTP API handlers and routing
 - `data/` - Core data structures (Node, Point, etc.)
 - `store/` - JetStream storage layer (boundary-origin streams, see ADR-7)
-- `frontend/` - Elm-based web UI, served at `/`
-- `ui/` - Svelte web UI, served at `/v2`; replaces the Elm UI in a later release
+- `ui/` - Svelte web UI, served at `/`
+- `frontend/` - Elm-based web UI, served at `/old` until it is removed
 - `modbus/` - Modbus protocol implementation
 - `network/` - Network management utilities
 
@@ -139,11 +139,12 @@ canary for nats-server upgrades. See [security](docs/ref/security.md) and
 
 ### Frontend Architecture
 
-Two UIs share one sign-in during the move from Elm to Svelte. Changes to the
-admin UI go in both until the Svelte UI replaces the Elm one.
+The Svelte UI is the admin UI, served at `/`. The Elm UI is kept at `/old`, with
+the same sign-in, until it is removed; changes to the admin UI go in the Svelte
+UI only.
 
 The Svelte UI (`ui/`) is a SvelteKit app built with `adapter-static`, embedded
-by `ui/embed.go`, and served at `/v2` by `api/ui.go`:
+by `ui/embed.go`, and served at `/` by `api/ui.go`:
 
 - **Node types register themselves**: each type is a directory in
   `ui/src/lib/nodes/<type>/` with an `index.ts` descriptor (where it may be

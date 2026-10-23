@@ -571,7 +571,7 @@ func (s *Server) Run() error {
 	// versions of files.
 	feFSDecomp := newFsDecomp(feFS, "index.html")
 
-	// the Svelte UI at /v2
+	// the Svelte UI, served at /
 	var uiFS fs.FS
 	if o.Dev {
 		uiFS = os.DirFS("./ui/build")
