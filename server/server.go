@@ -22,6 +22,7 @@ import (
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/frontend"
 	"github.com/simpleiot/simpleiot/store"
+	"github.com/simpleiot/simpleiot/ui"
 )
 
 // ErrServerStopped is returned when the server is stopped
@@ -570,6 +571,17 @@ func (s *Server) Run() error {
 	// versions of files.
 	feFSDecomp := newFsDecomp(feFS, "index.html")
 
+	// the Svelte UI at /v2
+	var uiFS fs.FS
+	if o.Dev {
+		uiFS = os.DirFS("./ui/build")
+	} else {
+		uiFS, err = fs.Sub(ui.Content, "build")
+		if err != nil {
+			log.Fatal("Error getting UI subtree: ", err)
+		}
+	}
+
 	// ====================================
 	// HTTP API
 	// ====================================
@@ -578,6 +590,8 @@ func (s *Server) Run() error {
 		NatsWSPort:         o.NatsWSPort,
 		NatsTLSCert:        o.NatsTLSCert,
 		Filesystem:         http.FS(feFSDecomp),
+		UIFilesystem:       newFsDecomp(uiFS, "index.html"),
+		UIDev:              o.Dev,
 		Debug:              o.DebugHTTP,
 		Users:              siotStore,
 		AuthToken:          o.AuthToken,

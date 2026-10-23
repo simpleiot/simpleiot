@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
@@ -19,6 +20,8 @@ type App struct {
 	PublicHandler  http.Handler
 	V1ApiHandler   http.Handler
 	WebsocketProxy http.Handler
+	// UIHandler serves the Svelte UI at /v2, with the prefix removed
+	UIHandler http.Handler
 }
 
 // Top level handler for http requests in the coap-server process
@@ -44,6 +47,13 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			req.URL.Path = path
 			req.Body = http.MaxBytesReader(res, req.Body, maxBodyBytes)
 			h.V1ApiHandler.ServeHTTP(res, req)
+		case "v2":
+			if h.UIHandler == nil {
+				http.NotFound(res, req)
+				return
+			}
+			req.URL.Path = path
+			h.UIHandler.ServeHTTP(res, req)
 		case "fonts":
 			// the font files are named for their face and never change
 			// in place; embedded files carry no modification time, so
@@ -61,21 +71,27 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 // it by hash; a test checks the hash against the embedded file.
 const importMapHash = "sha256-gPiKIrU1rMetb7cOogG/Un/8wJwuzqdVF4wUyJQ4Ty0="
 
+// contentSecurityPolicy is the policy for a page whose scripts are the ones
+// scriptSrc allows. It allows what the UIs are built from: their own
+// scripts, styles (the Elm UI sets styles inline) and fonts, and a
+// WebSocket back to the server; and refuses to be framed.
+func contentSecurityPolicy(scriptSrc string) string {
+	return "default-src 'self'; " +
+		"script-src " + scriptSrc + "; " +
+		"style-src 'self' 'unsafe-inline'; " +
+		"font-src 'self'; " +
+		"img-src 'self' data:; " +
+		"connect-src 'self' ws: wss:; " +
+		"frame-ancestors 'none'; " +
+		"base-uri 'self'; " +
+		"form-action 'self'"
+}
+
 // setSecurityHeaders puts the response headers every reply carries. The
-// content security policy allows what the UI is built from: its own
-// scripts plus the import map, styles (the Elm UI sets styles inline) and
-// fonts, and a WebSocket back to the server; and refuses to be framed.
+// policy allows the Elm UI's import map; the UI at /v2 replaces it with
+// its own (see uiHandler).
 func setSecurityHeaders(h http.Header) {
-	h.Set("Content-Security-Policy",
-		"default-src 'self'; "+
-			"script-src 'self' '"+importMapHash+"'; "+
-			"style-src 'self' 'unsafe-inline'; "+
-			"font-src 'self'; "+
-			"img-src 'self' data:; "+
-			"connect-src 'self' ws: wss:; "+
-			"frame-ancestors 'none'; "+
-			"base-uri 'self'; "+
-			"form-action 'self'")
+	h.Set("Content-Security-Policy", contentSecurityPolicy("'self' '"+importMapHash+"'"))
 	h.Set("X-Content-Type-Options", "nosniff")
 	h.Set("X-Frame-Options", "DENY")
 	h.Set("Referrer-Policy", "same-origin")
@@ -99,18 +115,26 @@ func NewAppHandler(args ServerArgs) http.Handler {
 		}
 	}
 
-	return &App{
+	app := &App{
 		PublicHandler:  http.FileServer(args.Filesystem),
 		V1ApiHandler:   v1,
 		WebsocketProxy: wsProxy,
 	}
+	if args.UIFilesystem != nil {
+		app.UIHandler = newUIHandler(args.UIFilesystem, args.UIDev)
+	}
+	return app
 }
 
 // ServerArgs can be used to pass arguments to the server subsystem
 type ServerArgs struct {
 	Port       string
 	Filesystem http.FileSystem
-	Debug      bool
+	// UIFilesystem holds the build of the Svelte UI served at /v2
+	UIFilesystem fs.FS
+	// UIDev is set when UIFilesystem is a directory being rebuilt
+	UIDev bool
+	Debug bool
 	// Users authenticates and scopes signed-in users on the node API.
 	Users      UserAuthority
 	AuthToken  string

@@ -11,6 +11,13 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Added
+
+- **A new web UI is available at `/v2`.** It is built with Svelte and signs in
+  with the same account as the UI at `/`, which is unchanged. The `/v2` UI
+  replaces the one at `/` in a later release. Run `siot_setup` again after
+  upgrading a checkout, since it now installs the `ui/` dependencies as well.
+
 ## [0.29.1] - 2026-10-22
 
 ### Security

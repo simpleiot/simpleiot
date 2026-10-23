@@ -22,6 +22,7 @@ siot_install_frontend_deps() {
 	(cd "frontend" && npm install)
 	(cd "frontend" && npx elm-tooling install)
 	(cd "frontend/lib" && npm ci)
+	(cd "ui" && npm ci)
 }
 
 siot_check_elm() {
@@ -95,6 +96,17 @@ siot_build_frontend() {
 	for f in $siot_frontend_js_files; do
 		gzip -nf "frontend/public/dist/$f" || return 1
 	done
+	siot_build_ui || return 1
+	return 0
+}
+
+# The Svelte UI served at /v2. npm run build runs svelte-check first, so a
+# type error fails the build. The hashed files under _app are gzipped like
+# elm.js; index.html stays as is, since the server reads it for the
+# content security policy.
+siot_build_ui() {
+	(cd ui && npm run --silent build >&2) || return 1
+	find ui/build/_app -type f ! -name '*.gz' -exec gzip -nf {} + || return 1
 	return 0
 }
 
@@ -174,12 +186,20 @@ siot_watch_elm() {
 	(cd frontend && npx elm-watch hot) || false
 }
 
+# The Vite dev server serves the Svelte UI at http://localhost:5173/v2/ and
+# proxies the API and the NATS WebSocket to siot's HTTP port (SIOT_HTTP_PORT,
+# or one above SIOT_NATS_PORT, as siot itself picks it).
+siot_watch_ui() {
+	(cd ui && npx vite dev) || false
+}
+
 siot_watch() {
 	# the JavaScript is served as is in dev mode; rerun
 	# siot_build_frontend_js after editing frontend/lib
 	siot_build_frontend_js || return 1
 	npx run-pty \
 		% /bin/sh -c ". ./envsetup.sh && siot_watch_elm" \
+		% /bin/sh -c ". ./envsetup.sh && siot_watch_ui" \
 		% /bin/sh -c ". ./envsetup.sh && siot_watch_go $*"
 }
 
@@ -197,6 +217,15 @@ siot_test_frontend() {
 	(cd frontend && npx elm-test || return 1) || return 1
 	(cd frontend && npx elm-review || return 1) || return 1
 	siot_test_frontend_js || return 1
+	siot_test_ui || return 1
+}
+
+# Lint (prettier and eslint), type-check (svelte-check), and unit-test
+# (vitest) the Svelte UI.
+siot_test_ui() {
+	(cd ui && npm run --silent lint) || return 1
+	(cd ui && npm run --silent check) || return 1
+	(cd ui && npm test --silent) || return 1
 }
 
 # the codec tests check the JavaScript encoder against fixtures the Go
@@ -252,6 +281,8 @@ siot_format() {
 	gofmt -w .
 	echo "Formatting Elm code..."
 	(cd frontend && npx elm-format --yes src/)
+	echo "Formatting the Svelte UI..."
+	(cd ui && npm run --silent format)
 	echo "Formatting Markdown..."
 	siot_format_md || return 1
 	return 0
