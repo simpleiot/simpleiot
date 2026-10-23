@@ -2,6 +2,7 @@
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
 	import Value from "#lib/inputs/Value.svelte"
 	import Label from "#lib/inputs/Label.svelte"
+	import Indent from "#lib/inputs/Indent.svelte"
 	import Button from "#lib/inputs/Button.svelte"
 	import CheckboxInput from "#lib/inputs/CheckboxInput.svelte"
 	import NumberInput from "#lib/inputs/NumberInput.svelte"
@@ -60,10 +61,10 @@
 		<Value label="Current version">{[versionHW, versionOS, versionApp].join(" ").trim()}</Value>
 	{/if}
 	{#if osDownloaded !== ""}
-		<div class="info">OS downloaded, reboot to install: {osDownloaded}</div>
+		<Indent><div class="info">OS downloaded, reboot to install: {osDownloaded}</div></Indent>
 	{:else if downloadOS !== ""}
-		<div class="info">Downloading OS version: {downloadOS}</div>
-	{:else}
+		<Indent><div class="info">Downloading OS version: {downloadOS}</div></Indent>
+	{:else if osUpdates.length > 0}
 		<Label label="OS updates" top>
 			<table>
 				<tbody>
@@ -79,17 +80,21 @@
 			</table>
 		</Label>
 	{/if}
-	<div class="error">{error}</div>
-	<div class="button-row">
-		<Button color="blue" onclick={() => press(PointType.Refresh)}>Refresh</Button>
-		{#if osDownloaded !== ""}
-			<!-- the kit's Button has no orange; this is the same .btn in orange -->
-			<button type="button" class="btn orange" onclick={() => press(PointType.DiscardDownload)}
-				>Discard</button
-			>
-			<Button color="red" onclick={() => press(PointType.Reboot)}>Reboot</Button>
+	<Indent>
+		{#if error !== ""}
+			<div class="error">{error}</div>
 		{/if}
-	</div>
+		<div class="actions">
+			<Button color="blue" onclick={() => press(PointType.Refresh)}>Refresh</Button>
+			{#if osDownloaded !== ""}
+				<!-- the kit's Button has no orange; this is the same .btn in orange -->
+				<button type="button" class="btn orange" onclick={() => press(PointType.DiscardDownload)}
+					>Discard</button
+				>
+				<Button color="red" onclick={() => press(PointType.Reboot)}>Reboot</Button>
+			{/if}
+		</div>
+	</Indent>
 </NodeEditor>
 
 <style>
@@ -99,6 +104,14 @@
 
 	.error {
 		color: var(--red);
+		padding-bottom: 6px;
+	}
+
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 16px;
+		padding: 6px 0;
 	}
 
 	table {
