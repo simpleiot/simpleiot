@@ -3,6 +3,7 @@
 	// This is a status rather than a setting: everything here is recorded by
 	// the server, so nothing on it is editable.
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
+	import Value from "#lib/inputs/Value.svelte"
 	import { get, getText } from "#lib/siot/point.ts"
 	import { PointType } from "#lib/siot/schema.ts"
 	import { toDateTimeString } from "#lib/util/iso8601.ts"
@@ -35,21 +36,12 @@
 			<span class="error">{err}</span>
 		{/if}
 	{/snippet}
-	<div class="status">
-		<div>Applied: {applied}</div>
-		<div>Contents: {shortHash(hashPoint?.text ?? "")}</div>
-	</div>
+	<Value label="Applied">{applied}</Value>
+	<Value label="Contents">{shortHash(hashPoint?.text ?? "")}</Value>
 </NodeEditor>
 
 <style>
 	.error {
 		color: var(--red);
-	}
-
-	.status {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		padding-left: 70px;
 	}
 </style>

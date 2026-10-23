@@ -1,5 +1,6 @@
 <script lang="ts">
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
+	import Value from "#lib/inputs/Value.svelte"
 	import CheckboxInput from "#lib/inputs/CheckboxInput.svelte"
 	import KeyValueInput from "#lib/inputs/KeyValueInput.svelte"
 	import NumberInput from "#lib/inputs/NumberInput.svelte"
@@ -20,7 +21,6 @@
 	import type { EditorProps } from "../types.ts"
 	import { filterSpecialPoints, renderPoint2 } from "#lib/siot/point.ts"
 	import PointTable from "#lib/components/PointTable.svelte"
-	import Label from "#lib/inputs/Label.svelte"
 	import HardDriveIcon from "@lucide/svelte/icons/hard-drive"
 	import Cloud from "@lucide/svelte/icons/cloud"
 	import CloudOff from "@lucide/svelte/icons/cloud-off"
@@ -75,13 +75,10 @@
 	{#if shown.length > 0}
 		<PointTable rows={shown.map(renderPoint2)} label="Point" />
 	{/if}
-	<Label label="Last update"><span>{toDateTimeString(latestPointTime)}</span></Label>
-	<Label label="Since update"
-		><span>{durationString(props.now - Date.parse(latestPointTime))}</span></Label
-	>
+	<Value label="Last update">{toDateTimeString(latestPointTime)}</Value>
+	<Value label="Since update">{durationString(props.now - Date.parse(latestPointTime))}</Value>
 	{#if versionHW !== "" || versionOS !== "" || versionApp !== ""}
-		<Label label="Version"><span>{[versionHW, versionOS, versionApp].join(" ").trim()}</span></Label
-		>
+		<Value label="Version">{[versionHW, versionOS, versionApp].join(" ").trim()}</Value>
 	{/if}
 	<KeyValueInput type={PointType.Tag} label="Tags" buttonLabel="Add Tag" />
 	<CheckboxInput type={PointType.StoreMetrics} label="Store metrics" />

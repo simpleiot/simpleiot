@@ -1,5 +1,6 @@
 <script lang="ts">
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
+	import Value from "#lib/inputs/Value.svelte"
 	import CheckboxInput from "#lib/inputs/CheckboxInput.svelte"
 	import KeyValueInput from "#lib/inputs/KeyValueInput.svelte"
 	import OnOffInput from "#lib/inputs/OnOffInput.svelte"
@@ -112,10 +113,8 @@
 		</span>
 		{#if offline}<span>(offline)</span>{/if}
 	{/snippet}
-	<div class="display">ID: {deviceID}</div>
-	<div class="display">
-		IP: <a href="http://{ip}" target="_blank" rel="noopener noreferrer">{ip}</a>
-	</div>
+	<Value label="ID">{deviceID}</Value>
+	<Value label="IP"><a href="http://{ip}" target="_blank" rel="noopener noreferrer">{ip}</a></Value>
 	<TextInput type={PointType.Description} label="Description" />
 	{#if controlled}
 		<div class="controls">
@@ -129,7 +128,7 @@
 	{/if}
 	<CheckboxInput type={PointType.Disabled} label="Disabled" />
 	<KeyValueInput type={PointType.Tag} label="Tags" buttonLabel="Add Tag" />
-	<div>Last update: {toDateTimeString(latestPointTime)}</div>
+	<Value label="Last update">{toDateTimeString(latestPointTime)}</Value>
 	{#if rows.length > 0}
 		<PointTable {rows} label="Point" />
 	{/if}
@@ -149,11 +148,7 @@
 		color: var(--on-color);
 	}
 
-	.display {
-		padding-left: 70px;
-	}
-
-	.display a {
+	a {
 		color: inherit;
 		text-decoration: underline;
 	}

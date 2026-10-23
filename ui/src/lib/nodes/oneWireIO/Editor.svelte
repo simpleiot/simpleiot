@@ -1,5 +1,6 @@
 <script lang="ts">
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
+	import Value from "#lib/inputs/Value.svelte"
 	import CheckboxInput from "#lib/inputs/CheckboxInput.svelte"
 	import CounterWithReset from "#lib/inputs/CounterWithReset.svelte"
 	import KeyValueInput from "#lib/inputs/KeyValueInput.svelte"
@@ -21,7 +22,7 @@
 	{#snippet header()}
 		<span class="value">{valueText}</span>
 	{/snippet}
-	<div class="indent">ID: {getText(props.node.points, PointType.ID)}</div>
+	<Value label="ID">{getText(props.node.points, PointType.ID)}</Value>
 	<TextInput type={PointType.Description} label="Description" />
 	<FahrenheitInput label="Fahrenheit?" />
 	<CheckboxInput type={PointType.Disabled} label="Disabled" />
@@ -36,9 +37,5 @@
 <style>
 	.value {
 		padding: 0 7px;
-	}
-
-	.indent {
-		padding-left: 70px;
 	}
 </style>

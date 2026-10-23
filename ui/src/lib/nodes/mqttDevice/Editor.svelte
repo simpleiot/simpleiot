@@ -1,5 +1,6 @@
 <script lang="ts">
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
+	import Value from "#lib/inputs/Value.svelte"
 	import KeyValueInput from "#lib/inputs/KeyValueInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
 	import { filterDeleted, getText, sorted, type Point } from "#lib/siot/point.ts"
@@ -38,7 +39,7 @@
 </script>
 
 <NodeEditor {props} icon={Io}>
-	<div class="indent">Topic level: {identity}</div>
+	<Value label="Topic level">{identity}</Value>
 	<TextInput type={PointType.Description} label="Description" />
 	<KeyValueInput type={PointType.Tag} label="Tags" buttonLabel="Add Tag" />
 	{#if values.length > 0}
@@ -56,10 +57,6 @@
 </NodeEditor>
 
 <style>
-	.indent {
-		padding-left: 70px;
-	}
-
 	table {
 		margin: 7px;
 		border-collapse: collapse;

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
+	import Value from "#lib/inputs/Value.svelte"
 	import CheckboxInput from "#lib/inputs/CheckboxInput.svelte"
 	import CounterWithReset from "#lib/inputs/CounterWithReset.svelte"
 	import NumberInput from "#lib/inputs/NumberInput.svelte"
@@ -15,7 +16,7 @@
 </script>
 
 <NodeEditor {props} icon={OneWire} labelWidth={180}>
-	<div class="note">Bus #: {index}</div>
+	<Value label="Bus #">{index}</Value>
 	<TextInput type={PointType.Description} label="Description" />
 	<NumberInput type={PointType.Debug} label="Debug level (0-9)" />
 	<NumberInput type={PointType.PollPeriod} label="Poll period (ms)" />
@@ -26,9 +27,3 @@
 		label="Error Count"
 	/>
 </NodeEditor>
-
-<style>
-	.note {
-		padding-left: 70px;
-	}
-</style>

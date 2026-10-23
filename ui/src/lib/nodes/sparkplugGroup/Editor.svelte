@@ -1,5 +1,6 @@
 <script lang="ts">
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
+	import Value from "#lib/inputs/Value.svelte"
 	import KeyValueInput from "#lib/inputs/KeyValueInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
 	import { getText } from "#lib/siot/point.ts"
@@ -13,13 +14,7 @@
 </script>
 
 <NodeEditor {props} icon={RssIcon}>
-	<div class="note">Sparkplug group: {group}</div>
+	<Value label="Sparkplug group">{group}</Value>
 	<TextInput type={PointType.Description} label="Description" />
 	<KeyValueInput type={PointType.Tag} label="Tags" buttonLabel="Add Tag" />
 </NodeEditor>
-
-<style>
-	.note {
-		padding-left: 70px;
-	}
-</style>

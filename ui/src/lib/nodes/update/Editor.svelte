@@ -1,5 +1,7 @@
 <script lang="ts">
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
+	import Value from "#lib/inputs/Value.svelte"
+	import Label from "#lib/inputs/Label.svelte"
 	import Button from "#lib/inputs/Button.svelte"
 	import CheckboxInput from "#lib/inputs/CheckboxInput.svelte"
 	import NumberInput from "#lib/inputs/NumberInput.svelte"
@@ -55,15 +57,14 @@
 	<CheckboxInput type={PointType.AutoDownload} label="Auto download" />
 	<CheckboxInput type={PointType.AutoReboot} label="Auto reboot/install" />
 	{#if versionHW !== "" || versionOS !== "" || versionApp !== ""}
-		<div>{"Current version: " + versionHW + " " + versionOS + " " + versionApp}</div>
+		<Value label="Current version">{[versionHW, versionOS, versionApp].join(" ").trim()}</Value>
 	{/if}
 	{#if osDownloaded !== ""}
 		<div class="info">OS downloaded, reboot to install: {osDownloaded}</div>
 	{:else if downloadOS !== ""}
 		<div class="info">Downloading OS version: {downloadOS}</div>
 	{:else}
-		<div>
-			<div class="updates-label">OS Updates:</div>
+		<Label label="OS updates" top>
 			<table>
 				<tbody>
 					{#each osUpdates as p (p.key)}
@@ -76,7 +77,7 @@
 					{/each}
 				</tbody>
 			</table>
-		</div>
+		</Label>
 	{/if}
 	<div class="error">{error}</div>
 	<div class="button-row">
@@ -100,12 +101,7 @@
 		color: var(--red);
 	}
 
-	.updates-label {
-		padding: 0 20px;
-	}
-
 	table {
-		margin-left: 70px;
 		border-collapse: collapse;
 	}
 

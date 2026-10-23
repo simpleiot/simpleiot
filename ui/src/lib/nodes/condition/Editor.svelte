@@ -1,5 +1,6 @@
 <script lang="ts">
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
+	import Indent from "#lib/inputs/Indent.svelte"
 	import CheckboxInput from "#lib/inputs/CheckboxInput.svelte"
 	import KeyValueInput from "#lib/inputs/KeyValueInput.svelte"
 	import NumberInput from "#lib/inputs/NumberInput.svelte"
@@ -64,13 +65,15 @@
 	{#if conditionType === PointValue.PointValue}
 		<TextInput type={PointType.NodeID} label="Node ID" />
 		{#if nodeId !== ""}
-			<div class="node-desc">
-				{#if target}
-					<span class="found">({getBestDesc(target.points)})</span>
-				{:else}
-					<span class="not-found">(node not found)</span>
-				{/if}
-			</div>
+			<Indent>
+				<div class="node-desc">
+					{#if target}
+						<span class="found">({getBestDesc(target.points)})</span>
+					{:else}
+						<span class="not-found">(node not found)</span>
+					{/if}
+				</div>
+			</Indent>
 		{/if}
 		{#if props.copy && nodeId !== props.copy.id}
 			<PasteButton type={PointType.NodeID} value={props.copy.id}>
@@ -124,7 +127,6 @@
 <style>
 	.node-desc {
 		font-style: italic;
-		padding-left: 170px;
 	}
 
 	.found,
@@ -144,11 +146,5 @@
 
 	.error-text {
 		color: var(--red);
-	}
-
-	@media (max-width: 600px) {
-		.node-desc {
-			padding-left: 0;
-		}
 	}
 </style>

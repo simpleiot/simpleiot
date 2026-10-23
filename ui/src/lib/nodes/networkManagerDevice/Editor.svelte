@@ -1,5 +1,6 @@
 <script lang="ts">
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
+	import Value from "#lib/inputs/Value.svelte"
 	import { getText, getTextArray } from "#lib/siot/point.ts"
 	import type { EditorProps } from "../types.ts"
 	import RadioReceiverIcon from "@lucide/svelte/icons/radio-receiver"
@@ -17,23 +18,20 @@
 	const points = $derived(props.node.points)
 	const stateDisplay = $derived(getText(points, typeState).replaceAll("NmDeviceState", ""))
 
-	const rows = $derived([
+	const rows: [string, string][] = $derived([
 		["State", stateDisplay],
 		["IPv4 Gateway", getText(points, typeIPv4Gateway)],
-		...getTextArray(points, typeIPv4Addresses).map((a) => ["IPv4 Addr", a]),
-		...getTextArray(points, typeIPv4Netmasks).map((a) => ["IPv4 Netmask", a]),
-		...getTextArray(points, typeIPv4Nameservers).map((a) => ["IPv4 NameServers", a]),
+		...getTextArray(points, typeIPv4Addresses).map((a): [string, string] => ["IPv4 Addr", a]),
+		...getTextArray(points, typeIPv4Netmasks).map((a): [string, string] => ["IPv4 Netmask", a]),
+		...getTextArray(points, typeIPv4Nameservers).map((a): [string, string] => [
+			"IPv4 NameServers",
+			a,
+		]),
 	])
 </script>
 
 <NodeEditor {props} icon={RadioReceiverIcon} description={getText(points, typeInterface)}>
 	{#each rows as [label, value], i (i)}
-		<div class="row">{label}: {value}</div>
+		<Value {label}>{value}</Value>
 	{/each}
 </NodeEditor>
-
-<style>
-	.row {
-		padding-left: 50px;
-	}
-</style>

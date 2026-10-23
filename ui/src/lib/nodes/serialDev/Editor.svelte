@@ -1,5 +1,6 @@
 <script lang="ts">
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
+	import Value from "#lib/inputs/Value.svelte"
 	import Button from "#lib/inputs/Button.svelte"
 	import ButtonAction from "#lib/inputs/ButtonAction.svelte"
 	import CheckboxInput from "#lib/inputs/CheckboxInput.svelte"
@@ -172,8 +173,8 @@
 		{/if}
 	{/if}
 	{#if downloading}
-		<div>Downloading: {download}</div>
-		<div>Progress: {progress} %</div>
+		<Value label="Downloading">{download}</Value>
+		<Value label="Progress">{progress} %</Value>
 		<div class="row">
 			<ButtonAction type={PointType.Download} text="" label="Cancel download" color="red" />
 		</div>

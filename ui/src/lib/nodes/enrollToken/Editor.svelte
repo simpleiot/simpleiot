@@ -3,6 +3,7 @@
 	// credential. Only a hash is stored; the token is shown once when
 	// generated.
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
+	import Value from "#lib/inputs/Value.svelte"
 	import Button from "#lib/inputs/Button.svelte"
 	import CheckboxInput from "#lib/inputs/CheckboxInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
@@ -33,7 +34,7 @@
 	<CheckboxInput type={PointType.Disabled} label="Disabled" />
 	<CheckboxInput type={PointType.AutoApprove} label="Auto approve" />
 	<div>Auto approve lets enrolled devices in without an operator.</div>
-	<div>Expires: {formatExpires(expires)}</div>
+	<Value label="Expires">{formatExpires(expires)}</Value>
 	<div>{hash === "" ? "No token generated yet" : "Token set (only its hash is stored)"}</div>
 	{#if hash === ""}
 		<div class="button-row">

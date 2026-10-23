@@ -1,5 +1,6 @@
 <script lang="ts">
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
+	import Value from "#lib/inputs/Value.svelte"
 	import KeyValueInput from "#lib/inputs/KeyValueInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
 	import { getText } from "#lib/siot/point.ts"
@@ -23,13 +24,7 @@
 			<CloudIcon size={20} />
 		{/if}
 	{/snippet}
-	<div class="note">Sparkplug edge node: {identity}</div>
+	<Value label="Sparkplug edge node">{identity}</Value>
 	<TextInput type={PointType.Description} label="Description" />
 	<KeyValueInput type={PointType.Tag} label="Tags" buttonLabel="Add Tag" />
 </NodeEditor>
-
-<style>
-	.note {
-		padding-left: 70px;
-	}
-</style>

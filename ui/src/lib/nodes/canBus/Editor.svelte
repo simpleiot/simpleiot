@@ -1,5 +1,6 @@
 <script lang="ts">
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
+	import Value from "#lib/inputs/Value.svelte"
 	import CheckboxInput from "#lib/inputs/CheckboxInput.svelte"
 	import CounterWithReset from "#lib/inputs/CounterWithReset.svelte"
 	import KeyValueInput from "#lib/inputs/KeyValueInput.svelte"
@@ -22,8 +23,8 @@
 	<TextInput type={PointType.Description} label="Description" />
 	<TextInput type={PointType.Device} label="Device" placeholder="can0" />
 	<TextInput type={PointType.BitRate} label="Bit rate" placeholder="250000" />
-	<div class="stat" style:width="{labelWidth}px">Messages in db: {msgsInDb}</div>
-	<div class="stat" style:width="{labelWidth}px">Signals in db: {signalsInDb}</div>
+	<Value label="Messages in db">{msgsInDb}</Value>
+	<Value label="Signals in db">{signalsInDb}</Value>
 	<CounterWithReset
 		type={PointType.MsgsRecvdDb}
 		resetType={PointType.MsgsRecvdDbReset}
@@ -37,10 +38,3 @@
 	<CheckboxInput type={PointType.Disabled} label="Disabled" />
 	<KeyValueInput type={PointType.Tag} label="Tags" buttonLabel="Add Tag" />
 </NodeEditor>
-
-<style>
-	.stat {
-		text-align: right;
-		white-space: nowrap;
-	}
-</style>

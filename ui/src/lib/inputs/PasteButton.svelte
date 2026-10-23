@@ -6,23 +6,26 @@
 	import IconButton from "#lib/components/IconButton.svelte"
 	import { newText } from "#lib/siot/point.ts"
 	import { editTime, inputContext } from "./context.ts"
+	import Indent from "./Indent.svelte"
 
 	let { type, value, children }: { type: string; value: string; children: Snippet } = $props()
 
 	const ctx = inputContext()
 </script>
 
-<div class="paste">
-	<IconButton
-		label="Paste"
-		onclick={() => {
-			ctx.onEditPoints([newText(type, "0", value, editTime(ctx))])
-		}}
-	>
-		<ClipboardIcon size={22} />
-	</IconButton>
-	{@render children()}
-</div>
+<Indent>
+	<div class="paste">
+		<IconButton
+			label="Paste"
+			onclick={() => {
+				ctx.onEditPoints([newText(type, "0", value, editTime(ctx))])
+			}}
+		>
+			<ClipboardIcon size={22} />
+		</IconButton>
+		{@render children()}
+	</div>
+</Indent>
 
 <style>
 	.paste {
@@ -30,12 +33,5 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 10px;
-		padding-left: 75px;
-	}
-
-	@media (max-width: 600px) {
-		.paste {
-			padding-left: 0;
-		}
 	}
 </style>

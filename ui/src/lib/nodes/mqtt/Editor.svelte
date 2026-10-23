@@ -1,5 +1,6 @@
 <script lang="ts">
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
+	import Value from "#lib/inputs/Value.svelte"
 	import CheckboxInput from "#lib/inputs/CheckboxInput.svelte"
 	import KeyValueInput from "#lib/inputs/KeyValueInput.svelte"
 	import NumberInput from "#lib/inputs/NumberInput.svelte"
@@ -27,13 +28,7 @@
 	<NumberInput type={PointType.Debug} label="Debug level (0-9)" />
 	<CheckboxInput type={PointType.Disabled} label="Disabled" />
 	{#if error !== ""}
-		<div class="note">Error: {error}</div>
+		<Value label="Error">{error}</Value>
 	{/if}
 	<KeyValueInput type={PointType.Tag} label="Tags" buttonLabel="Add Tag" />
 </NodeEditor>
-
-<style>
-	.note {
-		padding-left: 70px;
-	}
-</style>
