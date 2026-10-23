@@ -5,6 +5,7 @@
 	import IconButton from "#lib/components/IconButton.svelte"
 	import { DataType, filterDeleted, getAll, newTombstone, sorted } from "#lib/siot/point.ts"
 	import Button from "./Button.svelte"
+	import Label from "./Label.svelte"
 	import { editTime, inputContext } from "./context.ts"
 	import TextInput from "./TextInput.svelte"
 
@@ -28,76 +29,67 @@
 	}
 </script>
 
-<div class="kv">
-	{#if points.length > 0}
-		<strong>{label}</strong>
-		<table>
-			<thead>
-				<tr><th>Key</th><th>Value</th><th>Delete</th></tr>
-			</thead>
-			<tbody>
-				{#each points as p (p.key)}
-					<tr>
-						<td>{p.key}:</td>
-						<td><TextInput {type} key={p.key} placeholder="value" /></td>
-						<td class="center">
-							<IconButton
-								label="Delete {p.key}"
-								onclick={() => {
-									ctx.onEditPoints([newTombstone(type, p.key, editTime(ctx))])
-								}}><X size={20} /></IconButton
-							>
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	{/if}
-	<div class="add">
-		<span>Add:</span>
-		<input
-			type="text"
-			placeholder="new key"
-			aria-label="New {label} key"
-			value={ctx.scratch}
-			oninput={(e) => {
-				ctx.onEditScratch(e.currentTarget.value)
-			}}
-			onkeyup={(e) => {
-				if (e.key === "Enter") {
-					e.stopPropagation()
-					add()
-				}
-			}}
-		/>
-		<Button onclick={add}>{buttonLabel}</Button>
+<Label {label} top>
+	<div class="kv">
+		{#if points.length > 0}
+			<table>
+				<tbody>
+					{#each points as p (p.key)}
+						<tr>
+							<td>{p.key}:</td>
+							<td><TextInput {type} key={p.key} placeholder="value" /></td>
+							<td>
+								<IconButton
+									label="Delete {p.key}"
+									onclick={() => {
+										ctx.onEditPoints([newTombstone(type, p.key, editTime(ctx))])
+									}}><X size={20} /></IconButton
+								>
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		{/if}
+		<div class="add">
+			<input
+				type="text"
+				placeholder="new key"
+				aria-label="New {label} key"
+				value={ctx.scratch}
+				oninput={(e) => {
+					ctx.onEditScratch(e.currentTarget.value)
+				}}
+				onkeyup={(e) => {
+					if (e.key === "Enter") {
+						e.stopPropagation()
+						add()
+					}
+				}}
+			/>
+			<Button onclick={add}>{buttonLabel}</Button>
+		</div>
 	</div>
-</div>
+</Label>
 
 <style>
 	.kv {
 		display: flex;
 		flex-direction: column;
-		align-items: center;
-		gap: 5px;
-	}
-
-	strong {
-		padding: 6px 0;
+		gap: 6px;
 	}
 
 	table {
 		border-collapse: collapse;
-		margin: 7px;
 	}
 
-	th,
 	td {
-		padding: 5px 15px;
+		padding: 0 10px 6px 0;
+		vertical-align: baseline;
 	}
 
-	.center {
-		text-align: center;
+	td:last-child {
+		vertical-align: middle;
 	}
 
 	.add {
@@ -105,15 +97,5 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 10px;
-	}
-
-	.add span {
-		padding-left: 40px;
-	}
-
-	@media (max-width: 600px) {
-		.add span {
-			padding-left: 0;
-		}
 	}
 </style>

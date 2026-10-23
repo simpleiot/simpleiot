@@ -1,14 +1,20 @@
 <script lang="ts">
-	// Label is the right-aligned label column in front of an input.
+	// Label is the right-aligned label column in front of an input. A
+	// multi-line input sets top so the label lines up with its first line.
 	import type { Snippet } from "svelte"
 	import { inputContext } from "./context.ts"
 
-	let { label, id, children }: { label: string; id?: string; children: Snippet } = $props()
+	let {
+		label,
+		id,
+		top = false,
+		children,
+	}: { label: string; id?: string; top?: boolean; children: Snippet } = $props()
 
 	const ctx = inputContext()
 </script>
 
-<div class="field">
+<div class="field" class:top>
 	{#if label !== ""}
 		<label for={id} style:width="{ctx.labelWidth}px">{label}:</label>
 	{/if}
@@ -21,6 +27,10 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 4px 10px;
+	}
+
+	.top {
+		align-items: baseline;
 	}
 
 	label {

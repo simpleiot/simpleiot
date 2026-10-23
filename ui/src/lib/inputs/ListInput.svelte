@@ -4,6 +4,7 @@
 	import IconButton from "#lib/components/IconButton.svelte"
 	import { DataType, getTextArray, newTombstone, type Point } from "#lib/siot/point.ts"
 	import Button from "./Button.svelte"
+	import Label from "./Label.svelte"
 	import { editTime, inputContext } from "./context.ts"
 
 	let { type, label, buttonLabel }: { type: string; label: string; buttonLabel: string } = $props()
@@ -54,48 +55,40 @@
 	}
 </script>
 
-<div class="list">
-	<strong>{label}</strong>
-	{#each entries as entry, i (i)}
-		<div class="entry">
-			<input
-				type="text"
-				aria-label="{label} {i + 1}"
-				value={entry}
-				oninput={(e) => {
-					update(i, e.currentTarget.value)
-				}}
-			/>
-			<IconButton
-				label="Remove {label} {i + 1}"
-				onclick={() => {
-					remove(i)
-				}}><X size={20} /></IconButton
-			>
-		</div>
-	{/each}
-	<div class="add"><Button onclick={add}>{buttonLabel}</Button></div>
-</div>
+<Label {label} top>
+	<div class="list">
+		{#each entries as entry, i (i)}
+			<div class="entry">
+				<input
+					type="text"
+					aria-label="{label} {i + 1}"
+					value={entry}
+					oninput={(e) => {
+						update(i, e.currentTarget.value)
+					}}
+				/>
+				<IconButton
+					label="Remove {label} {i + 1}"
+					onclick={() => {
+						remove(i)
+					}}><X size={20} /></IconButton
+				>
+			</div>
+		{/each}
+		<div><Button onclick={add}>{buttonLabel}</Button></div>
+	</div>
+</Label>
 
 <style>
 	.list {
 		display: flex;
 		flex-direction: column;
-		align-items: center;
-		gap: 5px;
-	}
-
-	strong {
-		padding: 6px 0;
+		gap: 6px;
 	}
 
 	.entry {
 		display: flex;
 		align-items: center;
 		gap: 10px;
-	}
-
-	.add {
-		padding: 6px 0;
 	}
 </style>

@@ -241,13 +241,6 @@ export function filterSpecialPoints(points: readonly Point[]): Point[] {
 	return points.filter((p) => !specialPoints.includes(p.type))
 }
 
-// renderPoint shows a point as one line of text.
-export function renderPoint(p: Point): string {
-	const key = p.key === "" ? "" : p.key + ":"
-	const value = p.text !== "" ? p.text : p.value.toFixed(2) + ":"
-	return p.type + ":" + key + " " + value
-}
-
 // renderPoint2 shows a point as a description and a value.
 export function renderPoint2(p: Point): { desc: string; value: string } {
 	const key = p.key === "" ? "" : p.key + ":"
