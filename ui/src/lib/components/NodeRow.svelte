@@ -8,7 +8,7 @@
 	import Blank from "#lib/icons/Blank.svelte"
 	import { registry } from "#lib/nodes/index.ts"
 	import type { EditorProps } from "#lib/nodes/types.ts"
-	import { edgeRole, isTombstone } from "#lib/siot/node.ts"
+	import { edgeRole, isTombstone, nodeStatus } from "#lib/siot/node.ts"
 	import { getBestDesc, updatePoints, type Point } from "#lib/siot/point.ts"
 	import { store } from "#lib/siot/store.ts"
 	import type { TreeNode } from "#lib/siot/tree.ts"
@@ -38,18 +38,22 @@
 	)
 	const open = $derived(filter ? childRows.length > 0 : t.expChildren)
 	const desc = $derived(registry.get(t.node.type)?.label ?? t.node.type)
+	const status = $derived(nodeStatus(node))
+	const statusText = { ok: "", disabled: " (disabled)", error: " (error)", offline: " (offline)" }
 
 	let fileInput: HTMLInputElement | undefined = $state()
 	let uploadBinary = false
 
 	const editorProps: EditorProps = $derived({
 		node,
+		typeLabel: desc,
 		parent: parent?.node,
 		children: t.children,
 		now: store.now,
 		zone: store.zone,
 		expDetail: t.expDetail,
 		modified: editing !== null,
+		pending: editing?.points ?? [],
 		copy: store.clipboard,
 		scratch: store.scratch,
 		generatedToken: store.generatedToken,
@@ -118,17 +122,23 @@
 				</IconButton>
 			{/if}
 			<IconButton
-				label={t.expDetail ? "Close details" : "Open details"}
+				label={(t.expDetail ? "Close details" : "Open details") + statusText[status]}
 				pressed={t.expDetail}
 				onclick={() => store.toggleDetail(t.key)}
 			>
-				<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+				<!-- the dot's color is the node's status -->
+				<svg class="dot {status}" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
 					<circle cx="12" cy="12" r="4.1" fill="currentColor" />
 				</svg>
 			</IconButton>
 		</div>
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div class="body" class:detail={t.expDetail} {onkeyup}>
+		<div
+			class="body"
+			class:detail={t.expDetail}
+			class:modified={store.hasEdits && editing !== null}
+			{onkeyup}
+		>
 			{#if edgeRole(t.node) === "mirror"}
 				<span class="badge mirror">mirror</span>
 			{/if}
@@ -146,7 +156,11 @@
 				</div>
 			{/if}
 			{#if editing}
-				<div class="button-row">
+				<!-- stays in view while the editor scrolls, until saved or discarded -->
+				<div class="save-bar">
+					{#if editing.points.length > 0}
+						<span class="unsaved">Unsaved changes</span>
+					{/if}
 					<button class="btn blue" onclick={() => store.save(t.key)}>save</button>
 					<button class="btn gray" onclick={() => store.discardEdits()}>discard</button>
 					{#if viewRaw}
@@ -204,6 +218,18 @@
 		flex-shrink: 0;
 	}
 
+	.dot.error {
+		color: var(--red);
+	}
+
+	.dot.offline {
+		color: var(--orange);
+	}
+
+	.dot.disabled {
+		color: var(--muted);
+	}
+
 	.pad,
 	.spin {
 		display: inline-flex;
@@ -233,6 +259,28 @@
 		background: var(--detail-bg);
 	}
 
+	.body.modified {
+		box-shadow: inset 3px 0 0 var(--blue);
+	}
+
+	.save-bar {
+		position: sticky;
+		bottom: 0;
+		z-index: 1;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 16px;
+		padding: 10px 16px;
+		background: var(--detail-bg);
+		border-top: 1px solid var(--border);
+	}
+
+	.unsaved {
+		color: var(--blue);
+		font-weight: 600;
+	}
+
 	.mirror {
 		align-self: flex-start;
 	}
@@ -258,6 +306,24 @@
 	@media (max-width: 600px) {
 		ul {
 			padding-left: 14px;
+		}
+
+		.row,
+		.toggles {
+			gap: 0;
+		}
+
+		.body {
+			padding: 6px 4px;
+		}
+
+		.save-bar {
+			gap: 6px 16px;
+			padding: 8px;
+		}
+
+		.unsaved {
+			flex-basis: 100%;
 		}
 	}
 </style>

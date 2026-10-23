@@ -36,6 +36,7 @@
 		get scratch() {
 			return ctx.scratch
 		},
+		edited: (type, key) => ctx.edited(type, key),
 		onEditPoints: (points) => {
 			ctx.onEditPoints(edit(points))
 		},

@@ -9,6 +9,7 @@
 
 	let {
 		node,
+		typeLabel,
 		icon: IconComponent,
 		description,
 		tone,
@@ -18,6 +19,8 @@
 		children,
 	}: {
 		node: Node
+		// typeLabel names the node's type, so a node is easy to place
+		typeLabel: string
 		icon: Icon
 		// description replaces the node's description point
 		description?: string
@@ -44,6 +47,7 @@
 	>
 	{@render children?.()}
 	{#if disabled}<span>(disabled)</span>{/if}
+	<span class="type">{typeLabel}</span>
 </div>
 
 <style>
@@ -76,6 +80,15 @@
 	.desc {
 		overflow-wrap: anywhere;
 		white-space: pre-wrap;
+	}
+
+	.type {
+		font-size: 12px;
+		color: var(--muted);
+		border: 1px solid var(--border);
+		border-radius: 3px;
+		padding: 0 6px;
+		white-space: nowrap;
 	}
 
 	.highlight {

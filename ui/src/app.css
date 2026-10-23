@@ -207,3 +207,34 @@ a {
 	clip: rect(0 0 0 0);
 	white-space: nowrap;
 }
+
+/* A table of read-only values, such as a node's points: light row lines,
+   names left, numbers right and in fixed-width digits. */
+.data-table {
+	border-collapse: collapse;
+	align-self: flex-start;
+	font-size: 14px;
+}
+
+.data-table th {
+	font-weight: 600;
+	text-align: left;
+	color: var(--muted);
+	border-bottom: 1px solid var(--border);
+}
+
+.data-table th,
+.data-table td {
+	padding: 4px 16px 4px 0;
+	overflow-wrap: anywhere;
+}
+
+.data-table tbody tr + tr td {
+	border-top: 1px solid var(--hover);
+}
+
+.data-table .num {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+	padding-right: 0;
+}

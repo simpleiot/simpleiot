@@ -42,9 +42,9 @@
 	<TextInput type={PointType.AuthToken} label="API Key" />
 	<CheckboxInput type={PointType.Disabled} label="Disabled" />
 	<KeyValueInput type={PointType.Tag} label="Tags" buttonLabel="Add Tag" />
-	<table>
+	<table class="data-table">
 		<thead>
-			<tr><th>Time</th><th>ID</th><th>Type</th><th>Value</th></tr>
+			<tr><th>Time</th><th>ID</th><th>Type</th><th class="num">Value</th></tr>
 		</thead>
 		<tbody>
 			{#each metrics as m, i (i)}
@@ -53,25 +53,3 @@
 		</tbody>
 	</table>
 </NodeEditor>
-
-<style>
-	table {
-		margin: 7px;
-		border-collapse: collapse;
-	}
-
-	th,
-	td {
-		padding: 5px 15px;
-		border: 1px solid var(--fg);
-	}
-
-	th {
-		font-weight: bold;
-		text-align: center;
-	}
-
-	.num {
-		text-align: right;
-	}
-</style>

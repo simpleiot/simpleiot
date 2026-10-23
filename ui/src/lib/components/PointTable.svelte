@@ -5,37 +5,13 @@
 	let { rows, label }: { rows: Row[]; label: string } = $props()
 </script>
 
-<table>
+<table class="data-table">
 	<thead>
-		<tr><th>{label}</th><th>Value</th></tr>
+		<tr><th>{label}</th><th class="num">Value</th></tr>
 	</thead>
 	<tbody>
 		{#each rows as row, i (i)}
-			<tr><td>{row.desc}</td><td class="value">{row.value}</td></tr>
+			<tr><td>{row.desc}</td><td class="num">{row.value}</td></tr>
 		{/each}
 	</tbody>
 </table>
-
-<style>
-	table {
-		border-collapse: collapse;
-		margin: 7px;
-		align-self: flex-start;
-	}
-
-	th,
-	td {
-		border: 1px solid var(--fg);
-		padding: 5px 15px;
-		overflow-wrap: anywhere;
-	}
-
-	th {
-		font-weight: 700;
-		text-align: center;
-	}
-
-	.value {
-		text-align: right;
-	}
-</style>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
 	import Value from "#lib/inputs/Value.svelte"
+	import PointTable from "#lib/components/PointTable.svelte"
 	import KeyValueInput from "#lib/inputs/KeyValueInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
 	import { filterDeleted, getText, sorted, type Point } from "#lib/siot/point.ts"
@@ -43,37 +44,6 @@
 	<TextInput type={PointType.Description} label="Description" />
 	<KeyValueInput type={PointType.Tag} label="Tags" buttonLabel="Add Tag" />
 	{#if values.length > 0}
-		<table>
-			<thead>
-				<tr><th>Point</th><th>Value</th></tr>
-			</thead>
-			<tbody>
-				{#each values.map(formatValue) as m, i (i)}
-					<tr><td>{m.desc}</td><td class="num">{m.value}</td></tr>
-				{/each}
-			</tbody>
-		</table>
+		<PointTable rows={values.map(formatValue)} label="Point" />
 	{/if}
 </NodeEditor>
-
-<style>
-	table {
-		margin: 7px;
-		border-collapse: collapse;
-	}
-
-	th,
-	td {
-		padding: 5px 15px;
-		border: 1px solid var(--fg);
-	}
-
-	th {
-		font-weight: bold;
-		text-align: center;
-	}
-
-	.num {
-		text-align: right;
-	}
-</style>

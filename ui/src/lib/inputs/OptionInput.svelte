@@ -36,7 +36,7 @@
 </script>
 
 <fieldset>
-	<legend style:width="{ctx.labelWidth}px">{label}:</legend>
+	<legend style:width="{ctx.labelWidth}px" class:edited={ctx.edited(type, key)}>{label}:</legend>
 	<div class="options">
 		{#each options as [value, text] (value)}
 			<label>
@@ -56,6 +56,11 @@
 </fieldset>
 
 <style>
+	.edited {
+		color: var(--blue);
+		font-weight: 600;
+	}
+
 	fieldset {
 		border: none;
 		margin: 0;

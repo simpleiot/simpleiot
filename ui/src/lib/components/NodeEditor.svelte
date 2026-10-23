@@ -51,6 +51,8 @@
 		get scratch() {
 			return props.scratch
 		},
+		edited: (type, key) =>
+			props.pending.some((p) => p.type === type && (key === undefined || p.key === key)),
 		onEditPoints: (points) => {
 			props.onEditPoints(points)
 		},
@@ -61,8 +63,15 @@
 </script>
 
 <div class="editor">
-	<EditorHeader node={props.node} {icon} {description} {tone} {highlight} {showDisabled} {lead}
-		>{@render header?.()}</EditorHeader
+	<EditorHeader
+		node={props.node}
+		typeLabel={props.typeLabel}
+		{icon}
+		{description}
+		{tone}
+		{highlight}
+		{showDisabled}
+		{lead}>{@render header?.()}</EditorHeader
 	>
 	{@render summary?.()}
 	{#if props.expDetail && children}

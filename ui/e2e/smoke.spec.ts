@@ -17,7 +17,7 @@ test("sign in, add a node, edit it, and see it saved", async ({ page }) => {
 	// open the root and add a variable under it
 	await root.getByRole("button", { name: "Expand" }).first().click()
 	await root.getByRole("button", { name: "Open details" }).first().click()
-	await root.getByRole("button", { name: "Add a node" }).click()
+	await root.getByRole("button", { name: "Add", exact: true }).click()
 	await page.getByRole("radio", { name: "Variable" }).check()
 	await page.getByRole("button", { name: "add", exact: true }).click()
 

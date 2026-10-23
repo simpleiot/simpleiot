@@ -8,7 +8,7 @@ import type { Clipboard, GeneratedToken } from "#lib/nodes/types.ts"
 import type { Env } from "./connection.ts"
 import { Connection } from "./connection.ts"
 import * as http from "./http.ts"
-import { isTombstone, type Node } from "./node.ts"
+import { edgeRole, isTombstone, type Node } from "./node.ts"
 import {
 	clearText,
 	DataType,
@@ -43,7 +43,9 @@ export interface NodeMsg {
 	time: number
 }
 
-const errorShowMs = 5000
+// a notice says an operation went through, and fades; an error stays
+// until it is dismissed
+const noticeShowMs = 3000
 // searchDepth is how far down the first search of a session fetches
 const searchDepth = 20
 const nodeMsgShowMs = 3000
@@ -58,6 +60,7 @@ export class TreeStore {
 	userId = $state("")
 	anchors = $state.raw<string[]>([])
 	error = $state<string | null>(null)
+	notice = $state<{ text: string; time: number } | null>(null)
 	now = $state(Date.now())
 	readonly zone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
@@ -93,7 +96,6 @@ export class TreeStore {
 	#token = ""
 	#watching: string[] = []
 	#tick: ReturnType<typeof setInterval> | null = null
-	#errorAt = 0
 	#onAuthFailed: () => void = () => undefined
 	#deepFetched = false
 	#saved = ""
@@ -168,8 +170,8 @@ export class TreeStore {
 
 	#ticked() {
 		this.now = Date.now()
-		if (this.error && this.now - this.#errorAt > errorShowMs) {
-			this.error = null
+		if (this.notice && this.now - this.notice.time > noticeShowMs) {
+			this.notice = null
 		}
 		if (this.nodeMsg && this.now - this.nodeMsg.time > nodeMsgShowMs) {
 			this.nodeMsg = null
@@ -178,7 +180,10 @@ export class TreeStore {
 
 	popError(message: string) {
 		this.error = message
-		this.#errorAt = Date.now()
+	}
+
+	#notify(text: string) {
+		this.notice = { text, time: Date.now() }
 	}
 
 	dismissError() {
@@ -508,18 +513,25 @@ export class TreeStore {
 					: t
 			)
 		)
-		void this.sendPoints(id, points)
+		void this.sendPoints(id, points).then((ok) => {
+			if (ok) {
+				this.#notify("Saved")
+			}
+		})
 	}
 
-	async sendPoints(id: string, points: Point[]) {
+	// sendPoints sends points to a node, reporting whether they went.
+	async sendPoints(id: string, points: Point[]): Promise<boolean> {
 		const anchor = tree.anchorOf(id, this.forest)
 		if (!anchor || !this.#conn) {
-			return
+			return false
 		}
 		try {
 			await this.#conn.sendPoints(anchor, id, points)
+			return true
 		} catch (err) {
 			this.popError(`Error saving points: ${errorText(err)}`)
+			return false
 		}
 	}
 
@@ -556,10 +568,13 @@ export class TreeStore {
 			contents = await file.text()
 		}
 		const time = new Date(this.now).toISOString()
-		await this.sendPoints(id, [
+		const ok = await this.sendPoints(id, [
 			newText(PointType.Name, "0", file.name, time),
 			newText(PointType.Data, "0", contents, time),
 		])
+		if (ok) {
+			this.#notify(`Sent ${file.name}`)
+		}
 	}
 
 	async generateKey(id: string) {
@@ -595,6 +610,7 @@ export class TreeStore {
 			this.popError(`Error adding node: ${errorText(err)}`)
 			return
 		}
+		this.#notify("Node added")
 		await this.#expandAndRefetch(parentKey)
 	}
 
@@ -611,6 +627,7 @@ export class TreeStore {
 			this.popError(`Error deleting node: ${errorText(err)}`)
 			return
 		}
+		this.#notify(edgeRole(n.node) === "mirror" ? "Mirror removed" : "Node deleted")
 		if (n.expDetail) {
 			this.onDetail?.(n.node, false)
 		}
@@ -624,6 +641,7 @@ export class TreeStore {
 		try {
 			await http.notify(this.#token, n.node.id, message)
 			this.op = { kind: "none" }
+			this.#notify("Message sent")
 		} catch (err) {
 			this.popError(`Error messaging node: ${errorText(err)}`)
 		}
@@ -667,6 +685,7 @@ export class TreeStore {
 			return
 		}
 		this.op = { kind: "none" }
+		this.#notify({ move: "Node moved", mirror: "Node mirrored", duplicate: "Node duplicated" }[how])
 		await this.#expandAndRefetch(destKey)
 	}
 

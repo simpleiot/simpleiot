@@ -22,6 +22,8 @@ export interface GeneratedToken {
 
 export interface EditorProps {
 	node: Node
+	// typeLabel names the node's type, as the registry labels it
+	typeLabel: string
 	parent: Node | undefined
 	children: TreeNode[]
 	// now is the time in milliseconds, updated once a second
@@ -31,6 +33,8 @@ export interface EditorProps {
 	expDetail: boolean
 	// modified is set while the node has unsaved edits
 	modified: boolean
+	// pending are the unsaved edits
+	pending: Point[]
 	copy: Clipboard | null
 	scratch: string
 	generatedToken: GeneratedToken | null

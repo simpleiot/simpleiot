@@ -23,6 +23,8 @@
 		get scratch() {
 			return props.scratch
 		},
+		edited: (type: string, key?: string) =>
+			props.pending.some((p) => p.type === type && (key === undefined || p.key === key)),
 		onEditPoints: (points: EditorProps["node"]["points"]) => {
 			props.onEditPoints(points)
 		},

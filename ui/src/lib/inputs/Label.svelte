@@ -8,15 +8,16 @@
 		label,
 		id,
 		top = false,
+		edited = false,
 		children,
-	}: { label: string; id?: string; top?: boolean; children: Snippet } = $props()
+	}: { label: string; id?: string; top?: boolean; edited?: boolean; children: Snippet } = $props()
 
 	const ctx = inputContext()
 </script>
 
 <div class="field" class:top>
 	{#if label !== ""}
-		<label for={id} style:width="{ctx.labelWidth}px">{label}:</label>
+		<label for={id} class:edited style:width="{ctx.labelWidth}px">{label}:</label>
 	{/if}
 	{@render children()}
 </div>
@@ -31,6 +32,12 @@
 
 	.top {
 		align-items: baseline;
+	}
+
+	/* a field with an unsaved edit */
+	.edited {
+		color: var(--blue);
+		font-weight: 600;
 	}
 
 	label {

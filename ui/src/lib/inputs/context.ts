@@ -12,6 +12,9 @@ export interface InputContext {
 	// labelWidth is the width in pixels of the label column
 	readonly labelWidth: number
 	readonly scratch: string
+	// edited reports whether a point has an unsaved edit; with no key, any
+	// point of the type
+	edited(type: string, key?: string): boolean
 	onEditPoints(points: Point[]): void
 	onEditScratch(text: string): void
 }

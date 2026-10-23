@@ -42,3 +42,25 @@ export function description(node: Node): string {
 export function isTombstone(node: Node): boolean {
 	return getBool(node.edgePoints, PointType.Tombstone)
 }
+
+// NodeStatus is how a node is doing, from the points most node types share,
+// for a glance at the tree without opening each node.
+export type NodeStatus = "ok" | "disabled" | "error" | "offline"
+
+// nodeStatus reads a node's status. A disabled node is only disabled, since
+// its error or connection state no longer matters.
+export function nodeStatus(node: Node): NodeStatus {
+	if (getBool(node.points, PointType.Disabled)) {
+		return "disabled"
+	}
+	if (getText(node.points, PointType.Error) !== "") {
+		return "error"
+	}
+	if (
+		getBool(node.points, PointType.Offline) ||
+		getText(node.points, PointType.SysState) === "offline"
+	) {
+		return "offline"
+	}
+	return "ok"
+}

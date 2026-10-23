@@ -33,7 +33,7 @@
 	{/if}
 	<div class="spacer"></div>
 	{#if search}
-		{@render search()}
+		<div class="search">{@render search()}</div>
 	{/if}
 	<button
 		class="icon"
@@ -73,5 +73,13 @@
 
 	.icon:hover {
 		background: var(--hover);
+	}
+
+	/* on a phone the search takes its own line, under the buttons */
+	@media (max-width: 600px) {
+		.search {
+			order: 1;
+			flex-basis: 100%;
+		}
 	}
 </style>

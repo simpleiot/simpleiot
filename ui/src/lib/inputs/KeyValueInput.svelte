@@ -29,7 +29,7 @@
 	}
 </script>
 
-<Label {label} top>
+<Label {label} top edited={ctx.edited(type)}>
 	<div class="kv">
 		{#if points.length > 0}
 			<table>

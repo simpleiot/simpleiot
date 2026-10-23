@@ -55,7 +55,7 @@
 	}
 </script>
 
-<Label {label} top>
+<Label {label} top edited={ctx.edited(type)}>
 	<div class="list">
 		{#each entries as entry, i (i)}
 			<div class="entry">

@@ -132,6 +132,11 @@
 		{/if}
 		<NodeTree />
 	</main>
+	<div class="notice-region" role="status">
+		{#if store.notice}
+			<div class="notice">{store.notice.text}</div>
+		{/if}
+	</div>
 </div>
 
 <style>
@@ -168,6 +173,9 @@
 	}
 
 	.error {
+		position: sticky;
+		top: 0;
+		z-index: 10;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -180,8 +188,32 @@
 		border-radius: 4px;
 	}
 
+	.notice-region {
+		position: fixed;
+		bottom: 24px;
+		left: 50%;
+		transform: translateX(-50%);
+		pointer-events: none;
+		z-index: 10;
+	}
+
+	.notice {
+		padding: 8px 18px;
+		border-radius: 4px;
+		background: var(--fg);
+		color: var(--bg);
+		font-size: 14px;
+		box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+	}
+
 	.search {
 		width: min(16em, 100%);
+	}
+
+	@media (max-width: 600px) {
+		.search {
+			width: 100%;
+		}
 	}
 
 	.not-found {

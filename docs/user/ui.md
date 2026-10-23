@@ -32,6 +32,13 @@ The interface also:
   to move between nodes, right to expand a node or step into it, left to
   collapse it or step out to its parent, and Enter to open or close its detail.
   In a node's form, Enter saves and Escape discards.
+- **Shows each node's type and status.** A label after each node names its type.
+  The dot to the left of a node is red when it reports an error, orange when it
+  is offline, and gray when it is disabled.
+- **Marks unsaved changes.** An edited field's label turns blue, and the save
+  and discard buttons stay in view until the change is saved or discarded. A
+  short notice confirms each save, add, move, and delete; an error stays until
+  it is dismissed.
 - **Asks before losing changes.** With unsaved edits, closing the tab, leaving
   the page, or signing out asks first.
 

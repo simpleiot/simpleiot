@@ -60,7 +60,7 @@
 	}
 </script>
 
-<Label {label} {id}>
+<Label {label} {id} edited={ctx.edited(type, key)}>
 	<input
 		{id}
 		type="text"

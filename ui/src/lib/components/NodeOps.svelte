@@ -15,7 +15,7 @@
 	import { store } from "#lib/siot/store.ts"
 	import { writeClipboard } from "#lib/siot/tree.svelte.ts"
 	import type { TreeNode } from "#lib/siot/tree.ts"
-	import IconButton from "./IconButton.svelte"
+	import ToolButton from "./ToolButton.svelte"
 
 	let { t }: { t: TreeNode } = $props()
 
@@ -157,34 +157,34 @@
 	<div class="ops">
 		<div class="buttons">
 			{#if canAdd}
-				<IconButton
-					label="Add a node"
+				<ToolButton
+					label="Add"
 					onclick={() => (store.op = { kind: "add", key: t.key, type: null })}
 				>
-					<CirclePlus size={22} />
-				</IconButton>
+					<CirclePlus size={20} />
+				</ToolButton>
 			{/if}
-			<IconButton
-				label="Message users"
+			<ToolButton
+				label="Message"
 				onclick={() => (store.op = { kind: "message", key: t.key, message: "" })}
 			>
-				<MessageSquare size={22} />
-			</IconButton>
-			<IconButton label="Delete" onclick={() => (store.op = { kind: "delete", key: t.key })}>
-				<X size={22} />
-			</IconButton>
-			<IconButton label="Copy ID" onclick={() => store.copy(t.key)}>
-				<Copy size={22} />
-			</IconButton>
-			<IconButton label="Copy link" onclick={copyLink}>
-				<Link size={22} />
-			</IconButton>
-			<IconButton label="Paste" onclick={() => (store.op = { kind: "paste", key: t.key })}>
-				<ClipboardIcon size={22} />
-			</IconButton>
-			<IconButton label="Raw view" pressed={viewRaw} onclick={() => store.toggleRaw(t.key)}>
-				<List size={22} />
-			</IconButton>
+				<MessageSquare size={20} />
+			</ToolButton>
+			<ToolButton label="Delete" onclick={() => (store.op = { kind: "delete", key: t.key })}>
+				<X size={20} />
+			</ToolButton>
+			<ToolButton label="Copy ID" onclick={() => store.copy(t.key)}>
+				<Copy size={20} />
+			</ToolButton>
+			<ToolButton label="Copy link" onclick={copyLink}>
+				<Link size={20} />
+			</ToolButton>
+			<ToolButton label="Paste" onclick={() => (store.op = { kind: "paste", key: t.key })}>
+				<ClipboardIcon size={20} />
+			</ToolButton>
+			<ToolButton label="Raw" pressed={viewRaw} onclick={() => store.toggleRaw(t.key)}>
+				<List size={20} />
+			</ToolButton>
 		</div>
 		{#if msg}
 			<div class="msg" role="status">{msg}</div>
@@ -210,7 +210,7 @@
 	.buttons {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 6px;
+		gap: 2px 4px;
 	}
 
 	.msg {
