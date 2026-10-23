@@ -3,6 +3,7 @@
 // one place, with the page, that talks to the server.
 
 import { registry } from "#lib/nodes/index.ts"
+import { prefs, type Expanded } from "#lib/prefs.svelte.ts"
 import type { Clipboard, GeneratedToken } from "#lib/nodes/types.ts"
 import type { Env } from "./connection.ts"
 import { Connection } from "./connection.ts"
@@ -43,6 +44,8 @@ export interface NodeMsg {
 }
 
 const errorShowMs = 5000
+// searchDepth is how far down the first search of a session fetches
+const searchDepth = 20
 const nodeMsgShowMs = 3000
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err))
@@ -50,6 +53,8 @@ const errorText = (err: unknown) => (err instanceof Error ? err.message : String
 export class TreeStore {
 	forest = $state.raw<Forest>([])
 	connected = $state(false)
+	// ready is set once the groups have been fetched after a connect
+	ready = $state(false)
 	userId = $state("")
 	anchors = $state.raw<string[]>([])
 	error = $state<string | null>(null)
@@ -65,6 +70,19 @@ export class TreeStore {
 	addPoint = $state({ type: "", key: "" })
 	customNodeType = $state("")
 
+	// query filters the tree; searchKeys are the nodes it shows, or null
+	query = $state("")
+	searching = $state(false)
+	searchKeys = $derived(this.query.trim() === "" ? null : tree.search(this.forest, this.query))
+	// focusKey is the row that takes focus in the tree
+	focusKey = $state("")
+	// rows are the nodes on screen, in order
+	rows = $derived(tree.shown(this.forest, this.searchKeys))
+	// tabKey is the row the tree's tab stop is on
+	tabKey = $derived(
+		this.rows.some((r) => r.key === this.focusKey) ? this.focusKey : (this.rows[0]?.key ?? "")
+	)
+
 	// onConnected runs after each connect, once the anchors are fetched;
 	// the page uses it to open a deep link
 	onConnected: (() => void) | null = null
@@ -77,6 +95,8 @@ export class TreeStore {
 	#tick: ReturnType<typeof setInterval> | null = null
 	#errorAt = 0
 	#onAuthFailed: () => void = () => undefined
+	#deepFetched = false
+	#saved = ""
 
 	constructor(private readonly env: Env) {}
 
@@ -131,7 +151,11 @@ export class TreeStore {
 		this.#conn = null
 		this.#token = ""
 		this.connected = false
+		this.ready = false
 		this.forest = []
+		this.query = ""
+		this.#deepFetched = false
+		this.#saved = ""
 		this.#watching = []
 		this.edit = null
 		this.op = { kind: "none" }
@@ -168,13 +192,14 @@ export class TreeStore {
 	#setForest(f: Forest) {
 		this.forest = tree.finish(f, (type) => registry.sortKey(type))
 		this.#updateWatch()
+		this.#remember()
 	}
 
 	#updateWatch() {
 		if (!this.#conn || !this.connected) {
 			return
 		}
-		const subjects = tree.watchSubjects(this.forest)
+		const subjects = tree.watchSubjects(this.forest, this.searchKeys)
 		if (subjects.join("\n") !== this.#watching.join("\n")) {
 			this.#watching = subjects
 			this.#conn.watch(subjects)
@@ -189,14 +214,97 @@ export class TreeStore {
 		// fetch every group afresh, and every expanded node, since points
 		// sent while the connection was down were missed
 		const f = this.forest.filter((t) => anchors.includes(t.anchor))
+		const first = f.length === 0
 		const expanded = tree.expandedIds(f)
 		this.#setForest(f)
 		void Promise.all([
 			...anchors.map((a) => this.fetch(a, "all", a, 2)),
 			...expanded.map((e) => this.fetchChildren(e.anchor, e.id)),
-		]).then(() => {
-			this.onConnected?.()
-		})
+		])
+			.then(async () => {
+				if (first) {
+					await this.#restore(prefs.expanded(userId))
+				}
+				if (this.#deepFetched) {
+					await this.#deepFetch()
+				}
+			})
+			.then(() => {
+				this.ready = true
+				this.#remember()
+				this.onConnected?.()
+			})
+	}
+
+	// ---- remembered expansion
+
+	// remember keeps what is expanded and open, per user, so a reload
+	// shows the tree as it was.
+	#remember() {
+		if (!this.ready || this.userId === "" || this.searchKeys) {
+			return
+		}
+		const list: Expanded[] = []
+		for (const n of tree.shown(this.forest)) {
+			if (n.expChildren || n.expDetail) {
+				list.push({
+					anchor: n.anchor,
+					id: n.node.id,
+					key: n.key,
+					...(n.expChildren ? { children: true } : {}),
+					...(n.expDetail ? { detail: true } : {}),
+				})
+			}
+		}
+		const sig = JSON.stringify(list)
+		if (sig !== this.#saved) {
+			this.#saved = sig
+			prefs.setExpanded(this.userId, list)
+		}
+	}
+
+	// restore expands remembered nodes a level at a time, each level once
+	// the one above has its children. A node that is gone is dropped.
+	async #restore(list: Expanded[]) {
+		const depth = (e: Expanded) => e.key.split("/").length
+		const levels = [...new Set(list.map(depth))].sort((a, b) => a - b)
+		for (const level of levels) {
+			await Promise.all(
+				list
+					.filter((e) => depth(e) === level)
+					.map(async (e) => {
+						if (!this.find(e.key)) {
+							return
+						}
+						if (e.detail) {
+							this.setDetail(e.key, true)
+						}
+						if (e.children) {
+							await this.expand(e.key)
+						}
+					})
+			)
+		}
+	}
+
+	// ---- search
+
+	// setQuery filters the tree. The first search of a session fetches
+	// each group deeply, so the whole tree is searched; after that the
+	// filtering is local.
+	async setQuery(q: string) {
+		this.query = q
+		if (q.trim() !== "" && !this.#deepFetched) {
+			this.#deepFetched = true
+			this.searching = true
+			await this.#deepFetch()
+			this.searching = false
+		}
+		this.#updateWatch()
+	}
+
+	async #deepFetch() {
+		await Promise.all(this.anchors.map((a) => this.fetch(a, "all", a, searchDepth)))
 	}
 
 	// fetch asks for nodes and puts them in the tree: parent "all" fetches

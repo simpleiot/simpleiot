@@ -6,8 +6,11 @@ import {
 	finish,
 	mergeForest,
 	nodeView,
+	parentKey,
 	replaceChildren,
+	search,
 	setExpanded,
+	shown,
 	watchSubjects,
 	type TreeNode,
 } from "./tree.ts"
@@ -106,6 +109,29 @@ describe("tree", () => {
 		const forest = [expand(tree("G", node("G", "group", "root")))]
 		const [, missing] = applyEdgePoints("new", "G", [tombstone(0)], forest)
 		expect(missing).toEqual([{ anchor: "G", parentId: "G", expanded: true }])
+	})
+
+	test("search keeps matches and their ancestors", () => {
+		const forest = finish(
+			[
+				expand(
+					tree("G", node("G", "group", "root"), [
+						tree("G", node("pump", "variable", "G")),
+						tree("G", node("site", "group", "G"), [tree("G", node("Pump 2", "variable", "site"))]),
+						tree("G", node("fan", "variable", "G")),
+					])
+				),
+			],
+			sortKey
+		)
+		const keys = search(forest, "PUMP")
+		expect([...keys].sort()).toEqual(["G/G", "G/G/pump", "G/G/site", "G/G/site/Pump 2"])
+		// a search shows its matches whatever is expanded, and watches them
+		expect(shown(forest, keys).map((t) => t.node.id)).toEqual(["G", "site", "Pump 2", "pump"])
+		expect(watchSubjects(forest, keys)).toContain("up.G.Pump 2.*.*")
+		expect(shown(forest).map((t) => t.node.id)).toEqual(["G", "site", "fan", "pump"])
+		expect(parentKey("G/G/site/Pump 2")).toBe("G/G/site")
+		expect(parentKey("G/G")).toBe("")
 	})
 
 	test("finish leaves an unchanged forest as it was", () => {

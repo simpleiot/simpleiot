@@ -331,18 +331,71 @@ export function expandedIds(forest: Forest): { anchor: string; id: string }[] {
 	return out
 }
 
+// shown lists the nodes on screen in order. With a search filter, the
+// nodes shown are the ones in it, whatever their expansion; otherwise they
+// are the visible ones.
+export function shown(forest: Forest, filter: ReadonlySet<string> | null = null): TreeNode[] {
+	if (!filter) {
+		return forest.flatMap(visible)
+	}
+	const out: TreeNode[] = []
+	const walk = (t: TreeNode) => {
+		if (!filter.has(t.key) || isTombstone(t.node)) {
+			return
+		}
+		out.push(t)
+		t.children.forEach(walk)
+	}
+	forest.forEach(walk)
+	return out
+}
+
 // watchSubjects is what the page needs to hear about: the points of every
 // node on screen, and the edges of its children, so a new, deleted, or
 // re-roled child is noticed.
-export function watchSubjects(forest: Forest): string[] {
+export function watchSubjects(forest: Forest, filter: ReadonlySet<string> | null = null): string[] {
 	const subjects = new Set<string>()
-	for (const t of forest) {
-		for (const n of visible(t)) {
-			subjects.add(`up.${n.anchor}.${n.node.id}.*.*`)
-			subjects.add(`up.${n.anchor}.*.${n.node.id}.*.*`)
-		}
+	for (const n of shown(forest, filter)) {
+		subjects.add(`up.${n.anchor}.${n.node.id}.*.*`)
+		subjects.add(`up.${n.anchor}.*.${n.node.id}.*.*`)
 	}
 	return [...subjects].sort()
+}
+
+// search returns the keys of the nodes whose description, type, or ID
+// contains the query, ignoring case, along with their ancestors, so the
+// matches can be shown in place.
+export function search(forest: Forest, query: string): Set<string> {
+	const q = query.trim().toLowerCase()
+	const keys = new Set<string>()
+	const walk = (t: TreeNode): boolean => {
+		if (isTombstone(t.node)) {
+			return false
+		}
+		let found = [
+			getBestDesc(t.node.points),
+			getText(t.node.points, PointType.Description),
+			t.node.type,
+			t.node.id,
+		].some((s) => s.toLowerCase().includes(q))
+		for (const c of t.children) {
+			if (walk(c)) {
+				found = true
+			}
+		}
+		if (found) {
+			keys.add(t.key)
+		}
+		return found
+	}
+	forest.forEach(walk)
+	return keys
+}
+
+// parentKey is the key of a node's parent on the page, "" for an anchor.
+export function parentKey(key: string): string {
+	const parts = key.split("/")
+	return parts.length <= 2 ? "" : parts.slice(0, -1).join("/")
 }
 
 // ---- finishing

@@ -3,11 +3,15 @@
 
 export type Theme = "light" | "dark"
 
+// Expanded is a node shown expanded or open, by its key on the page (the
+// IDs on its path) along with its anchor and ID.
 export interface Expanded {
 	anchor: string
 	id: string
-	// detail is set when the node's detail is open; otherwise its children
-	// are expanded
+	key: string
+	// children is set when its children are expanded
+	children?: boolean
+	// detail is set when its detail is open
 	detail?: boolean
 }
 
@@ -51,7 +55,7 @@ class Prefs {
 
 	expanded(userId: string): Expanded[] {
 		const list = this.#stored.expanded?.[userId]
-		return Array.isArray(list) ? list : []
+		return Array.isArray(list) ? list.filter((e) => typeof e.key === "string") : []
 	}
 
 	setExpanded(userId: string, list: Expanded[]) {

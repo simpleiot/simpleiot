@@ -27,7 +27,16 @@
 	)
 	const viewRaw = $derived(editing?.viewRaw ?? false)
 	const Editor = $derived(viewRaw ? Raw : (registry.editorFor(t.node.type) ?? Raw))
-	const liveChildren = $derived(t.children.filter((c) => !isTombstone(c.node)))
+	// while searching, the children shown are the ones the search keeps
+	const filter = $derived(store.searchKeys)
+	const childRows = $derived(
+		filter
+			? t.children.filter((c) => filter.has(c.key) && !isTombstone(c.node))
+			: t.expChildren
+				? t.children.filter((c) => !isTombstone(c.node))
+				: []
+	)
+	const open = $derived(filter ? childRows.length > 0 : t.expChildren)
 	const desc = $derived(registry.get(t.node.type)?.label ?? t.node.type)
 
 	let fileInput: HTMLInputElement | undefined = $state()
@@ -86,8 +95,9 @@
 
 <li
 	role="treeitem"
-	aria-expanded={t.hasChildren ? t.expChildren : undefined}
+	aria-expanded={t.hasChildren ? open : undefined}
 	aria-selected={t.expDetail}
+	tabindex={store.tabKey === t.key ? 0 : -1}
 	aria-label="{desc}: {getBestDesc(node.points)}"
 	data-key={t.key}
 	class="item"
@@ -100,10 +110,11 @@
 				<span class="pad"><Blank size={22} /></span>
 			{:else}
 				<IconButton
-					label={t.expChildren ? "Collapse" : "Expand"}
+					label={open ? "Collapse" : "Expand"}
+					disabled={filter !== null}
 					onclick={() => void store.toggleChildren(t.key)}
 				>
-					{#if t.expChildren}<ChevronDown size={22} />{:else}<ChevronRight size={22} />{/if}
+					{#if open}<ChevronDown size={22} />{:else}<ChevronRight size={22} />{/if}
 				</IconButton>
 			{/if}
 			<IconButton
@@ -155,9 +166,9 @@
 			/>
 		</div>
 	</div>
-	{#if t.expChildren && liveChildren.length > 0}
+	{#if childRows.length > 0}
 		<ul role="group">
-			{#each liveChildren as c (c.key)}
+			{#each childRows as c (c.key)}
 				<NodeRow t={c} parent={t} />
 			{/each}
 		</ul>
@@ -167,6 +178,17 @@
 <style>
 	.item {
 		list-style: none;
+	}
+
+	/* the focus ring goes round the row, not the subtree under it */
+	.item:focus-visible {
+		outline: none;
+	}
+
+	.item:focus-visible > .row {
+		outline: 3px solid var(--focus);
+		outline-offset: 1px;
+		border-radius: 2px;
 	}
 
 	.row {

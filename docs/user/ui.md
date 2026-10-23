@@ -21,6 +21,22 @@ that address later shows the tree expanded down to the node. The link button in
 a node's detail copies the address. The interface follows the system's light or
 dark setting, and the moon and sun button in the header switches between them.
 
+The `/v2` interface also:
+
+- **Remembers what you had open.** The nodes you expanded and the details you
+  opened come back when you reload the page or sign in again on the same
+  browser.
+- **Searches the tree.** The search box in the header shows the nodes whose
+  description, type, or ID contains what you type, with the nodes above them,
+  and hides the rest. The first search loads the whole tree, so it can take a
+  moment on a large one. Clearing the box returns the tree to how it was.
+- **Works from the keyboard.** Tab to the tree, then use the up and down arrows
+  to move between nodes, right to expand a node or step into it, left to
+  collapse it or step out to its parent, and Enter to open or close its detail.
+  In a node's form, Enter saves and Escape discards.
+- **Asks before losing changes.** With unsaved edits, closing the tab, leaving
+  the page, or signing out asks first.
+
 The `Node` is the base unit of configuration. Each node contains `Points` which
 describe various attributes of a node. When you expand a node, the information
 you see is a rendering of the point data in the node.

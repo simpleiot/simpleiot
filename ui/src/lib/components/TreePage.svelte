@@ -3,6 +3,7 @@
 	// "/nodes/[id]" render it; the store outlives either.
 	import ClipboardIcon from "@lucide/svelte/icons/clipboard"
 	import X from "@lucide/svelte/icons/x"
+	import { untrack } from "svelte"
 	import { beforeNavigate, goto } from "$app/navigation"
 	import { resolve } from "$app/paths"
 	import { auth } from "#lib/auth.svelte.ts"
@@ -56,8 +57,8 @@
 				})
 			}
 		}
-		if (store.connected) {
-			store.onConnected()
+		if (store.ready) {
+			untrack(() => store.onConnected?.())
 		}
 	})
 
@@ -94,7 +95,18 @@
 		email={auth.user?.email ?? ""}
 		badge={store.connected ? "" : "connecting..."}
 		onSignOut={signOut}
-	/>
+	>
+		{#snippet search()}
+			<input
+				class="search"
+				type="search"
+				placeholder={store.searching ? "loading the tree..." : "search"}
+				aria-label="Search nodes by description, type, or ID"
+				value={store.query}
+				oninput={(e) => void store.setQuery(e.currentTarget.value)}
+			/>
+		{/snippet}
+	</Header>
 	{#if store.error}
 		<div class="error" role="alert">
 			<span>{store.error}</span>
@@ -166,6 +178,10 @@
 		color: #fff;
 		background: var(--error-bg);
 		border-radius: 4px;
+	}
+
+	.search {
+		width: min(16em, 100%);
 	}
 
 	.not-found {
