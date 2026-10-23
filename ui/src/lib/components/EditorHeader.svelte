@@ -11,24 +11,39 @@
 		node,
 		icon: IconComponent,
 		description,
+		tone,
+		highlight = false,
+		showDisabled = true,
+		lead,
 		children,
 	}: {
 		node: Node
 		icon: Icon
 		// description replaces the node's description point
 		description?: string
+		// tone shades the line: muted for a node that is off or out of
+		// touch, error for one reporting an error
+		tone?: "muted" | "error" | undefined
+		// highlight marks the description, such as for an active rule
+		highlight?: boolean
+		showDisabled?: boolean
+		// lead goes between the icon and the description
+		lead?: Snippet
 		// children follow the description on the same line
 		children?: Snippet
 	} = $props()
 
-	const disabled = $derived(getBool(node.points, PointType.Disabled))
+	const disabled = $derived(showDisabled && getBool(node.points, PointType.Disabled))
 </script>
 
-<div class="header">
+<div class="header" class:muted={tone === "muted"} class:error={tone === "error"}>
 	<span class="icon"><IconComponent size={20} /></span>
-	<span class="desc">{description ?? getText(node.points, PointType.Description)}</span>
-	{#if disabled}<span>(disabled)</span>{/if}
+	{@render lead?.()}
+	<span class="desc" class:highlight
+		>{description ?? getText(node.points, PointType.Description)}</span
+	>
 	{@render children?.()}
+	{#if disabled}<span>(disabled)</span>{/if}
 </div>
 
 <style>
@@ -45,7 +60,26 @@
 		padding: 5px;
 	}
 
+	.muted,
+	.error {
+		padding-right: 10px;
+	}
+
+	.muted {
+		background: var(--hover);
+	}
+
+	.error {
+		background: var(--error-bg);
+	}
+
 	.desc {
 		overflow-wrap: anywhere;
+		white-space: pre-wrap;
+	}
+
+	.highlight {
+		background: var(--blue);
+		color: var(--on-color);
 	}
 </style>

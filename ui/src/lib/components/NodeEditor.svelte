@@ -13,6 +13,10 @@
 		icon,
 		labelWidth = 150,
 		description,
+		tone,
+		highlight = false,
+		showDisabled = true,
+		lead,
 		header,
 		summary,
 		children,
@@ -21,6 +25,11 @@
 		icon: Icon
 		labelWidth?: number
 		description?: string
+		// tone, highlight, showDisabled, and lead are passed to EditorHeader
+		tone?: "muted" | "error" | undefined
+		highlight?: boolean
+		showDisabled?: boolean
+		lead?: Snippet
 		// header follows the description on the header line
 		header?: Snippet
 		// summary shows below the header whether or not the detail is open
@@ -52,7 +61,9 @@
 </script>
 
 <div class="editor">
-	<EditorHeader node={props.node} {icon} {description}>{@render header?.()}</EditorHeader>
+	<EditorHeader node={props.node} {icon} {description} {tone} {highlight} {showDisabled} {lead}
+		>{@render header?.()}</EditorHeader
+	>
 	{@render summary?.()}
 	{#if props.expDetail && children}
 		<div class="detail">

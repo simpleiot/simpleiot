@@ -1,6 +1,7 @@
 import DatabaseIcon from "@lucide/svelte/icons/database"
 import { NodeType } from "#lib/siot/schema.ts"
 import { defineNodeType } from "../registry.ts"
+import Editor from "./Editor.svelte"
 
 export default defineNodeType({
 	type: NodeType.Db,
@@ -8,4 +9,5 @@ export default defineNodeType({
 	icon: DatabaseIcon,
 	parents: [NodeType.Device, NodeType.Group],
 	sortKey: "M",
+	editor: Editor,
 })

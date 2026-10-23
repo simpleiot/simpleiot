@@ -1,6 +1,7 @@
 import Io from "#lib/icons/Io.svelte"
 import { NodeType } from "#lib/siot/schema.ts"
 import { defineNodeType } from "../registry.ts"
+import Editor from "./Editor.svelte"
 
 export default defineNodeType({
 	type: NodeType.MqttDevice,
@@ -8,4 +9,5 @@ export default defineNodeType({
 	icon: Io,
 	parents: [],
 	sortKey: "W1",
+	editor: Editor,
 })

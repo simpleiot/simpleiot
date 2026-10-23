@@ -1,6 +1,7 @@
 import UserIcon from "@lucide/svelte/icons/user"
 import { NodeType } from "#lib/siot/schema.ts"
 import { defineNodeType } from "../registry.ts"
+import Editor from "./Editor.svelte"
 
 export default defineNodeType({
 	type: NodeType.User,
@@ -8,4 +9,5 @@ export default defineNodeType({
 	icon: UserIcon,
 	parents: [NodeType.Device, NodeType.Group],
 	sortKey: "B",
+	editor: Editor,
 })

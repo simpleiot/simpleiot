@@ -1,6 +1,7 @@
 import MapPinIcon from "@lucide/svelte/icons/map-pin"
 import { NodeType } from "#lib/siot/schema.ts"
 import { defineNodeType } from "../registry.ts"
+import Editor from "./Editor.svelte"
 
 export default defineNodeType({
 	type: NodeType.Gps,
@@ -8,4 +9,5 @@ export default defineNodeType({
 	icon: MapPinIcon,
 	parents: [NodeType.Device, NodeType.Group],
 	sortKey: "V",
+	editor: Editor,
 })

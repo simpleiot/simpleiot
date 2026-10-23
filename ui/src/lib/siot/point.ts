@@ -172,3 +172,85 @@ export function compare(a: Point, b: Point): number {
 export function sorted(points: readonly Point[]): Point[] {
 	return points.slice().sort(compare)
 }
+
+// specialPoints are the point types an editor shows on its own or that are
+// not worth listing with a node's other points.
+const specialPoints: readonly string[] = [
+	PointType.Description,
+	PointType.StoreMetrics,
+	PointType.StoreMetricsPeriod,
+	PointType.VersionHW,
+	PointType.VersionOS,
+	PointType.VersionApp,
+	PointType.Baud,
+	PointType.Protocol,
+	PointType.Timeout,
+	PointType.LogConsole,
+	PointType.FirmwarePath,
+	PointType.FwVersion,
+	PointType.FwStagedVersion,
+	PointType.FwPending,
+	PointType.FwApply,
+	PointType.FwAutoApply,
+	PointType.SyncParent,
+	PointType.HRDest,
+	PointType.MaxMessageLength,
+	PointType.Debug,
+	PointType.Disabled,
+	PointType.Connected,
+	PointType.Controlled,
+	PointType.Offline,
+	PointType.Error,
+	PointType.ErrorCount,
+	PointType.ErrorCountReset,
+	PointType.SyncCount,
+	PointType.SyncCountReset,
+	PointType.ErrorCountHR,
+	PointType.ErrorCountResetHR,
+	PointType.Log,
+	PointType.Port,
+	PointType.Rx,
+	PointType.HrRx,
+	PointType.HrRxReset,
+	PointType.RxReset,
+	PointType.Tx,
+	PointType.TxReset,
+	PointType.Rate,
+	PointType.RateHR,
+	PointType.Type,
+	PointType.IP,
+	PointType.Period,
+	PointType.Name,
+	PointType.AuthToken,
+	PointType.Value,
+	PointType.ValueSet,
+	PointType.LightSet,
+	PointType.SwitchSet,
+	PointType.DeviceID,
+	PointType.Switch,
+	PointType.Input,
+	PointType.Light,
+	PointType.Directory,
+	PointType.Refresh,
+	PointType.Binary,
+	PointType.Download,
+	PointType.Progress,
+]
+
+export function filterSpecialPoints(points: readonly Point[]): Point[] {
+	return points.filter((p) => !specialPoints.includes(p.type))
+}
+
+// renderPoint shows a point as one line of text.
+export function renderPoint(p: Point): string {
+	const key = p.key === "" ? "" : p.key + ":"
+	const value = p.text !== "" ? p.text : p.value.toFixed(2) + ":"
+	return p.type + ":" + key + " " + value
+}
+
+// renderPoint2 shows a point as a description and a value.
+export function renderPoint2(p: Point): { desc: string; value: string } {
+	const key = p.key === "" ? "" : p.key + ":"
+	const value = p.text !== "" ? p.text : p.value.toFixed(2)
+	return { desc: p.type + ":" + key, value }
+}
