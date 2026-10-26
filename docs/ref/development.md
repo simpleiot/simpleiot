@@ -39,19 +39,16 @@ To build:
 The `siot_watch` command can be used when developing Simple IoT. This does the
 following:
 
-- Starts [`elm-watch`](https://github.com/lydell/elm-watch) on the Elm code.
-  `elm-watch` will automatically update the UI without losing state any time an
-  Elm file changes.
-- Starts the Vite dev server for the Svelte UI at `http://localhost:5173/`,
-  which reloads on each change and passes API and NATS requests through to the
-  running siot.
+- Starts the Vite dev server for the UI at `http://localhost:5173/`, which
+  reloads on each change and passes API and NATS requests through to the running
+  siot.
+- Starts [`elm-watch`](https://github.com/lydell/elm-watch) on the old Elm UI,
+  served at `/old` until it is removed.
 - Runs the Go backend and rebuilds it anytime a Go module changes (only tested
   on Linux and MacOS, but should be easy to set up Windows as well)
 
-Both of the above are run in a [`run-pty`](https://github.com/lydell/run-pty)
-wrapper, which allows you to see the output of either process. The output of the
-Elm compile is displayed in the browser, so it is rarely necessary to view the
-`elm-watch` side.
+These are run in a [`run-pty`](https://github.com/lydell/run-pty) wrapper, which
+allows you to see the output of each process.
 
 ## Using Simple IoT as a library
 
@@ -69,8 +66,8 @@ documentation for more information.
 ## Customizing the UI
 
 Currently, there is no simple way to customize the SIOT UI when using SIOT as a
-library package. Forking and changing the SIOT Elm code is probably the simplest
-way if you want to make a small change now.
+library package. Forking and changing the Svelte UI in `ui/` is probably the
+simplest way if you want to make a small change now.
 
 In the future, we plan to provide an API for passing in a custom UI to the SIOT
 Server. You can also implement a custom HTTP client that serves up a custom UI.
@@ -104,7 +101,8 @@ code should be formatted and linted before committing.
 Please configure your editor to run code formatters:
 
 - **Go**: `goimports`
-- **Elm**: `elm-format`
+- **Svelte and TypeScript**: `prettier`, with the `.prettierrc` in `ui/`
+- **Elm** (old UI): `elm-format`
 - **Markdown**: `prettier` (note, there is a `.prettierrc` in this project that
   configures prettier to wrap markdown to 80 characters. Whether to wrap
   markdown or not is debatable, as wrapping can make diffs harder to read, but

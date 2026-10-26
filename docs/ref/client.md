@@ -33,11 +33,11 @@ A "disabled" option is useful and should be considered for every new client.
 Creating a new client typically requires the following steps:
 
 1. Add any new node and points types to
-   [`schema.go`](https://github.com/simpleiot/simpleiot/blob/master/data/schema.go),
-   [`Node.elm`](https://github.com/simpleiot/simpleiot/blob/master/frontend/src/Api/Node.elm),
+   [`schema.go`](https://github.com/simpleiot/simpleiot/blob/master/data/schema.go)
    and
-   [`Point.elm`](https://github.com/simpleiot/simpleiot/blob/master/frontend/src/Api/Point.elm).
-   Please try to reuse existing point types when possible.
+   [`schema.ts`](https://github.com/simpleiot/simpleiot/blob/master/ui/src/lib/siot/schema.ts).
+   A test checks that the two match. Please try to reuse existing point types
+   when possible.
 1. Create a new client in
    [`client/`](https://github.com/simpleiot/simpleiot/tree/master/client)
    directory. A client is defined by a type that satisfies the
@@ -51,11 +51,10 @@ Creating a new client typically requires the following steps:
    modify client structs from arrays of node points.
 1. Create a new manager for the client in
    [`client/client.go`](https://github.com/simpleiot/simpleiot/blob/master/client/client.go)
-1. Create an Elm UI for the client in
-   [`frontend/src/Components/`](https://github.com/simpleiot/simpleiot/tree/master/frontend/src/Components)
-1. Create plumbing for new `NodeXYZ` in
-   [`frontend/src/Pages/Home_.elm`](https://github.com/simpleiot/simpleiot/blob/master/frontend/src/Pages/Home_.elm).
-   Note, this can likely be improved a lot.
+1. Create a UI for the client in a new directory under
+   [`ui/src/lib/nodes/`](https://github.com/simpleiot/simpleiot/tree/master/ui/src/lib/nodes),
+   with an `index.ts` that describes the node type and an `Editor.svelte`. The
+   UI finds the directory on its own. See [Frontend](frontend.md#svelte-ui).
 
 It is easiest to copy one of the existing clients to start. The NTP client is
 relatively simple and may be a good example.

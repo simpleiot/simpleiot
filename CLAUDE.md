@@ -5,7 +5,7 @@ code in this repository.
 
 ## Project Overview
 
-Simple IoT is a Go-based IoT platform with an Elm frontend that enables
+Simple IoT is a Go-based IoT platform with a Svelte frontend that enables
 distributed sensor data collection, telemetry, configuration, and device
 management. The system runs the same application in both cloud and edge
 instances, automatically synchronizing data between them using NATS messaging.
@@ -18,7 +18,7 @@ instances, automatically synchronizing data between them using NATS messaging.
 # Source environment setup (required for all operations)
 source envsetup.sh
 
-# Initial setup - installs frontend deps and configures Elm
+# Initial setup - installs frontend deps (Svelte UI and the old Elm UI)
 siot_setup
 
 # Install frontend dependencies only
@@ -31,7 +31,7 @@ siot_install_frontend_deps
 # Build everything (frontend + backend)
 siot_build
 
-# Build frontend only (Elm SPA and the Svelte UI)
+# Build frontend only (the Svelte UI and the old Elm UI)
 siot_build_frontend
 
 # Build the Svelte UI only
@@ -70,7 +70,10 @@ go test -race ./...
 # Backend linting (uses golangci-lint with revive and goimports)
 golangci-lint run
 
-# Frontend linting and review
+# Svelte UI checks (prettier, eslint, svelte-check, vitest)
+siot_test_ui
+
+# Old Elm UI linting and review, while it remains
 cd frontend && npx elm-review
 cd frontend && npx elm-test
 ```
@@ -187,7 +190,8 @@ than a compatibility section.
 2. **Development**: `siot_watch` (starts hot reloading for both frontend and
    backend)
 3. **Testing**: `siot_test` before submitting changes
-4. **Code Quality**: All code must pass `golangci-lint run` and `elm-review`
+4. **Code Quality**: All code must pass `golangci-lint run`, `siot_test_ui`, and
+   `elm-review`
 
 ## Plans
 
