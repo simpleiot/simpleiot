@@ -431,3 +431,62 @@ nodes:
 		t.Errorf("round trip: got %q, want %q\n%v", again, contents, string(out))
 	}
 }
+
+func TestNodeYAMLRootSection(t *testing.T) {
+	f := parseFile(t, `
+root:
+  description: Pump station 4
+  tag: [north, pumps]
+nodes:
+  - group:
+      description: Sensors
+`)
+
+	if got := findPoint(t, f.Root.Points, "description", "0").Txt(); got != "Pump station 4" {
+		t.Errorf("description: got %q", got)
+	}
+
+	if got := findPoint(t, f.Root.Points, "tag", "1").Txt(); got != "pumps" {
+		t.Errorf("tag 1: got %q", got)
+	}
+
+	if len(f.Nodes) != 1 {
+		t.Errorf("expected 1 node, got %v", len(f.Nodes))
+	}
+
+	out, err := yaml.Marshal(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	back := parseFile(t, string(out))
+	if len(back.Root.Points) != 3 {
+		t.Errorf("root points did not round trip:\n%v", string(out))
+	}
+}
+
+func TestNodeYAMLRootSectionLeftOutWhenEmpty(t *testing.T) {
+	out, err := yaml.Marshal(data.NodeFile{Nodes: []data.NodeYAML{{Type: "group"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Contains(string(out), "root") {
+		t.Errorf("an empty root: section should be left out:\n%v", string(out))
+	}
+}
+
+func TestNodeYAMLRootSectionRejectsChildren(t *testing.T) {
+	var f data.NodeFile
+	err := yaml.Unmarshal([]byte(`
+root:
+  description: Pump station 4
+  children:
+    - group:
+        description: Sensors
+`), &f)
+
+	if err == nil || !strings.Contains(err.Error(), "children") {
+		t.Errorf("expected an error naming children, got %v", err)
+	}
+}

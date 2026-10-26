@@ -11,6 +11,13 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Added
+
+- **Node files can set this instance's own description and tags.** A `root:`
+  section in a file for `siot import` or provisioning sets points on the
+  instance's device node. See
+  [configuring this instance](docs/user/configuration.md#configuring-this-instance).
+
 ## [0.30.0] - 2026-10-24
 
 ### Changed
