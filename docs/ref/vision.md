@@ -64,10 +64,11 @@ but just as important, in the deployment and tooling.
     - Strict type checks catch most errors at build time
     - Widely used, with good tooling and documentation
 - **Database**
-  - SQLite
+  - [NATS JetStream](https://docs.nats.io/nats-concepts/jetstream), embedded in
+    every instance
+    - The same technology that moves messages between components also persists
+      and replicates them, so there is no separate database to run
     - See [Store](store.md)
-  - Eventually support multiple database backends depending on scaling/admin
-    needs
 - **Cloud Hosting**
   - Any machine that provides ability run long-lived Go applications
   - Any MAC/Linux/Windows/rPI/Beaglebone/Odroid/etc. computer on your local
@@ -78,16 +79,10 @@ but just as important, in the deployment and tooling.
   - Any device that runs Linux (rPI, Beaglebone-black, industrial SBCs, your
     custom hardware ...)
 
-In our experience, simplicity and good tooling matter. It is easy to add
-features to a language, but creating a useful language/tooling that is simple is
-hard. Functional languages like Elixir, Scala, Clojure, Haskell, etc. are likely
-excellent for many projects, but are also considerably more complex to work in.
-The programming style (procedural, functional, etc.) is important, but other
-factors such as simplicity/tooling/deployment are also important, especially for
-small teams who don't have separate staff for backend/frontend/operations.
-Learning two simple languages (Go and TypeScript) is a small task compared to
-dealing with huge languages, fussy build tools, and complex deployment
-environments.
+In our experience, simplicity and good tooling matter, especially for small
+teams who don't have separate staff for backend/frontend/operations. Learning
+two simple languages (Go and Svelte) is a small task compared to dealing with
+huge languages, fussy build tools, and complex deployment environments.
 
 This is just a snapshot in time - there will likely be other better technology
 choices in the future. The backend and frontend are independent. If either needs
