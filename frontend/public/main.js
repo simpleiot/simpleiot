@@ -5,7 +5,7 @@
 // step with what Elm wants, and batches incoming points per animation
 // frame so a burst from a device is one render.
 
-import { connect, ErrorCode } from "/dist/siot-nats.js"
+import { connect, ErrorCode } from "/old/dist/siot-nats.js"
 
 // eslint-disable-next-line no-undef
 const app = Elm.Main.init({

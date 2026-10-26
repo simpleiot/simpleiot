@@ -13,6 +13,39 @@ nodes.
 
 ![nodes](images/nodes.png)
 
+Each node has its own address: opening a node's detail changes the address to
+`/nodes/<id>`, and opening that address later shows the tree expanded down to
+the node. The link button in a node's detail copies the address. The interface
+follows the system's light or dark setting, and the moon and sun button in the
+header switches between them.
+
+The interface also:
+
+- **Remembers what you had open.** The nodes you expanded and the details you
+  opened come back when you reload the page or sign in again on the same
+  browser.
+- **Searches the tree.** The search box in the header shows the nodes whose
+  description, type, or ID contains what you type, with the nodes above them,
+  and hides the rest. The first search loads the whole tree, so it can take a
+  moment on a large one. Clearing the box returns the tree to how it was.
+- **Works from the keyboard.** Tab to the tree, then use the up and down arrows
+  to move between nodes, right to expand a node or step into it, left to
+  collapse it or step out to its parent, and Enter to open or close its detail.
+  In a node's form, Enter saves and Escape discards.
+- **Shows each node's type and status.** A label after each node names its type.
+  The dot to the left of a node is red when it reports an error, orange when it
+  is offline, and gray when it is disabled.
+- **Marks unsaved changes.** An edited field's label turns blue, and the save
+  and discard buttons stay in view until the change is saved or discarded. A
+  short notice confirms each save, add, move, and delete; an error stays until
+  it is dismissed.
+- **Asks before losing changes.** With unsaved edits, closing the tab, leaving
+  the page, or signing out asks first.
+
+The previous interface is still available at `/old` (for example
+[http://localhost:4223/old/](http://localhost:4223/old/)) and signs in with the
+same account. It will be removed in a later release.
+
 The `Node` is the base unit of configuration. Each node contains `Points` which
 describe various attributes of a node. When you expand a node, the information
 you see is a rendering of the point data in the node.

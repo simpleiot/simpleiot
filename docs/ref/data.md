@@ -22,8 +22,8 @@ Simple IoT system.
 The core data structures are currently defined in the
 [`data`](https://github.com/simpleiot/simpleiot/tree/master/data) directory for
 Go code, and
-[`frontend/src/Api`](https://github.com/simpleiot/simpleiot/tree/master/frontend/src/Api)
-directory for Elm code.
+[`ui/src/lib/siot`](https://github.com/simpleiot/simpleiot/tree/master/ui/src/lib/siot)
+directory for the UI.
 
 A `Point` can represent a sensor value, or a configuration parameter for the
 node. With sensor values and configuration represented as `Points`, it becomes

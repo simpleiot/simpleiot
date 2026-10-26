@@ -102,11 +102,10 @@ There are many web architectures to chose from and web technology is advancing
 at a rapid pace. SPAs are not in vogue right now and more complex architectures
 are promoted such as Next.js, SveltKit, Deno Fresh, etc. Concerns with SPAs
 include large initial load and stability (if frontend code crashes, everything
-quits working). These concerns are valid if using JavaScript, but with Elm these
-concerns are minimal as Elm compiles to very small bundles, and run time
-exceptions are extremely rare. This allows us to use a simple web architecture
-with minimal coupling to the backend and minimal build complexity. And it will
-be a long time until we write enough Elm code that bundle size matters.
+quits working). The UI is written in Svelte, which compiles to small bundles
+(about 150 KB compressed for the whole UI), and strict TypeScript checks catch
+most errors at build time. This allows us to use a simple web architecture with
+minimal coupling to the backend and minimal build complexity.
 
 A decoupled SPA UI architecture is also very natural in Simple IoT, as IoT
 systems are inherently distributed. The frontend is just another client, much

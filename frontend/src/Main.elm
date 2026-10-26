@@ -37,8 +37,11 @@ type alias Model =
 
 
 init : Shared.Flags -> Url -> Key -> ( Model, Cmd Msg )
-init flags url key =
+init flags fullUrl key =
     let
+        url =
+            fromBase fullUrl
+
         ( shared, sharedCmd ) =
             Shared.init (Request.create () url key) flags
 
@@ -51,6 +54,44 @@ init flags url key =
         , Effect.toCmd ( Shared, Page ) effect
         ]
     )
+
+
+
+-- BASE PATH
+
+
+{-| base is the path this UI is served under. Routes are matched without
+it, and addresses are kept with it.
+-}
+base : String
+base =
+    "/old"
+
+
+hasBase : Url -> Bool
+hasBase url =
+    url.path == base || String.startsWith (base ++ "/") url.path
+
+
+fromBase : Url -> Url
+fromBase url =
+    if url.path == base then
+        { url | path = "/" }
+
+    else if String.startsWith (base ++ "/") url.path then
+        { url | path = String.dropLeft (String.length base) url.path }
+
+    else
+        url
+
+
+toBase : Url -> Url
+toBase url =
+    if hasBase url then
+        url
+
+    else
+        { url | path = base ++ url.path }
 
 
 
@@ -69,7 +110,7 @@ update msg model =
     case msg of
         ClickedLink (Browser.Internal url) ->
             ( model
-            , Nav.pushUrl model.key (Url.toString url)
+            , Nav.pushUrl model.key (Url.toString (toBase url))
             )
 
         ClickedLink (Browser.External url) ->
@@ -77,18 +118,14 @@ update msg model =
             , Nav.load url
             )
 
-        ChangedUrl url ->
-            if url.path /= model.url.path then
-                let
-                    ( page, effect ) =
-                        Pages.init (Route.fromUrl url) model.shared url model.key
-                in
-                ( { model | url = url, page = page }
-                , Effect.toCmd ( Shared, Page ) effect
-                )
+        ChangedUrl fullUrl ->
+            if hasBase fullUrl then
+                changedUrl (fromBase fullUrl) model
 
             else
-                ( { model | url = url }, Cmd.none )
+                -- elm-spa routes to paths without the base; keep the
+                -- address under it so a reload returns to this UI
+                ( model, Nav.replaceUrl model.key (Url.toString (toBase fullUrl)) )
 
         Shared sharedMsg ->
             let
@@ -119,6 +156,21 @@ update msg model =
             ( { model | page = page }
             , Effect.toCmd ( Shared, Page ) effect
             )
+
+
+changedUrl : Url -> Model -> ( Model, Cmd Msg )
+changedUrl url model =
+    if url.path /= model.url.path then
+        let
+            ( page, effect ) =
+                Pages.init (Route.fromUrl url) model.shared url model.key
+        in
+        ( { model | url = url, page = page }
+        , Effect.toCmd ( Shared, Page ) effect
+        )
+
+    else
+        ( { model | url = url }, Cmd.none )
 
 
 

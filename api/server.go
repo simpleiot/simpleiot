@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
@@ -16,66 +17,79 @@ const maxBodyBytes = 4 << 20
 
 // App is a struct that implements http.Handler interface
 type App struct {
+	// PublicHandler serves the Elm UI at /old, with the prefix removed,
+	// and the fonts both UIs use
 	PublicHandler  http.Handler
 	V1ApiHandler   http.Handler
 	WebsocketProxy http.Handler
+	// UIHandler serves the Svelte UI at every path the others do not take
+	UIHandler http.Handler
 }
 
 // Top level handler for http requests in the coap-server process
 func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	setSecurityHeaders(res.Header())
 
-	switch req.URL.Path {
-	case "/":
-		headerUpgrade := req.Header["Upgrade"]
-		if h.WebsocketProxy != nil && len(headerUpgrade) > 0 && headerUpgrade[0] == "websocket" {
-			h.WebsocketProxy.ServeHTTP(res, req)
-		} else {
-			h.PublicHandler.ServeHTTP(res, req)
-		}
-	case "/sign-in":
-		req.URL.Path = "/"
+	head, path := ShiftPath(req.URL.Path)
+	switch head {
+	case "v1":
+		req.URL.Path = path
+		req.Body = http.MaxBytesReader(res, req.Body, maxBodyBytes)
+		h.V1ApiHandler.ServeHTTP(res, req)
+	case "fonts":
+		// the font files are named for their face and never change
+		// in place; embedded files carry no modification time, so
+		// without this the browser fetches them on every use
+		res.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		h.PublicHandler.ServeHTTP(res, req)
-
-	default:
-		head, path := ShiftPath(req.URL.Path)
-		switch head {
-		case "v1":
-			req.URL.Path = path
-			req.Body = http.MaxBytesReader(res, req.Body, maxBodyBytes)
-			h.V1ApiHandler.ServeHTTP(res, req)
-		case "fonts":
-			// the font files are named for their face and never change
-			// in place; embedded files carry no modification time, so
-			// without this the browser fetches them on every use
-			res.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-			h.PublicHandler.ServeHTTP(res, req)
-		default:
-			h.PublicHandler.ServeHTTP(res, req)
+	case "old":
+		// the Elm UI routes /old/sign-in in the browser
+		if path == "/sign-in" {
+			path = "/"
 		}
+		req.URL.Path = path
+		h.PublicHandler.ServeHTTP(res, req)
+	default:
+		headerUpgrade := req.Header["Upgrade"]
+		if req.URL.Path == "/" && h.WebsocketProxy != nil &&
+			len(headerUpgrade) > 0 && headerUpgrade[0] == "websocket" {
+			h.WebsocketProxy.ServeHTTP(res, req)
+			return
+		}
+		if h.UIHandler == nil {
+			http.NotFound(res, req)
+			return
+		}
+		h.UIHandler.ServeHTTP(res, req)
 	}
 }
 
-// importMapHash is the SHA-256 of the import map in the UI's index.html,
+// importMapHash is the SHA-256 of the import map in the Elm UI's index.html,
 // the one inline script the page has. The content security policy allows
 // it by hash; a test checks the hash against the embedded file.
-const importMapHash = "sha256-gPiKIrU1rMetb7cOogG/Un/8wJwuzqdVF4wUyJQ4Ty0="
+const importMapHash = "sha256-EkMpvz/rx+j836ZrgR3u9tCkTtFnW1WP7NuO2bQE368="
+
+// contentSecurityPolicy is the policy for a page whose scripts are the ones
+// scriptSrc allows. It allows what the UIs are built from: their own
+// scripts, styles (the Elm UI sets styles inline) and fonts, and a
+// WebSocket back to the server; and refuses to be framed.
+func contentSecurityPolicy(scriptSrc string) string {
+	return "default-src 'self'; " +
+		"script-src " + scriptSrc + "; " +
+		"style-src 'self' 'unsafe-inline'; " +
+		"font-src 'self'; " +
+		"img-src 'self' data:; " +
+		"connect-src 'self' ws: wss:; " +
+		"frame-ancestors 'none'; " +
+		"base-uri 'self'; " +
+		"form-action 'self'"
+}
 
 // setSecurityHeaders puts the response headers every reply carries. The
-// content security policy allows what the UI is built from: its own
-// scripts plus the import map, styles (the Elm UI sets styles inline) and
-// fonts, and a WebSocket back to the server; and refuses to be framed.
+// policy allows the Elm UI's import map; the Svelte UI replaces it with
+// its own (see uiHandler).
 func setSecurityHeaders(h http.Header) {
-	h.Set("Content-Security-Policy",
-		"default-src 'self'; "+
-			"script-src 'self' '"+importMapHash+"'; "+
-			"style-src 'self' 'unsafe-inline'; "+
-			"font-src 'self'; "+
-			"img-src 'self' data:; "+
-			"connect-src 'self' ws: wss:; "+
-			"frame-ancestors 'none'; "+
-			"base-uri 'self'; "+
-			"form-action 'self'")
+	h.Set("Content-Security-Policy", contentSecurityPolicy("'self' '"+importMapHash+"'"))
 	h.Set("X-Content-Type-Options", "nosniff")
 	h.Set("X-Frame-Options", "DENY")
 	h.Set("Referrer-Policy", "same-origin")
@@ -99,18 +113,26 @@ func NewAppHandler(args ServerArgs) http.Handler {
 		}
 	}
 
-	return &App{
+	app := &App{
 		PublicHandler:  http.FileServer(args.Filesystem),
 		V1ApiHandler:   v1,
 		WebsocketProxy: wsProxy,
 	}
+	if args.UIFilesystem != nil {
+		app.UIHandler = newUIHandler(args.UIFilesystem, args.UIDev)
+	}
+	return app
 }
 
 // ServerArgs can be used to pass arguments to the server subsystem
 type ServerArgs struct {
 	Port       string
 	Filesystem http.FileSystem
-	Debug      bool
+	// UIFilesystem holds the build of the Svelte UI
+	UIFilesystem fs.FS
+	// UIDev is set when UIFilesystem is a directory being rebuilt
+	UIDev bool
+	Debug bool
 	// Users authenticates and scopes signed-in users on the node API.
 	Users      UserAuthority
 	AuthToken  string

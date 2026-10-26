@@ -11,6 +11,18 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-10-24
+
+### Changed
+
+- **A new web UI replaces the old one at `/`.** It does everything the old UI
+  does, and adds a link to each node, remembered expansion, search, keyboard
+  navigation, a dark theme, and each node's type and status in the tree. The old
+  UI stays available at `/old`, with the same sign-in, until a later release
+  removes it. See the [UI guide](docs/user/ui.md). Run `siot_setup` again after
+  upgrading a checkout, since it now installs the `ui/` dependencies as well.
+  The new UI is based on Svelte, vs Elm for the old.
+
 ## [0.29.1] - 2026-10-22
 
 ### Security
