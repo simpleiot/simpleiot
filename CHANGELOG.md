@@ -16,6 +16,9 @@ For more details or to discuss releases, please visit the
 - **MCU firmware progress reaches 100% only once the image is staged.** It
   previously showed 100% when the last chunk was sent, before the MCU had
   checked and marked the image for test.
+- **The device editor no longer shows stale update times and metrics.** While
+  Store metrics is off, the device node's own points are rarely updated, so Last
+  update, Since update, and leftover `metricNats*` points are hidden.
 
 ## [0.30.1] - 2026-10-27
 

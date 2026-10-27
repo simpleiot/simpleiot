@@ -41,9 +41,13 @@
 	const versionOS = $derived(version(PointType.VersionOS, "OS"))
 	const versionApp = $derived(version(PointType.VersionApp, "App"))
 
+	const storeMetrics = $derived(getBool(props.node.points, PointType.StoreMetrics))
+
+	// metricNats* points left over from before store metrics were optional
+	// are not updated while store metrics are off, so they are hidden
 	const shown = $derived(
 		filterSpecialPoints(filterDeleted(sorted(props.node.points))).filter(
-			(p) => p.type !== PointType.Tag
+			(p) => p.type !== PointType.Tag && (storeMetrics || !p.type.startsWith("metricNats"))
 		)
 	)
 
@@ -75,14 +79,17 @@
 	{#if shown.length > 0}
 		<PointTable rows={shown.map(renderPoint2)} label="Point" />
 	{/if}
-	<Value label="Last update">{toDateTimeString(latestPointTime)}</Value>
-	<Value label="Since update">{durationString(props.now - Date.parse(latestPointTime))}</Value>
+	<!-- the store metrics are what keep this node's points current -->
+	{#if storeMetrics}
+		<Value label="Last update">{toDateTimeString(latestPointTime)}</Value>
+		<Value label="Since update">{durationString(props.now - Date.parse(latestPointTime))}</Value>
+	{/if}
 	{#if versionHW !== "" || versionOS !== "" || versionApp !== ""}
 		<Value label="Version">{[versionHW, versionOS, versionApp].join(" ").trim()}</Value>
 	{/if}
 	<KeyValueInput type={PointType.Tag} label="Tags" buttonLabel="Add Tag" />
 	<CheckboxInput type={PointType.StoreMetrics} label="Store metrics" />
-	{#if getBool(props.node.points, PointType.StoreMetrics)}
+	{#if storeMetrics}
 		<NumberInput type={PointType.StoreMetricsPeriod} label="Metrics period (s)" />
 	{/if}
 </NodeEditor>
