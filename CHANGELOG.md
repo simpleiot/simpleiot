@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.30.1] - 2026-10-27
+
 ### Security
 
 - **Updated to NATS server 2.15.2.** A connected client can no longer amplify
