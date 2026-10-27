@@ -23,8 +23,8 @@ require (
 	github.com/kevinburke/twilio-go v0.0.0-20260522200016-74f727d55757
 	github.com/kjx98/crc16 v0.0.0-20190915014410-d407ba22e1b5
 	github.com/nats-io/jwt/v2 v2.8.2
-	github.com/nats-io/nats-server/v2 v2.15.1
-	github.com/nats-io/nats.go v1.54.0
+	github.com/nats-io/nats-server/v2 v2.15.2
+	github.com/nats-io/nats.go v1.55.0
 	github.com/nats-io/nkeys v0.4.16
 	github.com/oklog/run v1.2.0
 	github.com/pkg/errors v0.9.1
