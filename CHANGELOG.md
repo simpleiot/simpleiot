@@ -11,6 +11,26 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Security
+
+- **Updated to NATS server 2.15.2.** A connected client can no longer amplify
+  the weight of a queue subscription in the server's routing table, and a
+  restored stream snapshot is checked for oversized subjects and block counts.
+
+### Added
+
+- **Node files can set this instance's own description and tags.** A `root:`
+  section in a file for `siot import` or provisioning sets points on the
+  instance's device node. See
+  [configuring this instance](docs/user/configuration.md#configuring-this-instance).
+
+### Fixed
+
+- **Sync and the store recover more reliably from dropped connections.** The
+  NATS Go client 1.55.0 fixes deadlocks, leaks, and stalls in reconnect, drain,
+  and ordered consumers, so a device on a flaky link reconnects and resumes
+  cleanly.
+
 ## [0.30.0] - 2026-10-24
 
 ### Changed
@@ -27,8 +47,8 @@ For more details or to discuss releases, please visit the
 
 ### Security
 
-- **Built with Go 1.27.3.** This release stops trusting compromised intermediate
-  certificates when verifying TLS connections.
+- **Built with Go 1.27.3.** This release stops trusting compromised eMudhra
+  intermediate certificates when verifying TLS connections (CVE-2026-111943).
 
 ## [0.29.0] - 2026-10-20
 

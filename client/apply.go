@@ -37,6 +37,9 @@ type ApplyDelete struct {
 // ApplyPlan is what applying a file will do. A file that has already been
 // applied plans nothing, which is what makes applying it repeatedly safe.
 type ApplyPlan struct {
+	// Root holds the points from the file's root: section that differ from
+	// what this instance's device node already holds.
+	Root   data.Points
 	Send   []ApplySend
 	Delete []ApplyDelete
 	// Errors holds per entry failures. An entry that fails is skipped along
@@ -46,7 +49,7 @@ type ApplyPlan struct {
 
 // Empty reports whether the plan has nothing to do.
 func (p ApplyPlan) Empty() bool {
-	return len(p.Send) == 0 && len(p.Delete) == 0
+	return len(p.Root) == 0 && len(p.Send) == 0 && len(p.Delete) == 0
 }
 
 func (p ApplyPlan) String() string {
@@ -55,6 +58,10 @@ func (p ApplyPlan) String() string {
 	}
 
 	var b strings.Builder
+
+	if len(p.Root) > 0 {
+		fmt.Fprintf(&b, "update root (%v point(s))\n", len(p.Root))
+	}
 
 	for _, s := range p.Send {
 		what := "update"
@@ -105,6 +112,19 @@ func Apply(nc *nats.Conn, f data.NodeFile, o ApplyOptions) (ApplyPlan, error) {
 
 	if o.DryRun {
 		return plan, nil
+	}
+
+	if len(plan.Root) > 0 {
+		for i := range plan.Root {
+			if plan.Root[i].Origin == "" {
+				plan.Root[i].Origin = o.Origin
+			}
+		}
+
+		// points only: the root's edge belongs to the instance, not the file
+		if err := SendNodePoints(nc, root.ID, plan.Root, true); err != nil {
+			return plan, fmt.Errorf("error sending root points: %w", err)
+		}
 	}
 
 	for _, s := range plan.Send {
@@ -354,6 +374,24 @@ func planApply(f data.NodeFile, tree []data.NodeEdge, root string) ApplyPlan {
 	}
 
 	walk(f.Nodes, root, true)
+
+	if len(f.Root.Points) > 0 {
+		points, err := resolveRefs(f.Root.Points, w)
+		if err != nil {
+			plan.Errors = append(plan.Errors, fmt.Errorf("root: %w", err))
+		} else {
+			var existing data.Points
+
+			for _, n := range w.nodes {
+				if n.ID == root {
+					existing = n.Points
+					break
+				}
+			}
+
+			plan.Root = changedPoints(points, existing)
+		}
+	}
 
 	for _, r := range resolved {
 		points, err := resolveRefs(r.entry.Points, w)

@@ -953,7 +953,7 @@ func ImportNodes(nc *nats.Conn, yamlData []byte, origin string, dryRun bool) (Ap
 		return ApplyPlan{}, fmt.Errorf("error parsing YAML data: %w", err)
 	}
 
-	if len(f.Nodes) < 1 && len(f.Delete) < 1 {
+	if len(f.Root.Points) < 1 && len(f.Nodes) < 1 && len(f.Delete) < 1 {
 		return ApplyPlan{}, fmt.Errorf("error: imported data did not have any nodes")
 	}
 

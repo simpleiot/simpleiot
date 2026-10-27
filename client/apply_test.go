@@ -561,3 +561,46 @@ nodes:
 		t.Fatalf("expected an error for parent: on a child, got %v", plan.Errors)
 	}
 }
+
+func TestApplyRootSetsPointsOnTheRoot(t *testing.T) {
+	plan := planYAML(t, `
+root:
+  description: Pump station 4
+  tag: [north, pumps]
+`)
+
+	noErrors(t, plan)
+
+	if len(plan.Send) != 0 {
+		t.Errorf("root: should not create or match a node, got:\n%v", plan)
+	}
+
+	if len(plan.Root) != 3 {
+		t.Fatalf("expected 3 root points, got %v", plan.Root)
+	}
+}
+
+func TestApplyRootSendsOnlyChangedPoints(t *testing.T) {
+	tree := testTree()
+	tree[0].Points = data.Points{
+		data.NewPointString(data.PointTypeDescription, "0", "Pump station 4"),
+		data.NewPointString(data.PointTypeTag, "0", "north"),
+	}
+
+	var f data.NodeFile
+	if err := yaml.Unmarshal([]byte(`
+root:
+  description: Pump station 4
+  tag: [north, pumps]
+`), &f); err != nil {
+		t.Fatal(err)
+	}
+
+	plan := planApply(f, tree, testRoot)
+
+	noErrors(t, plan)
+
+	if len(plan.Root) != 1 || plan.Root[0].Type != data.PointTypeTag || plan.Root[0].Key != "1" {
+		t.Errorf("expected only tag 1 to be sent, got %v", plan.Root)
+	}
+}

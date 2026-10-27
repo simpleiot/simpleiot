@@ -659,3 +659,48 @@ func TestExportRoundTripBetweenInstances(t *testing.T) {
 			string(first), string(second))
 	}
 }
+
+func TestImportRootSection(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	file := []byte(`
+root:
+  description: Pump station 4
+  tag: [north, pumps]
+`)
+
+	if _, err := client.ImportNodes(nc, file, "test", false); err != nil {
+		t.Fatal("Error importing root section: ", err)
+	}
+
+	got, err := client.GetRootNode(nc)
+	if err != nil {
+		t.Fatal("Error getting root node: ", err)
+	}
+
+	if got.ID != root.ID {
+		t.Fatalf("root ID changed from %v to %v", root.ID, got.ID)
+	}
+
+	if desc, _ := got.Points.Text(data.PointTypeDescription, ""); desc != "Pump station 4" {
+		t.Errorf("description: got %q", desc)
+	}
+
+	if tag, _ := got.Points.Text(data.PointTypeTag, "1"); tag != "pumps" {
+		t.Errorf("tag 1: got %q", tag)
+	}
+
+	plan, err := client.ImportNodes(nc, file, "test", false)
+	if err != nil {
+		t.Fatal("Error importing root section a second time: ", err)
+	}
+
+	if !plan.Empty() {
+		t.Errorf("a second import should do nothing, got:\n%v", plan)
+	}
+}
