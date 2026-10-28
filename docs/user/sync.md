@@ -150,12 +150,16 @@ its own, shows `credential refused by upstream` on its sync node, and tries
 again every minute, so re-enabling the credential brings it back with everything
 it queued while it was out.
 
-The upstream records `lastConnect` and `connected` on each credential, which is
-how to tell whether a device has connected. `siot cred list` shows every
-credential with its device and state; `siot cred disable ID`,
-`siot cred enable ID`, and `siot cred rm ID` change one, and
-`siot cred add -device ID -pubKey KEY` enrolls a key by hand for a device node
-that already exists. All of the `siot cred` commands take the usual
+The upstream records `lastConnect` and `connected` on each credential, and sets
+`sysState` on the device node to `online` while any of its credentials is
+connected and `offline` once none is. The device editor shows this as the
+device's status, with when it came online or went offline. After the upstream
+starts, a device that was online has two minutes to reconnect before it is
+marked offline, so a restart does not mark the whole fleet as dropped.
+`siot cred list` shows every credential with its device and state;
+`siot cred disable ID`, `siot cred enable ID`, and `siot cred rm ID` change one,
+and `siot cred add -device ID -pubKey KEY` enrolls a key by hand for a device
+node that already exists. All of the `siot cred` commands take the usual
 `-natsServer` and `-token` options, so they work against a remote upstream.
 
 There are two ways to get a device connected. Pick one per fleet.

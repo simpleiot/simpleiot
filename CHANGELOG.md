@@ -11,6 +11,13 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Added
+
+- **The upstream shows whether each device is online.** It sets `sysState` on a
+  device node when the device connects or drops, and the device editor shows
+  "Online since" or "Offline since" with the time. See
+  [device credentials](docs/user/sync.md#device-credentials).
+
 ### Fixed
 
 - **MCU firmware progress reaches 100% only once the image is staged.** It

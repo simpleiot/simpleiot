@@ -29,6 +29,14 @@
 	let props: EditorProps = $props()
 
 	const sysState = $derived(getText(props.node.points, PointType.SysState))
+	// an upstream sets sysState when the device connects or drops, so the
+	// point's time is when it came online or went offline
+	const sysStateTime = $derived(get(props.node.points, PointType.SysState)?.time ?? epoch)
+	const status = $derived(
+		(sysState === "online" ? "Online" : "Offline") +
+			` since ${toDateTimeString(sysStateTime)}` +
+			` (${durationString(props.now - Date.parse(sysStateTime))} ago)`
+	)
 
 	const latestPointTime = $derived(getLatest(props.node.points)?.time ?? epoch)
 
@@ -47,7 +55,10 @@
 	// are not updated while store metrics are off, so they are hidden
 	const shown = $derived(
 		filterSpecialPoints(filterDeleted(sorted(props.node.points))).filter(
-			(p) => p.type !== PointType.Tag && (storeMetrics || !p.type.startsWith("metricNats"))
+			(p) =>
+				p.type !== PointType.Tag &&
+				p.type !== PointType.SysState &&
+				(storeMetrics || !p.type.startsWith("metricNats"))
 		)
 	)
 
@@ -76,6 +87,9 @@
 			{oninput}
 		/>
 	{/snippet}
+	{#if sysState === "online" || sysState === "offline"}
+		<Value label="Status">{status}</Value>
+	{/if}
 	{#if shown.length > 0}
 		<PointTable rows={shown.map(renderPoint2)} label="Point" />
 	{/if}

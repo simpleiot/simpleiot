@@ -38,6 +38,12 @@ const (
 // date.
 const authReconcilePeriod = 5 * time.Second
 
+// DeviceStateGrace is how long after start-up a device that was online is
+// given to reconnect before its node is marked offline, so restarting this
+// instance does not record every device as having dropped. Tests shorten
+// it.
+var DeviceStateGrace = 2 * time.Minute
+
 // credEntry is what the authorizer knows about one credential.
 type credEntry struct {
 	credID   string
@@ -138,6 +144,12 @@ type authorizer struct {
 	enrollIDs map[string]string
 	// conns records live device connections by connection ID.
 	conns map[uint64]authConn
+	// online tracks the sysState point on each device node with
+	// credentials, as online or not, so the authorizer sends it only when
+	// it changes. It starts from the stored point.
+	online map[string]bool
+	// started is when the index was loaded; see DeviceStateGrace.
+	started time.Time
 
 	nc  *nats.Conn
 	ns  *server.Server
@@ -164,6 +176,7 @@ func newAuthorizer(token, deviceAuth string) *authorizer {
 		enroll:     make(map[string]*enrollEntry),
 		enrollIDs:  make(map[string]string),
 		conns:      make(map[uint64]authConn),
+		online:     make(map[string]bool),
 		work:       make(chan func(), 1024),
 		connects:   make(chan string, 256),
 		stop:       make(chan struct{}),
@@ -560,6 +573,7 @@ func (a *authorizer) start(nc *nats.Conn, ns *server.Server, users userAuthority
 
 	a.mu.Lock()
 	a.ready = true
+	a.started = time.Now()
 	n := len(a.creds)
 	a.mu.Unlock()
 
@@ -758,10 +772,13 @@ func (a *authorizer) refreshCred(credID string) {
 	}
 
 	var deviceID string
+	var deviceOnline bool
 	switch len(parents) {
 	case 1:
 		deviceID = parents[0]
-		if !a.deviceLive(credID, deviceID) {
+		var live bool
+		live, deviceOnline = a.deviceLive(credID, deviceID)
+		if !live {
 			disabled = true
 		}
 		// the stream is in place before the credential authorizes
@@ -791,6 +808,7 @@ func (a *authorizer) refreshCred(credID string) {
 		delete(ids, credID)
 		if len(ids) == 0 {
 			delete(a.devices, d)
+			delete(a.online, d)
 		}
 	}
 	if deviceID != "" {
@@ -798,6 +816,11 @@ func (a *authorizer) refreshCred(credID string) {
 			a.devices[deviceID] = make(map[string]bool)
 		}
 		a.devices[deviceID][credID] = true
+		// the stored state is the starting point; from here on the
+		// authorizer is the authority on it
+		if _, ok := a.online[deviceID]; !ok {
+			a.online[deviceID] = deviceOnline
+		}
 	}
 
 	if pubKey != "" {
@@ -824,34 +847,37 @@ func (a *authorizer) refreshCred(credID string) {
 }
 
 // deviceLive reports whether the node a credential sits under is a live
-// device node other than this instance's own root. A detached device must
+// device node other than this instance's own root, and whether its stored
+// sysState is online. A detached device must
 // not keep writing, and a credential under anything else would grant that
 // node's subjects: under the root, that is this instance's own origin
 // stream. The root case is not logged: every downstream holds its own
 // credential there, replicated from the upstream, so it is the normal
 // state rather than a misconfiguration.
-func (a *authorizer) deviceLive(credID, deviceID string) bool {
+func (a *authorizer) deviceLive(credID, deviceID string) (live, online bool) {
 	if deviceID == a.root() {
-		return false
+		return false, false
 	}
 
 	edges, err := client.GetNodes(a.nc, "all", deviceID, "", false)
 	if err != nil && !errors.Is(err, data.ErrDocumentNotFound) {
 		log.Printf("NATS auth: error reading device %v: %v", deviceID, err)
-		return false
+		return false, false
 	}
 
 	if len(edges) == 0 {
-		return false
+		return false, false
 	}
 
 	if edges[0].Type != data.NodeTypeDevice {
 		log.Printf("NATS auth: credential %v is under a %v node, not a device, authorizing nothing",
 			credID, edges[0].Type)
-		return false
+		return false, false
 	}
 
-	return true
+	state, _ := edges[0].Points.Text(data.PointTypeSysState, "")
+
+	return true, state == data.PointValueSysStateOnline
 }
 
 // ensureDeviceStream makes sure the replica stream a device pushes into,
@@ -942,6 +968,46 @@ func (a *authorizer) noteConnect(pubKey string) {
 	}
 	if err := client.SendNodePoints(a.nc, credID, pts, false); err != nil {
 		log.Printf("NATS auth: error recording connection on %v: %v", credID, err)
+	}
+
+	a.updateDeviceStates()
+}
+
+// updateDeviceStates brings the sysState point on each device node with
+// credentials in line with its connections: online while any of its
+// credentials is connected, offline once none is. The point's time is
+// when the device came online or went offline.
+func (a *authorizer) updateDeviceStates() {
+	a.mu.Lock()
+	connected := make(map[string]bool)
+	for _, e := range a.creds {
+		if e.connected {
+			connected[e.deviceID] = true
+		}
+	}
+	inGrace := time.Since(a.started) < DeviceStateGrace
+	changed := make(map[string]bool)
+	for deviceID := range a.devices {
+		if deviceID == a.rootID || a.online[deviceID] == connected[deviceID] {
+			continue
+		}
+		if !connected[deviceID] && inGrace {
+			continue
+		}
+		a.online[deviceID] = connected[deviceID]
+		changed[deviceID] = connected[deviceID]
+	}
+	a.mu.Unlock()
+
+	for deviceID, online := range changed {
+		state := data.PointValueSysStateOffline
+		if online {
+			state = data.PointValueSysStateOnline
+		}
+		p := data.NewPointString(data.PointTypeSysState, "", state)
+		if err := client.SendNodePoint(a.nc, deviceID, p, false); err != nil {
+			log.Printf("NATS auth: error recording %v on device %v: %v", state, deviceID, err)
+		}
 	}
 }
 
@@ -1083,7 +1149,8 @@ func (a *authorizer) enforce() {
 }
 
 // reconcile enforces the index against live connections and brings the
-// connected point on each credential up to date.
+// connected point on each credential, and the sysState point on each
+// device, up to date.
 func (a *authorizer) reconcile() {
 	a.enforce()
 
@@ -1109,4 +1176,6 @@ func (a *authorizer) reconcile() {
 			log.Printf("NATS auth: error recording disconnect on %v: %v", credID, err)
 		}
 	}
+
+	a.updateDeviceStates()
 }

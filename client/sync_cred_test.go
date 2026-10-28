@@ -336,6 +336,59 @@ func TestSyncCredentialDetachedDevice(t *testing.T) {
 	})
 }
 
+// deviceState reads the sysState point the upstream keeps on a device node.
+func deviceState(t *testing.T, nc *nats.Conn, deviceID string) string {
+	t.Helper()
+	nodes, err := client.GetNodes(nc, "all", deviceID, "", false)
+	if err != nil || len(nodes) == 0 {
+		t.Fatalf("device %v not found: %v", deviceID, err)
+	}
+	state, _ := nodes[0].Points.Text(data.PointTypeSysState, "")
+	return state
+}
+
+// TestSyncDeviceState checks that the upstream marks a device node online
+// while its credential is connected and offline once it is not.
+func TestSyncDeviceState(t *testing.T) {
+	old := client.SyncRefusedRetry
+	client.SyncRefusedRetry = 2 * time.Second
+	defer func() { client.SyncRefusedRetry = old }()
+
+	oldGrace := server.DeviceStateGrace
+	server.DeviceStateGrace = 0
+	defer func() { server.DeviceStateGrace = oldGrace }()
+
+	ncU, rootU, optsU, stopU := credUpstream(t)
+	defer stopU()
+
+	ncD, rootD, stopD, err := server.TestServer()
+	if err != nil {
+		t.Fatal("Error starting downstream test server: ", err)
+	}
+	defer stopD()
+
+	enrollDevice(t, ncU, rootU, rootD.ID, "cred-1", devicePubKey(t, ncD))
+	startDeviceSync(t, ncD, rootD, optsU.NatsServer)
+
+	waitFor(t, 15*time.Second, "device not marked online", func() bool {
+		return deviceState(t, ncU, rootD.ID) == data.PointValueSysStateOnline
+	})
+
+	fmt.Println("**** disable the credential")
+	setCred(t, ncU, "cred-1", data.NewPointFloat(data.PointTypeDisabled, "", 1))
+
+	waitFor(t, 15*time.Second, "device not marked offline", func() bool {
+		return deviceState(t, ncU, rootD.ID) == data.PointValueSysStateOffline
+	})
+
+	fmt.Println("**** re-enable the credential")
+	setCred(t, ncU, "cred-1", data.NewPointFloat(data.PointTypeDisabled, "", 0))
+
+	waitFor(t, 30*time.Second, "device not marked online after reconnect", func() bool {
+		return deviceState(t, ncU, rootD.ID) == data.PointValueSysStateOnline
+	})
+}
+
 // TestSyncCredentialWrongParent puts credentials for the device's key under
 // the upstream's own root node and under a group node. Neither is a device
 // node, so neither authorizes anything: under the root, the grant would be
