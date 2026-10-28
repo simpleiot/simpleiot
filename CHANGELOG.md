@@ -18,6 +18,12 @@ For more details or to discuss releases, please visit the
   "Online since" or "Offline since" with the time. See
   [device credentials](docs/user/sync.md#device-credentials).
 
+### Changed
+
+- **Long point lists start collapsed.** The metrics, serial device, and device
+  nodes show their readings behind a toggle with a count, so the settings above
+  them are easier to find.
+
 ### Fixed
 
 - **MCU firmware progress reaches 100% only once the image is staged.** It

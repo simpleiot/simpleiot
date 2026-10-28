@@ -106,5 +106,5 @@
 	{/if}
 	<NumberInput type={PointType.Period} label="Period (s)" />
 	<KeyValueInput type={PointType.Tag} label="Tags" buttonLabel="Add Tag" />
-	<PointTable {rows} label="Metric" />
+	<PointTable {rows} label="Metric" collapsible />
 </NodeEditor>

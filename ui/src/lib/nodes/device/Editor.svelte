@@ -91,7 +91,7 @@
 		<Value label="Status">{status}</Value>
 	{/if}
 	{#if shown.length > 0}
-		<PointTable rows={shown.map(renderPoint2)} label="Point" />
+		<PointTable rows={shown.map(renderPoint2)} label="Point" collapsible />
 	{/if}
 	<!-- the store metrics are what keep this node's points current -->
 	{#if storeMetrics}
