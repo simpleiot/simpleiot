@@ -65,31 +65,6 @@ func (n *Node) Desc() string {
 // FIXME all of the below functions need to be modified to go through NATS
 // perhaps they should be removed
 
-// GetState checks state of node and
-// returns true if state was updated. We originally considered
-// offline to be when we did not receive data from a remote device
-// for X minutes. However, with points that could represent a config
-// change as well. Eventually we may want to improve this to look
-// at point types (perhaps Sample).
-func (n *Node) GetState() (string, bool) {
-	sysState := n.State()
-	switch sysState {
-	case PointValueSysStateUnknown, PointValueSysStateOnline:
-		if time.Since(n.Points.LatestTime()) > 15*time.Minute {
-			// mark device as offline
-			return PointValueSysStateOffline, true
-		}
-	}
-
-	return sysState, false
-}
-
-// State returns the current state of a device
-func (n *Node) State() string {
-	s, _ := n.Points.Text(PointTypeSysState, "")
-	return s
-}
-
 // ToUser converts a node to user struct
 func (n *Node) ToUser() User {
 	first, _ := n.Points.Text(PointTypeFirstName, "")

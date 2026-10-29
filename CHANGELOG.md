@@ -13,13 +13,21 @@ For more details or to discuss releases, please visit the
 
 ### Added
 
-- **The upstream shows whether each device is online.** It sets `sysState` on a
-  device node when the device connects or drops, and the device editor shows
-  "Online since" or "Offline since" with the time. See
+- **The upstream shows whether each device is online.** It sets `online` to 1 or
+  0 on a device node when the device connects or drops, and the device editor
+  shows "Online since" or "Offline since" with the time. See
   [device credentials](docs/user/sync.md#device-credentials).
+- **Sync nodes show whether the upstream is connected.** The sync client sets
+  `online` to 1 or 0 as the connection comes up or drops, and the sync editor
+  shows "Online since" or "Offline since" with the time.
 
 ### Changed
 
+- **Online state is a number you can graph.** Sparkplug edge nodes and devices
+  now carry an `online` point, 1 or 0, in place of the `sysState` text point, so
+  Victoria Metrics stores it and `avg_over_time(online[24h])` gives
+  availability. Rules that matched `sysState` text need a condition on `online`
+  with the on/off value type instead.
 - **A clone builds with Go alone.** The web UI build is now committed with each
   UI change, so `go build` and `go install` produce a binary with the current UI
   without Node.js.

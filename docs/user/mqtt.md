@@ -368,7 +368,9 @@ Plant 03 Sparkplug (mqtt)
   that was already running when Simple IoT started, for instance -- Simple IoT
   requests a rebirth and the structure builds itself from the answer.
 - **NDEATH and DDEATH** mark the node offline rather than deleting it. An edge
-  node death takes its devices offline with it.
+  node death takes its devices offline with it. The `online` point on each node
+  is 1 after a birth and 0 after a death, so it can be graphed and averaged for
+  availability.
 
 Each auto-created node carries a tag naming its Sparkplug identity --
 `sparkplugGroup`, `sparkplugNode`, `sparkplugDevice` -- so queries select on the

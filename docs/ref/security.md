@@ -271,7 +271,7 @@ Disabling or deleting an enrollment token closes connections made with it and
 refuses new ones; devices already enrolled are unaffected. Moving a token
 changes where the next new device is created and nothing else.
 
-`lastConnect` and `connected` on each credential, and `sysState` on each device
+`lastConnect` and `connected` on each credential, and `online` on each device
 node with credentials, are maintained by the upstream.
 
 ### What the store checks

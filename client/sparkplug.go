@@ -47,7 +47,7 @@ type SparkplugNode struct {
 	Parent      string            `node:"parent"`
 	Description string            `point:"description"`
 	EdgeNodeID  string            `point:"id"`
-	SysState    string            `point:"sysState"`
+	Online      bool              `point:"online"`
 	Tags        map[string]string `point:"tag"`
 }
 
@@ -58,7 +58,7 @@ type SparkplugDevice struct {
 	Parent      string            `node:"parent"`
 	Description string            `point:"description"`
 	DeviceID    string            `point:"id"`
-	SysState    string            `point:"sysState"`
+	Online      bool              `point:"online"`
 	Tags        map[string]string `point:"tag"`
 }
 
@@ -368,7 +368,7 @@ func (s *sparkplugState) birth(t sparkplugTopic, p *sparkplug.Payload, device bo
 		}
 	}
 
-	pts = append(pts, s.statePoint(data.PointValueSysStateOnline))
+	pts = append(pts, s.onlinePoint(true))
 
 	s.send(nodeID, pts)
 	s.saveAliases(edgeKey)
@@ -426,7 +426,7 @@ func (s *sparkplugState) death(t sparkplugTopic, device bool) {
 		return
 	}
 
-	s.send(nodeID, data.Points{s.statePoint(data.PointValueSysStateOffline)})
+	s.send(nodeID, data.Points{s.onlinePoint(false)})
 
 	if device {
 		return
@@ -437,7 +437,7 @@ func (s *sparkplugState) death(t sparkplugTopic, device bool) {
 
 	for k, id := range s.nodes {
 		if strings.HasPrefix(k, prefix) {
-			s.send(id, data.Points{s.statePoint(data.PointValueSysStateOffline)})
+			s.send(id, data.Points{s.onlinePoint(false)})
 		}
 	}
 }
@@ -583,8 +583,8 @@ func (s *sparkplugState) metricPoint(m *sparkplug.Payload_Metric, name string,
 	return p, true
 }
 
-func (s *sparkplugState) statePoint(state string) data.Point {
-	return data.NewPointString(data.PointTypeSysState, "", state)
+func (s *sparkplugState) onlinePoint(online bool) data.Point {
+	return data.NewPointFloat(data.PointTypeOnline, "", data.BoolToFloat(online))
 }
 
 // send publishes points to an auto-created node, marking them with the mqtt

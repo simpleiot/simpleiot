@@ -336,19 +336,30 @@ func TestSyncCredentialDetachedDevice(t *testing.T) {
 	})
 }
 
-// deviceState reads the sysState point the upstream keeps on a device node.
-func deviceState(t *testing.T, nc *nats.Conn, deviceID string) string {
+// deviceOnline reads the online point the upstream keeps on a device node.
+func deviceOnline(t *testing.T, nc *nats.Conn, deviceID string) bool {
 	t.Helper()
 	nodes, err := client.GetNodes(nc, "all", deviceID, "", false)
 	if err != nil || len(nodes) == 0 {
 		t.Fatalf("device %v not found: %v", deviceID, err)
 	}
-	state, _ := nodes[0].Points.Text(data.PointTypeSysState, "")
-	return state
+	online, _ := nodes[0].Points.ValueBool(data.PointTypeOnline, "")
+	return online
+}
+
+// syncOnline reads the online point the sync client keeps on its node.
+func syncOnline(t *testing.T, nc *nats.Conn) bool {
+	t.Helper()
+	syncs, err := client.GetNodesType[client.Sync](nc, "all", "sync-id")
+	if err != nil || len(syncs) == 0 {
+		t.Fatalf("sync node not found: %v", err)
+	}
+	return syncs[0].Online
 }
 
 // TestSyncDeviceState checks that the upstream marks a device node online
-// while its credential is connected and offline once it is not.
+// while its credential is connected and offline once it is not, and that
+// the sync node on the device follows the same connection.
 func TestSyncDeviceState(t *testing.T) {
 	old := client.SyncRefusedRetry
 	client.SyncRefusedRetry = 2 * time.Second
@@ -371,21 +382,21 @@ func TestSyncDeviceState(t *testing.T) {
 	startDeviceSync(t, ncD, rootD, optsU.NatsServer)
 
 	waitFor(t, 15*time.Second, "device not marked online", func() bool {
-		return deviceState(t, ncU, rootD.ID) == data.PointValueSysStateOnline
+		return deviceOnline(t, ncU, rootD.ID) && syncOnline(t, ncD)
 	})
 
 	fmt.Println("**** disable the credential")
 	setCred(t, ncU, "cred-1", data.NewPointFloat(data.PointTypeDisabled, "", 1))
 
 	waitFor(t, 15*time.Second, "device not marked offline", func() bool {
-		return deviceState(t, ncU, rootD.ID) == data.PointValueSysStateOffline
+		return !deviceOnline(t, ncU, rootD.ID) && !syncOnline(t, ncD)
 	})
 
 	fmt.Println("**** re-enable the credential")
 	setCred(t, ncU, "cred-1", data.NewPointFloat(data.PointTypeDisabled, "", 0))
 
 	waitFor(t, 30*time.Second, "device not marked online after reconnect", func() bool {
-		return deviceState(t, ncU, rootD.ID) == data.PointValueSysStateOnline
+		return deviceOnline(t, ncU, rootD.ID) && syncOnline(t, ncD)
 	})
 }
 

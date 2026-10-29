@@ -79,12 +79,7 @@ const (
 	PointTypeStartSystem   = "startSystem"
 	PointTypeUpdateOS      = "updateOS"
 	PointTypeUpdateApp     = "updateApp"
-	PointTypeSysState      = "sysState"
-
-	PointValueSysStateUnknown  = "unknown"
-	PointValueSysStatePowerOff = "powerOff"
-	PointValueSysStateOffline  = "offline"
-	PointValueSysStateOnline   = "online"
+	PointTypeOnline        = "online"
 
 	PointTypeSwUpdateRunning      = "swUpdateRunning"
 	PointTypeSwUpdateError        = "swUpdateError"

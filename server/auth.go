@@ -144,8 +144,8 @@ type authorizer struct {
 	enrollIDs map[string]string
 	// conns records live device connections by connection ID.
 	conns map[uint64]authConn
-	// online tracks the sysState point on each device node with
-	// credentials, as online or not, so the authorizer sends it only when
+	// online tracks the online point on each device node with
+	// credentials, so the authorizer sends it only when
 	// it changes. It starts from the stored point.
 	online map[string]bool
 	// started is when the index was loaded; see DeviceStateGrace.
@@ -848,8 +848,7 @@ func (a *authorizer) refreshCred(credID string) {
 
 // deviceLive reports whether the node a credential sits under is a live
 // device node other than this instance's own root, and whether its stored
-// sysState is online. A detached device must
-// not keep writing, and a credential under anything else would grant that
+// online point is set. A detached device must not keep writing, and a credential under anything else would grant that
 // node's subjects: under the root, that is this instance's own origin
 // stream. The root case is not logged: every downstream holds its own
 // credential there, replicated from the upstream, so it is the normal
@@ -875,9 +874,9 @@ func (a *authorizer) deviceLive(credID, deviceID string) (live, online bool) {
 		return false, false
 	}
 
-	state, _ := edges[0].Points.Text(data.PointTypeSysState, "")
+	online, _ = edges[0].Points.ValueBool(data.PointTypeOnline, "")
 
-	return true, state == data.PointValueSysStateOnline
+	return true, online
 }
 
 // ensureDeviceStream makes sure the replica stream a device pushes into,
@@ -973,9 +972,9 @@ func (a *authorizer) noteConnect(pubKey string) {
 	a.updateDeviceStates()
 }
 
-// updateDeviceStates brings the sysState point on each device node with
-// credentials in line with its connections: online while any of its
-// credentials is connected, offline once none is. The point's time is
+// updateDeviceStates brings the online point on each device node with
+// credentials in line with its connections: 1 while any of its
+// credentials is connected, 0 once none is. The point's time is
 // when the device came online or went offline.
 func (a *authorizer) updateDeviceStates() {
 	a.mu.Lock()
@@ -1000,13 +999,9 @@ func (a *authorizer) updateDeviceStates() {
 	a.mu.Unlock()
 
 	for deviceID, online := range changed {
-		state := data.PointValueSysStateOffline
-		if online {
-			state = data.PointValueSysStateOnline
-		}
-		p := data.NewPointString(data.PointTypeSysState, "", state)
+		p := data.NewPointFloat(data.PointTypeOnline, "", data.BoolToFloat(online))
 		if err := client.SendNodePoint(a.nc, deviceID, p, false); err != nil {
-			log.Printf("NATS auth: error recording %v on device %v: %v", state, deviceID, err)
+			log.Printf("NATS auth: error recording online=%v on device %v: %v", online, deviceID, err)
 		}
 	}
 }
@@ -1149,7 +1144,7 @@ func (a *authorizer) enforce() {
 }
 
 // reconcile enforces the index against live connections and brings the
-// connected point on each credential, and the sysState point on each
+// connected point on each credential, and the online point on each
 // device, up to date.
 func (a *authorizer) reconcile() {
 	a.enforce()

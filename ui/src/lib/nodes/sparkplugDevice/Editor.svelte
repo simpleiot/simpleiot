@@ -3,7 +3,7 @@
 	import Value from "#lib/inputs/Value.svelte"
 	import KeyValueInput from "#lib/inputs/KeyValueInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
-	import { getText } from "#lib/siot/point.ts"
+	import { get, getText } from "#lib/siot/point.ts"
 	import { PointType } from "#lib/siot/schema.ts"
 	import type { EditorProps } from "../types.ts"
 	import CloudIcon from "@lucide/svelte/icons/cloud"
@@ -12,15 +12,15 @@
 
 	let props: EditorProps = $props()
 
-	const sysState = $derived(getText(props.node.points, PointType.SysState))
+	const online = $derived(get(props.node.points, PointType.Online))
 	const identity = $derived(getText(props.node.points, PointType.ID))
 </script>
 
 <NodeEditor {props} icon={Io}>
 	{#snippet lead()}
-		{#if sysState === "offline"}
+		{#if online?.value === 0}
 			<CloudOffIcon size={20} />
-		{:else if sysState === "online"}
+		{:else if online?.value === 1}
 			<CloudIcon size={20} />
 		{/if}
 	{/snippet}
