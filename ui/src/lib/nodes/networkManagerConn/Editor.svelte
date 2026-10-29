@@ -3,6 +3,8 @@
 	import CheckboxInput from "#lib/inputs/CheckboxInput.svelte"
 	import NumberInput from "#lib/inputs/NumberInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
+	import Value from "#lib/inputs/Value.svelte"
+	import { getText } from "#lib/siot/point.ts"
 	import { PointType } from "#lib/siot/schema.ts"
 	import type { EditorProps } from "../types.ts"
 	import CableIcon from "@lucide/svelte/icons/cable"
@@ -15,10 +17,15 @@
 	const typeAutoConnectPriority = "autoConnectPriority"
 	const typeIPv4Config = "ipv4Config"
 	const typeIPv6Config = "ipv6Config"
+	const typeUUID = "uuid"
+
+	// the client assigns the UUID, so it is shown rather than edited
+	const uuid = $derived(getText(props.node.points, typeUUID))
 </script>
 
 <NodeEditor {props} icon={CableIcon}>
 	<TextInput type={PointType.Description} label="Description" />
+	<Value label="UUID">{uuid === "" ? "(assigned on next sync)" : uuid}</Value>
 	<CheckboxInput type={PointType.Disabled} label="Disabled" />
 	<TextInput type={typeInterface} label="Interface" />
 	<CheckboxInput type={typeAutoConnect} label="Auto connect" />

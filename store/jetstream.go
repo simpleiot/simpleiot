@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/simpleiot/simpleiot/data"
@@ -110,8 +109,8 @@ type DbJetStream struct {
 // streamName returns the stream name for a (boundary, origin) pair.
 // Stream names cannot contain dots, so the subject separator becomes an
 // underscore, the same substitution the NATS server makes when it derives
-// a name from a subject. Node IDs are UUIDs and carry dashes of their own,
-// so an underscore keeps the two IDs legible and separable.
+// a name from a subject. Node IDs may carry dashes of their own but never
+// an underscore, so an underscore keeps the two IDs legible and separable.
 func streamName(boundaryID, originID string) string {
 	return "inst_" + boundaryID + "_" + originID
 }
@@ -1339,7 +1338,7 @@ func (db *DbJetStream) initRoot(rootID string) (string, error) {
 	log.Println("STORE: Initialize root node and admin user")
 
 	if rootID == "" {
-		rootID = uuid.New().String()
+		rootID = data.NewID()
 	}
 
 	// set the instance identity before any writes so boundary and
@@ -1357,7 +1356,7 @@ func (db *DbJetStream) initRoot(rootID string) (string, error) {
 
 	// Create admin user
 	admin := data.User{
-		ID:        uuid.New().String(),
+		ID:        data.NewID(),
 		FirstName: "admin",
 		LastName:  "user",
 		Email:     "admin",

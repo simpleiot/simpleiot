@@ -14,7 +14,6 @@ import (
 
 	nm "github.com/Wifx/gonetworkmanager/v2"
 	"github.com/godbus/dbus/v5"
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
@@ -179,8 +178,8 @@ func (c *NetworkManagerClient) Run() error {
 						"error decoding deleted connection node: %w", err,
 					)
 				}
-				if deletedConn.Managed {
-					c.deletedConns[deletedConn.ID] = deletedConn
+				if deletedConn.Managed && deletedConn.UUID != "" {
+					c.deletedConns[deletedConn.UUID] = deletedConn
 				}
 			}
 		}
@@ -387,10 +386,27 @@ func (c *NetworkManagerClient) emitConnectionError(
 // fatal error occurs that aborts the sync operation, that will be included
 // in `errs` and returned as `fatal`.
 func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
-	// Build set of connection IDs from SIOT tree
-	treeConnIDs := make(map[string]struct{}, len(c.config.Connections))
+	// Give connections added in the SIOT tree a NetworkManager UUID. One
+	// that cannot be saved is cleared, so it is not added to NetworkManager
+	// under a UUID the tree does not record.
+	for _, conn := range assignConnUUIDs(c.config.Connections) {
+		pt := data.NewPointString("uuid", "", conn.UUID)
+		pt.Origin = c.config.ID
+		err := SendNodePoints(c.nc, conn.ID, data.Points{pt}, true)
+		if err != nil {
+			errs = append(errs, fmt.Errorf(
+				"error saving UUID for connection node %v: %w", conn.ID, err,
+			))
+			conn.UUID = ""
+		}
+	}
+
+	// Build set of connection UUIDs from SIOT tree
+	treeConnUUIDs := make(map[string]struct{}, len(c.config.Connections))
 	for _, treeConn := range c.config.Connections {
-		treeConnIDs[treeConn.ID] = struct{}{} // add to set
+		if treeConn.UUID != "" {
+			treeConnUUIDs[treeConn.UUID] = struct{}{} // add to set
+		}
 	}
 
 	// Get NetworkManagerConn from NetworkManager via D-Bus
@@ -401,8 +417,8 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 		return
 	}
 
-	// Build map of NetworkManager connections by ID and handle connections not
-	// found in the SIOT tree.
+	// Build map of NetworkManager connections by UUID and handle connections
+	// not found in the SIOT tree.
 	type ConnectionResolved struct {
 		Connection nm.Connection
 		Resolved   NetworkManagerConn
@@ -423,42 +439,46 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 		// connection with the same UUID existed in the SIOT tree. If so, we
 		// delete it from NetworkManager; otherwise, it must be a new connection
 		// to be added to the SIOT tree.
-		if _, ok := treeConnIDs[nmc.ID]; !ok {
-			// Note: deletedConns is keyed by UUID, not ID
-			if _, ok := c.deletedConns[nmc.ID]; ok {
+		if _, ok := treeConnUUIDs[nmc.UUID]; !ok {
+			if _, ok := c.deletedConns[nmc.UUID]; ok {
 				// Delete connection from NetworkManager
 				if err := conn.Delete(); err != nil {
 					errs = append(errs, fmt.Errorf(
-						"error deleting connection %v: %w", nmc.ID, err,
+						"error deleting connection %v: %w", nmc.UUID, err,
 					))
 				}
 				c.log.Printf("Deleted connection %v (%v)",
-					nmc.ID, nmc.Description,
+					nmc.UUID, nmc.Description,
 				)
 			} else {
 				// Add connection to SIOT tree
+				nmc.ID = data.NewID()
 				c.log.Printf("Detected connection %v (%v)",
-					nmc.ID, nmc.Description,
+					nmc.UUID, nmc.Description,
 				)
 				err := SendNodeType(c.nc, nmc, c.config.ID)
 				if err != nil {
 					errs = append(errs, fmt.Errorf(
-						"error adding connection node %v: %w", nmc.ID, err,
+						"error adding connection node %v: %w", nmc.UUID, err,
 					))
 				}
 			}
 		} else {
 			// Add NetworkManager connection to the map and handle it in the
 			// next loop
-			nmConns[nmc.ID] = ConnectionResolved{conn, nmc}
+			nmConns[nmc.UUID] = ConnectionResolved{conn, nmc}
 		}
 	}
 
 	// Now handle each connection already in the SIOT tree
 	for i := range c.config.Connections {
 		treeConn := &c.config.Connections[i]
+		if treeConn.UUID == "" {
+			// its UUID could not be saved; try again on the next sync
+			continue
+		}
 		var pts data.Points // points to update this connection in SIOT tree
-		nmc, found := nmConns[treeConn.ID]
+		nmc, found := nmConns[treeConn.UUID]
 		if found {
 			// Connection also exists in NetworkManager
 			if treeConn.Managed {
@@ -538,7 +558,7 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 							))
 							break
 						}
-						if acID == treeConn.ID {
+						if acID == treeConn.UUID {
 							// Reactivate connection
 							err = c.nmObj.DeactivateConnection(ac)
 							if err != nil {
@@ -613,14 +633,8 @@ func (c *NetworkManagerClient) SyncConnections() (errs []error, fatal error) {
 		} else {
 			// Connection does not exist in NetworkManager
 			if treeConn.Managed {
-				// Handle case where node ID is not a valid UUID
-				_, err = uuid.Parse(treeConn.ID)
-				if err != nil {
-					err = fmt.Errorf("invalid UUID: %w", err)
-				} else {
-					// Add connection to NetworkManager
-					_, err = c.nmSettings.AddConnection(treeConn.DBus())
-				}
+				// Add connection to NetworkManager
+				_, err = c.nmSettings.AddConnection(treeConn.DBus())
 				if err != nil {
 					err = fmt.Errorf(
 						"error adding connection %v: %w", treeConn.ID, err,

@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
@@ -443,7 +442,7 @@ func (c *IIOClient) detect() {
 		}
 
 		ne, err := data.Encode(IIOChannel{
-			ID:          uuid.New().String(),
+			ID:          data.NewID(),
 			Parent:      c.config.ID,
 			Description: info.Channel,
 			Channel:     info.Channel,

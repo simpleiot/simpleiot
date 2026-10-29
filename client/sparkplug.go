@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/internal/pb/sparkplug"
@@ -453,7 +452,7 @@ func (s *sparkplugState) ensureNodes(t sparkplugTopic, device bool) (string, err
 			return "", err
 		}
 
-		groupID = uuid.New().String()
+		groupID = data.NewID()
 
 		g := SparkplugGroup{
 			ID:          groupID,
@@ -480,7 +479,7 @@ func (s *sparkplugState) ensureNodes(t sparkplugTopic, device bool) (string, err
 			return "", err
 		}
 
-		edgeID = uuid.New().String()
+		edgeID = data.NewID()
 
 		e := SparkplugNode{
 			ID:          edgeID,
@@ -511,7 +510,7 @@ func (s *sparkplugState) ensureNodes(t sparkplugTopic, device bool) (string, err
 			return "", err
 		}
 
-		deviceID = uuid.New().String()
+		deviceID = data.NewID()
 
 		d := SparkplugDevice{
 			ID:          deviceID,

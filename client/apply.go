@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
@@ -354,7 +353,7 @@ func planApply(f data.NodeFile, tree []data.NodeEdge, root string) ApplyPlan {
 			if existing != nil {
 				nodeID = existing.ID
 			} else {
-				nodeID = uuid.New().String()
+				nodeID = data.NewID()
 
 				// so that a later entry can attach to what this one creates,
 				// and so that a reference can name it

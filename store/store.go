@@ -63,7 +63,7 @@ type Params struct {
 	Server    string
 	Nc        *nats.Conn
 	// ID for the instance -- it is only used when initializing the store.
-	// ID must be unique. If ID is not set, then a UUID is generated.
+	// ID must be unique. If ID is not set, then one is generated.
 	ID string
 	// JsConfig holds JetStream tunables (retention, etc.)
 	JsConfig JsConfig

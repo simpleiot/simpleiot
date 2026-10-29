@@ -13,7 +13,7 @@ import (
 // point. The point uses a fixed (empty) key, so a node carries only its
 // most recent notification -- history lives in the JetStream stream.
 type Notification struct {
-	// ID is a UUID assigned when the notification is raised. It is carried
+	// ID is a random ID assigned when the notification is raised. It is carried
 	// through to messages and used to deduplicate delivery.
 	ID string `json:"id"`
 	// SourceNode is the node that triggered the notification (for a rule,

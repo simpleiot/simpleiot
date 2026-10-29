@@ -23,6 +23,14 @@ For more details or to discuss releases, please visit the
 - **Long point lists start collapsed.** The metrics, serial device, and device
   nodes show their readings behind a toggle with a count, so the settings above
   them are easier to find.
+- **New IDs are shorter.** Nodes and instances created from now on get
+  26-character IDs in Crockford base32 instead of 36-character UUIDs, which
+  saves about 50 bytes per point on the sync link. Existing IDs are not changed.
+  Tools outside Simple IoT that expect UUIDs need to accept the new form.
+- **NetworkManager connections keep their UUID in a `uuid` point.** The
+  connection editor shows it. Existing connection nodes are not converted:
+  delete them before upgrading, then mark the connections Simple IoT should
+  manage again once the client adds them back.
 
 ### Fixed
 

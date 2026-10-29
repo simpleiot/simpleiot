@@ -13,7 +13,6 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	yaml "github.com/goccy/go-yaml"
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
@@ -311,7 +310,7 @@ func (p *provisioner) provisioningNode(create bool) (string, error) {
 		return "", nil
 	}
 
-	id := uuid.New().String()
+	id := data.NewID()
 
 	err = client.SendNode(p.nc, data.NodeEdge{
 		ID:     id,
@@ -433,7 +432,7 @@ func (p *provisioner) stateNode(parent, name string) (string, error) {
 		}
 	}
 
-	return uuid.New().String(), nil
+	return data.NewID(), nil
 }
 
 // pruneStateNodes removes the state of files that are no longer there. The

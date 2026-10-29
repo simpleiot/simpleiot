@@ -88,7 +88,7 @@ func dumpStreams(b *strings.Builder, nc *nats.Conn, rootID string) error {
 	var lines []string
 	lister := js.ListStreams(ctx, jetstream.WithStreamListSubject("inst.>"))
 	for si := range lister.Info() {
-		// inst_<boundary>_<origin>; node IDs are UUIDs, so "_" only
+		// inst_<boundary>_<origin>; node IDs never contain "_", so it only
 		// separates the two fields
 		tok := strings.Split(si.Config.Name, "_")
 		if len(tok) != 3 || tok[0] != "inst" {

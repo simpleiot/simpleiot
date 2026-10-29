@@ -33,8 +33,8 @@ func (sws *SwUpdateState) Points() Points {
 
 // TODO move Node to db/store package and make it internal to that package
 
-// Node represents the state of a device. UUID is recommended
-// for ID to prevent collisions is distributed instances.
+// Node represents the state of a device. IDs are opaque strings; NewID
+// generates random ones to prevent collisions in distributed instances.
 type Node struct {
 	ID     string `json:"id"`
 	Type   string `json:"type"`

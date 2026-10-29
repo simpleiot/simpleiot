@@ -78,7 +78,7 @@ type Options struct {
 	// nodes in the tree, for an instance that should only be configured
 	// through the UI or the API.
 	ProvisioningDisable bool
-	// optional ID (must be unique) for this instance, otherwise, a UUID will be used
+	// optional ID (must be unique) for this instance, otherwise, one is generated
 	ID string
 	// StoreMaxMsgsPerSubject bounds per-subject history in store
 	// streams; 0 uses the default (20000), -1 means unlimited. Current

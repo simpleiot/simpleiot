@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/goccy/go-yaml"
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
@@ -231,7 +230,7 @@ func duplicateNodeHelper(nc *nats.Conn, node data.NodeEdge, newParent, origin st
 	}
 
 	// create new ID for duplicate node
-	node.ID = uuid.New().String()
+	node.ID = data.NewID()
 	node.Parent = newParent
 
 	// a duplicate is a new node rather than another view of the one it was

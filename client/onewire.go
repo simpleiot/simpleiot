@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
@@ -252,7 +251,7 @@ func (c *OneWireClient) detect() {
 		log.Println("Adding 1-wire device:", id)
 
 		ne, err := data.Encode(OneWireIO{
-			ID:          uuid.New().String(),
+			ID:          data.NewID(),
 			Parent:      c.config.ID,
 			DeviceID:    id,
 			Description: "New IO, please edit",

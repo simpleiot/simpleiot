@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/mdns"
 	"github.com/simpleiot/simpleiot/data"
@@ -192,7 +191,7 @@ done:
 			}
 
 			newIO := ShellyIo{
-				ID:         uuid.New().String(),
+				ID:         data.NewID(),
 				DeviceID:   id,
 				Parent:     sc.config.ID,
 				Type:       di.model(),

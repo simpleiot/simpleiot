@@ -5,7 +5,6 @@ import (
 	"log"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
@@ -301,7 +300,7 @@ func (s *mqttSchemaState) ensureNodes(values []string) (string, error) {
 					s.maxNodes)
 			}
 
-			id = uuid.New().String()
+			id = data.NewID()
 
 			nodeType := data.NodeTypeGroup
 			if i == len(values)-1 {

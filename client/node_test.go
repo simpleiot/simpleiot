@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/goccy/go-yaml"
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
@@ -73,7 +72,7 @@ func TestExportDuplicateDescriptions(t *testing.T) {
 
 	for range 2 {
 		err = client.SendNode(nc, data.NodeEdge{
-			ID:     uuid.New().String(),
+			ID:     data.NewID(),
 			Type:   data.NodeTypeGroup,
 			Parent: root.ID,
 			Points: data.Points{data.NewPointString(data.PointTypeDescription, "", "Sensors")},
@@ -316,8 +315,8 @@ func TestImportNodesGeneratesIDs(t *testing.T) {
 		t.Fatal("the created node should have an ID")
 	}
 
-	if _, err := uuid.Parse(g.ID); err != nil {
-		t.Fatal("a created node gets a fresh UUID, got: ", g.ID)
+	if len(g.ID) != 26 {
+		t.Fatal("a created node gets a fresh ID, got: ", g.ID)
 	}
 
 	children, err = client.GetNodes(nc, g.ID, "all", "", false)
