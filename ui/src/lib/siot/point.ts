@@ -247,3 +247,59 @@ export function renderPoint2(p: Point): { desc: string; value: string } {
 	const value = p.text !== "" ? p.text : p.value.toFixed(2)
 	return { desc: p.type + ":" + key, value }
 }
+
+// formatRaw shows a point's value as the raw view edits it: a string or
+// JSON point in quotes, a number bare, and a point with no data empty.
+export function formatRaw(p: Point): string {
+	if (p.dataType === DataType.String || p.dataType === DataType.JSON) {
+		return JSON.stringify(p.text)
+	}
+	if (p.dataType === DataType.Float || p.dataType === DataType.Int) {
+		return String(p.value)
+	}
+	return ""
+}
+
+// parseRaw reads a value typed in the raw view into the point it sets, or
+// undefined when the text is neither a quoted string nor a number. An
+// edited number keeps the type of the point it replaces; a new one is an
+// int when written as an integer, as in a node file. Empty text clears
+// the point's data.
+export function parseRaw(
+	s: string,
+	prev: Point | undefined,
+	type: string,
+	key: string,
+	time: string
+): Point | undefined {
+	const t = s.trim()
+	if (t === "") {
+		return { type, key, time, dataType: DataType.Unknown, value: 0, text: "", tombstone: 0 }
+	}
+	if (t.startsWith('"')) {
+		let text: unknown
+		try {
+			text = JSON.parse(t)
+		} catch {
+			return undefined
+		}
+		if (typeof text !== "string") {
+			return undefined
+		}
+		const dataType = prev?.dataType === DataType.JSON ? DataType.JSON : DataType.String
+		return { type, key, time, dataType, value: 0, text, tombstone: 0 }
+	}
+	const value = Number(t)
+	if (!Number.isFinite(value)) {
+		return undefined
+	}
+	let dataType: number
+	if (prev?.dataType === DataType.Float) {
+		dataType = DataType.Float
+	} else if (prev?.dataType === DataType.Int) {
+		dataType = Number.isInteger(value) ? DataType.Int : DataType.Float
+	} else {
+		dataType = isInt(t) ? DataType.Int : DataType.Float
+	}
+	return { type, key, time, dataType, value, text: "", tombstone: 0 }
+}

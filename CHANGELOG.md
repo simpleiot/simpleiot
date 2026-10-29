@@ -23,6 +23,9 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+- **The raw point view shows each value in one column.** Strings appear in
+  quotes and numbers without, and you edit them the same way. An edited number
+  keeps whether it is a float or an int. The view also shows the node ID.
 - **Online state is a number you can graph.** Sparkplug edge nodes and devices
   now carry an `online` point, 1 or 0, in place of the `sysState` text point, so
   Victoria Metrics stores it and `avg_over_time(online[24h])` gives

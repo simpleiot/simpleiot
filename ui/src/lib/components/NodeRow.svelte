@@ -214,7 +214,7 @@
 		display: flex;
 		align-items: flex-start;
 		gap: 6px;
-		padding-top: 10px;
+		padding-top: 18px;
 		flex-shrink: 0;
 	}
 
