@@ -413,11 +413,8 @@ siot_goreleaser_build() {
 # Releasing is two steps:
 #
 #   1. move the CHANGELOG.md "[Unreleased]" entries under a
-#      "## [X.Y.Z] - <date>" heading, rebuild the frontend assets
-#      (siot_build_frontend), and commit both to master. The assets are
-#      frontend/public/dist/*.gz and ui/build; ui/build is ignored by Git
-#      and its file names change with each build, so stage it with
-#      `git add -f -A ui/build`
+#      "## [X.Y.Z] - <date>" heading and commit it to master. The UI build in
+#      ui/build is committed with each UI change, so it is already current
 #   2. siot_tag
 #
 # Pushing the tag starts the Release workflow (.github/workflows/release.yml),

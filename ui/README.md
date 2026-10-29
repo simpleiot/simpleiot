@@ -32,9 +32,10 @@ installed Chrome.
 
 ## Build output
 
-`build/` is ignored by Git and committed only in the release commit, as the Elm
-assets in `frontend/public/dist` are, so that `go install` produces a binary
-with the UI in it. The release commit stages it with `git add -f -A ui/build`.
+`build/` is committed with each change to the UI, so a clone builds with Go
+alone and `go install` produces a binary with the UI in it. Stage it with
+`git add -A ui/build`, which also records the old hashed files as deleted. The
+build is reproducible: unchanged source produces identical files.
 
 `npm install` writes a `go.mod` into `node_modules`, so the Go tools treat it as
 a separate module and skip any Go sources an npm package ships.

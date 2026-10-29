@@ -236,25 +236,26 @@ branch, switch branches, or start a worktree unless I ask for one.
 
 ## Committing
 
-Leave the built frontend files in `frontend/public/dist` (`elm.js.gz`,
-`siot-nats.js.gz`, `codec.js.gz`, `nats.js.gz`) and `ui/build` out of commits.
-The frontend build regenerates them constantly, so they show up as modified
-during normal work. They are committed only right before a release, in their own
-commit. `ui/build` is ignored by Git and its file names change with each build,
-so that commit stages it with `git add -f -A ui/build`. When staging changes,
-stage the files you edited rather than using `git add -A` or `git commit -a`,
-and if a built artifact does get committed by mistake, drop it with
-`git restore --source=HEAD~1 --staged frontend/public/dist/elm.js.gz` (or the
-file in question) followed by `git commit --amend`.
+Commit the Svelte UI build in `ui/build` together with any change to `ui/`, so a
+clone builds with Go alone. Run `siot_build_ui` and stage it with
+`git add -A ui/build`; the file names carry content hashes, so this also records
+the old files as deleted. The build is reproducible, so unchanged source leaves
+`ui/build` unchanged.
+
+The Elm UI build in `frontend/public/dist` (`elm.js.gz`, `siot-nats.js.gz`,
+`codec.js.gz`, `nats.js.gz`) is committed only when the Elm UI or `frontend/lib`
+changes and `siot_build_elm` is run.
+
+Otherwise, stage the files you edited rather than using `git add -A` or
+`git commit -a`.
 
 ## Important Notes
 
 - Always source `envsetup.sh` before running build commands
 - Frontend build generates compressed files in `frontend/public/dist` and
-  `ui/build` (see Committing above — they are not committed with regular
-  changes). The Elm UI's JavaScript in `frontend/public/dist` is copied from
-  `frontend/lib` and `nats.ws`, not bundled; `siot_build_elm` refreshes it. The
-  Svelte UI bundles both with Vite
+  `ui/build` (see Committing above). The Elm UI's JavaScript in
+  `frontend/public/dist` is copied from `frontend/lib` and `nats.ws`, not
+  bundled; `siot_build_elm` refreshes it. The Svelte UI bundles both with Vite
 - NATS JetStream stores all application data (one stream per boundary/origin
   pair; see ADR-7)
 - System supports TLS with certificates via `siot_mkcert` and `siot_run_tls`

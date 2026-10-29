@@ -20,6 +20,9 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+- **A clone builds with Go alone.** The web UI build is now committed with each
+  UI change, so `go build` and `go install` produce a binary with the current UI
+  without Node.js.
 - **Building and running siot no longer needs the Elm toolchain.** `siot_build`,
   `siot_run`, `siot_watch`, and `siot_test` use the committed build of the old
   UI at `/old`. To change it, run `siot_setup_elm`, then `siot_build_elm` and

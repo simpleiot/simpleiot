@@ -16,6 +16,10 @@ export default defineConfig({
 		sveltekit({
 			adapter: adapter({ fallback: "index.html" }),
 			paths: { relative: false },
+			// The build is committed, so it must not change unless the source
+			// does. The default name is a timestamp; the UI ships in the same
+			// binary as the server, so it never needs to detect a new deploy.
+			version: { name: "siot" },
 		}),
 	],
 	server: {
