@@ -7,9 +7,9 @@ the Svelte UI.
 
 ## How the browser talks to Simple IoT
 
-The browser connects straight to the embedded NATS server and uses it for
-reading the tree, writing points, and live updates. HTTP carries only sign-in
-and the node operations that change the tree's shape.
+The browser connects to the embedded NATS server, through a WebSocket the HTTP
+port relays, and uses it for reading the tree, writing points, and live updates.
+HTTP carries only sign-in and the node operations that change the tree's shape.
 
 ### Signing in and connecting
 
@@ -64,15 +64,20 @@ connection.
 
 ### Design
 
-- **No gateway in front of NATS.** The browser is a NATS client like any other,
-  and the server enforces what it may do. A separate WebSocket gateway would add
-  a hop and a second place to keep permissions.
+- **No protocol gateway.** The HTTP port relays the WebSocket to the NATS
+  listener, and the browser speaks NATS to the server end to end. The server
+  enforces permissions on each connection, so there is no broad service
+  credential with authorization in code, and no upstream connection opened on
+  the browser's behalf. The jobs a gateway would do are split: the proxy carries
+  the transport, the authorizer establishes identity, and the store validates
+  requests.
 - **The credential proves identity, not scope.** The JWT names the user. The
   server's authorizer computes the user's permissions from the tree when the
   connection is made, and closes the connection when the user's groups change,
   the password changes, or the JWT expires. This is the role NATS
   [auth callout](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_callout)
-  plays in a NATS deployment, done in process.
+  plays in a NATS deployment, done in process; see
+  [How the authorizer works](security.md#how-the-authorizer-works).
 - **Requests, not raw subjects.** The browser may publish only `u.*` requests
   and `auth.me`, and subscribe only to `up.*` and its own reply inbox. It never
   reaches JetStream or the subjects the server's clients use. The store answers

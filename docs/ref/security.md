@@ -25,12 +25,14 @@ For any instance that other people or devices can reach, cloud or edge:
   [What an account can do](#what-an-account-can-do).
 - Give each device a [credential](../user/sync.md#device-credentials) and set
   `SIOT_DEVICE_AUTH=required` on the upstream. Prefer enrollment tokens that
-  leave credentials pending over ones that approve automatically. Until items 9
-  and 10 of the
+  leave credentials pending over ones that approve automatically. A device
+  credential reaches only its own subtree, though a device that knows the ID of
+  a node in another device's subtree can attach it under its own; see
+  [What the store checks](#what-the-store-checks). Until item 10 of the
   [security follow-ups plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-09-19-security-followups.md)
-  land, a device credential is authority over the whole instance, so approve
-  credentials only for devices you control, and do not use auto-approve tokens
-  on an instance that holds other people's accounts.
+  lands, any account can create a credential or an auto-approve token in its own
+  group, so approve credentials only for devices you control, and do not use
+  auto-approve tokens on an instance that holds other people's accounts.
 - Expose only the HTTP port (4223), behind a reverse proxy that terminates TLS.
   Firewall the NATS port (4222) unless devices connect to it directly, in which
   case configure `SIOT_NATS_TLS_CERT` and `SIOT_NATS_TLS_KEY`. The NATS
@@ -219,6 +221,64 @@ pending credential there, and learns from the reply whether an ID exists
 (`approved` for a new device, `pending` for an existing one). Each credential
 records the token that made it as `enrolledBy`, which is how an operator tells a
 credential from another group's token before approving it.
+
+### How the authorizer works
+
+The authorizer (`server/auth.go`) is set as `CustomClientAuthentication` in the
+`server.Options` the embedded server is started with (`server/nats-server.go`).
+The options configure no users, tokens, or accounts of their own, so NATS hands
+every client connection on every listener (NATS, WebSocket, and MQTT) to the
+authorizer's `Check` method. `AlwaysEnableNonce` makes the server send a nonce
+in `INFO` for devices to sign. Once the store is serving, Simple IoT calls the
+authorizer's `start` with a client connection, the `*server.Server`, and the
+store, which it needs for the steps below.
+
+- **Deciding.** `Check` reads the `CONNECT` options. An NKey is a device: the
+  signature over the connection nonce is verified, then the key is looked up
+  among the credentials, or the token sent with it among the enrollment tokens.
+  A user name with a JWT as the password is a browser. Anything else is compared
+  with the shared token. A JWT that is present but invalid is refused outright
+  rather than tried as a token.
+- **Granting.** On success, `Check` calls `RegisterUser` on the connection with
+  the subject permissions for that credential, derived at that moment, and for a
+  browser a `ConnectionDeadline` at the JWT's expiry, so the server closes the
+  connection itself when the token expires. The authorizer records each
+  connection's ID with what it was granted.
+- **Answering from memory.** Credentials, enrollment tokens, and users' places
+  in the tree are held in an in-memory index, so `Check` never waits on a NATS
+  request. The index is loaded once the store is serving; until then, device and
+  user connections are refused and retry.
+- **Keeping grants current.** The authorizer subscribes to `up.root.>` and acts
+  on the changes that affect a grant: a credential or enrollment token changed,
+  a device or signed-in user moved, a password changed. It closes each affected
+  connection with `DisconnectClientByID`, and the client reconnects through
+  `Check` and is granted the new set, or refused. Every five seconds it also
+  compares the server's live connections with the index and closes any whose
+  grant no longer holds.
+
+`server/auth_spike_test.go` checks the server hooks this relies on, so it is the
+test to run first after upgrading nats-server.
+
+#### Compared with auth callout
+
+[Auth callout](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_callout)
+is how a standalone NATS deployment hands authentication to its own service. The
+authorizer does the same job for an embedded server:
+
+|               | Authorizer                                            | Auth callout                                                                                    |
+| ------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Configured in | Go, `server.Options.CustomClientAuthentication`       | The server configuration, `authorization { auth_callout { ... } }`                              |
+| Runs          | In the server process; NATS calls `Check` directly    | A separate service; the server sends an authorization request over NATS and waits for the reply |
+| Grants with   | `RegisterUser`: permissions and a connection deadline | A user JWT in the reply: permissions and an expiry                                              |
+| Revokes with  | `DisconnectClientByID`                                | A short expiry, or the system account's `$SYS.REQ.SERVER.<id>.KICK` request                     |
+| Works with    | An embedded server only                               | Standalone servers, clusters, and operator mode                                                 |
+
+In both, the credential a client presents proves who it is, and the service
+decides what it may do when it connects, so neither needs permissions written
+into the credential. A deployment that outgrows one embedded server, or runs
+against an external NATS cluster (`-natsDisableServer`), would move this logic
+into an auth callout service; see
+[External NATS servers](#external-nats-servers).
 
 ### What a device credential allows
 
