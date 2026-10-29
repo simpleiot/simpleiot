@@ -158,8 +158,9 @@ are in the [API reference](api.md#nats).
 The library has one dependency, `nats.ws`, and no build step. The web UI loads
 it as native ES modules: `siot_build_frontend_js` copies `siot-nats.js`,
 `codec.js`, and `nats.ws`'s bundle into `frontend/public/dist`, and an import
-map in `index.html` resolves `nats.ws` to that copy. `siot_build_frontend` gzips
-them alongside `elm.js`, and the server decompresses on request.
+map in `index.html` resolves `nats.ws` to that copy. `siot_build_elm` gzips them
+alongside `elm.js`, and the server decompresses on request. The regular build
+does not run it; the compiled files are committed.
 
 `codec.js` mirrors the binary point and node encoding in `data/point.go` and
 `data/node.go`. The Go test `data/point_fixture_test.go` writes fixtures into

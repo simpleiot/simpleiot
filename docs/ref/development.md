@@ -42,13 +42,18 @@ following:
 - Starts the Vite dev server for the UI at `http://localhost:5173/`, which
   reloads on each change and passes API and NATS requests through to the running
   siot.
-- Starts [`elm-watch`](https://github.com/lydell/elm-watch) on the old Elm UI,
-  served at `/old` until it is removed.
+- Runs `svelte-check --watch`, which reports type errors in the UI as you edit.
+  The dev server does not type-check.
 - Runs the Go backend and rebuilds it anytime a Go module changes (only tested
   on Linux and MacOS, but should be easy to set up Windows as well)
 
 These are run in a [`run-pty`](https://github.com/lydell/run-pty) wrapper, which
 allows you to see the output of each process.
+
+The old Elm UI, served at `/old` until it is removed, is not rebuilt by these
+commands. The build uses the compiled files committed in `frontend/public/dist`.
+To change it, run `siot_setup_elm` once, then `siot_build_elm` (or
+`siot_watch_elm`) and `siot_test_elm`.
 
 ## Using Simple IoT as a library
 

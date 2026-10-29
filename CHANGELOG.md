@@ -20,6 +20,10 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+- **Building and running siot no longer needs the Elm toolchain.** `siot_build`,
+  `siot_run`, `siot_watch`, and `siot_test` use the committed build of the old
+  UI at `/old`. To change it, run `siot_setup_elm`, then `siot_build_elm` and
+  `siot_test_elm`. See [development](docs/ref/development.md).
 - **Long point lists start collapsed.** The metrics, serial device, and device
   nodes show their readings behind a toggle with a count, so the settings above
   them are easier to find.
