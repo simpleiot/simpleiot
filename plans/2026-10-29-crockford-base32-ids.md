@@ -123,7 +123,7 @@ Not IDs, and unchanged:
   startup.
 - Check: `go test -race ./...`, `golangci-lint run`.
 
-### Phase 3: Documentation and changelog
+### Phase 3: Documentation and changelog ✅
 
 - `docs/ref/bandwidth.md`: change "Shorter IDs" from a proposal to what happens,
   and drop it from the list of items left out near line 390.
@@ -132,8 +132,8 @@ Not IDs, and unchanged:
   the ADRs as written.
 - Note in the reference docs (`docs/ref/data.md`) that IDs are opaque strings,
   that new ones are 26-character Crockford base32, and that older trees keep
-  their UUIDs, and the rule for IDs chosen by hand. Add the rule to the
-  command-line options in `docs/user/configuration.md`.
+  their UUIDs, and the rule for IDs chosen by hand. `--id` is not documented
+  elsewhere, so the rule lives there.
 - Changelog entries (below).
 
 ## Incompatibilities for the changelog

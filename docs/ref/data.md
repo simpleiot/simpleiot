@@ -68,6 +68,20 @@ logic that operate off data from child nodes. In this case, the virtual parent
 nodes might be a town or city, service provider, etc., and the child nodes are
 physical edge nodes collecting data, users, etc.
 
+### Node IDs
+
+A node ID is an opaque string. New nodes and instances get 26 random characters
+of lowercase Crockford base32 (`dwe2q7ja7n78z6s1fhegwemf88`); trees created
+before that keep their UUIDs, and both work side by side. See
+[Shorter IDs](bandwidth.md#shorter-ids).
+
+An ID chosen by hand, such as an instance's `--id` or a node ID sent to the API,
+may use only ASCII letters, digits, and `-`, up to 64 characters, and may not
+start with `-`. A period, space, `*`, or `>` would break the NATS subjects the
+ID travels in, and `_` separates the two IDs in a stream name. The store refuses
+an edge with any other ID, and an instance with an invalid `--id` does not
+start.
+
 ### The Point `Key` field constraint
 
 The Point data structure has a `Key` field that can be used to construct Array

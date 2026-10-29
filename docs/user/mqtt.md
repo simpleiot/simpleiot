@@ -294,8 +294,8 @@ updating without reloading a page:
 
 ```
 $ siot log
-2026/08/20 14:32:09 NODE: hmi (mqttDevice) (799dd5f3-aa51-4245-a31d-5f3139cca804)
-   - POINT: T:value V:12.500 K:line_speed O:d931bb99-e924-4fc2-86e7-d949ec942f2c 2026-08-20T14:32:09-04:00
+2026/08/20 14:32:09 NODE: hmi (mqttDevice) (4075nastjcbk6en5pqkdmdj6w0)
+   - POINT: T:value V:12.500 K:line_speed O:ykhpbpbd20wwh741ahrvzat6aw 2026-08-20T14:32:09-04:00
 ```
 
 `mosquitto_sub` shows the messages themselves, which separates a gateway that is

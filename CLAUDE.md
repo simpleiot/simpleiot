@@ -85,6 +85,8 @@ cd frontend && npx elm-test
 - **Nodes**: Core data structures containing arrays of Points
 - **Points**: Individual data values with timestamps and metadata
 - **Graph Structure**: Data organized as a DAG (directed acyclic graph)
+- **IDs**: Opaque strings. Generate new ones with `data.NewID()` (Crockford
+  base32), not `uuid`; an ID chosen by hand goes through `data.ValidID()`
 - **Clients**: Independent components that implement specific functionality
 - **NATS Messaging**: All data flows through embedded NATS message bus
 

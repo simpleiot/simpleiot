@@ -50,6 +50,31 @@ device writes. Writing fewer points is the most effective way to save data: most
 clients have a period point on their node (`pollPeriod`, `period`, and the like)
 that sets how often they sample.
 
+## Shorter IDs
+
+Nodes and instances get 26-character IDs in lowercase Crockford base32, the same
+128 random bits a UUID holds in 36 characters. A point's subject carries three
+IDs and the acknowledgment names a stream built from two, so this saves about 50
+bytes per point. Trees created before this change keep their UUID IDs, and the
+two forms work side by side.
+
+| Encoding         | Example                                | Length | Saving per point | Limitations                                                                      |
+| ---------------- | -------------------------------------- | ------ | ---------------- | -------------------------------------------------------------------------------- |
+| UUID             | `6f1c2b9e-4a3d-4e8f-9b21-7c5d0e3a8f42` | 36     |                  |                                                                                  |
+| base64url        | `bxwrnko9To-bIXxdDjqPQg`               | 22     | 70 bytes         | `_` conflicts with the stream name separator; case-sensitive; may start with `-` |
+| base32           | `n4ocxhskhvhi7gzbproq4oupii`           | 26     | 50 bytes         | none                                                                             |
+| Crockford base32 | `dwe2q7ja7n78z6s1fhegwemf88`           | 26     | 50 bytes         | none; omits `i`, `l`, `o`, and `u`, so IDs are easier to read and copy           |
+
+Base64url's `_` makes stream names (`inst_<boundary>_<origin>`) ambiguous: two
+different boundary and origin pairs can produce the same name. Its mixed case
+lets two stream names share a directory on case-insensitive filesystems, and an
+ID starting with `-` reads as a flag on the command line. Lowercase base32
+avoids all three for 4 more characters per ID.
+
+Compression that keeps state across messages (see [below](#compression)) turns a
+repeated ID into a short reference whatever its length, so shorter IDs matter
+most for the first messages after a reconnect and for stored subjects.
+
 ## The keepalive
 
 The device reads the configuration its upstream writes for it through a
@@ -151,33 +176,6 @@ would bring the keepalive from 18 MB to about 2 MB a month as well, which leaves
 most of a 30 MB plan for changes. At that size the IP and TCP headers on each
 packet, which compression does not reach, become the larger cost, so sending
 points in bursts matters more.
-
-### Shorter IDs
-
-Node and instance IDs are UUIDs written as 36 characters. A point's subject
-carries three IDs and the acknowledgment names a stream built from two, so each
-character saved in an ID saves 5 bytes per point. The same 128 bits can be
-written more compactly:
-
-| Encoding         | Example                                | Length | Saving per point | Limitations                                                                      |
-| ---------------- | -------------------------------------- | ------ | ---------------- | -------------------------------------------------------------------------------- |
-| UUID             | `6f1c2b9e-4a3d-4e8f-9b21-7c5d0e3a8f42` | 36     |                  |                                                                                  |
-| base64url        | `bxwrnko9To-bIXxdDjqPQg`               | 22     | 70 bytes         | `_` conflicts with the stream name separator; case-sensitive; may start with `-` |
-| base32           | `n4ocxhskhvhi7gzbproq4oupii`           | 26     | 50 bytes         | none                                                                             |
-| Crockford base32 | `dwe2q7ja7n78z6s1fhegwemf88`           | 26     | 50 bytes         | none; omits `i`, `l`, `o`, and `u`, so IDs are easier to read and copy           |
-
-All four use only characters valid in NATS subject tokens and stream names, and
-the code treats IDs as opaque strings, so any of them can stay as text without
-decoding. Base64url's `_` makes stream names (`inst_<boundary>_<origin>`)
-ambiguous: two different boundary and origin pairs can produce the same name.
-Its mixed case lets two stream names share a directory on case-insensitive
-filesystems, and an ID starting with `-` reads as a flag on the command line.
-Lowercase base32 avoids all three for 4 more characters per ID.
-
-Compression that keeps state across messages (see [below](#compression)) turns a
-repeated ID into a short reference whatever its length, so shorter IDs matter
-most for the first messages after a reconnect and for stored subjects. IDs are
-stored and shown to users, so this changes every existing tree.
 
 ### Leave the boundary and origin out of the wire subject
 
@@ -387,9 +385,9 @@ The estimates assume:
 - the `Fetch` keepalive sends a pull request, receives one heartbeat, and
   receives one expiry notice every 30 minutes, about 80 bytes compressed.
 
-Shorter IDs, subject aliases, and shorter reply inboxes are left out. With
-compression keeping its state across messages, the repeated IDs they remove
-already cost only a few bytes per point.
+IDs are taken as UUIDs, and subject aliases and shorter reply inboxes are left
+out. With compression keeping its state across messages, the repeated IDs they
+shorten already cost only a few bytes per point.
 
 Compression shrinks what each message carries, but every message still costs a
 packet, its headers, a TLS record, and an acknowledgment. Once messages are tens
