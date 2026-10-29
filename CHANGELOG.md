@@ -31,6 +31,10 @@ For more details or to discuss releases, please visit the
   connection editor shows it. Existing connection nodes are not converted:
   delete them before upgrading, then mark the connections Simple IoT should
   manage again once the client adds them back.
+- **IDs chosen by hand are checked.** An `--id`, or a node ID supplied through
+  the API or NATS, may use only letters, digits, and `-`, up to 64 characters,
+  and may not start with `-`. An instance whose `--id` breaks this rule no
+  longer starts, and a node with such an ID no longer accepts edge changes.
 
 ### Fixed
 

@@ -20,6 +20,7 @@ import (
 	"github.com/oklog/run"
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/client"
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/frontend"
 	"github.com/simpleiot/simpleiot/store"
 	"github.com/simpleiot/simpleiot/ui"
@@ -111,6 +112,12 @@ type Server struct {
 // loads the JetStream store, and waits for it to accept connections before
 // connecting the server side NATS client.
 func NewServer(o Options) (*Server, *nats.Conn, error) {
+	if o.ID != "" {
+		if err := data.ValidID(o.ID); err != nil {
+			return nil, nil, fmt.Errorf("instance ID: %w", err)
+		}
+	}
+
 	chNatsClientClosed := make(chan struct{})
 
 	auth := newAuthorizer(o.AuthToken, o.DeviceAuth)

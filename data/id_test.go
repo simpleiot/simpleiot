@@ -27,3 +27,36 @@ func TestNewID(t *testing.T) {
 		seen[id] = true
 	}
 }
+
+func TestValidID(t *testing.T) {
+	valid := []string{
+		NewID(),
+		"6f1c2b9e-4a3d-4e8f-9b21-7c5d0e3a8f42",
+		"plant-07",
+		"Line3",
+		"root",
+		strings.Repeat("a", 64),
+	}
+	for _, id := range valid {
+		if err := ValidID(id); err != nil {
+			t.Errorf("%q: %v", id, err)
+		}
+	}
+
+	invalid := []string{
+		"",
+		strings.Repeat("a", 65),
+		"-plant",
+		"plant_07",
+		"plant.07",
+		"plant*",
+		"plant>",
+		"plant 07",
+		"plänt",
+	}
+	for _, id := range invalid {
+		if ValidID(id) == nil {
+			t.Errorf("%q: accepted", id)
+		}
+	}
+}

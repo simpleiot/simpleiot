@@ -495,6 +495,13 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 		return
 	}
 
+	for _, id := range []string{nodeID, parentID} {
+		if err := data.ValidID(id); err != nil {
+			st.reply(msg.Reply, err)
+			return
+		}
+	}
+
 	points, errCheck := st.checkPoints(nodeID, points)
 	if len(points) == 0 {
 		st.reply(msg.Reply, errCheck)

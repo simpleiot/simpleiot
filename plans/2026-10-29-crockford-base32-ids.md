@@ -81,10 +81,15 @@ Not IDs, and unchanged:
      creating streams under it.
    - `insertNode` in `api/nodes.go`, when the caller supplies an ID,
      returning 400.
-   - `handleEdgePoints` in `store/store.go`, when the edge points would create a
-     node that does not exist yet. This covers every client that creates nodes
-     over NATS, and a downstream whose ID arrives through sync. Edges of
-     existing nodes are not checked, so no existing tree stops working.
+   - `SendNode` in `client/node.go`, before any points are sent, so a Go client
+     does not leave points behind for a node that is then refused.
+   - `handleEdgePoints` in `store/store.go`, for the node and parent ID of every
+     edge message. This covers every client that writes edges over NATS.
+     Replicated streams from a downstream are merged directly
+     (`store/replica.go`) and not checked here; a downstream checks its own ID
+     at startup. Checking every edge rather than only new nodes needs no lookup;
+     generated IDs have always been UUIDs, so only a hand-picked ID that already
+     breaks stream names is affected.
 
    Node files do not set node IDs (`client/apply.go` matches existing nodes or
    generates one), so they need no check.
@@ -106,15 +111,16 @@ Not IDs, and unchanged:
 - Update the comments listed above.
 - Check: `go test -race ./...`, `golangci-lint run`.
 
-### Phase 2: Check chosen IDs
+### Phase 2: Check chosen IDs ✅
 
 - Add `data.ValidID()` to `data/id.go` with a table test: UUIDs, base32 IDs, and
   IDs such as `plant-07` pass; empty, too long, leading `-`, and IDs with `_`,
   `.`, `*`, `>`, space, or non-ASCII fail.
 - Check `--id` and the server and store ID options at startup.
 - Check a supplied ID in `insertNode`, with an API test for the 400.
-- Check new nodes in `handleEdgePoints`, with a store test that a new node with
-  a bad ID is refused and an existing node's edge is still written.
+- Check every edge in `handleEdgePoints`, and the ID in `SendNode`. A server
+  test (`server/id_check_test.go`) covers the API, a raw edge over NATS, and
+  startup.
 - Check: `go test -race ./...`, `golangci-lint run`.
 
 ### Phase 3: Documentation and changelog
@@ -140,7 +146,7 @@ Not IDs, and unchanged:
   base32 IDs instead of UUIDs. Existing IDs are unchanged. Anything outside
   Simple IoT that expects IDs to be UUIDs needs to accept the new form.
 - An instance started with an `--id` outside the allowed characters no longer
-  starts, and creating a node with such an ID is refused.
+  starts, and a node with such an ID no longer accepts edge changes.
 
 Draft entries:
 
@@ -152,5 +158,5 @@ Draft entries:
 - **IDs chosen by hand are checked.** An `--id` or a node ID supplied through
   the API or NATS may use only letters, digits, and `-`, up to 64 characters,
   and may not start with `-`. An instance whose `--id` breaks this rule no
-  longer starts; existing nodes are not affected.
+  longer starts, and a node with such an ID no longer accepts edge changes.
 ```

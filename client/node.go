@@ -155,8 +155,8 @@ func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 	// and create a new edge to the root node
 	points := node.Points
 
-	if node.ID == "" {
-		return errors.New("ID must be set")
+	if err := data.ValidID(node.ID); err != nil {
+		return err
 	}
 
 	if node.Parent == "" || node.Parent == "none" {

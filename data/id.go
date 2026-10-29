@@ -3,6 +3,8 @@ package data
 import (
 	"crypto/rand"
 	"encoding/base32"
+	"errors"
+	"fmt"
 )
 
 // idEncoding is lowercase Crockford base32. It has no "_", which separates
@@ -20,4 +22,33 @@ func NewID() string {
 	var b [16]byte
 	_, _ = rand.Read(b[:])
 	return idEncoding.EncodeToString(b[:])
+}
+
+// maxIDLen bounds an ID chosen by hand. Generated IDs are 26 characters and
+// UUIDs 36.
+const maxIDLen = 64
+
+// ValidID reports whether an ID chosen by hand, such as an instance ID or
+// a node ID supplied through the API, is safe to use: 1 to 64 ASCII
+// letters, digits, and "-", not starting with "-". Other characters break
+// the system: "." and space split a NATS subject, "*" and ">" are
+// wildcards, and "_" separates the two IDs in a stream name.
+func ValidID(id string) error {
+	if id == "" {
+		return errors.New("ID is empty")
+	}
+	if len(id) > maxIDLen {
+		return fmt.Errorf("ID %q is longer than %v characters", id, maxIDLen)
+	}
+	if id[0] == '-' {
+		return fmt.Errorf("ID %q starts with \"-\"", id)
+	}
+	for _, c := range id {
+		switch {
+		case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '-':
+		default:
+			return fmt.Errorf("ID %q contains %q; only letters, digits, and \"-\" are allowed", id, c)
+		}
+	}
+	return nil
 }
