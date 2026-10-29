@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-10-29
+
 ### Added
 
 - **The upstream shows whether each device is online.** It sets `online` to 1 or
