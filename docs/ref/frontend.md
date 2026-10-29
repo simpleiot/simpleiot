@@ -2,7 +2,88 @@
 
 Two web UIs are served during the move from Elm to Svelte: the Svelte UI at `/`
 and the Elm UI at `/old`. They share one sign-in. The Elm UI will be removed in
-a later release.
+a later release. Both use the connection described below; this page documents
+the Svelte UI.
+
+## How the browser talks to Simple IoT
+
+The browser connects straight to the embedded NATS server and uses it for
+reading the tree, writing points, and live updates. HTTP carries only sign-in
+and the node operations that change the tree's shape.
+
+### Signing in and connecting
+
+1. The page signs in with `POST /v1/auth` and receives a JWT, which it keeps in
+   local storage.
+2. It opens a NATS WebSocket on the HTTP port, which the server proxies to the
+   NATS WebSocket listener on loopback. The user's node ID and the JWT are the
+   NATS user and password.
+3. It asks `auth.me` who it is. The reply names the user and the user's
+   _anchors_: the groups the user sits directly under. The connection may reach
+   the subtree under each anchor and nothing else.
+
+A connection that fails is retried every five seconds. A refused credential
+returns the page to sign-in.
+
+### Reading and writing
+
+Every read and write is a request on a subject that names the anchor and the
+user:
+
+- `u.<anchor>.<user>.nodes.<parent>.<id>` fetches a node, or a subtree to a
+  given depth. On connect the page fetches each anchor with its children and
+  grandchildren; expanding a node fetches its children with their children, so
+  each child knows whether it can be expanded.
+- `u.<anchor>.<user>.p.<id>.<type>.<key>` writes points to a node, and
+  `u.<anchor>.<user>.ep.<id>.<parent>` writes points to an edge.
+
+The store answers these requests. The full subject formats are in the
+[API reference](api.md#nats).
+
+### Live updates
+
+The page subscribes to the nodes on screen: `up.<anchor>.<id>.*.*` for a node's
+points and `up.<anchor>.*.<id>.*.*` for the edges of its children. The
+subscriptions follow the tree as it is expanded and collapsed. Incoming points
+are batched per animation frame, keeping the newest value per point, so a burst
+from a device is one update. An edge for a child the page does not have is a new
+node, and the page fetches it.
+
+Live updates are best effort: a message sent while the connection is down, or
+while the tab is hidden (a hidden tab drops its subscriptions), is not
+delivered. The store holds the current state, so after a reconnect, or when the
+tab is shown again, the page asks `auth.me` again (the user's groups may have
+changed) and fetches everything it shows.
+
+### Operations over HTTP
+
+Adding, deleting, moving, mirroring, and duplicating a node, sending a
+notification, and generating a key go over the [HTTP API](api.md#http), with the
+JWT as the `Authorization` header. The routes apply the same scope as the NATS
+connection.
+
+### Design
+
+- **No gateway in front of NATS.** The browser is a NATS client like any other,
+  and the server enforces what it may do. A separate WebSocket gateway would add
+  a hop and a second place to keep permissions.
+- **The credential proves identity, not scope.** The JWT names the user. The
+  server's authorizer computes the user's permissions from the tree when the
+  connection is made, and closes the connection when the user's groups change,
+  the password changes, or the JWT expires. This is the role NATS
+  [auth callout](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_callout)
+  plays in a NATS deployment, done in process.
+- **Requests, not raw subjects.** The browser may publish only `u.*` requests
+  and `auth.me`, and subscribe only to `up.*` and its own reply inbox. It never
+  reaches JetStream or the subjects the server's clients use. The store answers
+  each request and checks its target against the anchor, and sets the origin of
+  every point to the user, so the store is the service boundary every write
+  passes through.
+- **The store is the source of truth.** Live updates keep the page current, and
+  a fetch after any gap makes it correct.
+
+[Security](security.md#browser) lists exactly what the connection is granted and
+what the store checks.
 
 ## Svelte UI
 
@@ -41,109 +122,13 @@ TypeScript runs in `strict` mode, and `svelte-check` fails the build on any
 error or warning. `npm test` runs the vitest unit tests for the tree, point,
 connection, and time code; `npm run lint` runs prettier and eslint.
 
-## Elm Reference Implementation
-
-The reference Simple IoT frontend is implemented in Elm as a Single Page
-Application (SPA) and is located in the
-[`frontend/`](https://github.com/simpleiot/simpleiot/tree/master/frontend)
-directory.
-
-### Code Structure
-
-The frontend is based on [elm-spa](https://www.elm-spa.dev/), and is split into
-the following directories:
-
-- `Api`: contains core data structures and API code to communicate with the
-  backend. `Api.Nats` is the port module the node tree is read and written
-  through; the HTTP calls in `Api.Node` and `Api.Auth` remain for sign-in and
-  node operations.
-- `Pages`: the various pages of the application
-- `Components`: each node type has a separate module that is used to render it.
-  `NodeOptions.elm` contains a struct that is used to pass options into the
-  component views.
-- `UI`: Various UI pieces we used
-- `Utils`: Code that does not fit anywhere else (time, etc.)
-
-We'd like to keep the UI
-[optimistic](https://blog.meteor.com/optimistic-ui-with-meteor-67b5a78c3fcf) if
-possible.
-
-### The node tree over NATS
-
-Elm 0.19 has no WebSocket support, so `public/main.js` owns the NATS connection
-and `Api.Nats` carries a small JSON protocol over one port pair. JavaScript owns
-the connection; Elm owns the tree.
-
-Commands from Elm: `connect {token}`, `fetch {anchor, parent, id, depth}`,
-`watch [subjects]`, `sendPoints {anchor, id, points}`, and `disconnect`. Events
-to Elm: `connected {userId, anchors}`, `disconnected`, `authFailed`,
-`nodes {anchor, parent, id, depth, nodes}`, `points [{nodeId, points}]`,
-`edgePoints [{nodeId, parentId, points}]`, and `error {message}`. Points cross
-the port in the JSON shape the HTTP API used, so `Api.Point.decode` and every
-component are unchanged.
-
-An _anchor_ is a group the user belongs to; the connection may reach the subtree
-under each of its anchors and nothing else. On `connected`, the page fetches
-each anchor with its children and grandchildren. Expanding a node fetches its
-children with their children, so each child knows whether it can be expanded,
-and collapsing keeps what is there. `Utils.NodeTree` holds the pure tree code:
-merging a fetched subtree into the tree while keeping expansion state and the
-deeper levels a reply did not reach, applying live points, and deriving the
-watch list. The watch list is every node on screen (`up.<anchor>.<id>.*.*` for
-its points and `up.<anchor>.*.<id>.*.*` for the edges of its children), sent to
-JavaScript whenever it changes; JavaScript brings its subscriptions in line and
-batches incoming points per animation frame. An edge for a child the tree does
-not have is a new node: the page fetches it. A reconnect, or a tab coming back
-into view, refetches everything loaded, since messages in between were missed.
-
-### Creating Custom Icons
-
-SIOT icons are `24x24px` pixels (based on feather icon format). One way to
-create them is to:
-
-- Create a `24x24px` drawing in Inkscape, scale=1.0
-- draw your icon
-- if you use text
-  - Convert text to path: select text, and then menu Path -> Object to Path
-  - Make sure fill is set for path
-- save as plain SVG
-- set up a new Icon in `frontend/src/UI/Icon.elm` and use an existing custom
-  icon like `variable` as a template.
-- Copy the SVG path strings from the SVG file into the new Icon
-- You'll likely need to adjust the scaling transform numbers to get the icon to
-  the right size
-
-(I've tried using: https://levelteams.com/svg-to-elm, but this has not been real
-useful, so I usually end up just copying the path strings into an elm template
-and hand edit the rest)
-
 ### File upload
 
-The [File node UI](../user/file.md) has the capability to upload files in the
-browser and then store them in a node point. The default max payload of NATS is
-1MB, so that is currently the file size limit, but NATS
-[can be configured](https://docs.nats.io/reference/faq#is-there-a-message-size-limitation-in-nats)
-for a payload size up to 64MB. 8MB is recommended.
-
-Currently the payload is stored in the Point `String` field for simplicity. If
-the binary option is selected, the data is base64 encoded. Long term it may make
-sense to support JetStream Object store, local file store, etc.
-
-The [elm/file](https://package.elm-lang.org/packages/elm/file/latest/) package
-is used upload a file into the browser. Once the data is in the browser, it is
-sent to the backup as a standard point payload. Because we are currently using a
-JSON API, binary data is base64 encoded.
-
-The process by which a file is uploaded is:
-
-- The `NodeOptions` struct, which is passed to all nodes has an `onUploadFile`
-  field, which is used to triggers the `UploadFile` message which runs a browser
-  file select. The result of this select is a `UploadSelected` message.
-- This message calls `UploadFile node.node.id` in `Home_.elm`.
-- `File.Select.file` is called to select the file, which triggers the
-  `UploadContents` message.
-- `UploadContents` is called with the node id, file name, and file contents,
-  which then sends the data via points to the backend.
+The [File node](../user/file.md) editor uploads a file from the browser into the
+node's `data` point, with its name in the `name` point, as an ordinary point
+write. With the binary option set, the contents are base64 encoded first. A
+point travels in one NATS message, so the server's maximum payload (1 MB by
+default) limits the file size.
 
 ## SIOT JavaScript library using NATS over WebSockets
 
@@ -155,12 +140,8 @@ belongs to, fetches nodes one subtree at a time, subscribes to live points, and
 writes points. The `README.md` in that directory documents the API; the subjects
 are in the [API reference](api.md#nats).
 
-The library has one dependency, `nats.ws`, and no build step. The web UI loads
-it as native ES modules: `siot_build_frontend_js` copies `siot-nats.js`,
-`codec.js`, and `nats.ws`'s bundle into `frontend/public/dist`, and an import
-map in `index.html` resolves `nats.ws` to that copy. `siot_build_elm` gzips them
-alongside `elm.js`, and the server decompresses on request. The regular build
-does not run it; the compiled files are committed.
+The library has one dependency, `nats.ws`, and no build step. The Svelte UI
+bundles both with Vite.
 
 `codec.js` mirrors the binary point and node encoding in `data/point.go` and
 `data/node.go`. The Go test `data/point_fixture_test.go` writes fixtures into

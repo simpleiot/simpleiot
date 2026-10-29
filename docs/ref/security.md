@@ -297,6 +297,10 @@ the tree while its stream remains looks like, so the stream is still consumed.
 
 ### Browser
 
+[How the browser talks to Simple IoT](frontend.md#how-the-browser-talks-to-simple-iot)
+describes the whole path and the reasons for it; this section covers what is
+granted and enforced.
+
 The web UI connects to NATS over the WebSocket the HTTP port proxies (see
 [configuration](../user/configuration.md#environment-variables)), presenting the
 user's node ID and sign-in JWT as user and password. The authorizer validates
