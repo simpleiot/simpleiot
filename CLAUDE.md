@@ -18,7 +18,7 @@ instances, automatically synchronizing data between them using NATS messaging.
 # Source environment setup (required for all operations)
 source envsetup.sh
 
-# Initial setup - installs frontend deps (Svelte UI and the old Elm UI)
+# Initial setup - installs frontend deps
 siot_setup
 
 # Install frontend dependencies only
@@ -31,7 +31,8 @@ siot_install_frontend_deps
 # Build everything (frontend + backend)
 siot_build
 
-# Build frontend only (the Svelte UI and the old Elm UI)
+# Build frontend only (the Svelte UI; the old Elm UI uses the committed
+# build in frontend/public/dist)
 siot_build_frontend
 
 # Build the Svelte UI only
@@ -73,9 +74,10 @@ golangci-lint run
 # Svelte UI checks (prettier, eslint, svelte-check, vitest)
 siot_test_ui
 
-# Old Elm UI linting and review, while it remains
-cd frontend && npx elm-review
-cd frontend && npx elm-test
+# Old Elm UI, only when changing it: siot_setup_elm once, then rebuild and
+# test it
+siot_build_elm
+siot_test_elm
 ```
 
 ## Architecture
@@ -85,6 +87,8 @@ cd frontend && npx elm-test
 - **Nodes**: Core data structures containing arrays of Points
 - **Points**: Individual data values with timestamps and metadata
 - **Graph Structure**: Data organized as a DAG (directed acyclic graph)
+- **IDs**: Opaque strings. Generate new ones with `data.NewID()` (Crockford
+  base32), not `uuid`; an ID chosen by hand goes through `data.ValidID()`
 - **Clients**: Independent components that implement specific functionality
 - **NATS Messaging**: All data flows through embedded NATS message bus
 
@@ -170,7 +174,10 @@ The Elm UI (`frontend/`):
 - **API**: Nodes are read and points written over NATS WebSockets through
   `frontend/lib` (`simpleiot-js`) and the `Api.Nats` port module; sign-in and
   node operations (add, delete, move, mirror, duplicate, notify) use HTTP
-- **Build**: Uses elm-watch for hot reloading during development
+- **Build**: Not rebuilt by `siot_build`, `siot_run`, `siot_watch`, or
+  `siot_test`; they use the compiled files committed in `frontend/public/dist`.
+  To change it, run `siot_setup_elm` once, then `siot_build_elm` (or
+  `siot_watch_elm`) and `siot_test_elm`
 
 ## Design Priorities
 
@@ -190,8 +197,7 @@ than a compatibility section.
 2. **Development**: `siot_watch` (starts hot reloading for both frontend and
    backend)
 3. **Testing**: `siot_test` before submitting changes
-4. **Code Quality**: All code must pass `golangci-lint run`, `siot_test_ui`, and
-   `elm-review`
+4. **Code Quality**: All code must pass `golangci-lint run` and `siot_test_ui`
 
 ## Plans
 
@@ -230,25 +236,26 @@ branch, switch branches, or start a worktree unless I ask for one.
 
 ## Committing
 
-Leave the built frontend files in `frontend/public/dist` (`elm.js.gz`,
-`siot-nats.js.gz`, `codec.js.gz`, `nats.js.gz`) and `ui/build` out of commits.
-The frontend build regenerates them constantly, so they show up as modified
-during normal work. They are committed only right before a release, in their own
-commit. `ui/build` is ignored by Git and its file names change with each build,
-so that commit stages it with `git add -f -A ui/build`. When staging changes,
-stage the files you edited rather than using `git add -A` or `git commit -a`,
-and if a built artifact does get committed by mistake, drop it with
-`git restore --source=HEAD~1 --staged frontend/public/dist/elm.js.gz` (or the
-file in question) followed by `git commit --amend`.
+Commit the Svelte UI build in `ui/build` together with any change to `ui/`, so a
+clone builds with Go alone. Run `siot_build_ui` and stage it with
+`git add -A ui/build`; the file names carry content hashes, so this also records
+the old files as deleted. The build is reproducible, so unchanged source leaves
+`ui/build` unchanged.
+
+The Elm UI build in `frontend/public/dist` (`elm.js.gz`, `siot-nats.js.gz`,
+`codec.js.gz`, `nats.js.gz`) is committed only when the Elm UI or `frontend/lib`
+changes and `siot_build_elm` is run.
+
+Otherwise, stage the files you edited rather than using `git add -A` or
+`git commit -a`.
 
 ## Important Notes
 
 - Always source `envsetup.sh` before running build commands
 - Frontend build generates compressed files in `frontend/public/dist` and
-  `ui/build` (see Committing above — they are not committed with regular
-  changes). The Elm UI's JavaScript in `frontend/public/dist` is copied from
-  `frontend/lib` and `nats.ws`, not bundled; `siot_build_frontend_js` refreshes
-  it during development. The Svelte UI bundles both with Vite
+  `ui/build` (see Committing above). The Elm UI's JavaScript in
+  `frontend/public/dist` is copied from `frontend/lib` and `nats.ws`, not
+  bundled; `siot_build_elm` refreshes it. The Svelte UI bundles both with Vite
 - NATS JetStream stores all application data (one stream per boundary/origin
   pair; see ADR-7)
 - System supports TLS with certificates via `siot_mkcert` and `siot_run_tls`

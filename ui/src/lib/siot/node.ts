@@ -2,8 +2,10 @@
 // The per-type knowledge (labels, where a type may be added, which parent
 // owns it) lives in the node type registry, not here.
 
-import { getBool, getText, type Point } from "./point.ts"
+import { get, getBool, getText, type Point } from "./point.ts"
 import { PointType } from "./schema.ts"
+import { durationString } from "../util/duration.ts"
+import { toDateTimeString } from "../util/iso8601.ts"
 
 // Node is a node reached through one of its edges: points are the node's
 // own and edgePoints those of the edge to parent.
@@ -56,11 +58,28 @@ export function nodeStatus(node: Node): NodeStatus {
 	if (getText(node.points, PointType.Error) !== "") {
 		return "error"
 	}
+	// the root's online point is the upstream's view of this instance
 	if (
 		getBool(node.points, PointType.Offline) ||
-		getText(node.points, PointType.SysState) === "offline"
+		(node.parent !== "root" && get(node.points, PointType.Online)?.value === 0)
 	) {
 		return "offline"
 	}
 	return "ok"
+}
+
+// onlineStatus describes a node's online point, such as "Online since
+// 2026-10-29T16:00:58 (5m ago)", or is empty when the node has none. The
+// point is written when the connection comes up or drops, so its time is
+// when that happened.
+export function onlineStatus(points: readonly Point[], now: number): string {
+	const p = get(points, PointType.Online)
+	if (p === undefined) {
+		return ""
+	}
+	return (
+		(p.value === 1 ? "Online" : "Offline") +
+		` since ${toDateTimeString(p.time)}` +
+		` (${durationString(now - Date.parse(p.time))} ago)`
+	)
 }

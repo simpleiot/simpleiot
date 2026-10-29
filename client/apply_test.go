@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	yaml "github.com/goccy/go-yaml"
-	"github.com/google/uuid"
 	"github.com/simpleiot/simpleiot/data"
 )
 
@@ -478,8 +477,8 @@ nodes:
 
 	noErrors(t, plan)
 
-	if _, err := uuid.Parse(plan.Send[0].Node.ID); err != nil {
-		t.Errorf("a created node should get a fresh UUID, got %v", plan.Send[0].Node.ID)
+	if len(plan.Send[0].Node.ID) != 26 {
+		t.Errorf("a created node should get a fresh ID, got %v", plan.Send[0].Node.ID)
 	}
 }
 

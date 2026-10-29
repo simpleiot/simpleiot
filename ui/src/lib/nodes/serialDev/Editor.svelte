@@ -180,7 +180,7 @@
 		</div>
 	{/if}
 	<div class="rule"></div>
-	<PointTable {rows} label="Point" />
+	<PointTable {rows} label="Point" collapsible />
 	<KeyValueInput type={PointType.Tag} label="Tags" buttonLabel="Add Tag" />
 </NodeEditor>
 

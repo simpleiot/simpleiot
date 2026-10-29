@@ -131,8 +131,8 @@ func TestSparkplugClient(t *testing.T) {
 	})
 
 	waitFor(t, mqttTestTimeout, "the edge node to be marked online", func() bool {
-		p, ok := spNodePoint(t, nc, edgeID, data.PointTypeSysState, "")
-		return ok && p.Txt() == data.PointValueSysStateOnline
+		p, ok := spNodePoint(t, nc, edgeID, data.PointTypeOnline, "")
+		return ok && p.Val() == 1
 	})
 
 	dbirth := spPayload(t,
@@ -195,15 +195,15 @@ func TestSparkplugClient(t *testing.T) {
 	}
 
 	waitFor(t, mqttTestTimeout, "the device to be marked offline", func() bool {
-		p, ok := spNodePoint(t, nc, deviceID, data.PointTypeSysState, "")
-		return ok && p.Txt() == data.PointValueSysStateOffline
+		p, ok := spNodePoint(t, nc, deviceID, data.PointTypeOnline, "")
+		return ok && p.Val() == 0
 	})
 
 	// and a later birth brings it back online
 	publishUntil(t, pub, "spBv1.0/"+spGroup+"/DBIRTH/"+spEdge+"/"+spDevice, dbirth2,
 		"the device to come back online", func() bool {
-			p, ok := spNodePoint(t, nc, deviceID, data.PointTypeSysState, "")
-			return ok && p.Txt() == data.PointValueSysStateOnline
+			p, ok := spNodePoint(t, nc, deviceID, data.PointTypeOnline, "")
+			return ok && p.Val() == 1
 		})
 }
 

@@ -63,7 +63,7 @@ type Params struct {
 	Server    string
 	Nc        *nats.Conn
 	// ID for the instance -- it is only used when initializing the store.
-	// ID must be unique. If ID is not set, then a UUID is generated.
+	// ID must be unique. If ID is not set, then one is generated.
 	ID string
 	// JsConfig holds JetStream tunables (retention, etc.)
 	JsConfig JsConfig
@@ -493,6 +493,13 @@ func (st *Store) handleEdgePoints(msg *nats.Msg) {
 		fmt.Printf("Error decoding nats message: %v: %v", msg.Subject, err)
 		st.reply(msg.Reply, errors.New("error decoding edge points subject"))
 		return
+	}
+
+	for _, id := range []string{nodeID, parentID} {
+		if err := data.ValidID(id); err != nil {
+			st.reply(msg.Reply, err)
+			return
+		}
 	}
 
 	points, errCheck := st.checkPoints(nodeID, points)

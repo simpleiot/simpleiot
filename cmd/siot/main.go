@@ -23,7 +23,6 @@ import (
 	"time"
 
 	yaml "github.com/goccy/go-yaml"
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nkeys"
 	"github.com/oklog/run"
@@ -971,7 +970,7 @@ func runCredAdd(args []string) {
 	}
 
 	cred := client.DeviceCred{
-		ID:          uuid.New().String(),
+		ID:          data.NewID(),
 		Parent:      deviceID,
 		Description: *flagDescription,
 		PubKey:      pubKey,
@@ -1022,7 +1021,7 @@ func runCredToken(args []string) {
 	}
 
 	et := client.EnrollToken{
-		ID:          uuid.New().String(),
+		ID:          data.NewID(),
 		Parent:      parent,
 		Description: *flagDescription,
 		TokenHash:   hash,

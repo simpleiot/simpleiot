@@ -11,6 +11,61 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-10-29
+
+### Added
+
+- **The upstream shows whether each device is online.** It sets `online` to 1 or
+  0 on a device node when the device connects or drops, and the device editor
+  shows "Online since" or "Offline since" with the time. See
+  [device credentials](docs/user/sync.md#device-credentials).
+- **Sync nodes show whether the upstream is connected.** The sync client sets
+  `online` to 1 or 0 as the connection comes up or drops, and the sync editor
+  shows "Online since" or "Offline since" with the time.
+
+### Changed
+
+- **The raw point view shows each value in one column.** Strings appear in
+  quotes and numbers without, and you edit them the same way. An edited number
+  keeps whether it is a float or an int. The view also shows the node ID.
+- **Online state is a number you can graph.** Sparkplug edge nodes and devices
+  now carry an `online` point, 1 or 0, in place of the `sysState` text point, so
+  Victoria Metrics stores it and `avg_over_time(online[24h])` gives
+  availability. Rules that matched `sysState` text need a condition on `online`
+  with the on/off value type instead.
+- **A clone builds with Go alone.** The web UI build is now committed with each
+  UI change, so `go build` and `go install` produce a binary with the current UI
+  without Node.js.
+- **Building and running siot no longer needs the Elm toolchain.** `siot_build`,
+  `siot_run`, `siot_watch`, and `siot_test` use the committed build of the old
+  UI at `/old`. To change it, run `siot_setup_elm`, then `siot_build_elm` and
+  `siot_test_elm`. See [development](docs/ref/development.md).
+- **Long point lists start collapsed.** The metrics, serial device, and device
+  nodes show their readings behind a toggle with a count, so the settings above
+  them are easier to find.
+- **New IDs are shorter.** Nodes and instances created from now on get
+  26-character IDs in Crockford base32 instead of 36-character UUIDs, which
+  saves about 50 bytes per point on the sync link. Existing IDs are not changed.
+  Tools outside Simple IoT that expect UUIDs need to accept the new form. See
+  [node IDs](docs/ref/data.md#node-ids).
+- **NetworkManager connections keep their UUID in a `uuid` point.** The
+  connection editor shows it. Existing connection nodes are not converted:
+  delete them before upgrading, then mark the connections Simple IoT should
+  manage again once the client adds them back.
+- **IDs chosen by hand are checked.** An `--id`, or a node ID supplied through
+  the API or NATS, may use only letters, digits, and `-`, up to 64 characters,
+  and may not start with `-`. An instance whose `--id` breaks this rule no
+  longer starts, and a node with such an ID no longer accepts edge changes.
+
+### Fixed
+
+- **MCU firmware progress reaches 100% only once the image is staged.** It
+  previously showed 100% when the last chunk was sent, before the MCU had
+  checked and marked the image for test.
+- **The device editor no longer shows stale update times and metrics.** While
+  Store metrics is off, the device node's own points are rarely updated, so Last
+  update, Since update, and leftover `metricNats*` points are hidden.
+
 ## [0.30.1] - 2026-10-27
 
 ### Security

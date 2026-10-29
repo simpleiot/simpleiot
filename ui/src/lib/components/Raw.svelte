@@ -3,8 +3,7 @@
 	// for the raw view of any node.
 	import X from "@lucide/svelte/icons/x"
 	import { editTime, setInputContext } from "#lib/inputs/context.ts"
-	import NumberInput from "#lib/inputs/NumberInput.svelte"
-	import TextInput from "#lib/inputs/TextInput.svelte"
+	import RawInput from "#lib/inputs/RawInput.svelte"
 	import type { EditorProps } from "#lib/nodes/types.ts"
 	import { filterDeleted, getText, newTombstone, sorted } from "#lib/siot/point.ts"
 	import { PointType } from "#lib/siot/schema.ts"
@@ -43,21 +42,17 @@
 		<span>{getText(props.node.points, PointType.Description)}</span>
 	</div>
 	{#if props.expDetail}
+		<div class="id">ID: <span class="mono">{props.node.id}</span></div>
 		<div class="table-wrap">
 			<table>
 				<thead>
-					<tr
-						><th>Point</th><th>Value</th><th>Text</th><th
-							><span class="visually-hidden">Delete</span></th
-						></tr
-					>
+					<tr><th>Point</th><th>Value</th><th><span class="visually-hidden">Delete</span></th></tr>
 				</thead>
 				<tbody>
 					{#each points as p (`${p.type}.${p.key}`)}
 						<tr>
 							<td>{p.type}:{p.key}</td>
-							<td><NumberInput type={p.type} key={p.key} /></td>
-							<td><TextInput type={p.type} key={p.key} /></td>
+							<td><RawInput type={p.type} key={p.key} /></td>
 							<td>
 								<IconButton
 									label="Delete point {p.type}:{p.key}"
@@ -77,6 +72,7 @@
 <style>
 	.editor {
 		border-top: 2px solid var(--fg);
+		padding-top: 8px;
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
@@ -95,6 +91,15 @@
 		padding: 0 4px;
 	}
 
+	.id {
+		margin: 0 7px;
+	}
+
+	.mono {
+		font-family: monospace;
+		user-select: all;
+	}
+
 	.table-wrap {
 		overflow-x: auto;
 	}
@@ -111,6 +116,6 @@
 	}
 
 	td :global(input) {
-		width: 12em;
+		width: 24em;
 	}
 </style>

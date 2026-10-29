@@ -20,6 +20,7 @@ import (
 	"github.com/oklog/run"
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/client"
+	"github.com/simpleiot/simpleiot/data"
 	"github.com/simpleiot/simpleiot/frontend"
 	"github.com/simpleiot/simpleiot/store"
 	"github.com/simpleiot/simpleiot/ui"
@@ -78,7 +79,7 @@ type Options struct {
 	// nodes in the tree, for an instance that should only be configured
 	// through the UI or the API.
 	ProvisioningDisable bool
-	// optional ID (must be unique) for this instance, otherwise, a UUID will be used
+	// optional ID (must be unique) for this instance, otherwise, one is generated
 	ID string
 	// StoreMaxMsgsPerSubject bounds per-subject history in store
 	// streams; 0 uses the default (20000), -1 means unlimited. Current
@@ -111,6 +112,12 @@ type Server struct {
 // loads the JetStream store, and waits for it to accept connections before
 // connecting the server side NATS client.
 func NewServer(o Options) (*Server, *nats.Conn, error) {
+	if o.ID != "" {
+		if err := data.ValidID(o.ID); err != nil {
+			return nil, nil, fmt.Errorf("instance ID: %w", err)
+		}
+	}
+
 	chNatsClientClosed := make(chan struct{})
 
 	auth := newAuthorizer(o.AuthToken, o.DeviceAuth)

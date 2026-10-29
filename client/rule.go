@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/go-audio/wav"
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
@@ -909,7 +908,7 @@ func (rc *RuleClient) sendNotification(a Action, triggerNodeID string) error {
 	triggerNodeDesc := nodes[0].Desc()
 
 	n := data.Notification{
-		ID:         uuid.New().String(),
+		ID:         data.NewID(),
 		SourceNode: triggerNodeID,
 		Subject:    rc.config.Description,
 		Message:    rc.config.Description + " fired at " + triggerNodeDesc,

@@ -88,7 +88,7 @@
 				[PointType.Value, "value"],
 				[PointType.ValueSet, "set value"],
 				[PointType.ErrorCount, "error count"],
-				[PointType.SysState, "system state"],
+				[PointType.Online, "online"],
 				[PointType.Active, "active"],
 			]}
 		/>

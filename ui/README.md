@@ -14,7 +14,8 @@ From the repository root, after `. envsetup.sh`:
 - `siot_watch_ui` starts the Vite dev server at `http://localhost:5173/`. It
   proxies `/v1`, `/fonts`, the Elm UI at `/old`, and the NATS WebSocket to a
   running `siot`, on `SIOT_HTTP_PORT` or one above `SIOT_NATS_PORT`.
-  `siot_watch` starts it along with the Elm and Go watchers.
+  `siot_watch` starts it along with the Go watcher and `siot_watch_ui_check`,
+  which runs `svelte-check --watch` (the dev server does not type-check).
 
 In `ui/` itself: `npm run dev`, `npm run build`, `npm run check`, `npm test`,
 `npm run lint`, and `npm run format`.
@@ -31,9 +32,10 @@ installed Chrome.
 
 ## Build output
 
-`build/` is ignored by Git and committed only in the release commit, as the Elm
-assets in `frontend/public/dist` are, so that `go install` produces a binary
-with the UI in it. The release commit stages it with `git add -f -A ui/build`.
+`build/` is committed with each change to the UI, so a clone builds with Go
+alone and `go install` produces a binary with the UI in it. Stage it with
+`git add -A ui/build`, which also records the old hashed files as deleted. The
+build is reproducible: unchanged source produces identical files.
 
 `npm install` writes a `go.mod` into `node_modules`, so the Go tools treat it as
 a separate module and skip any Go sources an npm package ships.

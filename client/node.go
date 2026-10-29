@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/goccy/go-yaml"
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/data"
 )
@@ -156,8 +155,8 @@ func SendNode(nc *nats.Conn, node data.NodeEdge, origin string) error {
 	// and create a new edge to the root node
 	points := node.Points
 
-	if node.ID == "" {
-		return errors.New("ID must be set")
+	if err := data.ValidID(node.ID); err != nil {
+		return err
 	}
 
 	if node.Parent == "" || node.Parent == "none" {
@@ -231,7 +230,7 @@ func duplicateNodeHelper(nc *nats.Conn, node data.NodeEdge, newParent, origin st
 	}
 
 	// create new ID for duplicate node
-	node.ID = uuid.New().String()
+	node.ID = data.NewID()
 	node.Parent = newParent
 
 	// a duplicate is a new node rather than another view of the one it was

@@ -447,7 +447,8 @@ func (sd *SerialDevClient) fwUploadRsp(body []byte) {
 
 	sd.fw.off = int(*rsp.Off)
 	sd.fw.failures = 0
-	sd.fwPublishProgress(sd.fw.off * 100 / size)
+	// 100 is published once the MCU marks the image for test
+	sd.fwPublishProgress(min(sd.fw.off*100/size, 99))
 
 	if sd.fw.off == size {
 		sd.fw.phase = fwReadingState

@@ -84,6 +84,7 @@
 <style>
 	.editor {
 		border-top: 2px solid var(--fg);
+		padding-top: 8px;
 		display: flex;
 		flex-direction: column;
 		gap: 6px;

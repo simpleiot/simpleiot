@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
@@ -418,7 +417,7 @@ func (h *Nodes) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			not.ID = uuid.New().String()
+			not.ID = data.NewID()
 			if not.SourceNode == "" {
 				not.SourceNode = id
 			}
@@ -480,7 +479,10 @@ func (h *Nodes) insertNode(res http.ResponseWriter, req *http.Request, p princip
 	}
 
 	if node.ID == "" {
-		node.ID = uuid.New().String()
+		node.ID = data.NewID()
+	} else if err := data.ValidID(node.ID); err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
 	} else if !p.full {
 		// an ID the caller chose may name a node that already exists,
 		// which would attach it under the parent: only allowed when

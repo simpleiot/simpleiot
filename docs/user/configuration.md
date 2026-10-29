@@ -258,7 +258,7 @@ To export the entire tree:
 
 A subset of the tree can be exported by specifying the node ID:
 
-`siot export -nodeID 9d7c1c03-0908-4f8b-86d7-8e79184d441d > export.yaml`
+`siot export -nodeID 37f5d5ytag9g6920tx6y9edwbr > export.yaml`
 
 An export describes configuration and nothing else, which is what makes it
 usable as a provisioning file:

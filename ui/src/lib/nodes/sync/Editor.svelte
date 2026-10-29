@@ -4,24 +4,40 @@
 	import CounterWithReset from "#lib/inputs/CounterWithReset.svelte"
 	import NumberInput from "#lib/inputs/NumberInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
-	import { getText } from "#lib/siot/point.ts"
+	import Value from "#lib/inputs/Value.svelte"
+	import { onlineStatus } from "#lib/siot/node.ts"
+	import { get, getText } from "#lib/siot/point.ts"
 	import { PointType } from "#lib/siot/schema.ts"
 	import type { EditorProps } from "../types.ts"
 	import RefreshCwIcon from "@lucide/svelte/icons/refresh-cw"
+	import Cloud from "@lucide/svelte/icons/cloud"
+	import CloudOff from "@lucide/svelte/icons/cloud-off"
 
 	let props: EditorProps = $props()
 
 	const error = $derived(getText(props.node.points, PointType.Error))
 	const authToken = $derived(getText(props.node.points, PointType.AuthToken))
 	const pubKey = $derived(getText(props.node.points, PointType.PubKey))
+	// the sync client sets online when the upstream connection comes up or
+	// drops
+	const online = $derived(get(props.node.points, PointType.Online))
+	const status = $derived(onlineStatus(props.node.points, props.now))
 </script>
 
 <NodeEditor {props} icon={RefreshCwIcon} labelWidth={180}>
 	{#snippet header()}
+		{#if online?.value === 0}
+			<CloudOff size={20} />
+		{:else if online?.value === 1}
+			<Cloud size={20} />
+		{/if}
 		{#if error !== ""}
 			<span class="error">({error})</span>
 		{/if}
 	{/snippet}
+	{#if status !== ""}
+		<Value label="Status">{status}</Value>
+	{/if}
 	<TextInput type={PointType.Description} label="Description" />
 	<TextInput type={PointType.URI} label="URI" placeholder="nats://myserver:4222, ws://myserver" />
 	<TextInput type={PointType.AuthToken} label="Auth Token" />

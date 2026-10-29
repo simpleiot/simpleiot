@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nkeys"
 	"github.com/simpleiot/simpleiot/client"
@@ -147,7 +146,7 @@ func (e *enroller) enroll(req client.EnrollRequest, reply string) (string, error
 	autoApprove := tok.autoApprove && created
 
 	cred := client.DeviceCred{
-		ID:          uuid.New().String(),
+		ID:          data.NewID(),
 		Parent:      req.DeviceID,
 		Description: "enrolled " + time.Now().Format(time.RFC3339),
 		PubKey:      req.PubKey,

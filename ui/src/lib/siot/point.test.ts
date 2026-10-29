@@ -3,9 +3,11 @@ import {
 	blankMagicValue,
 	clearText,
 	DataType,
+	formatRaw,
 	getBestDesc,
 	getTextArray,
 	mergePoints,
+	parseRaw,
 	newText,
 	sorted,
 	updatePoints,
@@ -70,5 +72,37 @@ describe("point", () => {
 	test("sorted orders integer keys numerically", () => {
 		const out = sorted([pt("a", "10", ""), pt("a", "2", ""), pt("a", "x", ""), pt("0", "0", "")])
 		expect(out.map((p) => `${p.type}.${p.key}`)).toEqual(["0.0", "a.2", "a.10", "a.x"])
+	})
+
+	test("formatRaw quotes strings and leaves numbers bare", () => {
+		const num = (dataType: number, value: number): Point => ({
+			...pt("v", "0", ""),
+			dataType,
+			value,
+		})
+		expect(formatRaw(pt("d", "0", 'say "hi"'))).toBe('"say \\"hi\\""')
+		expect(formatRaw(num(DataType.Float, 2.5))).toBe("2.5")
+		expect(formatRaw(num(DataType.Int, 5))).toBe("5")
+		expect(formatRaw(num(DataType.Unknown, 0))).toBe("")
+	})
+
+	test("parseRaw reads strings and numbers and keeps a number's type", () => {
+		const parse = (s: string, prev?: Point) => parseRaw(s, prev, "v", "0", t0)
+		const float: Point = { ...pt("v", "0", ""), dataType: DataType.Float, value: 5 }
+		const int: Point = { ...float, dataType: DataType.Int }
+		expect(parse('"12"')).toMatchObject({ dataType: DataType.String, text: "12", value: 0 })
+		expect(parse('"a\\"b"')?.text).toBe('a"b')
+		expect(parse("12")).toMatchObject({ dataType: DataType.Int, value: 12, text: "" })
+		expect(parse("1.5")?.dataType).toBe(DataType.Float)
+		expect(parse("6", float)?.dataType).toBe(DataType.Float)
+		expect(parse("6", int)?.dataType).toBe(DataType.Int)
+		expect(parse("6.5", int)?.dataType).toBe(DataType.Float)
+		expect(parse('"x"', { ...pt("v", "0", "{}"), dataType: DataType.JSON })?.dataType).toBe(
+			DataType.JSON
+		)
+		expect(parse("")?.dataType).toBe(DataType.Unknown)
+		expect(parse("abc")).toBeUndefined()
+		expect(parse('"abc')).toBeUndefined()
+		expect(parse("1.")).toMatchObject({ value: 1 })
 	})
 })
