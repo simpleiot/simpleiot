@@ -97,6 +97,41 @@ The stream `inst_<b>_<o>` captures `inst.<b>.<o>.>`. Edges are stored with the
 **parent** node's boundary, so the edge attaching a device into a hub's tree
 lives in the hub's stream — the device never needs it.
 
+### How these differ from typical NATS subjects
+
+A typical NATS subject names a category of message, such as `orders.us.created`.
+A Simple IoT subject names one data value, a single point on a single node, so
+it works more like a database key than a topic.
+
+|               | Typical NATS                           | Simple IoT                                |
+| ------------- | -------------------------------------- | ----------------------------------------- |
+| Example       | `orders.us.created`                    | `p.<nodeID>.<type>.<key>`                 |
+| Subject names | An event or message class              | One point on one node                     |
+| Tokens        | A small, readable vocabulary           | Mostly UUIDs, plus the point type and key |
+| Hierarchy     | Follows the business domain            | Flat; the node tree is not in the subject |
+| Payload       | Carries the meaning, often as JSON     | A binary point; the subject identifies it |
+| Stream layout | A few streams, each capturing a domain | One stream per boundary and origin pair   |
+
+This design shapes how the system behaves:
+
+- **Subtrees use fan-out.** A node can sit in several places in the tree, so its
+  subject cannot contain a path. The store publishes each point once for every
+  ancestor on `up.<upID>.…`, and subscribing to `up.<id>.>` delivers a whole
+  subtree.
+- **Subjects hold state and history.** The last message on a storage subject is
+  the point's current value, and earlier messages are its history. Retention is
+  set per subject, so every point keeps its own bounded time series. See
+  [retention](#retention-and-durability).
+- **Subjects carry access control.** IDs in subjects let the NATS server enforce
+  device and user scope with subject permissions. See [security](./security.md).
+- **Token positions matter.** Listeners read IDs from fixed positions, so a
+  point type or key may not contain a period. See
+  [the data reference](./data.md#the-point-type-and-key-character-constraint).
+
+Long subjects are the main cost of this design, because a storage subject
+carries three UUIDs. See
+[what a point costs](./bandwidth.md#what-a-point-costs).
+
 ## Current state: merge of subject tips
 
 The current value of a point is the **tip** (last message) of its storage

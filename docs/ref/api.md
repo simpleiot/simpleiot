@@ -43,6 +43,9 @@ point on the node so the sender can be found. A client that generates keys from
 names it does not control -- sysfs device names, mount points, network interface
 names -- should pass them through `data.SubjectSafeToken` first.
 
+To see how these subjects compare with typical NATS usage, see
+[the store reference](./store.md#how-these-differ-from-typical-nats-subjects).
+
 - Nodes
   - `nodes.<parentId>.<nodeId>.<type>.<key>`
     - Request/response -- returns an array of `data.EdgeNode` structs.
