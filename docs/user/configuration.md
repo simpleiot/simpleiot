@@ -185,6 +185,25 @@ nodes:
 Entries apply in the order they are written, so a `parent` naming a node the
 same file creates has to come after the entry that creates it.
 
+### Configuring this instance
+
+A `root` section sets points on this instance's own device node, such as its
+description and tags:
+
+```yaml
+root:
+  description: Pump station 4
+  tag: [north, pumps]
+nodes:
+  - group:
+      description: Sensors
+```
+
+The section holds points only. It describes whichever instance applies the file,
+so it never creates or matches a node, and `parent`, `children`, and
+`edgePoints` do not apply in it. Like any other entry, it sends only the points
+that differ, and it leaves points it does not mention alone.
+
 ### Referring to another node
 
 A point of type `nodeID` names the node it refers to by description, and is
@@ -239,14 +258,14 @@ To export the entire tree:
 
 A subset of the tree can be exported by specifying the node ID:
 
-`siot export -nodeID 9d7c1c03-0908-4f8b-86d7-8e79184d441d > export.yaml`
+`siot export -nodeID 37f5d5ytag9g6920tx6y9edwbr > export.yaml`
 
 An export describes configuration and nothing else, which is what makes it
 usable as a provisioning file:
 
-- The root node is left out. It is this instance rather than configuration, and
-  a file describing it would match nothing anywhere else. Exporting the tree
-  exports what is under the root.
+- The root node is left out. It is this instance rather than configuration, so
+  exporting the tree exports what is under the root. Add a `root` section by
+  hand to give an instance its description and tags.
 - Node IDs are left out, since a file finds its nodes by description. A `nodeID`
   point is written as the description of the node it points at.
 - Points that carry no value are left out, as is the origin recording which

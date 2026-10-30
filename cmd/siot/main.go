@@ -23,7 +23,6 @@ import (
 	"time"
 
 	yaml "github.com/goccy/go-yaml"
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nkeys"
 	"github.com/oklog/run"
@@ -835,7 +834,7 @@ func runKey(args []string) {
 //
 //	siot cred add -device ID|DESCRIPTION -pubKey KEY [-description TEXT]
 //	siot cred approve ID
-//	siot cred token [-description TEXT] [-autoApprove] [-expires DURATION]
+//	siot cred token [-parent ID|DESCRIPTION] [-description TEXT] [-autoApprove] [-expires DURATION]
 //	siot cred list
 //	siot cred enable ID
 //	siot cred disable ID
@@ -878,7 +877,9 @@ func runCred(args []string) {
 		if err != nil && err != data.ErrDocumentNotFound {
 			log.Fatal("Error listing credentials: ", err)
 		}
-		fmt.Printf("%-36v  %-36v  %-9v  %-56v  %v\n", "ID", "DEVICE", "STATE", "PUBKEY", "DESCRIPTION")
+		enrolledBy := enrollTokenNames(nc)
+		fmt.Printf("%-36v  %-36v  %-9v  %-56v  %-24v  %v\n", "ID", "DEVICE", "STATE", "PUBKEY",
+			"ENROLLED BY", "DESCRIPTION")
 		for _, c := range creds {
 			var cred client.DeviceCred
 			if err := data.Decode(data.NodeEdgeChildren{NodeEdge: c}, &cred); err != nil {
@@ -895,8 +896,15 @@ func runCred(args []string) {
 			if cred.Connected {
 				state += "*"
 			}
-			fmt.Printf("%-36v  %-36v  %-9v  %-56v  %v\n", cred.ID, cred.Parent, state,
-				cred.PubKey, cred.Description)
+			by := "-"
+			if cred.EnrolledBy != "" {
+				by = enrolledBy[cred.EnrolledBy]
+				if by == "" {
+					by = cred.EnrolledBy
+				}
+			}
+			fmt.Printf("%-36v  %-36v  %-9v  %-56v  %-24v  %v\n", cred.ID, cred.Parent, state,
+				cred.PubKey, by, cred.Description)
 		}
 		fmt.Println("(* connected)")
 
@@ -962,7 +970,7 @@ func runCredAdd(args []string) {
 	}
 
 	cred := client.DeviceCred{
-		ID:          uuid.New().String(),
+		ID:          data.NewID(),
 		Parent:      deviceID,
 		Description: *flagDescription,
 		PubKey:      pubKey,
@@ -981,6 +989,7 @@ func runCredAdd(args []string) {
 // once.
 func runCredToken(args []string) {
 	flags := flag.NewFlagSet("cred token", flag.ExitOnError)
+	flagParent := flags.String("parent", "", "group (ID or description) new devices are created in; the root when empty")
 	flagDescription := flags.String("description", "", "token description")
 	flagAutoApprove := flags.Bool("autoApprove", false, "approve enrolled credentials straight away")
 	flagExpires := flags.Duration("expires", 0, "refuse the token after this long (for example 720h); zero never expires")
@@ -998,14 +1007,22 @@ func runCredToken(args []string) {
 		log.Fatal("Error getting root node: ", err)
 	}
 
+	parent := root.ID
+	if *flagParent != "" && *flagParent != root.ID {
+		parent, err = findNode(nc, data.NodeTypeGroup, *flagParent)
+		if err != nil {
+			log.Fatal("An enrollment token goes under the root or a group: ", err)
+		}
+	}
+
 	token, hash, err := client.GenerateEnrollToken()
 	if err != nil {
 		log.Fatal("Error generating token: ", err)
 	}
 
 	et := client.EnrollToken{
-		ID:          uuid.New().String(),
-		Parent:      root.ID,
+		ID:          data.NewID(),
+		Parent:      parent,
 		Description: *flagDescription,
 		TokenHash:   hash,
 		AutoApprove: *flagAutoApprove,
@@ -1026,19 +1043,25 @@ func runCredToken(args []string) {
 // findDevice resolves a device node by ID, or by description when exactly
 // one device node matches.
 func findDevice(nc *nats.Conn, idOrDesc string) (string, error) {
-	nodes, err := client.GetNodes(nc, "all", idOrDesc, data.NodeTypeDevice, false)
+	return findNode(nc, data.NodeTypeDevice, idOrDesc)
+}
+
+// findNode resolves a node of one type by ID, or by description when
+// exactly one node of that type matches.
+func findNode(nc *nats.Conn, typ, idOrDesc string) (string, error) {
+	nodes, err := client.GetNodes(nc, "all", idOrDesc, typ, false)
 	if err == nil && len(nodes) > 0 {
 		return nodes[0].ID, nil
 	}
 
-	devices, err := client.GetNodes(nc, "all", "all", data.NodeTypeDevice, false)
-	if err != nil {
-		return "", fmt.Errorf("error listing devices: %w", err)
+	all, err := client.GetNodes(nc, "all", "all", typ, false)
+	if err != nil && err != data.ErrDocumentNotFound {
+		return "", fmt.Errorf("error listing %v nodes: %w", typ, err)
 	}
 
 	var matches []string
 	seen := map[string]bool{}
-	for _, d := range devices {
+	for _, d := range all {
 		if seen[d.ID] {
 			continue
 		}
@@ -1052,10 +1075,55 @@ func findDevice(nc *nats.Conn, idOrDesc string) (string, error) {
 	case 1:
 		return matches[0], nil
 	case 0:
-		return "", fmt.Errorf("no device node with ID or description %q", idOrDesc)
+		return "", fmt.Errorf("no %v node with ID or description %q", typ, idOrDesc)
 	default:
-		return "", fmt.Errorf("%v device nodes are described %q, give the ID instead", len(matches), idOrDesc)
+		return "", fmt.Errorf("%v %v nodes are described %q, give the ID instead", len(matches), typ, idOrDesc)
 	}
+}
+
+// enrollTokenNames maps each enrollment token node ID to its description
+// and the node it sits in, as "fleet (Customer A)".
+func enrollTokenNames(nc *nats.Conn) map[string]string {
+	names := map[string]string{}
+	tokens, err := client.GetNodes(nc, "all", "all", data.NodeTypeEnrollToken, false)
+	if err != nil {
+		return names
+	}
+
+	parentNames := map[string]string{}
+	parentName := func(id string) string {
+		if n, ok := parentNames[id]; ok {
+			return n
+		}
+		n := id
+		nodes, err := client.GetNodes(nc, "all", id, "", false)
+		if err == nil && len(nodes) > 0 {
+			if nodes[0].Parent == "root" {
+				n = "root"
+			} else if desc := nodes[0].Desc(); desc != "" {
+				n = desc
+			}
+		}
+		parentNames[id] = n
+		return n
+	}
+
+	descs := map[string]string{}
+	wheres := map[string][]string{}
+	for _, t := range tokens {
+		desc, _ := t.Points.Text(data.PointTypeDescription, "")
+		if desc == "" {
+			desc = t.ID
+		}
+		descs[t.ID] = desc
+		wheres[t.ID] = append(wheres[t.ID], parentName(t.Parent))
+	}
+
+	for id, desc := range descs {
+		names[id] = desc + " (" + strings.Join(wheres[id], ", ") + ")"
+	}
+
+	return names
 }
 
 // connectCLI connects a command to the local instance using the usual

@@ -10,7 +10,7 @@ RECOMMENDED_ELM_VERSION=0.19.1
 # map tools from project go modules
 
 air() {
-	go run github.com/cosmtrek/air "$@"
+	go run github.com/air-verse/air "$@"
 }
 
 siot_install_proto_gen_go() {
@@ -20,8 +20,8 @@ siot_install_proto_gen_go() {
 
 siot_install_frontend_deps() {
 	(cd "frontend" && npm install)
-	(cd "frontend" && npx elm-tooling install)
 	(cd "frontend/lib" && npm ci)
+	(cd "ui" && npm ci)
 }
 
 siot_check_elm() {
@@ -63,12 +63,20 @@ siot_check_go() {
 siot_setup() {
 	siot_check_go || return 1
 	siot_install_frontend_deps
+	return 0
+}
+
+# The old Elm UI is not rebuilt during normal work; the build uses the
+# compiled files committed in frontend/public/dist. Run siot_setup_elm once
+# before siot_build_elm, siot_watch_elm, or siot_test_elm.
+siot_setup_elm() {
+	(cd "frontend" && npx elm-tooling install) || return 1
 	# the following is to work around a race condition
 	# where the first time you run npx elm, you get an error:
 	# elm: Text file busy
 	(cd frontend && (npx elm || true))
 	# make sure elm-spa auto-generated stuff is set up
-	(cd frontend && npx elm-spa build)
+	(cd frontend && npx elm-spa build) || return 1
 	return 0
 }
 
@@ -83,7 +91,8 @@ siot_build_frontend_js() {
 	return 0
 }
 
-siot_build_frontend() {
+# Rebuild the old Elm UI and its JavaScript into frontend/public/dist.
+siot_build_elm() {
 	# send build output to stderr so that redirecting stdout (for example
 	# siot_run export > nodes.yaml) captures only the program output
 	(cd "frontend" && npx elm-spa build >&2) || return 1
@@ -95,6 +104,25 @@ siot_build_frontend() {
 	for f in $siot_frontend_js_files; do
 		gzip -nf "frontend/public/dist/$f" || return 1
 	done
+	return 0
+}
+
+# The old Elm UI is served from the files committed in frontend/public/dist,
+# so only the Svelte UI is built here.
+siot_build_frontend() {
+	siot_build_ui || return 1
+	return 0
+}
+
+# The Svelte UI, served at /. npm run build runs svelte-check first, so a
+# type error fails the build. The hashed files under _app are gzipped like
+# elm.js; index.html stays as is, since the server reads it for the
+# content security policy.
+siot_build_ui() {
+	# npm i <package> skips the postinstall script that keeps Go out of
+	# node_modules, so it runs here as well
+	(cd ui && npm run --silent postinstall && npm run --silent build >&2) || return 1
+	find ui/build/_app -type f ! -name '*.gz' -exec gzip -nf {} + || return 1
 	return 0
 }
 
@@ -174,12 +202,22 @@ siot_watch_elm() {
 	(cd frontend && npx elm-watch hot) || false
 }
 
+# The Vite dev server serves the Svelte UI at http://localhost:5173/ and
+# proxies the API, the Elm UI at /old, and the NATS WebSocket to siot's HTTP port (SIOT_HTTP_PORT,
+# or one above SIOT_NATS_PORT, as siot itself picks it).
+siot_watch_ui() {
+	(cd ui && npx vite dev) || false
+}
+
+# Type-check the Svelte UI on each change; vite dev does not type-check.
+siot_watch_ui_check() {
+	(cd ui && npx svelte-kit sync && npx svelte-check --watch) || false
+}
+
 siot_watch() {
-	# the JavaScript is served as is in dev mode; rerun
-	# siot_build_frontend_js after editing frontend/lib
-	siot_build_frontend_js || return 1
 	npx run-pty \
-		% /bin/sh -c ". ./envsetup.sh && siot_watch_elm" \
+		% /bin/sh -c ". ./envsetup.sh && siot_watch_ui" \
+		% /bin/sh -c ". ./envsetup.sh && siot_watch_ui_check" \
 		% /bin/sh -c ". ./envsetup.sh && siot_watch_go $*"
 }
 
@@ -194,9 +232,21 @@ check_go_format() {
 }
 
 siot_test_frontend() {
-	(cd frontend && npx elm-test || return 1) || return 1
-	(cd frontend && npx elm-review || return 1) || return 1
 	siot_test_frontend_js || return 1
+	siot_test_ui || return 1
+}
+
+siot_test_elm() {
+	(cd frontend && npx elm-test) || return 1
+	(cd frontend && npx elm-review) || return 1
+}
+
+# Lint (prettier and eslint), type-check (svelte-check), and unit-test
+# (vitest) the Svelte UI.
+siot_test_ui() {
+	(cd ui && npm run --silent lint) || return 1
+	(cd ui && npm run --silent check) || return 1
+	(cd ui && npm test --silent) || return 1
 }
 
 # the codec tests check the JavaScript encoder against fixtures the Go
@@ -204,6 +254,49 @@ siot_test_frontend() {
 siot_test_frontend_js() {
 	(cd frontend && npx eslint public/main.js lib/*.js || return 1) || return 1
 	(cd frontend/lib && npm test || return 1) || return 1
+}
+
+# The browser smoke test (ui/e2e) is opt-in: it is not part of siot_test or
+# CI. It builds siot with the UI, starts it with a fresh data directory on
+# scratch ports (SIOT_E2E_NATS_PORT, 15222 by default, and the HTTP port one
+# above), runs Playwright against it, and stops it. Run
+# `(cd ui && npx playwright install chromium)` once first, or set
+# SIOT_E2E_CHANNEL=chrome to use an installed Chrome.
+siot_test_ui_browser() {
+	siot_build_frontend || return 1
+	_e2e_dir=$(mktemp -d) || return 1
+	go build -o "$_e2e_dir/siot" ./cmd/siot || {
+		rm -rf "$_e2e_dir"
+		return 1
+	}
+	_e2e_nats=${SIOT_E2E_NATS_PORT:-15222}
+	_e2e_http=$((_e2e_nats + 1))
+	SIOT_DATA="$_e2e_dir/data" SIOT_NATS_PORT=$_e2e_nats SIOT_HTTP_PORT=$_e2e_http \
+		"$_e2e_dir/siot" serve >"$_e2e_dir/siot.log" 2>&1 &
+	_e2e_pid=$!
+	_e2e_up=0
+	for _ in $(seq 1 60); do
+		if curl -sf -o /dev/null "http://localhost:$_e2e_http/"; then
+			_e2e_up=1
+			break
+		fi
+		sleep 0.5
+	done
+	_e2e_rc=1
+	if [ $_e2e_up = 1 ]; then
+		(cd ui && SIOT_E2E_URL="http://localhost:$_e2e_http" npx playwright test)
+		_e2e_rc=$?
+	else
+		echo "siot did not start; see $_e2e_dir/siot.log" >&2
+	fi
+	kill $_e2e_pid
+	wait $_e2e_pid 2>/dev/null
+	if [ $_e2e_rc = 0 ]; then
+		rm -rf "$_e2e_dir"
+	else
+		echo "siot log kept in $_e2e_dir/siot.log" >&2
+	fi
+	return $_e2e_rc
 }
 
 siot_frontend_fix() {
@@ -250,8 +343,8 @@ siot_format_md_check() {
 siot_format() {
 	echo "Formatting Go code..."
 	gofmt -w .
-	echo "Formatting Elm code..."
-	(cd frontend && npx elm-format --yes src/)
+	echo "Formatting the Svelte UI..."
+	(cd ui && npm run --silent format)
 	echo "Formatting Markdown..."
 	siot_format_md || return 1
 	return 0
@@ -320,8 +413,8 @@ siot_goreleaser_build() {
 # Releasing is two steps:
 #
 #   1. move the CHANGELOG.md "[Unreleased]" entries under a
-#      "## [X.Y.Z] - <date>" heading, rebuild the frontend assets
-#      (siot_build_frontend), and commit both to master
+#      "## [X.Y.Z] - <date>" heading and commit it to master. The UI build in
+#      ui/build is committed with each UI change, so it is already current
 #   2. siot_tag
 #
 # Pushing the tag starts the Release workflow (.github/workflows/release.yml),

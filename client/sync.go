@@ -32,10 +32,14 @@ type Sync struct {
 	// Error says why the upstream is not connected when the reason is not
 	// going to fix itself, such as a refused credential. The client
 	// maintains it.
-	Error          string `point:"error"`
-	Disabled       bool   `point:"disabled"`
-	SyncCount      int    `point:"syncCount"`
-	SyncCountReset bool   `point:"syncCountReset"`
+	Error string `point:"error"`
+	// Online is set while the upstream connection is up. The client
+	// maintains it, so its time is when the connection came up or
+	// dropped.
+	Online         bool `point:"online"`
+	Disabled       bool `point:"disabled"`
+	SyncCount      int  `point:"syncCount"`
+	SyncCountReset bool `point:"syncCountReset"`
 	// TxBytes and RxBytes total the traffic on the upstream
 	// connection, including TLS and NATS protocol overhead. The client
 	// maintains them and reports every BytesReportPeriod seconds.
@@ -134,6 +138,8 @@ func (up *SyncClient) Run() error {
 
 	connectTimer := time.NewTimer(time.Millisecond * 10)
 	connected := false
+	// a stored online point outlives a crash, and nothing is connected yet
+	up.setOnline(false)
 
 done:
 	for {
@@ -157,9 +163,11 @@ done:
 			if conn && !connected {
 				connected = true
 				up.setError("")
+				up.setOnline(true)
 				up.startSession()
 			} else if !conn && connected {
 				connected = false
+				up.setOnline(false)
 				up.stopSession()
 			}
 
@@ -168,6 +176,7 @@ done:
 			// it twice, typically because the credential was
 			// revoked); keep running standalone and try again later
 			connected = false
+			up.setOnline(false)
 			up.stopSession()
 			refused := up.ncRemote != nil &&
 				errors.Is(up.ncRemote.LastError(), nats.ErrAuthorization)
@@ -201,6 +210,7 @@ done:
 					data.PointTypePubKey:
 					// we need to restart the sync connection
 					connected = false
+					up.setOnline(false)
 					up.stopSession()
 					up.disconnect()
 					connectTimer.Reset(10 * time.Millisecond)
@@ -258,6 +268,7 @@ done:
 
 	up.stopSession()
 	up.disconnect()
+	up.setOnline(false)
 	up.reportBytes()
 
 	return nil
@@ -416,6 +427,20 @@ func (up *SyncClient) setError(msg string) {
 		data.NewPointString(data.PointTypeError, "", msg), false)
 	if err != nil {
 		log.Println("Error sending sync error:", err)
+	}
+}
+
+// setOnline records on the sync node whether the upstream connection is
+// up, sending the point only when it changes.
+func (up *SyncClient) setOnline(online bool) {
+	if up.config.Online == online {
+		return
+	}
+	up.config.Online = online
+	err := SendNodePoint(up.nc, up.config.ID,
+		data.NewPointFloat(data.PointTypeOnline, "", data.BoolToFloat(online)), false)
+	if err != nil {
+		log.Println("Error sending sync online:", err)
 	}
 }
 

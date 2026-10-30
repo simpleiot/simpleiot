@@ -108,6 +108,10 @@ What decides the outcome:
 - **An entry with no description matches the single node of its type**, which is
   how a `metrics` or `serial` node is addressed. A user has no description, so
   it is found by `email`, and by name when there is no email.
+- **A `root:` section sets points on the instance's own device node**, such as
+  its `description` and `tag`. It holds points only, at the top of the file
+  beside `nodes:`, and is what to use for "name this device" or "tag this
+  instance".
 - `apiVersion: 1` is optional. Adding it costs nothing and says which format the
   file is in.
 

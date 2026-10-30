@@ -57,22 +57,18 @@ but just as important, in the deployment and tooling.
   - Single Page Application (SPA) architecture
     - Fits well with real-time applications where data is changing all the time
     - Easier to transition to Progressive Web Apps (PWA)
-  - [Elm](https://elm-lang.org/)
-    - Nice balance of safety + productivity
-    - Excellent compiler messages
-    - Reduces possibility for run time exceptions in browser
-    - Does not require a huge/complicated/fragile build system typical in
-      JavaScript frontends.
-    - excellent choice for SPAs
-  - [elm-ui](https://github.com/mdgriffith/elm-ui)
-    - What if you never had to write CSS again?
-    - Fun, yet powerful way to lay out a user interface and allows you to
-      efficiently make changes and get the layout you want.
+  - [Svelte](https://svelte.dev/) with strict TypeScript
+    - Compiles to small bundles with little runtime code
+    - Components read close to plain HTML, CSS, and TypeScript, so they are
+      approachable for most developers
+    - Strict type checks catch most errors at build time
+    - Widely used, with good tooling and documentation
 - **Database**
-  - SQLite
+  - [NATS JetStream](https://docs.nats.io/nats-concepts/jetstream), embedded in
+    every instance
+    - The same technology that moves messages between components also persists
+      and replicates them, so there is no separate database to run
     - See [Store](store.md)
-  - Eventually support multiple database backends depending on scaling/admin
-    needs
 - **Cloud Hosting**
   - Any machine that provides ability run long-lived Go applications
   - Any MAC/Linux/Windows/rPI/Beaglebone/Odroid/etc. computer on your local
@@ -83,17 +79,10 @@ but just as important, in the deployment and tooling.
   - Any device that runs Linux (rPI, Beaglebone-black, industrial SBCs, your
     custom hardware ...)
 
-In our experience, simplicity and good tooling matter. It is easy to add
-features to a language, but creating a useful language/tooling that is simple is
-hard. Since we are using Elm on the frontend, it might seem appropriate to
-select a functional language like Elixir, Scala, Clojure, Haskell, etc. for the
-backend. These environments are likely excellent for many projects, but are also
-considerably more complex to work in. The programming style (procedural,
-functional, etc.) is important, but other factors such as
-simplicity/tooling/deployment are also important, especially for small teams who
-don't have separate staff for backend/frontend/operations. Learning two simple
-languages (Go and Elm) is a small task compared to dealing with huge languages,
-fussy build tools, and complex deployment environments.
+In our experience, simplicity and good tooling matter, especially for small
+teams who don't have separate staff for backend/frontend/operations. Learning
+two simple languages (Go and Svelte) is a small task compared to dealing with
+huge languages, fussy build tools, and complex deployment environments.
 
 This is just a snapshot in time - there will likely be other better technology
 choices in the future. The backend and frontend are independent. If either needs

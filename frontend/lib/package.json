@@ -4,9 +4,12 @@
   "description": "Simple IoT JavaScript client using NATS over WebSockets",
   "type": "module",
   "main": "siot-nats.js",
+  "types": "siot-nats.d.ts",
   "files": [
     "siot-nats.js",
-    "codec.js"
+    "siot-nats.d.ts",
+    "codec.js",
+    "codec.d.ts"
   ],
   "scripts": {
     "test": "node --test test.js",

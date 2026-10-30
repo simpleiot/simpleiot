@@ -55,6 +55,8 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 
 	// configuration options
 	flagDebugHTTP := flags.Bool("debugHttp", false, "dump http requests")
+	// SIOT_DEBUG_LIFECYCLE turns this on as well, which is how it is reached
+	// on an installed service that runs siot without arguments
 	flagDebugLifecycle := flags.Bool("debugLifecycle", false, "debug program lifecycle")
 	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
 	flagNatsDisableServer := flags.Bool("natsDisableServer", false, "disable NATS server (if you want to run NATS separately)")
@@ -298,7 +300,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 		ResetStore:        *flagResetStore,
 		HTTPPort:          port,
 		DebugHTTP:         *flagDebugHTTP,
-		DebugLifecycle:    *flagDebugLifecycle,
+		DebugLifecycle:    *flagDebugLifecycle || os.Getenv("SIOT_DEBUG_LIFECYCLE") != "",
 		NatsServer:        natsServer,
 		NatsDisableServer: *flagNatsDisableServer,
 		NatsPort:          natsPort,

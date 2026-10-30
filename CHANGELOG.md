@@ -11,6 +11,154 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-10-29
+
+### Added
+
+- **The upstream shows whether each device is online.** It sets `online` to 1 or
+  0 on a device node when the device connects or drops, and the device editor
+  shows "Online since" or "Offline since" with the time. See
+  [device credentials](docs/user/sync.md#device-credentials).
+- **Sync nodes show whether the upstream is connected.** The sync client sets
+  `online` to 1 or 0 as the connection comes up or drops, and the sync editor
+  shows "Online since" or "Offline since" with the time.
+
+### Changed
+
+- **The raw point view shows each value in one column.** Strings appear in
+  quotes and numbers without, and you edit them the same way. An edited number
+  keeps whether it is a float or an int. The view also shows the node ID.
+- **Online state is a number you can graph.** Sparkplug edge nodes and devices
+  now carry an `online` point, 1 or 0, in place of the `sysState` text point, so
+  Victoria Metrics stores it and `avg_over_time(online[24h])` gives
+  availability. Rules that matched `sysState` text need a condition on `online`
+  with the on/off value type instead.
+- **A clone builds with Go alone.** The web UI build is now committed with each
+  UI change, so `go build` and `go install` produce a binary with the current UI
+  without Node.js.
+- **Building and running siot no longer needs the Elm toolchain.** `siot_build`,
+  `siot_run`, `siot_watch`, and `siot_test` use the committed build of the old
+  UI at `/old`. To change it, run `siot_setup_elm`, then `siot_build_elm` and
+  `siot_test_elm`. See [development](docs/ref/development.md).
+- **Long point lists start collapsed.** The metrics, serial device, and device
+  nodes show their readings behind a toggle with a count, so the settings above
+  them are easier to find.
+- **New IDs are shorter.** Nodes and instances created from now on get
+  26-character IDs in Crockford base32 instead of 36-character UUIDs, which
+  saves about 50 bytes per point on the sync link. Existing IDs are not changed.
+  Tools outside Simple IoT that expect UUIDs need to accept the new form. See
+  [node IDs](docs/ref/data.md#node-ids).
+- **NetworkManager connections keep their UUID in a `uuid` point.** The
+  connection editor shows it. Existing connection nodes are not converted:
+  delete them before upgrading, then mark the connections Simple IoT should
+  manage again once the client adds them back.
+- **IDs chosen by hand are checked.** An `--id`, or a node ID supplied through
+  the API or NATS, may use only letters, digits, and `-`, up to 64 characters,
+  and may not start with `-`. An instance whose `--id` breaks this rule no
+  longer starts, and a node with such an ID no longer accepts edge changes.
+
+### Fixed
+
+- **MCU firmware progress reaches 100% only once the image is staged.** It
+  previously showed 100% when the last chunk was sent, before the MCU had
+  checked and marked the image for test.
+- **The device editor no longer shows stale update times and metrics.** While
+  Store metrics is off, the device node's own points are rarely updated, so Last
+  update, Since update, and leftover `metricNats*` points are hidden.
+
+## [0.30.1] - 2026-10-27
+
+### Security
+
+- **Updated to NATS server 2.15.2.** A connected client can no longer amplify
+  the weight of a queue subscription in the server's routing table, and a
+  restored stream snapshot is checked for oversized subjects and block counts.
+
+### Added
+
+- **Node files can set this instance's own description and tags.** A `root:`
+  section in a file for `siot import` or provisioning sets points on the
+  instance's device node. See
+  [configuring this instance](docs/user/configuration.md#configuring-this-instance).
+
+### Fixed
+
+- **Sync and the store recover more reliably from dropped connections.** The
+  NATS Go client 1.55.0 fixes deadlocks, leaks, and stalls in reconnect, drain,
+  and ordered consumers, so a device on a flaky link reconnects and resumes
+  cleanly.
+
+## [0.30.0] - 2026-10-24
+
+### Changed
+
+- **A new web UI replaces the old one at `/`.** It does everything the old UI
+  does, and adds a link to each node, remembered expansion, search, keyboard
+  navigation, a dark theme, and each node's type and status in the tree. The old
+  UI stays available at `/old`, with the same sign-in, until a later release
+  removes it. See the [UI guide](docs/user/ui.md). Run `siot_setup` again after
+  upgrading a checkout, since it now installs the `ui/` dependencies as well.
+  The new UI is based on Svelte, vs Elm for the old.
+
+## [0.29.1] - 2026-10-22
+
+### Security
+
+- **Built with Go 1.27.3.** This release stops trusting compromised eMudhra
+  intermediate certificates when verifying TLS connections (CVE-2026-111943).
+
+## [0.29.0] - 2026-10-20
+
+### Breaking changes
+
+- **An enrollment token works only under the root or a group, and in one
+  place.** A token under a device or a deleted group, or one mirrored into two
+  groups, enrolls nothing, and the upstream log says why. Tokens created so far
+  sit under the root and keep working.
+- **Auto approve covers only a device the enrollment creates.** A key for a
+  device node that already exists, such as one added by hand before the unit
+  first connected, now waits for an operator. A device that already had a live
+  credential was pending in this case before.
+
+### Added
+
+- **An enrollment token places new devices in its own group.** Put a token in a
+  group and give it to the devices meant for that group; each appears there on
+  first connect instead of under the root, and can be moved like any node
+  afterwards. `siot cred token -parent` and the add-node list under a group
+  create one. Each credential records the token that made it as `enrolledBy`.
+  See
+  [devices that enroll themselves](docs/user/sync.md#2-devices-that-enroll-themselves).
+
+## [0.28.11] - 2026-10-20
+
+### Breaking changes
+
+- **Serial packets containing a run of 254 or more non-zero bytes are now COBS
+  encoded to the specification.** Previously a zero that followed such a run was
+  dropped, so the packet arrived corrupted. A packet that ends in such a run now
+  carries an extra `0x01` block before the delimiter. MCU firmware with a
+  standard COBS decoder needs no change; firmware written to match the earlier
+  encoding should be checked. See [serial](docs/ref/serial.md).
+
+### Changed
+
+- **Go dependencies are updated to their latest releases**, including NATS
+  server 2.15.1 and nats.go 1.54.0. The `siot_watch` hot reloader now comes from
+  `github.com/air-verse/air`, the project's new home.
+
+### Fixed
+
+- **Moving a node no longer risks a conflict in the database client's tag
+  cache.** Clearing the cache after a move could overlap with points being
+  tagged at the same moment.
+
+- **A restart no longer waits on the store's scan for replica streams.** The
+  scan ran to its own timeout against a store still recovering, which held up a
+  shutdown that arrived while it was in progress. Streams it had not reached are
+  found by the scan the next start makes, and no point is written or
+  acknowledged by this path.
+
 ## [0.28.10] - 2026-10-16
 
 ### Fixed

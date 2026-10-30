@@ -32,3 +32,6 @@ device.nkey
 *.nkey
 /jetstream_/$G/streams
 .claude/worktrees/
+/ui/.svelte-kit
+/ui/test-results
+/ui/playwright-report

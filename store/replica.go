@@ -66,6 +66,13 @@ type replicaManager struct {
 	unknown map[string]bool
 	stop    chan struct{}
 	done    chan struct{}
+
+	// ctx is cancelled by Stop. The requests a scan makes take it, so
+	// shutting down ends the one in flight rather than waiting out its
+	// deadline. Only stream discovery and consumer set-up run on it;
+	// nothing that writes points does.
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 const replicaScanPeriod = 3 * time.Second
@@ -73,12 +80,16 @@ const replicaScanPeriod = 3 * time.Second
 // runReplicaManager starts the replica watcher: it scans for replica
 // streams and runs a consumer on each until stop is closed.
 func (db *DbJetStream) runReplicaManager() *replicaManager {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	rm := &replicaManager{
 		db:      db,
 		unknown: make(map[string]bool),
 		running: make(map[string]jetstream.ConsumeContext),
 		stop:    make(chan struct{}),
 		done:    make(chan struct{}),
+		ctx:     ctx,
+		cancel:  cancel,
 	}
 
 	go func() {
@@ -106,14 +117,18 @@ func (db *DbJetStream) runReplicaManager() *replicaManager {
 	return rm
 }
 
-// Stop shuts the watcher and all replica consumers down.
+// Stop shuts the watcher and all replica consumers down. A scan that is
+// waiting on a busy store ends with it: the streams it was about to
+// consume are found by the scan the next run makes, and a replica
+// consumer holds no position of its own to lose.
 func (rm *replicaManager) Stop() {
+	rm.cancel()
 	close(rm.stop)
 	<-rm.done
 }
 
 func (rm *replicaManager) scan() {
-	ctx := context.Background()
+	ctx := rm.ctx
 	self := rm.db.meta.RootID
 
 	lister := rm.db.js.ListStreams(ctx, jetstream.WithStreamListSubject("inst.>"))
@@ -139,6 +154,9 @@ func (rm *replicaManager) scan() {
 
 		cc, err := rm.consumeReplica(si.Config.Name, origin)
 		if err != nil {
+			if ctx.Err() != nil {
+				return
+			}
 			log.Printf("STORE: error consuming replica %v: %v", si.Config.Name, err)
 			continue
 		}
@@ -148,7 +166,7 @@ func (rm *replicaManager) scan() {
 		rm.running[si.Config.Name] = cc
 		rm.mu.Unlock()
 	}
-	if err := lister.Err(); err != nil {
+	if err := lister.Err(); err != nil && ctx.Err() == nil {
 		log.Println("STORE: error listing replica streams:", err)
 	}
 }
@@ -190,8 +208,8 @@ func (rm *replicaManager) applyPolicy(cfg jetstream.StreamConfig) {
 	cfg.MaxMsgsPerSubject = wantMsgs
 	cfg.Compression = wantCompression
 
-	_, err := rm.db.js.UpdateStream(context.Background(), cfg)
-	if err != nil {
+	_, err := rm.db.js.UpdateStream(rm.ctx, cfg)
+	if err != nil && rm.ctx.Err() == nil {
 		log.Printf("STORE: error applying storage policy to %v: %v",
 			cfg.Name, err)
 	}
@@ -204,7 +222,7 @@ func (rm *replicaManager) applyPolicy(cfg jetstream.StreamConfig) {
 // Tips already merged by the startup pre-population merge again as no
 // change; broadcasts are gated until the backlog drains.
 func (rm *replicaManager) consumeReplica(name, origin string) (jetstream.ConsumeContext, error) {
-	ctx := context.Background()
+	ctx := rm.ctx
 
 	s, err := rm.db.js.Stream(ctx, name)
 	if err != nil {

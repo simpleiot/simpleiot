@@ -427,3 +427,75 @@ func TestCheckUser(t *testing.T) {
 		})
 	}
 }
+
+// TestEnrollTokenParents checks that the authorizer records where an
+// enrollment token sits: the group it is created in, both groups when it
+// is mirrored, and its new place when it is moved.
+func TestEnrollTokenParents(t *testing.T) {
+	nc, root, stop, err := TestServerOpts(TestServerOptions)
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+	defer stop()
+
+	for _, g := range []string{"g1", "g2"} {
+		grp := client.Group{ID: g, Parent: root.ID, Description: g}
+		if err := client.SendNodeType(nc, grp, "test"); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	a := newAuthorizer("", "")
+	a.nc = nc
+	a.ready = true
+
+	makeToken := func(id, parent string) string {
+		token, hash, err := client.GenerateEnrollToken()
+		if err != nil {
+			t.Fatal(err)
+		}
+		et := client.EnrollToken{ID: id, Parent: parent, TokenHash: hash}
+		if err := client.SendNodeType(nc, et, "test"); err != nil {
+			t.Fatal(err)
+		}
+		return token
+	}
+
+	parents := func(id, token string) []string {
+		t.Helper()
+		a.refreshEnroll(id)
+		info, ok := a.EnrollToken(token)
+		if !ok {
+			t.Fatalf("token %v is not live", id)
+		}
+		if info.nodeID != id {
+			t.Fatalf("token %v reports node %v", id, info.nodeID)
+		}
+		slices.Sort(info.parents)
+		return info.parents
+	}
+
+	tok1 := makeToken("et1", "g1")
+	if got := parents("et1", tok1); !slices.Equal(got, []string{"g1"}) {
+		t.Errorf("token in g1 reports parents %v", got)
+	}
+
+	if err := client.MirrorNode(nc, "et1", "g1", "g2", "test"); err != nil {
+		t.Fatal(err)
+	}
+	if got := parents("et1", tok1); !slices.Equal(got, []string{"g1", "g2"}) {
+		t.Errorf("mirrored token reports parents %v", got)
+	}
+
+	tok2 := makeToken("et2", root.ID)
+	if got := parents("et2", tok2); !slices.Equal(got, []string{root.ID}) {
+		t.Errorf("token under the root reports parents %v", got)
+	}
+
+	if err := client.MoveNode(nc, "et2", root.ID, "g2", "test"); err != nil {
+		t.Fatal(err)
+	}
+	if got := parents("et2", tok2); !slices.Equal(got, []string{"g2"}) {
+		t.Errorf("token moved to g2 reports parents %v", got)
+	}
+}

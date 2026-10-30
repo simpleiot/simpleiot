@@ -10,12 +10,16 @@ import (
 	"strings"
 
 	nm "github.com/Wifx/gonetworkmanager/v2"
+	"github.com/google/uuid"
 )
 
 // NetworkManagerConn defines a NetworkManager connection
 type NetworkManagerConn struct {
-	ID          string `node:"id"` // matches UUID in NetworkManager
-	Parent      string `node:"parent"`
+	ID     string `node:"id"`
+	Parent string `node:"parent"`
+	// UUID identifies the connection in NetworkManager. A node added in
+	// the tree has none until the client assigns one on its next sync.
+	UUID        string `point:"uuid"`
 	Description string `point:"description"` // matches ID in NetworkManager
 	// Type is one of the NetworkManager connection types (i.e. 802-3-ethernet)
 	// See https://developer-old.gnome.org/NetworkManager/stable/
@@ -56,7 +60,7 @@ type WiFiConfig struct {
 func ResolveNetworkManagerConn(settings nm.ConnectionSettings) NetworkManagerConn {
 	sc := settings["connection"]
 	conn := NetworkManagerConn{
-		ID:          sc["uuid"].(string),
+		UUID:        sc["uuid"].(string),
 		Description: sc["id"].(string),
 		Type:        sc["type"].(string),
 		AutoConnect: true,
@@ -97,12 +101,25 @@ func ResolveNetworkManagerConn(settings nm.ConnectionSettings) NetworkManagerCon
 	return conn
 }
 
+// assignConnUUIDs gives each connection with no NetworkManager UUID a new
+// random one, and returns the connections it changed.
+func assignConnUUIDs(conns []NetworkManagerConn) []*NetworkManagerConn {
+	var assigned []*NetworkManagerConn
+	for i := range conns {
+		if conns[i].UUID == "" {
+			conns[i].UUID = uuid.NewString()
+			assigned = append(assigned, &conns[i])
+		}
+	}
+	return assigned
+}
+
 // DBus returns an object that can be passed over D-Bus
 // Returns nil if the connection ID does not include the prefix `SimpleIoT:`
 // See https://developer-old.gnome.org/NetworkManager/stable/ch01.html
 func (c NetworkManagerConn) DBus() nm.ConnectionSettings {
 	sc := map[string]any{
-		"uuid":                 c.ID,
+		"uuid":                 c.UUID,
 		"id":                   c.Description,
 		"type":                 c.Type,
 		"autoconnect":          c.AutoConnect,
@@ -145,6 +162,8 @@ func (c NetworkManagerConn) Equal(c2 NetworkManagerConn) bool {
 		sf := t.Field(i)
 		// Skip certain fields
 		switch sf.Name {
+		case "ID":
+			continue
 		case "Parent":
 			continue
 		case "Managed":

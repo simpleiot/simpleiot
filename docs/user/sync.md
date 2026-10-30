@@ -120,6 +120,10 @@ cellular data usage. The totals continue across restarts and update every
 `bytesReportPeriod` seconds, once an hour when it is not set. `txBytesReset` and
 `rxBytesReset` start each one over. Enrollment requests are not included.
 
+The client sets `online` to 1 while the upstream connection is up and to 0 when
+it drops, so the point's time is when the connection last changed. The sync node
+shows this as its status, and it can be graphed like any other point.
+
 ## Device credentials
 
 Every instance has a device key, generated the first time it starts and kept in
@@ -150,9 +154,14 @@ its own, shows `credential refused by upstream` on its sync node, and tries
 again every minute, so re-enabling the credential brings it back with everything
 it queued while it was out.
 
-The upstream records `lastConnect` and `connected` on each credential, which is
-how to tell whether a device has connected. `siot cred list` shows every
-credential with its device and state; `siot cred disable ID`,
+The upstream records `lastConnect` and `connected` on each credential, and sets
+`online` on the device node to 1 while any of its credentials is connected and
+to 0 once none is. The device editor shows this as the device's status, with
+when it came online or went offline. The point replicates down to the device as
+well, where its own root node does not show it. After the upstream starts, a
+device that was online has two minutes to reconnect before it is marked offline,
+so a restart does not mark the whole fleet as dropped. `siot cred list` shows
+every credential with its device and state; `siot cred disable ID`,
 `siot cred enable ID`, and `siot cred rm ID` change one, and
 `siot cred add -device ID -pubKey KEY` enrolls a key by hand for a device node
 that already exists. All of the `siot cred` commands take the usual
@@ -182,11 +191,12 @@ own:
    commands use it, and every remote connection needs a credential. Enrollment
    does not use the shared token, so nothing below depends on it. See
    [configuration](configuration.md#environment-variables).
-2. On the upstream, add an **Enrollment token** node under the root and press
-   **Generate token**, or run `siot cred token -description fleet`. The token is
-   shown once; only its hash is stored. **Auto approve** (`-autoApprove`) skips
-   the approval step, and an expiry (`-expires 720h`) limits how long the token
-   works.
+2. On the upstream, add an **Enrollment token** node under the root, or under
+   the group the devices belong to, and press **Generate token**; or run
+   `siot cred token -description fleet`, where `-parent` names a group by ID or
+   description and the default is the root. The token is shown once; only its
+   hash is stored. **Auto approve** (`-autoApprove`) skips the approval step,
+   and an expiry (`-expires 720h`) limits how long the token works.
 3. Put the token on each device's sync node as `enrollToken`, with no
    `authToken`. In an image that is one line in the provisioning file:
 
@@ -200,23 +210,43 @@ own:
 
 4. When the upstream refuses the device's key, the device connects with the
    token and that key, which together allow exactly one thing, and asks for a
-   credential for it. The upstream creates the device node if it is new and a
-   credential under it marked **pending approval**; the device's sync node says
+   credential for it. The upstream creates the device node if it is new, under
+   the node the token sits in, and a credential under it marked **pending
+   approval**; the device's sync node says
    `enrollment pending approval on upstream` and keeps trying every minute.
 5. Approve the credential: uncheck **Pending** on it, or run
    `siot cred approve ID` (`siot cred list` shows pending ones). The device
    connects on its next try.
+
+A new device is created where its token sits, so one token per group sorts a
+fleet as it enrolls. With a group per customer, create a token in **Customer A**
+(`siot cred token -parent "Customer A" -description "customer A units"`) and
+another in **Customer B**, and put each customer's token in the image for their
+units. A unit built from the A image appears under Customer A on first connect,
+with its credential pending there.
+
+A token works under the root or a group only, and in one place. A token under a
+device or a deleted group, or one mirrored into two groups, enrolls nothing, and
+the upstream log says why. Moving a token sends the next new device to its new
+place. The token decides only where a device first appears; after that the
+device is an ordinary node. Move it to any group you are authorized for, and a
+later enrollment, say after a re-flash with a new key, leaves it where it is.
+
+Each credential records the token that created it as `enrolledBy`.
+`siot cred list` and the credential view show it with the token's group, so a
+pending credential from another group's token stands out before it is approved.
 
 A fleet that already syncs with the shared token moves over the other way round:
 enroll every device first, then set `SIOT_DEVICE_AUTH=required`, since a device
 still carrying an `authToken` is refused from then on.
 
 Revoking the enrollment token, by disabling or deleting its node, stops new
-enrollments and does not affect devices already enrolled. A device that enrolls
-again with a different key gets a second, pending credential, even under a token
-that approves automatically; the approved one is never replaced without an
-operator. At most 100 devices may wait for approval at once, so a token that has
-leaked cannot fill the tree.
+enrollments and does not affect devices already enrolled. **Auto approve**
+covers only a device the enrollment creates. A key for a device node that
+already exists, whether it holds a credential or was added by hand before the
+unit first connected, is always pending; an approved credential is never
+replaced without an operator. At most 100 devices may wait for approval at once,
+so a token that has leaked cannot fill the tree.
 
 Users on a device are replicated to the upstream with the rest of the device's
 tree, but they sign in on the device only; see

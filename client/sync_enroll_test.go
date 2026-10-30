@@ -13,9 +13,9 @@ import (
 	"github.com/simpleiot/simpleiot/server"
 )
 
-// makeEnrollToken creates an enrollment token under the upstream root and
-// returns the token.
-func makeEnrollToken(t *testing.T, ncU *nats.Conn, rootU data.NodeEdge, id string, autoApprove bool) string {
+// makeEnrollToken creates an enrollment token under a node on the upstream
+// and returns the token.
+func makeEnrollToken(t *testing.T, ncU *nats.Conn, parent, id string, autoApprove bool) string {
 	t.Helper()
 
 	token, hash, err := client.GenerateEnrollToken()
@@ -23,7 +23,7 @@ func makeEnrollToken(t *testing.T, ncU *nats.Conn, rootU data.NodeEdge, id strin
 		t.Fatal(err)
 	}
 
-	et := client.EnrollToken{ID: id, Parent: rootU.ID, Description: "fleet",
+	et := client.EnrollToken{ID: id, Parent: parent, Description: "fleet",
 		TokenHash: hash, AutoApprove: autoApprove}
 	if err := client.SendNodeType(ncU, et, "test"); err != nil {
 		t.Fatal(err)
@@ -78,7 +78,7 @@ func TestSyncEnroll(t *testing.T) {
 	}
 	defer stopD()
 
-	token := makeEnrollToken(t, ncU, rootU, "et-1", false)
+	token := makeEnrollToken(t, ncU, rootU.ID, "et-1", false)
 	// the authorizer indexes the token from the tree change
 	time.Sleep(500 * time.Millisecond)
 
@@ -177,7 +177,9 @@ func TestSyncEnrollAutoApprove(t *testing.T) {
 	}
 	defer stopD()
 
-	token := makeEnrollToken(t, ncU, rootU, "et-1", true)
+	makeGroup(t, ncU, rootU.ID, "group-a")
+	makeGroup(t, ncU, rootU.ID, "group-b")
+	token := makeEnrollToken(t, ncU, "group-a", "et-1", true)
 	time.Sleep(500 * time.Millisecond)
 
 	startEnrollSync(t, ncD, rootD, optsU.NatsServer, token)
@@ -189,6 +191,182 @@ func TestSyncEnrollAutoApprove(t *testing.T) {
 	if e := syncError(t, ncD); e != "" {
 		t.Fatalf("sync node reports %q after auto-approval", e)
 	}
+	if got := nodeParents(t, ncU, rootD.ID); len(got) != 1 || got[0] != "group-a" {
+		t.Fatalf("device enrolled with group-a's token sits under %v", got)
+	}
+	if by := deviceCreds(t, ncU, rootD.ID)[0].EnrolledBy; by != "et-1" {
+		t.Fatalf("credential records enrolledBy %q", by)
+	}
+
+	fmt.Println("**** moving the device keeps its credential and connection")
+	if err := client.MoveNode(ncU, rootD.ID, "group-a", "group-b", "test"); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(2 * time.Second)
+	creds := deviceCreds(t, ncU, rootD.ID)
+	if len(creds) != 1 || creds[0].Pending || !creds[0].Connected {
+		t.Fatalf("moved device lost its credential or connection: %+v", creds)
+	}
+	err = client.SendNodePoint(ncD, rootD.ID,
+		data.NewPointString(data.PointTypeDescription, "", "moved device"), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, 10*time.Second, "moved device does not sync", func() bool {
+		nodes, err := client.GetNodesType[client.Device](ncU, "group-b", rootD.ID)
+		return err == nil && len(nodes) > 0 && nodes[0].Description == "moved device"
+	})
+}
+
+func makeGroup(t *testing.T, nc *nats.Conn, parent, id string) {
+	t.Helper()
+	g := client.Group{ID: id, Parent: parent, Description: id}
+	if err := client.SendNodeType(nc, g, "test"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// nodeParents lists the parents of a node's live edges.
+func nodeParents(t *testing.T, nc *nats.Conn, id string) []string {
+	t.Helper()
+	nodes, err := client.GetNodes(nc, "all", id, "", false)
+	if err != nil && err != data.ErrDocumentNotFound {
+		t.Fatal(err)
+	}
+	var parents []string
+	for _, n := range nodes {
+		parents = append(parents, n.Parent)
+	}
+	return parents
+}
+
+// enrollAs asks the upstream to enroll a fresh key for a device ID.
+func enrollAs(t *testing.T, uri, token, deviceID string) (client.EnrollReply, string, error) {
+	t.Helper()
+	seed, pub, err := client.GenerateDeviceKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, sign, _ := client.SeedSigner(seed)
+	reply, err := client.Enroll(uri, pub, sign, client.EnrollRequest{
+		Token: token, DeviceID: deviceID, PubKey: pub})
+	return reply, pub, err
+}
+
+// TestEnrollPlacement checks where enrollment creates a device: under the
+// group its token sits in, and nowhere when the token sits anywhere but
+// the root or a group still in the tree, or in two places. A device that
+// already exists stays where it is and its new key waits for approval.
+func TestEnrollPlacement(t *testing.T) {
+	ncU, rootU, optsU, stopU := credUpstream(t)
+	defer stopU()
+	uri := optsU.NatsServer
+
+	makeGroup(t, ncU, rootU.ID, "group-a")
+	makeGroup(t, ncU, rootU.ID, "group-b")
+	makeGroup(t, ncU, rootU.ID, "group-c")
+	makeGroup(t, ncU, "group-c", "group-c2")
+	dev := client.Device{ID: "dev-x", Parent: rootU.ID, Description: "a device"}
+	if err := client.SendNodeType(ncU, dev, "test"); err != nil {
+		t.Fatal(err)
+	}
+
+	tokA := makeEnrollToken(t, ncU, "group-a", "et-a", true)
+	tokB := makeEnrollToken(t, ncU, "group-b", "et-b", false)
+	tokRoot := makeEnrollToken(t, ncU, rootU.ID, "et-root", false)
+	tokDev := makeEnrollToken(t, ncU, "dev-x", "et-dev", true)
+	tokC := makeEnrollToken(t, ncU, "group-c", "et-c", true)
+	tokC2 := makeEnrollToken(t, ncU, "group-c2", "et-c2", true)
+	time.Sleep(500 * time.Millisecond)
+
+	placed := func(token, deviceID, wantParent, wantStatus string) {
+		t.Helper()
+		reply, _, err := enrollAs(t, uri, token, deviceID)
+		if err != nil {
+			t.Fatalf("enrolling %v: %v", deviceID, err)
+		}
+		if reply.Status != wantStatus {
+			t.Errorf("%v enrolled %v, want %v", deviceID, reply.Status, wantStatus)
+		}
+		if got := nodeParents(t, ncU, deviceID); len(got) != 1 || got[0] != wantParent {
+			t.Errorf("%v sits under %v, want %v", deviceID, got, wantParent)
+		}
+	}
+
+	refused := func(token, deviceID string) {
+		t.Helper()
+		if _, _, err := enrollAs(t, uri, token, deviceID); err == nil ||
+			!strings.Contains(err.Error(), "not in the root or a group") {
+			t.Errorf("enrolling %v: want a placement refusal, got %v", deviceID, err)
+		}
+		if got := nodeParents(t, ncU, deviceID); len(got) != 0 {
+			t.Errorf("refused enrollment created %v under %v", deviceID, got)
+		}
+	}
+
+	fmt.Println("**** each token enrolls into its own place")
+	placed(tokA, "d-a", "group-a", client.EnrollApproved)
+	placed(tokB, "d-b", "group-b", client.EnrollPending)
+	placed(tokRoot, "d-root", rootU.ID, client.EnrollPending)
+	if by := deviceCreds(t, ncU, "d-a")[0].EnrolledBy; by != "et-a" {
+		t.Errorf("credential records enrolledBy %q, want et-a", by)
+	}
+
+	fmt.Println("**** a token under a device enrolls nothing")
+	refused(tokDev, "d-dev")
+
+	fmt.Println("**** a mirrored token enrolls nothing until the mirror goes")
+	if err := client.MirrorNode(ncU, "et-b", "group-b", "group-a", "test"); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(500 * time.Millisecond)
+	refused(tokB, "d-mirror")
+	if err := client.DeleteNode(ncU, "et-b", "group-a", "test"); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(500 * time.Millisecond)
+	placed(tokB, "d-mirror", "group-b", client.EnrollPending)
+
+	fmt.Println("**** a moved token sends the next device to its new place")
+	if err := client.MoveNode(ncU, "et-root", rootU.ID, "group-b", "test"); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(500 * time.Millisecond)
+	placed(tokRoot, "d-moved", "group-b", client.EnrollPending)
+
+	fmt.Println("**** a token under a deleted group, or below one, enrolls nothing")
+	if err := client.DeleteNode(ncU, "group-c", rootU.ID, "test"); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(500 * time.Millisecond)
+	refused(tokC, "d-c")
+	refused(tokC2, "d-c2")
+
+	fmt.Println("**** an existing device stays put and its new key waits")
+	if err := client.MoveNode(ncU, "d-a", "group-a", "group-b", "test"); err != nil {
+		t.Fatal(err)
+	}
+	placed(tokA, "d-a", "group-b", client.EnrollPending)
+	creds := deviceCreds(t, ncU, "d-a")
+	if len(creds) != 2 {
+		t.Fatalf("expected 2 credentials on d-a, got %v", len(creds))
+	}
+	approved := 0
+	for _, c := range creds {
+		if !c.Pending {
+			approved++
+		}
+	}
+	if approved != 1 {
+		t.Errorf("d-a has %v approved credentials, want the original one", approved)
+	}
+
+	fmt.Println("**** auto-approve does not cover a device made by hand")
+	byHand := client.Device{ID: "d-hand", Parent: "group-b", Description: "made by hand"}
+	if err := client.SendNodeType(ncU, byHand, "test"); err != nil {
+		t.Fatal(err)
+	}
+	placed(tokA, "d-hand", "group-b", client.EnrollPending)
 }
 
 // TestEnrollTokenScope checks what a connection made with an enrollment
@@ -197,7 +375,7 @@ func TestEnrollTokenScope(t *testing.T) {
 	ncU, rootU, optsU, stopU := credUpstream(t)
 	defer stopU()
 
-	token := makeEnrollToken(t, ncU, rootU, "et-1", false)
+	token := makeEnrollToken(t, ncU, rootU.ID, "et-1", false)
 	time.Sleep(500 * time.Millisecond)
 
 	// the token on its own is not a credential: the key being enrolled

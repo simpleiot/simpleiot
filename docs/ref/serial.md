@@ -105,6 +105,10 @@ crc (2 bytes) (Currently using CRC-16/KERMIT) (not included on log messages)
 Protocols like RS232 and USB serial do not have any inherent framing; therefore,
 this needs to be done at the application level. SIOT encodes each packet using
 [COBS (Consistent Overhead Byte Stuffing)](https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing).
+Each packet is sent as a `0` byte, the encoded packet, and a `0` delimiter. The
+encoding follows the specification, including a `0x01` block after a run of 254
+non-zero bytes that ends the packet; a decoder also accepts that final block
+left out.
 
 #### Log payload
 

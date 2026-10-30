@@ -122,9 +122,10 @@ The firmware update uses these points, all with key `0`:
 | `fwApply`         | INT  | MCU to SIOT | 0 acknowledges a request; SIOT then shuts down if one was pending |
 | `fwAttemptHash`   | STR  | SIOT only   | hash of the last image staged on the MCU; not sent to the MCU     |
 
-The node's `progress` point shows the upload in percent. A file that is not a
-valid MCUboot image, or an upload the MCU does not complete, is reported in the
-node's `error` point, and a failed upload is tried again after 5 minutes.
+The node's `progress` point shows the upload in percent and reaches 100 once the
+MCU has marked the image for test. A file that is not a valid MCUboot image, or
+an upload the MCU does not complete, is reported in the node's `error` point,
+and a failed upload is tried again after 5 minutes.
 
 Once the MCU reports `fwVersion`, the serial node shows the update state below
 the **Firmware image** field:

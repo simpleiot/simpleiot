@@ -42,6 +42,14 @@ func (cw *CobsWrapper) SetDebug(debug int) {
 	cw.debug = debug
 }
 
+// cobsEncode COBS encodes a packet and terminates it with the 0 frame delimiter
+func cobsEncode(p []byte) []byte {
+	// COBS encodes the packet with an implied trailing zero
+	t := make([]byte, len(p)+1)
+	copy(t, p)
+	return append(cobs.Encode(t), 0)
+}
+
 // Decode a null-terminated cobs frame to a slice of bytes
 // data is shifted down to start at beginning of buffer
 func cobsDecodeInplace(b []byte) (int, error) {
@@ -170,7 +178,7 @@ func (cw *CobsWrapper) Write(b []byte) (int, error) {
 		log.Println("SER TX RAW:", test.HexDump(b))
 	}
 
-	w := append([]byte{0}, cobs.Encode(b)...)
+	w := append([]byte{0}, cobsEncode(b)...)
 
 	if cw.debug >= 9 {
 		log.Println("SER TX COBS:", test.HexDump(w))

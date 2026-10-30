@@ -22,8 +22,8 @@ Simple IoT system.
 The core data structures are currently defined in the
 [`data`](https://github.com/simpleiot/simpleiot/tree/master/data) directory for
 Go code, and
-[`frontend/src/Api`](https://github.com/simpleiot/simpleiot/tree/master/frontend/src/Api)
-directory for Elm code.
+[`ui/src/lib/siot`](https://github.com/simpleiot/simpleiot/tree/master/ui/src/lib/siot)
+directory for the UI.
 
 A `Point` can represent a sensor value, or a configuration parameter for the
 node. With sensor values and configuration represented as `Points`, it becomes
@@ -67,6 +67,20 @@ children that are collecting data. The parent virtual nodes could have rules or
 logic that operate off data from child nodes. In this case, the virtual parent
 nodes might be a town or city, service provider, etc., and the child nodes are
 physical edge nodes collecting data, users, etc.
+
+### Node IDs
+
+A node ID is an opaque string. New nodes and instances get 26 random characters
+of lowercase Crockford base32 (`dwe2q7ja7n78z6s1fhegwemf88`); trees created
+before that keep their UUIDs, and both work side by side. See
+[Shorter IDs](bandwidth.md#shorter-ids).
+
+An ID chosen by hand, such as an instance's `--id` or a node ID sent to the API,
+may use only ASCII letters, digits, and `-`, up to 64 characters, and may not
+start with `-`. A period, space, `*`, or `>` would break the NATS subjects the
+ID travels in, and `_` separates the two IDs in a stream name. The store refuses
+an edge with any other ID, and an instance with an invalid `--id` does not
+start.
 
 ### The Point `Key` field constraint
 

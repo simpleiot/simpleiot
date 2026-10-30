@@ -229,8 +229,10 @@ group, and the authorizer and the clients honor these types wherever they sit.
   and connected as that device. With item 8 or 9, that is the whole instance.
 - A user created an `enrollToken` with `autoApprove` in its group, took the
   token from `POST /v1/nodes/<id>/key`, and enrolled a device, which the
-  enroller places under the root. The device was approved at once and created
-  the stream in item 8.
+  enroller placed under the root. The device was approved at once and created
+  the stream in item 8. Since
+  [enrollment tokens per group](2026-10-20-enrollment-tokens-per-group.md), the
+  device lands in the user's own group instead.
 - A user created a `sync` node pointing at a server it runs. The instance
   replicated its whole origin stream there, including users in other groups and
   their password hashes (replication does not redact), and accepted writes back
@@ -239,8 +241,9 @@ group, and the authorizer and the clients honor these types wherever they sit.
 **Change:** one list of privileged node types in `data/`, checked when a node is
 created and when a `nodeType` point is written, in `handleUserRequest` and the
 HTTP routes. Add `deviceCred`, `enrollToken`, and `sync` to the types item 1
-restricts, or land both together. The authorizer can also ignore credentials and
-enrollment tokens that are not under the root or a root-level device.
+restricts, or land both together. The authorizer can also ignore credentials
+that are not under the root or a root-level device; the enroller already ignores
+enrollment tokens that are not under the root or a group.
 
 **Verify:** each of the three cases above is refused for a user in a group and
 still works with the shared token.
@@ -292,3 +295,8 @@ browser with a JWT still connects.
       guidance.
 - [ ] Document that `SIOT_DATA` defaults to the working directory.
 - [ ] Consider a vulnerability reporting contact; the repository has none.
+- [ ] The limit of 100 devices waiting for approval in `server/enroll.go` is
+      checked only when an enrollment creates a device. A token holder naming
+      existing device IDs queues pending credentials on them without a bound.
+      Count pending credentials on every path, or limit pending credentials per
+      device.

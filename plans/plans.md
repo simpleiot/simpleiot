@@ -27,3 +27,6 @@
 | 2026-09-19-shared-nodes-across-devices.md        | **COMPLETE**                                                                            | cda79cb7      |
 | 2026-10-12-sync-idle-traffic.md                  | **COMPLETE** (field check on edge-bw-test pending)                                      | 4c0e082d      |
 | 2026-10-12-compressed-sync-transport.md          | **NOT STARTED**                                                                         | 527d555a      |
+| 2026-10-20-enrollment-tokens-per-group.md        | **COMPLETE**                                                                            | 1f56a211      |
+| 2026-10-23-svelte-admin-ui.md                    | **COMPLETE**                                                                            | 8ded2b93      |
+| 2026-10-29-crockford-base32-ids.md               | **COMPLETE**                                                                            | ee8f9054      |

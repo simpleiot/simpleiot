@@ -15,6 +15,8 @@ linters:
       - third_party$
       - builtin$
       - examples$
+      # npm packages can ship Go sources
+      - node_modules
 formatters:
   enable:
     - goimports
@@ -24,3 +26,4 @@ formatters:
       - third_party$
       - builtin$
       - examples$
+      - node_modules

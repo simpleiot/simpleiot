@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +38,12 @@ const (
 // date.
 const authReconcilePeriod = 5 * time.Second
 
+// DeviceStateGrace is how long after start-up a device that was online is
+// given to reconnect before its node is marked offline, so restarting this
+// instance does not record every device as having dropped. Tests shorten
+// it.
+var DeviceStateGrace = 2 * time.Minute
+
 // credEntry is what the authorizer knows about one credential.
 type credEntry struct {
 	credID   string
@@ -53,10 +60,22 @@ type credEntry struct {
 
 // enrollEntry is what the authorizer knows about one enrollment token.
 type enrollEntry struct {
-	nodeID      string
+	nodeID string
+	// parents are the parents of the token's live edges. A device the
+	// token enrolls is created under the parent, so the enroller honors
+	// a token only when there is exactly one.
+	parents     []string
 	disabled    bool
 	autoApprove bool
 	expires     int64
+}
+
+// enrollTokenInfo is what the enroller needs from one live enrollment
+// token, read from the index in one piece.
+type enrollTokenInfo struct {
+	nodeID      string
+	parents     []string
+	autoApprove bool
 }
 
 // authConn records what a device or user connection was granted, so a
@@ -125,6 +144,12 @@ type authorizer struct {
 	enrollIDs map[string]string
 	// conns records live device connections by connection ID.
 	conns map[uint64]authConn
+	// online tracks the online point on each device node with
+	// credentials, so the authorizer sends it only when
+	// it changes. It starts from the stored point.
+	online map[string]bool
+	// started is when the index was loaded; see DeviceStateGrace.
+	started time.Time
 
 	nc  *nats.Conn
 	ns  *server.Server
@@ -151,6 +176,7 @@ func newAuthorizer(token, deviceAuth string) *authorizer {
 		enroll:     make(map[string]*enrollEntry),
 		enrollIDs:  make(map[string]string),
 		conns:      make(map[uint64]authConn),
+		online:     make(map[string]bool),
 		work:       make(chan func(), 1024),
 		connects:   make(chan string, 256),
 		stop:       make(chan struct{}),
@@ -356,20 +382,8 @@ func (a *authorizer) root() string {
 	return a.rootID
 }
 
-// enrollNode returns the node ID of the live enrollment token a value
-// matches, if any.
-func (a *authorizer) enrollNode(token string) (string, bool) {
-	if token == "" {
-		return "", false
-	}
-
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-
-	return a.enrollNodeLocked(token)
-}
-
-// enrollNodeLocked is enrollNode for a caller already holding the lock.
+// enrollNodeLocked returns the node ID of the live enrollment token a
+// value matches, if any. The caller holds the lock.
 func (a *authorizer) enrollNodeLocked(token string) (string, bool) {
 	if token == "" {
 		return "", false
@@ -387,18 +401,23 @@ func (e *enrollEntry) live() bool {
 	return !e.disabled && (e.expires == 0 || time.Now().Unix() < e.expires)
 }
 
-// EnrollToken reports whether an enrollment token is live and whether
-// credentials it enrolls are approved straight away.
-func (a *authorizer) EnrollToken(token string) (autoApprove, ok bool) {
-	id, ok := a.enrollNode(token)
-	if !ok {
-		return false, false
-	}
-
+// EnrollToken returns the node, parents, and approval setting of a live
+// enrollment token, and false when the token is not live.
+func (a *authorizer) EnrollToken(token string) (enrollTokenInfo, bool) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
-	return a.enroll[a.enrollIDs[id]].autoApprove, true
+	id, ok := a.enrollNodeLocked(token)
+	if !ok {
+		return enrollTokenInfo{}, false
+	}
+	e := a.enroll[a.enrollIDs[id]]
+
+	return enrollTokenInfo{
+		nodeID:      e.nodeID,
+		parents:     slices.Clone(e.parents),
+		autoApprove: e.autoApprove,
+	}, true
 }
 
 // enrollPermissions is all an enrollment token allows: one request, and
@@ -554,6 +573,7 @@ func (a *authorizer) start(nc *nats.Conn, ns *server.Server, users userAuthority
 
 	a.mu.Lock()
 	a.ready = true
+	a.started = time.Now()
 	n := len(a.creds)
 	a.mu.Unlock()
 
@@ -653,7 +673,8 @@ func (a *authorizer) refreshEnroll(nodeID string) {
 	}
 
 	var t client.EnrollToken
-	found, live := false, false
+	var parents []string
+	found := false
 	for _, e := range edges {
 		if e.Type != data.NodeTypeEnrollToken {
 			continue
@@ -663,14 +684,15 @@ func (a *authorizer) refreshEnroll(nodeID string) {
 			log.Printf("NATS auth: error decoding enrollment token %v: %v", nodeID, err)
 			return
 		}
-		if ts, _ := e.IsTombstone(); !ts {
-			live = true
+		if ts, _ := e.IsTombstone(); !ts && !slices.Contains(parents, e.Parent) {
+			parents = append(parents, e.Parent)
 		}
 	}
 
 	if !found {
 		return
 	}
+	live := len(parents) > 0
 
 	a.mu.Lock()
 	if old, ok := a.enrollIDs[nodeID]; ok && old != t.TokenHash {
@@ -680,6 +702,7 @@ func (a *authorizer) refreshEnroll(nodeID string) {
 	if t.TokenHash != "" {
 		a.enroll[t.TokenHash] = &enrollEntry{
 			nodeID:      nodeID,
+			parents:     parents,
 			disabled:    t.Disabled || !live,
 			autoApprove: t.AutoApprove,
 			expires:     int64(t.Expires),
@@ -749,10 +772,13 @@ func (a *authorizer) refreshCred(credID string) {
 	}
 
 	var deviceID string
+	var deviceOnline bool
 	switch len(parents) {
 	case 1:
 		deviceID = parents[0]
-		if !a.deviceLive(credID, deviceID) {
+		var live bool
+		live, deviceOnline = a.deviceLive(credID, deviceID)
+		if !live {
 			disabled = true
 		}
 		// the stream is in place before the credential authorizes
@@ -782,6 +808,7 @@ func (a *authorizer) refreshCred(credID string) {
 		delete(ids, credID)
 		if len(ids) == 0 {
 			delete(a.devices, d)
+			delete(a.online, d)
 		}
 	}
 	if deviceID != "" {
@@ -789,6 +816,11 @@ func (a *authorizer) refreshCred(credID string) {
 			a.devices[deviceID] = make(map[string]bool)
 		}
 		a.devices[deviceID][credID] = true
+		// the stored state is the starting point; from here on the
+		// authorizer is the authority on it
+		if _, ok := a.online[deviceID]; !ok {
+			a.online[deviceID] = deviceOnline
+		}
 	}
 
 	if pubKey != "" {
@@ -815,34 +847,36 @@ func (a *authorizer) refreshCred(credID string) {
 }
 
 // deviceLive reports whether the node a credential sits under is a live
-// device node other than this instance's own root. A detached device must
-// not keep writing, and a credential under anything else would grant that
+// device node other than this instance's own root, and whether its stored
+// online point is set. A detached device must not keep writing, and a credential under anything else would grant that
 // node's subjects: under the root, that is this instance's own origin
 // stream. The root case is not logged: every downstream holds its own
 // credential there, replicated from the upstream, so it is the normal
 // state rather than a misconfiguration.
-func (a *authorizer) deviceLive(credID, deviceID string) bool {
+func (a *authorizer) deviceLive(credID, deviceID string) (live, online bool) {
 	if deviceID == a.root() {
-		return false
+		return false, false
 	}
 
 	edges, err := client.GetNodes(a.nc, "all", deviceID, "", false)
 	if err != nil && !errors.Is(err, data.ErrDocumentNotFound) {
 		log.Printf("NATS auth: error reading device %v: %v", deviceID, err)
-		return false
+		return false, false
 	}
 
 	if len(edges) == 0 {
-		return false
+		return false, false
 	}
 
 	if edges[0].Type != data.NodeTypeDevice {
 		log.Printf("NATS auth: credential %v is under a %v node, not a device, authorizing nothing",
 			credID, edges[0].Type)
-		return false
+		return false, false
 	}
 
-	return true
+	online, _ = edges[0].Points.ValueBool(data.PointTypeOnline, "")
+
+	return true, online
 }
 
 // ensureDeviceStream makes sure the replica stream a device pushes into,
@@ -933,6 +967,42 @@ func (a *authorizer) noteConnect(pubKey string) {
 	}
 	if err := client.SendNodePoints(a.nc, credID, pts, false); err != nil {
 		log.Printf("NATS auth: error recording connection on %v: %v", credID, err)
+	}
+
+	a.updateDeviceStates()
+}
+
+// updateDeviceStates brings the online point on each device node with
+// credentials in line with its connections: 1 while any of its
+// credentials is connected, 0 once none is. The point's time is
+// when the device came online or went offline.
+func (a *authorizer) updateDeviceStates() {
+	a.mu.Lock()
+	connected := make(map[string]bool)
+	for _, e := range a.creds {
+		if e.connected {
+			connected[e.deviceID] = true
+		}
+	}
+	inGrace := time.Since(a.started) < DeviceStateGrace
+	changed := make(map[string]bool)
+	for deviceID := range a.devices {
+		if deviceID == a.rootID || a.online[deviceID] == connected[deviceID] {
+			continue
+		}
+		if !connected[deviceID] && inGrace {
+			continue
+		}
+		a.online[deviceID] = connected[deviceID]
+		changed[deviceID] = connected[deviceID]
+	}
+	a.mu.Unlock()
+
+	for deviceID, online := range changed {
+		p := data.NewPointFloat(data.PointTypeOnline, "", data.BoolToFloat(online))
+		if err := client.SendNodePoint(a.nc, deviceID, p, false); err != nil {
+			log.Printf("NATS auth: error recording online=%v on device %v: %v", online, deviceID, err)
+		}
 	}
 }
 
@@ -1074,7 +1144,8 @@ func (a *authorizer) enforce() {
 }
 
 // reconcile enforces the index against live connections and brings the
-// connected point on each credential up to date.
+// connected point on each credential, and the online point on each
+// device, up to date.
 func (a *authorizer) reconcile() {
 	a.enforce()
 
@@ -1100,4 +1171,6 @@ func (a *authorizer) reconcile() {
 			log.Printf("NATS auth: error recording disconnect on %v: %v", credID, err)
 		}
 	}
+
+	a.updateDeviceStates()
 }

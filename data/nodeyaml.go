@@ -33,9 +33,74 @@ func nodeKeyReserved(k string) bool {
 // NodeFile is a file of nodes: what siot export writes, and what siot import
 // and provisioning read.
 type NodeFile struct {
-	APIVersion int        `yaml:"apiVersion,omitempty"`
-	Nodes      []NodeYAML `yaml:"nodes,omitempty"`
-	Delete     []NodeYAML `yaml:"delete,omitempty"`
+	APIVersion int `yaml:"apiVersion,omitempty"`
+	// Root holds points for this instance's own device node, such as its
+	// description and tags. It describes whichever instance applies the file,
+	// so it is never matched and never creates anything.
+	Root   RootYAML   `yaml:"root,omitempty"`
+	Nodes  []NodeYAML `yaml:"nodes,omitempty"`
+	Delete []NodeYAML `yaml:"delete,omitempty"`
+}
+
+// RootYAML is the root: section of a node file. It is a node body with points
+// only, spelled the way any node's points are:
+//
+//	root:
+//	  description: Pump station 4
+//	  tag: [north, pumps]
+type RootYAML struct {
+	Points Points
+}
+
+// IsZero lets omitempty leave out a root: section with nothing in it.
+func (r RootYAML) IsZero() bool {
+	return len(r.Points) == 0
+}
+
+// MarshalYAML implements the goccy/go-yaml InterfaceMarshaler.
+func (r RootYAML) MarshalYAML() (any, error) {
+	return pointsToYAML(r.Points), nil
+}
+
+// UnmarshalYAML implements the goccy/go-yaml BytesUnmarshaler.
+func (r *RootYAML) UnmarshalYAML(b []byte) error {
+	f, err := parser.ParseBytes(b, 0)
+	if err != nil {
+		return fmt.Errorf("error parsing root: %w", err)
+	}
+
+	*r = RootYAML{}
+
+	if len(f.Docs) < 1 || f.Docs[0].Body == nil {
+		return nil
+	}
+
+	if _, ok := f.Docs[0].Body.(*ast.NullNode); ok {
+		return nil
+	}
+
+	fields, err := mappingValues(f.Docs[0].Body)
+	if err != nil {
+		return fmt.Errorf("root: %w", err)
+	}
+
+	for _, v := range fields {
+		key := v.Key.String()
+
+		if nodeKeyReserved(key) {
+			return fmt.Errorf("root: %v does not apply here, since root: holds points for this instance's "+
+				"device node, and nodes under the root go in nodes", key)
+		}
+
+		points, err := pointsFromNode(key, v.Value)
+		if err != nil {
+			return fmt.Errorf("root: %v: %w", key, err)
+		}
+
+		r.Points = append(r.Points, points...)
+	}
+
+	return nil
 }
 
 // NodeFileAPIVersion is the format version this build writes and understands.

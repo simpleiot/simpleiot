@@ -1,0 +1,240 @@
+/* Theme tokens. The light theme follows the colors of the UI at "/"; the
+   dark theme is the same tokens with dark values. The page follows the
+   system setting unless the header toggle sets data-theme on <html>. */
+
+:root {
+	color-scheme: light;
+	--font: "IBM Plex Sans", system-ui, sans-serif;
+	--mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+	--bg: #ffffff;
+	--fg: #000000;
+	--muted: #808080;
+	--border: #c4c4c4;
+	--hover: #e6e6e6;
+	--detail-bg: rgb(247 247 247 / 0.9);
+	--input-bg: #ffffff;
+
+	--blue: rgb(50 100 150);
+	--green: rgb(4 106 56);
+	--red: rgb(204 85 68);
+	--gray: #808080;
+	--orange: #ffa500;
+
+	--on-color: #ffffff;
+	--error-bg: rgb(204 75 75);
+	--badge-bg: rgb(135 206 250);
+	--badge-fg: #000000;
+	--highlight-bg: rgb(255 255 179);
+	--ok-bg: rgb(179 255 179 / 0.9);
+	--focus: rgb(50 100 150 / 0.5);
+	--switch-off: #808080;
+	--switch-on: rgb(50 100 150);
+	--switch-off-fade: #e6e6e6;
+	--switch-on-fade: rgb(150 200 255);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme="light"]) {
+		color-scheme: dark;
+		--bg: #17191c;
+		--fg: #e4e6e9;
+		--muted: #9aa0a6;
+		--border: #4a4f55;
+		--hover: #2c3035;
+		--detail-bg: #212428;
+		--input-bg: #1d2024;
+		--blue: rgb(110 160 215);
+		--green: rgb(80 180 120);
+		--red: rgb(235 120 100);
+		--gray: #9aa0a6;
+		--on-color: #101214;
+		--error-bg: rgb(170 60 60);
+		--badge-bg: rgb(40 90 130);
+		--badge-fg: #e4e6e9;
+		--highlight-bg: rgb(90 85 30);
+		--ok-bg: rgb(40 90 50);
+		--focus: rgb(110 160 215 / 0.6);
+		--switch-off: #5c6168;
+		--switch-on: rgb(110 160 215);
+		--switch-off-fade: #33373c;
+		--switch-on-fade: rgb(60 100 140);
+	}
+}
+
+:root[data-theme="dark"] {
+	color-scheme: dark;
+	--bg: #17191c;
+	--fg: #e4e6e9;
+	--muted: #9aa0a6;
+	--border: #4a4f55;
+	--hover: #2c3035;
+	--detail-bg: #212428;
+	--input-bg: #1d2024;
+	--blue: rgb(110 160 215);
+	--green: rgb(80 180 120);
+	--red: rgb(235 120 100);
+	--gray: #9aa0a6;
+	--on-color: #101214;
+	--error-bg: rgb(170 60 60);
+	--badge-bg: rgb(40 90 130);
+	--badge-fg: #e4e6e9;
+	--highlight-bg: rgb(90 85 30);
+	--ok-bg: rgb(40 90 50);
+	--focus: rgb(110 160 215 / 0.6);
+	--switch-off: #5c6168;
+	--switch-on: rgb(110 160 215);
+	--switch-off-fade: #33373c;
+	--switch-on-fade: rgb(60 100 140);
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	min-height: 100%;
+	background: var(--bg);
+	color: var(--fg);
+	font-family: var(--font);
+	font-size: 16px;
+	line-height: 1.4;
+}
+
+h2 {
+	font-size: 24px;
+	font-weight: 600;
+	margin: 0;
+}
+
+input,
+textarea,
+select {
+	font: inherit;
+	color: var(--fg);
+	background: var(--input-bg);
+	border: 1px solid var(--border);
+	border-radius: 3px;
+	padding: 8px 10px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+	padding: 0;
+	width: 16px;
+	height: 16px;
+	accent-color: var(--blue);
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+	outline: 3px solid var(--focus);
+	outline-offset: 1px;
+}
+
+button {
+	font: inherit;
+	color: inherit;
+}
+
+a {
+	color: var(--blue);
+}
+
+/* A form button: outlined in its color, filled on hover. */
+.btn {
+	--c: var(--blue);
+	padding: 8px 16px;
+	font-size: 14px;
+	font-weight: 600;
+	border: 2px solid var(--c);
+	border-radius: 4px;
+	color: var(--c);
+	background: var(--bg);
+	cursor: pointer;
+	transition: all 150ms ease-in-out;
+}
+
+.btn:hover:not(:disabled) {
+	color: var(--on-color);
+	background: var(--c);
+}
+
+.btn:disabled {
+	cursor: default;
+	opacity: 0.5;
+}
+
+.btn.blue {
+	--c: var(--blue);
+}
+.btn.green {
+	--c: var(--green);
+}
+.btn.red {
+	--c: var(--red);
+}
+.btn.gray {
+	--c: var(--gray);
+}
+
+.button-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	padding: 16px;
+}
+
+.badge {
+	background: var(--badge-bg);
+	color: var(--badge-fg);
+	font-size: 12px;
+	padding: 2px 6px;
+}
+
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+/* A table of read-only values, such as a node's points: light row lines,
+   names left, numbers right and in fixed-width digits. */
+.data-table {
+	border-collapse: collapse;
+	align-self: flex-start;
+	font-size: 14px;
+}
+
+.data-table th {
+	font-weight: 600;
+	text-align: left;
+	color: var(--muted);
+	border-bottom: 1px solid var(--border);
+}
+
+.data-table th,
+.data-table td {
+	padding: 4px 16px 4px 0;
+	overflow-wrap: anywhere;
+}
+
+.data-table tbody tr + tr td {
+	border-top: 1px solid var(--hover);
+}
+
+.data-table .num {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+	padding-right: 0;
+}

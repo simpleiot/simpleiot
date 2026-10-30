@@ -51,6 +51,9 @@ type DeviceCred struct {
 	// Pending is set on a credential a device enrolled itself with, until
 	// an operator approves it.
 	Pending bool `point:"pending"`
+	// EnrolledBy is the enrollment token node the credential was enrolled
+	// through, empty for one added by hand.
+	EnrolledBy string `point:"enrolledBy"`
 }
 
 // EnrollToken lets devices that hold the token ask an upstream for a

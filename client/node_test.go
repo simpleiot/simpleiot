@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/goccy/go-yaml"
-	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
@@ -73,7 +72,7 @@ func TestExportDuplicateDescriptions(t *testing.T) {
 
 	for range 2 {
 		err = client.SendNode(nc, data.NodeEdge{
-			ID:     uuid.New().String(),
+			ID:     data.NewID(),
 			Type:   data.NodeTypeGroup,
 			Parent: root.ID,
 			Points: data.Points{data.NewPointString(data.PointTypeDescription, "", "Sensors")},
@@ -316,8 +315,8 @@ func TestImportNodesGeneratesIDs(t *testing.T) {
 		t.Fatal("the created node should have an ID")
 	}
 
-	if _, err := uuid.Parse(g.ID); err != nil {
-		t.Fatal("a created node gets a fresh UUID, got: ", g.ID)
+	if len(g.ID) != 26 {
+		t.Fatal("a created node gets a fresh ID, got: ", g.ID)
 	}
 
 	children, err = client.GetNodes(nc, g.ID, "all", "", false)
@@ -657,5 +656,50 @@ func TestExportRoundTripBetweenInstances(t *testing.T) {
 	if string(first) != string(second) {
 		t.Errorf("an export imported elsewhere should export identically:\n--- first ---\n%v\n--- second ---\n%v",
 			string(first), string(second))
+	}
+}
+
+func TestImportRootSection(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	file := []byte(`
+root:
+  description: Pump station 4
+  tag: [north, pumps]
+`)
+
+	if _, err := client.ImportNodes(nc, file, "test", false); err != nil {
+		t.Fatal("Error importing root section: ", err)
+	}
+
+	got, err := client.GetRootNode(nc)
+	if err != nil {
+		t.Fatal("Error getting root node: ", err)
+	}
+
+	if got.ID != root.ID {
+		t.Fatalf("root ID changed from %v to %v", root.ID, got.ID)
+	}
+
+	if desc, _ := got.Points.Text(data.PointTypeDescription, ""); desc != "Pump station 4" {
+		t.Errorf("description: got %q", desc)
+	}
+
+	if tag, _ := got.Points.Text(data.PointTypeTag, "1"); tag != "pumps" {
+		t.Errorf("tag 1: got %q", tag)
+	}
+
+	plan, err := client.ImportNodes(nc, file, "test", false)
+	if err != nil {
+		t.Fatal("Error importing root section a second time: ", err)
+	}
+
+	if !plan.Empty() {
+		t.Errorf("a second import should do nothing, got:\n%v", plan)
 	}
 }

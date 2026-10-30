@@ -1,5 +1,46 @@
 # Frontend
 
+Two web UIs are served during the move from Elm to Svelte: the Svelte UI at `/`
+and the Elm UI at `/old`. They share one sign-in. The Elm UI will be removed in
+a later release.
+
+## Svelte UI
+
+The Svelte UI is a [SvelteKit](https://svelte.dev/docs/kit) single-page app in
+[`ui/`](https://github.com/simpleiot/simpleiot/tree/master/ui), built with
+`adapter-static` and embedded in the `siot` binary (`ui/embed.go`). The server
+answers any path it has no file for with `index.html`, so a link to a node loads
+the app. See `ui/README.md` for the build, test, and dev server commands.
+
+### Code Structure
+
+- `src/routes`: the pages. `/` and `/nodes/[id]` both render the tree; the
+  second opens the tree down to one node.
+- `src/lib/siot`: the client layer. `connection.ts` owns the NATS connection
+  (built on `frontend/lib`), `tree.ts` holds the pure tree code, and
+  `tree.svelte.ts` is the store the page reads: the tree, pending edits, and the
+  node operation in progress. `http.ts` has the operations that go over HTTP,
+  and `schema.ts` the point and node types, which a Go test checks against
+  `data/schema.go`.
+- `src/lib/nodes`: one directory per node type, with its editor and a descriptor
+  (`index.ts`) that says where the type may be added, whether it takes children,
+  which parent owns it, and how it sorts. The registry collects the directories,
+  so the tree page names no node types; adding a type is adding a directory.
+- `src/lib/inputs`: the inputs editors are built from. Each reads its point from
+  the node and reports an edit; none talks to the server.
+- `src/lib/components`: the tree, its rows, the operation panel, and the shared
+  editor frame.
+
+Editors take props and report through callbacks, and only the page and the store
+talk to the server, so an editor can be reused and tested on its own. Edits stay
+pending until saved, and a save shows at once, before the server confirms it.
+
+### Checks
+
+TypeScript runs in `strict` mode, and `svelte-check` fails the build on any
+error or warning. `npm test` runs the vitest unit tests for the tree, point,
+connection, and time code; `npm run lint` runs prettier and eslint.
+
 ## Elm Reference Implementation
 
 The reference Simple IoT frontend is implemented in Elm as a Single Page
@@ -117,8 +158,9 @@ are in the [API reference](api.md#nats).
 The library has one dependency, `nats.ws`, and no build step. The web UI loads
 it as native ES modules: `siot_build_frontend_js` copies `siot-nats.js`,
 `codec.js`, and `nats.ws`'s bundle into `frontend/public/dist`, and an import
-map in `index.html` resolves `nats.ws` to that copy. `siot_build_frontend` gzips
-them alongside `elm.js`, and the server decompresses on request.
+map in `index.html` resolves `nats.ws` to that copy. `siot_build_elm` gzips them
+alongside `elm.js`, and the server decompresses on request. The regular build
+does not run it; the compiled files are committed.
 
 `codec.js` mirrors the binary point and node encoding in `data/point.go` and
 `data/node.go`. The Go test `data/point_fixture_test.go` writes fixtures into

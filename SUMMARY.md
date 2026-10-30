@@ -59,6 +59,7 @@
 - [Serial Devices](docs/ref/serial.md)
 - [Version](docs/ref/version.md)
 - [Security](docs/ref/security.md)
+- [Authentication and authorization](docs/ref/auth.md)
 - [Research](docs/ref/research.md)
 
 # Architecture Decision Records
@@ -71,4 +72,5 @@
 - [ADR-5: Time validation](docs/adr/5-time-validation.md)
 - [ADR-6: Time storage in rule schedule](docs/adr/6-time-storage-in-rule-schedule.md)
 - [ADR-7: Jetstream store](docs/adr/7-jetstream-store.md)
+- [ADR-8: IoT data models](docs/adr/8-iot-data-models.md)
 - [ADR Template](docs/adr/template.md)
