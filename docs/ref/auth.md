@@ -34,6 +34,8 @@ everything under it; see
 
 ## Who connects
 
+![each connection is checked by the authorizer and granted a scope from what it presents](images/auth-principals.svg)
+
 | Principal                 | Presents                             | Reaches                                                     |
 | ------------------------- | ------------------------------------ | ----------------------------------------------------------- |
 | The operator's tools      | the shared token (`SIOT_AUTH_TOKEN`) | everything on the instance                                  |
@@ -267,9 +269,9 @@ it:
   else, and the store's user handler reads the anchor and the user from the
   subject.
 - A device's write never arrives as a point request at all. A device key is
-  granted publish only on its own replica stream, `inst.X.X.>`, which the store
-  consumes and merges where it stays inside boundary `X`. A device is refused on
-  `p.>` and on `u.>`.
+  granted publish only on its own replica stream, `inst.X.X.>`, and on
+  `snap.X.X.>` for current values during catch-up, which the store merges where
+  they stay inside boundary `X`. A device is refused on `p.>` and on `u.>`.
 - The server's own clients and the shared token publish on the plain
   `p.<node>.<type>.<key>` subject, which only a full-access connection holds.
 - Over HTTP the route resolves the `Authorization` header to a principal first:

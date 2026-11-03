@@ -11,6 +11,27 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-11-03
+
+### Changed
+
+- **Current values arrive first after a reconnect.** While sync catches up a
+  backlog, it sends the current value of each changed subject, and each new
+  point, ahead of the history, so the other side is current within seconds
+  instead of when the backlog finishes. Rules on the receiving side see current
+  values instead of a replay of the backlog. Upgrade the upstream first: older
+  and newer devices and servers work together and stored data is unchanged, but
+  a newer device gets no benefit for its own data from an older upstream, which
+  logs one permissions violation each time the device reconnects. See
+  [Offline catch-up](docs/ref/sync.md#offline-catch-up).
+
+### Added
+
+- **New diagrams across the documentation.** Data, storage, sync, enrollment,
+  authorization, the browser, high availability, notifications, bandwidth, PLCs,
+  MQTT, IIO scaling, provisioning, and file transfer now each have a diagram.
+  See the [Diagrams](docs/ref/diagrams.md) gallery.
+
 ## [0.31.1] - 2026-11-03
 
 ### Changed

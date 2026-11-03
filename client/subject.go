@@ -1,6 +1,9 @@
 package client
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // create subject strings for various types of messages
 
@@ -11,6 +14,18 @@ import "fmt"
 // caches and fans it out, but never persists it — the replica stream is
 // the persistent copy (single-writer streams, see ADR-7).
 const OriginHeader = "Siot-Origin"
+
+// SnapshotPrefix replaces "inst" in a storage subject for the current values
+// a sync pump sends ahead of its history while it catches up:
+// snap.<boundary>.<origin>.<rest>. They are core NATS messages that the
+// receiving store merges into its caches without storing them.
+const SnapshotPrefix = "snap"
+
+// SubjectSnapshot turns a storage subject (inst.<boundary>.<origin>.<rest>)
+// into its snapshot subject.
+func SubjectSnapshot(storageSubject string) string {
+	return SnapshotPrefix + strings.TrimPrefix(storageSubject, "inst")
+}
 
 // SubjectNodePoint constructs a NATS subject for a single node point
 func SubjectNodePoint(nodeID, typ, key string) string {

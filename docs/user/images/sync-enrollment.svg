@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 640" width="860" height="640" role="img" aria-label="A device enrolls with a token, waits for approval, then syncs with its own key">
+  <!-- Simple IoT diagram style: see docs/ref/documentation.md (Diagrams). -->
+  <style>
+  :root {
+    --bg: #ffffff; --fg: #1f1f1f; --muted: #5f5f5f; --line: #3a3a3a;
+    --blue: #dae8fc; --blue-s: #6c8ebf;
+    --green: #d5e8d4; --green-s: #82b366;
+    --yellow: #fff2cc; --yellow-s: #d6b656;
+    --purple: #e1d5e7; --purple-s: #9673a6;
+    --orange: #ffe6cc; --orange-s: #d79b00;
+    --red: #f8cecc; --red-s: #b85450;
+    --gray: #f5f5f5; --gray-s: #9a9a9a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a; --fg: #f0f0f0; --muted: #a8a8a8; --line: #c8c8c8;
+      --blue: #1e2a3d; --green: #1f3320; --yellow: #38321c;
+      --purple: #2f2538; --orange: #3d2a14; --red: #3d1f1f;
+      --gray: #242424; --gray-s: #5a5a5a;
+    }
+  }
+  svg { font-family: Inter, Helvetica, Arial, sans-serif; }
+  .bg { fill: var(--bg); }
+  text { fill: var(--fg); font-size: 12px; dominant-baseline: central; }
+  .title { font-size: 14px; font-weight: 600; dominant-baseline: auto; }
+  .small { font-size: 11px; }
+  .muted { fill: var(--muted); }
+  .bold { font-weight: 600; }
+  .mono { font-family: "JetBrains Mono", Menlo, Consolas, monospace; font-size: 11px; }
+  .shape { stroke-width: 1.2; }
+  .blue { fill: var(--blue); stroke: var(--blue-s); }
+  .green { fill: var(--green); stroke: var(--green-s); }
+  .yellow { fill: var(--yellow); stroke: var(--yellow-s); }
+  .purple { fill: var(--purple); stroke: var(--purple-s); }
+  .orange { fill: var(--orange); stroke: var(--orange-s); }
+  .red { fill: var(--red); stroke: var(--red-s); }
+  .gray { fill: var(--gray); stroke: var(--gray-s); }
+  .dashed { stroke-dasharray: 5 4; }
+  .edge { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-linejoin: round; }
+  .edge.c-blue { stroke: var(--blue-s); }
+  .edge.c-green { stroke: var(--green-s); }
+  .edge.c-purple { stroke: var(--purple-s); }
+  .edge.c-orange { stroke: var(--orange-s); }
+  .edge.c-red { stroke: var(--red-s); }
+  .head { fill: var(--line); }
+  .head.c-blue { fill: var(--blue-s); }
+  .head.c-green { fill: var(--green-s); }
+  .head.c-purple { fill: var(--purple-s); }
+  .head.c-orange { fill: var(--orange-s); }
+  .head.c-red { fill: var(--red-s); }
+  .actor { fill: none; stroke: var(--fg); stroke-width: 1.5; }
+  .label-bg { fill: var(--bg); }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-blue" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-green" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-purple" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-orange" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-red" d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+  <rect class="bg" width="860" height="640" rx="8"/>
+  <rect class="shape blue" x="50" y="20" width="160" height="44" rx="6"/>
+  <text x="130" y="42" text-anchor="middle">📟 Device</text>
+  <rect class="shape blue" x="360" y="20" width="180" height="44" rx="6"/>
+  <text x="450" y="42" text-anchor="middle">☁️ Upstream</text>
+  <g class="actor"><circle cx="760" cy="21" r="7"/><path d="M760,28 V44 M748,34 H772 M760,44 L750,58 M760,44 L770,58"/></g>
+  <text x="760" y="70" text-anchor="middle">Operator</text>
+  <path class="edge dashed" d="M130,64 V620" style="stroke-width:1"/>
+  <path class="edge dashed" d="M450,64 V620" style="stroke-width:1"/>
+  <path class="edge dashed" d="M760,78 V620" style="stroke-width:1"/>
+  <path class="edge" d="M760,120 L450,120" marker-end="url(#arrow)"/>
+  <rect class="label-bg" x="504.31" y="87" width="201.38" height="32" rx="3"/>
+  <text text-anchor="middle" class="small"><tspan x="605" y="96">1  create an enrollment token</tspan><tspan x="605" y="110">(Generate token, or siot cred token)</tspan></text>
+  <rect class="shape blue" x="370" y="134" width="160" height="28" rx="6"/>
+  <text x="450" y="148" text-anchor="middle" class="small">store only its hash</text>
+  <path class="edge" d="M760,210 L130,210" marker-end="url(#arrow)"/>
+  <rect class="label-bg" x="313.51" y="191" width="262.98" height="18" rx="3"/>
+  <text x="445" y="200" text-anchor="middle" class="small">2  put the token in the sync node as enrollToken</text>
+  <path class="edge" d="M130,264 L450,264" marker-end="url(#arrow)"/>
+  <rect class="label-bg" x="224.455" y="245" width="131.09" height="18" rx="3"/>
+  <text x="290" y="254" text-anchor="middle" class="small">3  connect with its key</text>
+  <path class="edge c-red dashed" d="M450,296 L130,296" marker-end="url(#arrow-red)"/>
+  <rect class="label-bg" x="228.525" y="277" width="122.95" height="18" rx="3"/>
+  <text x="290" y="286" text-anchor="middle" class="small">refused: unknown key</text>
+  <path class="edge" d="M130,352 L450,352" marker-end="url(#arrow)"/>
+  <rect class="label-bg" x="210.815" y="319" width="158.37" height="32" rx="3"/>
+  <text text-anchor="middle" class="small"><tspan x="290" y="328">4  connect with token + key,</tspan><tspan x="290" y="342">request on enroll.request</tspan></text>
+  <rect class="shape blue" x="330" y="366" width="240" height="42" rx="6"/>
+  <text text-anchor="middle" class="small"><tspan x="450" y="379.5">create device node in the token's</tspan><tspan x="450" y="394.5">group, with a credential pending</tspan></text>
+  <path class="edge dashed" d="M450,438 L130,438" marker-end="url(#arrow)"/>
+  <rect class="label-bg" x="242.11" y="419" width="95.78" height="18" rx="3"/>
+  <text x="290" y="428" text-anchor="middle" class="small">pending approval</text>
+  <rect class="shape blue" x="55" y="452" width="150" height="28" rx="6"/>
+  <text x="130" y="466" text-anchor="middle" class="small">retry every minute</text>
+  <path class="edge" d="M760,516 L450,516" marker-end="url(#arrow)"/>
+  <rect class="label-bg" x="526.915" y="483" width="156.17" height="32" rx="3"/>
+  <text text-anchor="middle" class="small"><tspan x="605" y="492">5  approve the credential</tspan><tspan x="605" y="506">(skipped with Auto approve)</tspan></text>
+  <path class="edge c-green" d="M130,584 L450,584" marker-end="url(#arrow-green)"/>
+  <rect class="label-bg" x="165.165" y="565" width="249.67" height="18" rx="3"/>
+  <text x="290" y="574" text-anchor="middle" class="small">6  connect with its key: granted, sync starts</text>
+</svg>

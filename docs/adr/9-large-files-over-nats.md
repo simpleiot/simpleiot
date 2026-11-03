@@ -109,6 +109,8 @@ Use option 5. The update node keeps its HTTPS mode (with range requests added)
 for devices that have no upstream and gains a mode that installs from file
 nodes.
 
+![contents uploaded on the cloud are fetched in chunks by the device and installed by the update client](assets/file-fetch-ota.svg)
+
 ### File node storage
 
 Each instance has an Object Store bucket named `files`, with a configurable size

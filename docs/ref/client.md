@@ -72,6 +72,8 @@ So the edge carries a role. A client runs on a node's primary edge and on edges
 with no role, and never on a mirror. This is handled by the client manager, so a
 client does not check anything itself.
 
+![a client runs on the primary edge and not on the mirror](images/primary-mirror-edges.svg)
+
 When you add a client, decide which side its node type belongs on and add it to
 `primaryTypes` or `treeScopedTypes` in `data/edge_role.go`. The question to ask
 is whether two instances of the client would do the same work twice or different

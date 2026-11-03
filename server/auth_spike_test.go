@@ -211,6 +211,42 @@ func TestAuthSpike(t *testing.T) {
 	}
 	it.Stop()
 
+	// snapshot: current values on snap.X.X.>, read from inst_X_R through
+	// an ephemeral last-per-subject consumer
+	snapSub, err := full.SubscribeSync("snap.>")
+	if err != nil {
+		t.Fatal("subscribe snapshots:", err)
+	}
+	if err := full.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if err := dev.Publish("snap.X.X.n1.p.value.0", []byte("1")); err != nil {
+		t.Fatal("device publish snapshot:", err)
+	}
+	if err := dev.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if m, err := snapSub.NextMsg(time.Second); err != nil || m.Subject != "snap.X.X.n1.p.value.0" {
+		t.Fatalf("device snapshot did not arrive: %v %v", m, err)
+	}
+	snapCons, err := src.CreateConsumer(ctx, jetstream.ConsumerConfig{
+		DeliverPolicy:     jetstream.DeliverLastPerSubjectPolicy,
+		AckPolicy:         jetstream.AckNonePolicy,
+		FilterSubject:     "inst.X.R.>",
+		InactiveThreshold: time.Second,
+	})
+	if err != nil {
+		t.Fatal("device create snapshot consumer:", err)
+	}
+	snapIt, err := snapCons.Messages()
+	if err != nil {
+		t.Fatal("device snapshot messages:", err)
+	}
+	if _, err := snapIt.Next(); err != nil {
+		t.Fatal("device snapshot next:", err)
+	}
+	snapIt.Stop()
+
 	// the plain requests sync makes
 	for _, subj := range []string{"nodes.root.all", "nodes.all.X"} {
 		_, err := dev.Request(subj, nil, 300*time.Millisecond)
@@ -262,6 +298,17 @@ func TestAuthSpike(t *testing.T) {
 	}
 	if _, err := dev.Request("admin.storeMaint", nil, 300*time.Millisecond); err == nil {
 		t.Fatal("expected admin request to fail")
+	}
+	for _, subj := range []string{"snap.Y.Y.n1.p.value.0", "snap.X.R.n1.p.value.0"} {
+		if err := dev.Publish(subj, []byte("x")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := dev.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	if m, err := snapSub.NextMsg(300 * time.Millisecond); err == nil {
+		t.Fatalf("snapshot outside the device's own stream landed: %v", m.Subject)
 	}
 	if _, err := dev.SubscribeSync("p.>"); err == nil {
 		dev.Flush()

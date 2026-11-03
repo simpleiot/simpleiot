@@ -573,6 +573,23 @@ listener and remote configuration, and leaf-connection authorization. It is
 worth adopting if it is simpler and no more expensive on constrained links once
 those are in place.
 
+### Current values ahead of history on catch-up (2026-11-03)
+
+After time offline, a pump copies a stream's backlog in order, so the receiving
+side learned a subject's current value only when the backlog reached it, hours
+later on a slow link.
+[Issue #836](https://github.com/simpleiot/simpleiot/issues/836) proposed
+separate current-value and history streams. That would write every point to two
+streams and send it twice over the link.
+
+Instead, each boundary-origin stream stays as it is, and the sync sends a
+snapshot alongside the history while the history catches up: the newest message
+of each subject that changed, then each new message, as core NATS messages on
+`snap.<boundary>.<origin>.…`. The receiving store merges them into its caches
+without storing them, so a replica stream's last message per subject is still
+its current value. Only changed subjects, and points written during catch-up,
+cross the link twice. See [Offline catch-up](../ref/sync.md#offline-catch-up).
+
 ## Experiments
 
 Several proof-of-concept experiments have been run to prove the feasibility of

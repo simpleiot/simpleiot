@@ -40,6 +40,8 @@ while the application is stopped. That case is described in
 
 ## Approaches to application redundancy
 
+![active/passive against a NATS cluster, active/active, and peer instances replicating through sync](images/high-availability-approaches.svg)
+
 ### Active/passive against a clustered NATS server
 
 This is the approach that fits the architecture. NATS runs as a cluster,

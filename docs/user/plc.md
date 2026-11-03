@@ -17,6 +17,8 @@ for discussion on the
 
 ## Choosing an approach
 
+![PLC data reaches Simple IoT over Modbus, MQTT through a gateway, Sparkplug B, planned OPC UA and EtherNet/IP clients, or a process of your own over NATS](images/plc-paths.svg)
+
 | Protocol                                       | Client                                  | Status    | Tag names preserved | Work required                     |
 | ---------------------------------------------- | --------------------------------------- | --------- | ------------------- | --------------------------------- |
 | [Modbus](#modbus)                              | [Modbus](modbus.md)                     | Available | No                  | PLC-side Modbus server            |

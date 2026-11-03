@@ -63,6 +63,9 @@ delivers exactly the messages the other side missed — no rescan, no comparison
 This is what replaces the hash tree: the stream sequence _is_ the
 synchronization state.
 
+When a durable consumer has a backlog, its pump also sends current values ahead
+of it until the history catches up (see [Offline catch-up](#offline-catch-up)).
+
 The durable is named for the receiving instance, so an instance that loses its
 identity — a store reset gives it a new root ID — is a new reader as far as the
 sender is concerned, and receives the sender's retained history from the
@@ -83,6 +86,8 @@ persists it**; the replica stream is the persistent copy. This single rule keeps
 the single-writer property intact everywhere.
 
 ## Life of a connection
+
+![sequence of a sync connection between a device and a hub, then catch-up after a disconnect](images/sync-connection.svg)
 
 1. The sync client connects to the upstream NATS server (plain NATS or NATS over
    WebSocket).
@@ -107,13 +112,48 @@ Configuration written on the hub _before_ the device ever connects
 ## Offline catch-up
 
 While disconnected, both sides keep writing to their own streams. On reconnect,
-the durable consumers resume and deliver only the backlog. Two kinds of
-consumers see that backlog differently:
+the durable consumers resume and deliver only the backlog.
+
+**Current values come first.** A day of 1 Hz data can take hours to cross a slow
+link, and without help the other side would show stale values until the backlog
+reached them. So while a pump's durable consumer has a backlog, a snapshot runs
+alongside it:
+
+- An ephemeral consumer on the same stream delivers the newest message on each
+  subject, then each new message as it is written.
+- The pump forwards each one above the durable consumer's ack floor as a core
+  NATS message on `snap.<boundary>.<origin>.…`, the storage subject with `snap`
+  in place of `inst`. Subjects that did not change while offline are not sent.
+- The receiving store merges a snapshot message into its caches and broadcasts
+  it like a replica message, but never stores it, so a replica stream's last
+  message per subject is still the current value. A snapshot that claims the
+  receiving instance as its origin is dropped.
+- The history follows in order, as before, and carries every snapshot message
+  again. That copy changes nothing, since a tip is replaced only by a newer
+  point.
+- When the history has caught up, the snapshot stops and the history alone keeps
+  the other side current.
+
+![the hub receives current values and new points ahead of the backlog](images/sync-catchup.svg)
+
+![the push pump forwards snapshot messages alongside the history](images/sync-snapshot-flow.svg)
+
+Each changed subject crosses the link twice per reconnect, and so does each
+point written during catch-up; unchanged subjects cost nothing. An upstream from
+before snapshots refuses the `snap.` subject from a device credential; the pump
+notices on the first message and sends the history only. With the shared token,
+such an upstream accepts the messages and drops them, so they only add traffic
+during catch-up until it is upgraded.
+
+Two kinds of consumers see the backlog differently:
 
 - **State clients** (rules, protocol clients, the UI) should not see a replay of
-  stale intermediate values. The store therefore holds re-broadcasts while a
-  replica consumer has a backlog and emits one message per changed subject — the
-  final tip — once it drains.
+  stale intermediate values. They get the current value from the snapshot, and
+  the older history that follows is not broadcast. A rule that reacts to a
+  short-lived condition inside the backlog does not fire for it on the receiving
+  side; the sending instance's own rules evaluated it live. When a store starts
+  with a backlog in a replica stream, it also holds re-broadcasts until its
+  replica consumer drains, then emits one message per changed subject.
 - **History** needs every point. It is preserved automatically: the replica
   stream receives the full backlog in order with original embedded timestamps,
   so local history stays gap-free (up to each stream's retention limit). The Db

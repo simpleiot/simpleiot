@@ -224,6 +224,8 @@ credential from another group's token before approving it.
 
 ### How the authorizer works
 
+![each connection is checked by the authorizer and granted a scope from what it presents](images/auth-principals.svg)
+
 The authorizer (`server/auth.go`) is set as `CustomClientAuthentication` in the
 `server.Options` the embedded server is started with (`server/nats-server.go`).
 The options configure no users, tokens, or accounts of their own, so NATS hands
@@ -292,6 +294,7 @@ ID at connect time; nothing about them is stored or configurable.
 | Check whether it is adopted    | `nodes.all.X`                                                                                                                                                          |
 | Announce itself under the root | `ep.X.R`                                                                                                                                                               |
 | Push its origin stream         | `inst.X.X.>`, `$JS.API.STREAM.INFO.inst_X_X`                                                                                                                           |
+| Send current values first      | `snap.X.X.>`                                                                                                                                                           |
 | Pull its configuration         | `$JS.API.STREAM.INFO.inst_X_R`, `$JS.API.CONSUMER.CREATE.inst_X_R.>`, `$JS.API.CONSUMER.INFO.inst_X_R.*`, `$JS.API.CONSUMER.MSG.NEXT.inst_X_R.*`, `$JS.ACK.inst_X_R.>` |
 | Receive replies                | subscribe `_INBOX_<key>.>`, the connection's own inbox                                                                                                                 |
 
@@ -309,8 +312,11 @@ upstream also creates `inst_X_R`, the stream it writes the device's
 configuration to, when it adopts the device, so the device pulls it by name and
 never lists the upstream's streams.
 
-The upstream merges what a device writes to `inst.X.X.>` only where it stays
-inside boundary `X`; see [What the store checks](#what-the-store-checks).
+The upstream merges what a device writes to `inst.X.X.>` and `snap.X.X.>` only
+where it stays inside boundary `X`; see
+[What the store checks](#what-the-store-checks). The ephemeral consumer that
+reads current values from `inst_X_R` during catch-up uses the consumer grants
+above. It is left to expire on the upstream, so no consumer delete is granted.
 
 An instance with no shared token is open, and accepts a device key it does not
 know the way it accepts a connection with no credentials at all: with full
@@ -349,7 +355,9 @@ A message that does not qualify is held and logged, and merged if a later edge
 places it inside the boundary, since a stream delivers messages in the order
 they were written rather than tree order. The start-up load applies the same
 rule. Streams the instance wrote itself, and those its own upstream writes for
-it, are trusted.
+it, are trusted. Snapshot messages on `snap.X.X.>` go through the same checks. A
+snapshot that names the receiving instance as its origin is dropped, so one
+cannot claim the trust its own streams have.
 
 When the store finds a replica stream for a boundary that is not a node in its
 tree, it logs a warning naming the stream. That is what a device deleted from

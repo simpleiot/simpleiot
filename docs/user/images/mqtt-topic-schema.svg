@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 410" width="880" height="410" role="img" aria-label="A topic schema maps each named topic level to a node with a tag; the rest of the topic becomes the point key">
+  <!-- Simple IoT diagram style: see docs/ref/documentation.md (Diagrams). -->
+  <style>
+  :root {
+    --bg: #ffffff; --fg: #1f1f1f; --muted: #5f5f5f; --line: #3a3a3a;
+    --blue: #dae8fc; --blue-s: #6c8ebf;
+    --green: #d5e8d4; --green-s: #82b366;
+    --yellow: #fff2cc; --yellow-s: #d6b656;
+    --purple: #e1d5e7; --purple-s: #9673a6;
+    --orange: #ffe6cc; --orange-s: #d79b00;
+    --red: #f8cecc; --red-s: #b85450;
+    --gray: #f5f5f5; --gray-s: #9a9a9a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a; --fg: #f0f0f0; --muted: #a8a8a8; --line: #c8c8c8;
+      --blue: #1e2a3d; --green: #1f3320; --yellow: #38321c;
+      --purple: #2f2538; --orange: #3d2a14; --red: #3d1f1f;
+      --gray: #242424; --gray-s: #5a5a5a;
+    }
+  }
+  svg { font-family: Inter, Helvetica, Arial, sans-serif; }
+  .bg { fill: var(--bg); }
+  text { fill: var(--fg); font-size: 12px; dominant-baseline: central; }
+  .title { font-size: 14px; font-weight: 600; dominant-baseline: auto; }
+  .small { font-size: 11px; }
+  .muted { fill: var(--muted); }
+  .bold { font-weight: 600; }
+  .mono { font-family: "JetBrains Mono", Menlo, Consolas, monospace; font-size: 11px; }
+  .shape { stroke-width: 1.2; }
+  .blue { fill: var(--blue); stroke: var(--blue-s); }
+  .green { fill: var(--green); stroke: var(--green-s); }
+  .yellow { fill: var(--yellow); stroke: var(--yellow-s); }
+  .purple { fill: var(--purple); stroke: var(--purple-s); }
+  .orange { fill: var(--orange); stroke: var(--orange-s); }
+  .red { fill: var(--red); stroke: var(--red-s); }
+  .gray { fill: var(--gray); stroke: var(--gray-s); }
+  .dashed { stroke-dasharray: 5 4; }
+  .edge { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-linejoin: round; }
+  .edge.c-blue { stroke: var(--blue-s); }
+  .edge.c-green { stroke: var(--green-s); }
+  .edge.c-purple { stroke: var(--purple-s); }
+  .edge.c-orange { stroke: var(--orange-s); }
+  .edge.c-red { stroke: var(--red-s); }
+  .head { fill: var(--line); }
+  .head.c-blue { fill: var(--blue-s); }
+  .head.c-green { fill: var(--green-s); }
+  .head.c-purple { fill: var(--purple-s); }
+  .head.c-orange { fill: var(--orange-s); }
+  .head.c-red { fill: var(--red-s); }
+  .actor { fill: none; stroke: var(--fg); stroke-width: 1.5; }
+  .label-bg { fill: var(--bg); }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-blue" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-green" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-purple" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-orange" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-red" d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+  <rect class="bg" width="880" height="410" rx="8"/>
+  <rect class="shape gray" x="20" y="16" width="840" height="104" rx="10"/>
+  <text class="title" x="32" y="38">📨 MQTT message</text>
+  <text x="150" y="56" text-anchor="middle" class="mono muted">{site}</text>
+  <rect class="shape yellow" x="80" y="70" width="140" height="32" rx="6"/>
+  <text x="150" y="86" text-anchor="middle" class="mono">plant-07</text>
+  <text x="310" y="56" text-anchor="middle" class="mono muted">{gateway}</text>
+  <rect class="shape yellow" x="240" y="70" width="140" height="32" rx="6"/>
+  <text x="310" y="86" text-anchor="middle" class="mono">kepware-l3</text>
+  <text x="470" y="56" text-anchor="middle" class="mono muted">{device}</text>
+  <rect class="shape yellow" x="400" y="70" width="140" height="32" rx="6"/>
+  <text x="470" y="86" text-anchor="middle" class="mono">press</text>
+  <text x="630" y="56" text-anchor="middle" class="mono muted">rest of topic</text>
+  <rect class="shape yellow" x="560" y="70" width="140" height="32" rx="6"/>
+  <text x="630" y="86" text-anchor="middle" class="mono">tank_level</text>
+  <text x="230" y="86" text-anchor="middle" class="mono muted">/</text>
+  <text x="390" y="86" text-anchor="middle" class="mono muted">/</text>
+  <text x="550" y="86" text-anchor="middle" class="mono muted">/</text>
+  <text x="780" y="56" text-anchor="middle" class="small muted">payload</text>
+  <rect class="shape yellow" x="720" y="70" width="120" height="32" rx="6"/>
+  <text x="780" y="86" text-anchor="middle" class="mono">{"value": 42.1}</text>
+  <rect class="shape green" x="20" y="150" width="120" height="44" rx="6"/>
+  <text x="80" y="165" text-anchor="middle">Plant data</text>
+  <text x="80" y="179.5" text-anchor="middle" class="small muted">mqtt node</text>
+  <rect class="shape green" x="60" y="214" width="180" height="44" rx="6"/>
+  <text x="150" y="229" text-anchor="middle">plant-07</text>
+  <text x="150" y="243.5" text-anchor="middle" class="small muted">group · site=plant-07</text>
+  <rect class="shape green" x="220" y="278" width="180" height="44" rx="6"/>
+  <text x="310" y="293" text-anchor="middle">kepware-l3</text>
+  <text x="310" y="307.5" text-anchor="middle" class="small muted">group · gateway=kepware-l3</text>
+  <rect class="shape green" x="380" y="342" width="180" height="44" rx="6"/>
+  <text x="470" y="357" text-anchor="middle">press</text>
+  <text x="470" y="371.5" text-anchor="middle" class="small muted">mqttDevice · device=press</text>
+  <rect class="shape yellow" x="590" y="342" width="160" height="44" rx="6"/>
+  <text x="670" y="357" text-anchor="middle">tank_level = 42.1</text>
+  <text x="670" y="371.5" text-anchor="middle" class="small muted">point value, key tank_level</text>
+  <path class="edge" d="M40,194 L40,236 L60,236"/>
+  <path class="edge" d="M80,258 L80,300 L220,300"/>
+  <path class="edge" d="M240,322 L240,364 L380,364"/>
+  <path class="edge" d="M560,364 L590,364"/>
+  <path class="edge dashed" d="M150,102 L150,214" marker-end="url(#arrow)"/>
+  <path class="edge dashed" d="M310,102 L310,278" marker-end="url(#arrow)"/>
+  <path class="edge dashed" d="M470,102 L470,342" marker-end="url(#arrow)"/>
+  <path class="edge dashed" d="M630,102 L630,342" marker-end="url(#arrow)"/>
+  <path class="edge dashed" d="M780,102 L780,364 L750,364" marker-end="url(#arrow)"/>
+</svg>

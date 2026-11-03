@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -539,8 +540,10 @@ func (up *SyncClient) runSession(ctx context.Context, ncRemote *nats.Conn) error
 		return fmt.Errorf("error creating remote JetStream context: %v", err)
 	}
 
+	desc := up.config.Description
+
 	// push our origin stream for our root boundary upstream
-	pushCC, err := runPump(ctx, jsLocal, jsRemote, X, X, rootRemote.ID)
+	pushCC, err := runPump(ctx, jsLocal, jsRemote, desc, X, X, rootRemote.ID)
 	if err != nil {
 		return fmt.Errorf("error starting push replication: %v", err)
 	}
@@ -549,7 +552,7 @@ func (up *SyncClient) runSession(ctx context.Context, ncRemote *nats.Conn) error
 	// pull the stream the upstream writes our configuration to; the
 	// upstream creates it when it adopts us, so it is named rather than
 	// discovered
-	pullCC, err := runPump(ctx, jsRemote, jsLocal, X, rootRemote.ID, X)
+	pullCC, err := runPump(ctx, jsRemote, jsLocal, desc, X, rootRemote.ID, X)
 	if err != nil {
 		log.Printf("Sync %v: no configuration from upstream until it reconnects: %v\n",
 			up.config.Description, err)
@@ -648,8 +651,12 @@ func sendWindow(ctx context.Context, dst asyncPublisher, window []pumpMsg) error
 // redelivered. Messages move in windows and are acknowledged only after dst
 // confirms every write in the window; a window that fails is resent rather
 // than skipped, so the receiving stream sees each subject in source order.
+//
+// When the durable consumer has a backlog, a snapshot runs alongside the
+// history until the history catches up (see runSnapshot), so the receiving
+// side learns current values without waiting for the backlog.
 func runPump(ctx context.Context, src, dst jetstream.JetStream,
-	boundary, origin, durableFor string) (pumpStopper, error) {
+	desc, boundary, origin, durableFor string) (pumpStopper, error) {
 
 	name := fmt.Sprintf("inst_%v_%v", boundary, origin)
 
@@ -683,15 +690,47 @@ func runPump(ctx context.Context, src, dst jetstream.JetStream,
 		return nil, fmt.Errorf("error creating sync consumer on %v: %v", name, err)
 	}
 
+	// a backlog means the receiving side is behind: send it the current
+	// values first. Messages at or below the ack floor have been
+	// received already.
+	// read once, before any goroutine starts: tests change them
+	windowDelay := pumpWindowDelay
+	inactive := snapshotInactive
+
+	stopSnapshot := func() {}
+	info := c.CachedInfo()
+	if info != nil && (info.NumPending > 0 || info.NumAckPending > 0) {
+		snapCtx, cancel := context.WithCancel(ctx)
+		stopSnapshot = cancel
+		floor := info.AckFloor.Stream
+		go func() {
+			sent, err := runSnapshot(snapCtx, s, dst.Conn(),
+				fmt.Sprintf("inst.%v.%v.>", boundary, origin), floor, inactive)
+			switch {
+			case errors.Is(err, errSnapshotRefused):
+				log.Printf("Sync %v: %v: receiving server refused current values, "+
+					"sending history only\n", desc, name)
+			case err != nil:
+				log.Printf("Sync %v: %v: current values stopped after %v, "+
+					"sending history only: %v\n", desc, name, sent, err)
+			default:
+				log.Printf("Sync %v: %v: sent %v current values ahead of the "+
+					"history, ack floor %v\n", desc, name, sent, floor)
+			}
+		}()
+	}
+
 	it, err := c.Messages(jetstream.PullMaxMessages(pumpWindowSize),
 		jetstream.PullExpiry(pumpPullExpiry))
 	if err != nil {
+		stopSnapshot()
 		return nil, fmt.Errorf("error iterating %v: %v", name, err)
 	}
 
 	go func() {
+		defer stopSnapshot()
 		for {
-			window, err := fillWindow(it)
+			window, caughtUp, err := fillWindow(it)
 			if err != nil {
 				// the iterator was stopped, or the session ended
 				return
@@ -714,29 +753,145 @@ func runPump(ctx context.Context, src, dst jetstream.JetStream,
 				case <-time.After(pumpRetryPeriod):
 				}
 			}
+
+			if caughtUp {
+				// the history alone keeps the receiving side current
+				// from here
+				stopSnapshot()
+			}
+
+			if windowDelay > 0 {
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(windowDelay):
+				}
+			}
 		}
 	}()
 
 	return it, nil
 }
 
+// pumpWindowDelay holds a pump back between windows. It is zero except in
+// tests, which use it to keep a backlog in flight.
+var pumpWindowDelay time.Duration
+
 // fillWindow collects up to a full window from the iterator, returning early
 // once the source has nothing further waiting so a caught-up pump does not sit
-// on a partial window.
-func fillWindow(it jetstream.MessagesContext) ([]pumpMsg, error) {
-	window := make([]pumpMsg, 0, pumpWindowSize)
+// on a partial window. caughtUp reports that the window ends with nothing
+// left waiting.
+func fillWindow(it jetstream.MessagesContext) (window []pumpMsg, caughtUp bool, err error) {
+	window = make([]pumpMsg, 0, pumpWindowSize)
 
 	for len(window) < pumpWindowSize {
 		msg, err := it.Next()
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		window = append(window, msg)
 
 		if meta, err := msg.Metadata(); err == nil && meta.NumPending == 0 {
-			break
+			return window, true, nil
 		}
 	}
 
-	return window, nil
+	return window, false, nil
+}
+
+// errSnapshotRefused says the receiving server does not accept snapshot
+// messages: it is a version from before them, and its device grant does
+// not include the snap subject.
+var errSnapshotRefused = errors.New("snapshot refused")
+
+// snapshotInactive is how long the server keeps a snapshot consumer after
+// the pump stops reading it. The consumer is left to expire rather than
+// deleted, since a device is not granted consumer deletion on its upstream.
+var snapshotInactive = 30 * time.Second
+
+// snapshotProbeTimeout bounds the wait for the receiving server to accept
+// the first snapshot message.
+const snapshotProbeTimeout = 10 * time.Second
+
+// runSnapshot sends the receiving side the current value of each subject that
+// changed since the ack floor, then each message written after that, as core
+// NATS messages on the snapshot subject (see SubjectSnapshot). It runs until
+// ctx ends, which the pump does once its history has caught up, and returns
+// how many messages it sent.
+//
+// The history carries every one of these messages again, durably, so nothing
+// is acknowledged and a lost snapshot message costs nothing but time. The
+// first message is followed by a flush: a server that refuses the subject
+// reports it before answering, and the snapshot stops there, so an older
+// upstream sees one refused publish per session.
+func runSnapshot(ctx context.Context, s jetstream.Stream, nc *nats.Conn,
+	filter string, floor uint64, inactive time.Duration) (int, error) {
+
+	c, err := s.CreateConsumer(ctx, jetstream.ConsumerConfig{
+		DeliverPolicy:     jetstream.DeliverLastPerSubjectPolicy,
+		AckPolicy:         jetstream.AckNonePolicy,
+		FilterSubject:     filter,
+		InactiveThreshold: inactive,
+	})
+	if err != nil {
+		if ctx.Err() != nil {
+			return 0, nil
+		}
+		return 0, fmt.Errorf("error creating snapshot consumer: %w", err)
+	}
+
+	it, err := c.Messages()
+	if err != nil {
+		return 0, fmt.Errorf("error reading snapshot consumer: %w", err)
+	}
+	defer it.Stop()
+
+	stopped := make(chan struct{})
+	defer close(stopped)
+	go func() {
+		select {
+		case <-ctx.Done():
+			it.Stop()
+		case <-stopped:
+		}
+	}()
+
+	sent := 0
+	for {
+		msg, err := it.Next()
+		if err != nil {
+			if ctx.Err() != nil || errors.Is(err, jetstream.ErrMsgIteratorClosed) {
+				return sent, nil
+			}
+			return sent, err
+		}
+
+		meta, err := msg.Metadata()
+		if err != nil || meta.Sequence.Stream <= floor {
+			continue
+		}
+
+		before := nc.LastError()
+		err = nc.Publish(SubjectSnapshot(msg.Subject()), msg.Data())
+		if err != nil {
+			return sent, err
+		}
+		sent++
+
+		if sent == 1 {
+			if err := nc.FlushTimeout(snapshotProbeTimeout); err != nil {
+				return sent, err
+			}
+			if last := nc.LastError(); last != before && snapshotRefusal(last) {
+				return sent, errSnapshotRefused
+			}
+		}
+	}
+}
+
+// snapshotRefusal reports whether a connection error is the server refusing
+// a snapshot publish.
+func snapshotRefusal(err error) bool {
+	return errors.Is(err, nats.ErrPermissionViolation) &&
+		strings.Contains(err.Error(), `"`+SnapshotPrefix+".")
 }

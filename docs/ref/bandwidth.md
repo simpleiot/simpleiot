@@ -33,6 +33,8 @@ An idle device with the defaults uses about 0.6 MB a day, or 19 MB a month,
 nearly all of it the keepalive. A 30 MB plan then leaves about 11 MB a month for
 data, which is roughly one point every two minutes across the whole device.
 
+![monthly bytes per source for a syncing device](images/bandwidth-budget.svg)
+
 ## What a point costs
 
 Every point written anywhere in a device's tree is stored in the device's stream

@@ -190,6 +190,12 @@ func (st *Store) Run() error {
 		return fmt.Errorf("subscribe dbMaint error: %w", err)
 	}
 
+	// current values a sync pump sends ahead of its history during
+	// catch-up (see handleSnapshot)
+	if st.subscriptions["snapshot"], err = nc.Subscribe(client.SnapshotPrefix+".>", st.db.handleSnapshot); err != nil {
+		return fmt.Errorf("subscribe snapshot error: %w", err)
+	}
+
 	// consume replica streams (remote-origin data) into the caches and
 	// re-broadcast changed tips locally (ADR-7 Stage 3)
 	replicas := st.db.runReplicaManager()
