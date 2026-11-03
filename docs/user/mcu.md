@@ -13,7 +13,7 @@ MPU handling data/connectivity and a MCU doing real-time control.
 See the [Serial reference documentation](../ref/serial.md) for more technical
 details on this client.
 
-![mcu](images/mcu.png)
+![mcu](images/mcu.svg)
 
 ## File Download
 

@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 400" width="860" height="400" role="img" aria-label="SIOT in the cloud and on an edge device, integrated with databases, scripts, and hardware">
+  <!-- Simple IoT diagram style: see docs/ref/documentation.md (Diagrams). -->
+  <style>
+  :root {
+    --bg: #ffffff; --fg: #1f1f1f; --muted: #5f5f5f; --line: #3a3a3a;
+    --blue: #dae8fc; --blue-s: #6c8ebf;
+    --green: #d5e8d4; --green-s: #82b366;
+    --yellow: #fff2cc; --yellow-s: #d6b656;
+    --purple: #e1d5e7; --purple-s: #9673a6;
+    --orange: #ffe6cc; --orange-s: #d79b00;
+    --red: #f8cecc; --red-s: #b85450;
+    --gray: #f5f5f5; --gray-s: #9a9a9a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a; --fg: #f0f0f0; --muted: #a8a8a8; --line: #c8c8c8;
+      --blue: #1e2a3d; --green: #1f3320; --yellow: #38321c;
+      --purple: #2f2538; --orange: #3d2a14; --red: #3d1f1f;
+      --gray: #242424; --gray-s: #5a5a5a;
+    }
+  }
+  svg { font-family: Inter, Helvetica, Arial, sans-serif; }
+  .bg { fill: var(--bg); }
+  text { fill: var(--fg); font-size: 12px; dominant-baseline: central; }
+  .title { font-size: 14px; font-weight: 600; dominant-baseline: auto; }
+  .small { font-size: 11px; }
+  .muted { fill: var(--muted); }
+  .bold { font-weight: 600; }
+  .mono { font-family: "JetBrains Mono", Menlo, Consolas, monospace; font-size: 11px; }
+  .shape { stroke-width: 1.2; }
+  .blue { fill: var(--blue); stroke: var(--blue-s); }
+  .green { fill: var(--green); stroke: var(--green-s); }
+  .yellow { fill: var(--yellow); stroke: var(--yellow-s); }
+  .purple { fill: var(--purple); stroke: var(--purple-s); }
+  .orange { fill: var(--orange); stroke: var(--orange-s); }
+  .red { fill: var(--red); stroke: var(--red-s); }
+  .gray { fill: var(--gray); stroke: var(--gray-s); }
+  .dashed { stroke-dasharray: 5 4; }
+  .edge { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-linejoin: round; }
+  .edge.c-blue { stroke: var(--blue-s); }
+  .edge.c-green { stroke: var(--green-s); }
+  .edge.c-purple { stroke: var(--purple-s); }
+  .edge.c-orange { stroke: var(--orange-s); }
+  .edge.c-red { stroke: var(--red-s); }
+  .head { fill: var(--line); }
+  .head.c-blue { fill: var(--blue-s); }
+  .head.c-green { fill: var(--green-s); }
+  .head.c-purple { fill: var(--purple-s); }
+  .head.c-orange { fill: var(--orange-s); }
+  .head.c-red { fill: var(--red-s); }
+  .actor { fill: none; stroke: var(--fg); stroke-width: 1.5; }
+  .label-bg { fill: var(--bg); }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-blue" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-green" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-purple" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-orange" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-red" d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+  <rect class="bg" width="860" height="400" rx="8"/>
+  <rect class="shape gray" x="20" y="20" width="380" height="240" rx="10"/>
+  <text class="title" x="32" y="42">☁️ Cloud</text>
+  <rect class="shape purple" x="40" y="64" width="150" height="40" rx="6"/>
+  <text x="115" y="84" text-anchor="middle">InfluxDB</text>
+  <rect class="shape purple" x="40" y="134" width="150" height="40" rx="6"/>
+  <text x="115" y="154" text-anchor="middle">Grafana</text>
+  <rect class="shape purple" x="40" y="204" width="150" height="40" rx="6"/>
+  <text x="115" y="224" text-anchor="middle">Twilio</text>
+  <rect class="shape blue" x="250" y="110" width="130" height="56" rx="6"/>
+  <text x="315" y="131" text-anchor="middle">SIOT</text>
+  <text x="315" y="145.5" text-anchor="middle" class="small muted">state + config</text>
+  <path class="edge" d="M250,124 L190,84" marker-end="url(#arrow)"/>
+  <path class="edge" d="M115,104 L115,134" marker-end="url(#arrow)"/>
+  <path class="edge" d="M250,152 L190,224" marker-end="url(#arrow)"/>
+  <rect class="shape gray" x="470" y="20" width="370" height="250" rx="10"/>
+  <text class="title" x="482" y="42">📟 Edge device</text>
+  <rect class="shape blue" x="490" y="110" width="120" height="56" rx="6"/>
+  <text x="550" y="131" text-anchor="middle">SIOT</text>
+  <text x="550" y="145.5" text-anchor="middle" class="small muted">state + config</text>
+  <rect class="shape purple" x="680" y="56" width="140" height="40" rx="6"/>
+  <text x="750" y="76" text-anchor="middle">InfluxDB</text>
+  <rect class="shape purple" x="680" y="120" width="140" height="44" rx="6"/>
+  <text x="750" y="135" text-anchor="middle">C++</text>
+  <text x="750" y="149.5" text-anchor="middle" class="small muted">machine learning</text>
+  <rect class="shape purple" x="680" y="192" width="140" height="44" rx="6"/>
+  <text x="750" y="207" text-anchor="middle">Python</text>
+  <text x="750" y="221.5" text-anchor="middle" class="small muted">scripting</text>
+  <path class="edge" d="M610,120 L680,76" marker-end="url(#arrow)"/>
+  <path class="edge" d="M750,96 L750,120" marker-end="url(#arrow)"/>
+  <path class="edge" d="M610,138 L680,142" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <rect class="label-bg" x="626.48" y="131" width="37.04" height="18" rx="3"/>
+  <text x="645" y="140" text-anchor="middle" class="small">NATS</text>
+  <path class="edge" d="M610,156 L680,214" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <rect class="label-bg" x="626.48" y="176" width="37.04" height="18" rx="3"/>
+  <text x="645" y="185" text-anchor="middle" class="small">NATS</text>
+  <path class="edge" d="M380,138 L490,138" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <rect class="label-bg" x="405.535" y="122" width="58.93" height="32" rx="3"/>
+  <text text-anchor="middle" class="small"><tspan x="435" y="131">upstream</tspan><tspan x="435" y="145">sync</tspan></text>
+  <rect class="shape orange" x="480" y="330" width="150" height="44" rx="6"/>
+  <text x="555" y="352" text-anchor="middle">🌡️ 1-Wire sensor</text>
+  <rect class="shape orange" x="660" y="330" width="160" height="44" rx="6"/>
+  <text x="740" y="352" text-anchor="middle">🔧 Modbus device</text>
+  <path class="edge" d="M530,166 L555,330" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <rect class="label-bg" x="520.185" y="239" width="44.63" height="18" rx="3"/>
+  <text x="542.5" y="248" text-anchor="middle" class="small">1-Wire</text>
+  <path class="edge" d="M570,166 L740,330" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <rect class="label-bg" x="631.475" y="239" width="47.05" height="18" rx="3"/>
+  <text x="655" y="248" text-anchor="middle" class="small">Modbus</text>
+</svg>

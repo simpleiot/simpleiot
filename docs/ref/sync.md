@@ -24,16 +24,7 @@ with a deterministic origin tie-break. Because no instance ever writes remote
 data into its _own_ streams, points cannot echo back and forth between
 instances: there is no loop to suppress.
 
-```
-   device X                                hub R
-  ┌───────────────────┐                  ┌───────────────────┐
-  │ inst_X_X (owned)  │ ──── push ─────► │ inst_X_X (replica)│
-  │ inst_X_R (replica)│ ◄─── pull ────── │ inst_X_R (owned)  │
-  │                   │                  │ inst_R_R (owned)  │
-  └───────────────────┘                  └───────────────────┘
-     merge tips of both                     merge tips of both
-     = current state                        = current state
-```
+![device and hub streams](images/sync-streams.svg)
 
 ## How each NATS feature is used
 

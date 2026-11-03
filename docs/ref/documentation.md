@@ -11,9 +11,5 @@ we've structured SIOT documentation as follows:
   [generated docs site](https://docs.simpleiot.org/). This allows any snapshot
   of SIOT to contain a viewable snapshot of the documentation for that revision.
 - `mdbook` is used to generate the documentation site.
-- All diagrams are stored in a
-  [single draw.io](https://github.com/simpleiot/simpleiot/blob/master/docs/diagrams.drawio)
-  file. This allows you to easily see what diagrams are available and easily
-  copy pieces from existing diagrams to make new ones. Then generate a PNG for
-  the diagram in the `images/` directory in the relevant documentation
-  directory.
+- Diagrams are plain SVG files that follow light and dark themes. See
+  [Diagrams](diagrams.md) for the style guide and a gallery of every diagram.

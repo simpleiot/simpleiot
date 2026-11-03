@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" width="900" height="620" role="img" aria-label="Points flow up through up subjects; database nodes subscribe to their parent's up subject">
+  <!-- Simple IoT diagram style: see docs/ref/documentation.md (Diagrams). -->
+  <style>
+  :root {
+    --bg: #ffffff; --fg: #1f1f1f; --muted: #5f5f5f; --line: #3a3a3a;
+    --blue: #dae8fc; --blue-s: #6c8ebf;
+    --green: #d5e8d4; --green-s: #82b366;
+    --yellow: #fff2cc; --yellow-s: #d6b656;
+    --purple: #e1d5e7; --purple-s: #9673a6;
+    --orange: #ffe6cc; --orange-s: #d79b00;
+    --red: #f8cecc; --red-s: #b85450;
+    --gray: #f5f5f5; --gray-s: #9a9a9a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a; --fg: #f0f0f0; --muted: #a8a8a8; --line: #c8c8c8;
+      --blue: #1e2a3d; --green: #1f3320; --yellow: #38321c;
+      --purple: #2f2538; --orange: #3d2a14; --red: #3d1f1f;
+      --gray: #242424; --gray-s: #5a5a5a;
+    }
+  }
+  svg { font-family: Inter, Helvetica, Arial, sans-serif; }
+  .bg { fill: var(--bg); }
+  text { fill: var(--fg); font-size: 12px; dominant-baseline: central; }
+  .title { font-size: 14px; font-weight: 600; dominant-baseline: auto; }
+  .small { font-size: 11px; }
+  .muted { fill: var(--muted); }
+  .bold { font-weight: 600; }
+  .mono { font-family: "JetBrains Mono", Menlo, Consolas, monospace; font-size: 11px; }
+  .shape { stroke-width: 1.2; }
+  .blue { fill: var(--blue); stroke: var(--blue-s); }
+  .green { fill: var(--green); stroke: var(--green-s); }
+  .yellow { fill: var(--yellow); stroke: var(--yellow-s); }
+  .purple { fill: var(--purple); stroke: var(--purple-s); }
+  .orange { fill: var(--orange); stroke: var(--orange-s); }
+  .red { fill: var(--red); stroke: var(--red-s); }
+  .gray { fill: var(--gray); stroke: var(--gray-s); }
+  .dashed { stroke-dasharray: 5 4; }
+  .edge { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-linejoin: round; }
+  .edge.c-blue { stroke: var(--blue-s); }
+  .edge.c-green { stroke: var(--green-s); }
+  .edge.c-purple { stroke: var(--purple-s); }
+  .edge.c-orange { stroke: var(--orange-s); }
+  .edge.c-red { stroke: var(--red-s); }
+  .head { fill: var(--line); }
+  .head.c-blue { fill: var(--blue-s); }
+  .head.c-green { fill: var(--green-s); }
+  .head.c-purple { fill: var(--purple-s); }
+  .head.c-orange { fill: var(--orange-s); }
+  .head.c-red { fill: var(--red-s); }
+  .actor { fill: none; stroke: var(--fg); stroke-width: 1.5; }
+  .label-bg { fill: var(--bg); }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-blue" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-green" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-purple" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-orange" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-red" d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+  <rect class="bg" width="900" height="620" rx="8"/>
+  <circle class="shape green" cx="300" cy="110" r="28"/>
+  <text x="300" y="103" text-anchor="middle">N1</text>
+  <text x="300" y="118" text-anchor="middle" class="small muted">Dev</text>
+  <circle class="shape green" cx="170" cy="260" r="28"/>
+  <text x="170" y="253" text-anchor="middle">N6</text>
+  <text x="170" y="268" text-anchor="middle" class="small muted">Group</text>
+  <circle class="shape green" cx="430" cy="260" r="28"/>
+  <text x="430" y="253" text-anchor="middle">N2</text>
+  <text x="430" y="268" text-anchor="middle" class="small muted">Group</text>
+  <circle class="shape green" cx="100" cy="420" r="28"/>
+  <text x="100" y="413" text-anchor="middle">N7</text>
+  <text x="100" y="428" text-anchor="middle" class="small muted">Db</text>
+  <circle class="shape green" cx="330" cy="420" r="28"/>
+  <text x="330" y="413" text-anchor="middle">N3</text>
+  <text x="330" y="428" text-anchor="middle" class="small muted">Db</text>
+  <circle class="shape green" cx="520" cy="420" r="28"/>
+  <text x="520" y="413" text-anchor="middle">N4</text>
+  <text x="520" y="428" text-anchor="middle" class="small muted">Modbus</text>
+  <circle class="shape green" cx="610" cy="550" r="28"/>
+  <text x="610" y="543" text-anchor="middle">N5</text>
+  <text x="610" y="558" text-anchor="middle" class="small muted">IO</text>
+  <path class="edge" d="M281.662,131.159 L188.993,238.085" marker-end="url(#arrow)"/>
+  <path class="edge" d="M318.338,131.159 L411.007,238.085" marker-end="url(#arrow)"/>
+  <path class="edge" d="M158.777,285.652 L111.624,393.431" marker-end="url(#arrow)"/>
+  <path class="edge" d="M415.16,283.744 L345.37,395.408" marker-end="url(#arrow)"/>
+  <path class="edge" d="M443.727,284.404 L505.782,394.724" marker-end="url(#arrow)"/>
+  <path class="edge" d="M535.938,443.021 L593.493,526.156" marker-end="url(#arrow)"/>
+  <path class="edge c-red" d="M112.025,392.515 Q171.446,356.491 157.575,288.401" marker-end="url(#arrow-red)"/>
+  <rect class="label-bg" x="156.333" y="349.896" width="41.22" height="18" rx="3"/>
+  <text x="176.943" y="358.896" text-anchor="middle" class="small">points</text>
+  <path class="edge c-red" d="M189.648,237.329 Q264.9,211.575 279.697,133.426" marker-end="url(#arrow-red)"/>
+  <path class="edge c-red" d="M592.924,525.334 Q598.172,462.643 537.646,445.488" marker-end="url(#arrow-red)"/>
+  <rect class="label-bg" x="582.495" y="450.227" width="41.22" height="18" rx="3"/>
+  <text x="603.105" y="459.227" text-anchor="middle" class="small">points</text>
+  <path class="edge c-red" d="M505.292,393.853 Q440.382,360.046 445.198,287.019" marker-end="url(#arrow-red)"/>
+  <path class="edge c-red" d="M410.352,237.329 Q335.1,211.575 320.303,133.426" marker-end="url(#arrow-red)"/>
+  <path class="edge c-purple dashed" d="M157.975,287.485 Q93.9733,321.505 112.425,391.599" marker-end="url(#arrow-purple)"/>
+  <rect class="label-bg" x="45.764" y="304.088" width="57.94" height="18" rx="3"/>
+  <text x="74.734" y="313.088" text-anchor="middle" class="mono">sub up.N6</text>
+  <path class="edge c-purple dashed" d="M414.1,285.44 Q342.105,315.726 346.43,393.712" marker-end="url(#arrow-purple)"/>
+  <rect class="label-bg" x="295.327" y="295.596" width="57.94" height="18" rx="3"/>
+  <text x="324.297" y="304.596" text-anchor="middle" class="mono">sub up.N2</text>
+  <path class="edge c-blue" d="M582.79,537.367 L358.117,433.054" marker-end="url(#arrow-blue)"/>
+  <rect class="label-bg" x="420.804" y="469.211" width="99.3" height="32" rx="3"/>
+  <text text-anchor="middle" class="small"><tspan x="470.454" y="478.211">high-rate data</tspan><tspan x="470.454" y="492.211">is point-to-point</tspan></text>
+  <text x="300" y="68" text-anchor="middle" class="mono muted">up.N1</text>
+  <text x="108" y="260" text-anchor="middle" class="mono muted">up.N6</text>
+  <text x="494" y="254" text-anchor="middle" class="mono muted">up.N2</text>
+  <text x="38" y="420" text-anchor="middle" class="mono muted">up.N7</text>
+  <text x="330" y="464" text-anchor="middle" class="mono muted">up.N3</text>
+  <text x="580" y="406" text-anchor="middle" class="mono muted">up.N4</text>
+  <text x="670" y="550" text-anchor="middle" class="mono muted">up.N5</text>
+  <text text-anchor="start" class="small muted"><tspan x="600" y="49">Every point is published on the up subject of each</tspan><tspan x="600" y="63">ancestor, so every point ends up on up.N1. A node</tspan><tspan x="600" y="77">can subscribe to its parent's up subject to see all</tspan><tspan x="600" y="91">activity below that node.</tspan></text>
+  <text text-anchor="start" class="small muted"><tspan x="600" y="243">Groups partition the system</tspan><tspan x="600" y="257">(location, customer, …).</tspan></text>
+  <text text-anchor="start" class="small muted"><tspan x="20" y="526">N7 (database) subscribes to up.N6, so it</tspan><tspan x="20" y="540">sees N6 and N7 points. Points from N2</tspan><tspan x="20" y="554">through N5 do not flow through up.N6.</tspan></text>
+  <text text-anchor="start" class="small muted"><tspan x="660" y="419">N3 (time-series database) stores every</tspan><tspan x="660" y="433">point in the N2 group and none from N6.</tspan><tspan x="660" y="447">It sees N5 points as they flow through</tspan><tspan x="660" y="461">up.N2.</tspan></text>
+</svg>

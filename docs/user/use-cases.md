@@ -5,7 +5,7 @@ synchronize data between a number of distributed devices to a common central
 point (typically in the cloud). A common use case is connected devices where
 users want to remotely monitor and control these devices.
 
-![use](images/use.png)
+![use](images/use.svg)
 
 Some examples systems include:
 
@@ -23,7 +23,7 @@ cloud.
 
 Changes to config/state can be made locally or remotely in a SIOT system.
 
-![edit anywhere](images/edit-anywhere.png)
+![edit anywhere](images/edit-anywhere.svg)
 
 ## Devices keep working when the connection drops
 
@@ -52,7 +52,7 @@ catch-up.
 
 There are many ways to integrate Simple IoT with other applications.
 
-![integration](images/integration.png)
+![integration](images/integration.svg)
 
 There are cases where some tasks like machine learning are easier to do in
 languages like C++, then you can connect these applications to SIOT via NATS to
@@ -65,7 +65,7 @@ information.
 Because we run the same SIOT application everywhere, we can add upstream
 instances at multiple levels.
 
-![multiple upstream](images/multiple-upstream.png)
+![multiple upstream](images/multiple-upstream.svg)
 
 This flexibility allows us to run rules and other logic at any level (cloud,
 local server, or edge gateway) - wherever it makes sense.

@@ -42,12 +42,12 @@ structure in a tree, not a physical computer or SIOT instance. The term
 Nodes are arranged in a
 [directed acyclic graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
 
-<img src="./assets/image-20240124105741250.png" alt="image-20240124105741250" style="zoom: 33%;" />
+![directed acyclic graph](../ref/images/dag.svg)
 
 A subset of this tree is synchronized between various instances as shown in the
 below example:
 
-![SIOT example tree](./assets/cloud-device-node-tree.png)
+![SIOT example tree](../ref/images/cloud-device-node-tree.svg)
 
 The tree topology can be as deep as required to describe the system. To date,
 only the current state of a node is synchronized and history (if needed) is
@@ -63,7 +63,7 @@ With JetStream, we could store points in a stream where the head of the stream
 represents the current state of a Node or collection of nodes. Each point is
 stored in a separate NATS subject.
 
-![image-20240119093623132](./assets/image-20240119093623132.png)
+![node points in a stream](./assets/node-stream.svg)
 
 NATS JetStream is a stream-based store where every message in a stream is given
 a sequence number. Synchronization is simple in that if a sequence number does
@@ -286,7 +286,7 @@ of the time, one set of data will be set by the Leaf instance (ex: sensor
 readings) and another set of data will be set by the upstream Hub instance (ex:
 configuration settings) and there will be very little overlap.
 
-![image-20240119094329917](./assets/image-20240119094329917.png)
+![hub and leaf streams](./assets/hub-leaf-streams.svg)
 
 The question arises - do we really need bi-directional synchronization and the
 complexity of having two streams for every node? Every node includes some amount
@@ -324,7 +324,7 @@ Edges are used to describe the connections between nodes. Nodes can exist in
 multiple places in the tree. In the below example, `N2` is a child of both `N1`
 and `N3`.
 
-<img src="./assets/image-20240124112003398.png" alt="image-20240124112003398" style="zoom:67%;" />
+![edges stored in streams](./assets/edge-streams.svg)
 
 Edges currently contain the up and downstream node IDs, an array of points, and
 a node type. Putting the type in the edge made it efficient to traverse the tree
@@ -371,7 +371,7 @@ the tree to listen to messages of another node, as long as:
 1. It is equal or higher in the structure
 2. Shares an ancestor.
 
-<img src="./assets/image-20240124104619281.png" alt="image-20240124104619281" style="zoom:67%;" />
+![up subjects](./assets/up-subjects.svg)
 
 The use of "up" subjects would not have to change other than the logic that
 re-broadcasts points to "up" subjects would need to use the edge cache instead

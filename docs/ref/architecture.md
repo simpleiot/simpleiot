@@ -25,4 +25,4 @@ access to, the scope of rules and notifications, and which nodes external
 services apply to. Most functionality in the system is implemented in clients,
 which subscribe and publish point changes for nodes they are interested in.
 
-![application architecture](images/arch-app.png)
+![application architecture](images/arch-app.svg)

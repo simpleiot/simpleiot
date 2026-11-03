@@ -11,6 +11,13 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Changed
+
+- **Documentation diagrams are redrawn as SVG in one consistent style.** They
+  stay sharp at any size and follow the light or dark theme. The new
+  [Diagrams](docs/ref/diagrams.md) page holds the style guide and a gallery of
+  every diagram.
+
 ## [0.31.0] - 2026-10-29
 
 ### Added

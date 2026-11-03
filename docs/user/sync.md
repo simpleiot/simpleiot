@@ -3,7 +3,7 @@
 Simple IoT provides for synchronized upstream connections via NATS or NATS over
 WebSocket.
 
-![upstream](images/multiple-upstream.png)
+![upstream](images/multiple-upstream.svg)
 
 To create an upstream sync, add a sync node to the root node on the downstream
 instance. If your upstream server has a name of `myserver.com`, then you can use

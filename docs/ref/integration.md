@@ -8,7 +8,7 @@ very useful for any system where you need distributed state/config.
 With SIOT, you run the same application in both the cloud and edge devices, so
 you can use any of the available integration points at either place.
 
-![integration](../user/images/integration.png)
+![integration](../user/images/integration.svg)
 
 ## The SIOT API
 

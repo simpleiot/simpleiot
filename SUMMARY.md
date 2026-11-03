@@ -39,6 +39,7 @@
 # Reference Guide
 
 - [Documentation](docs/ref/documentation.md)
+  - [Diagrams](docs/ref/diagrams.md)
 - [Vision](docs/ref/vision.md)
 - [Architecture](docs/ref/architecture.md)
   - [System](docs/ref/architecture-system.md)

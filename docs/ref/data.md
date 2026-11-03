@@ -258,7 +258,7 @@ rule is visible from two places. For a node that owns something outside the tree
 acting on one piece of hardware, possibly from two instances, have no way to
 coordinate.
 
-![primary and mirror edges](images/primary-mirror-edges.png)
+![primary and mirror edges](images/primary-mirror-edges.svg)
 
 The edge says which is which, through two edge points:
 
