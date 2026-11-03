@@ -18,6 +18,12 @@ For more details or to discuss releases, please visit the
   [Diagrams](docs/ref/diagrams.md) page holds the style guide and a gallery of
   every diagram.
 
+### Fixed
+
+- **Expanding a tree shows changes made while it was collapsed.** Nodes that
+  come back into view deep in the tree now show their current values, including
+  changes made from another browser.
+
 ## [0.31.0] - 2026-10-29
 
 ### Added
