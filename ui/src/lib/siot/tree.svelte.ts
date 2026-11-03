@@ -21,6 +21,7 @@ import {
 import { PointType } from "./schema.ts"
 import * as tree from "./tree.ts"
 import type { Forest, TreeNode } from "./tree.ts"
+import { buildMatches, rankMatches, type NodeMatch } from "./search.ts"
 
 // Edit is the pending edit of one node, by its key on the page.
 export interface Edit {
@@ -99,6 +100,9 @@ export class TreeStore {
 	#onAuthFailed: () => void = () => undefined
 	#deepFetched = false
 	#saved = ""
+	// resolved holds nodes fetched by ID for display off the tree; it is
+	// dropped on each connect, since those nodes are not watched
+	#resolved = new Map<string, Node>()
 
 	constructor(private readonly env: Env) {}
 
@@ -216,6 +220,7 @@ export class TreeStore {
 		this.anchors = anchors
 		this.connected = true
 		this.#watching = []
+		this.#resolved = new Map()
 		// fetch every group afresh, and every expanded node, since points
 		// sent while the connection was down were missed
 		const f = this.forest.filter((t) => anchors.includes(t.anchor))
@@ -353,6 +358,62 @@ export class TreeStore {
 			return []
 		}
 		return this.#conn.getNodes(anchor, parent, id, depth)
+	}
+
+	// searchNodes asks every anchor for nodes matching query and merges the
+	// replies, ranked, each with the path it sits on.
+	async searchNodes(query: string, limit = 20): Promise<NodeMatch[]> {
+		const c = this.#conn
+		if (!c || query.trim() === "") {
+			return []
+		}
+		const replies = await Promise.all(
+			this.anchors.map(async (anchor) => {
+				try {
+					return { anchor, nodes: await c.searchNodes(anchor, query, limit) }
+				} catch {
+					return { anchor, nodes: [] }
+				}
+			})
+		)
+		const matches: NodeMatch[] = []
+		for (const r of replies) {
+			const top = this.findNode(r.anchor)
+			matches.push(
+				...buildMatches(r.nodes, query, r.anchor, top ? getBestDesc(top.points) : undefined)
+			)
+		}
+		return rankMatches(matches).slice(0, limit)
+	}
+
+	// resolveNode finds a node by ID for display: on the page if it is
+	// there, else fetched once through any anchor it sits under.
+	async resolveNode(id: string): Promise<Node | undefined> {
+		const onPage = this.findNode(id)
+		if (onPage) {
+			return onPage
+		}
+		const cached = this.#resolved.get(id)
+		if (cached) {
+			return cached
+		}
+		const c = this.#conn
+		if (!c || id === "") {
+			return undefined
+		}
+		for (const anchor of this.anchors) {
+			try {
+				const nodes = await c.getNodes(anchor, "all", id, 0)
+				const n = nodes[0]
+				if (n) {
+					this.#resolved.set(id, n)
+					return n
+				}
+			} catch {
+				// not under this anchor
+			}
+		}
+		return undefined
 	}
 
 	#edgePoints(items: { nodeId: string; parentId: string; points: Point[] }[]) {

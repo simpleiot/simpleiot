@@ -40,6 +40,18 @@ export function description(node: Node): string {
 	return getText(node.points, PointType.Description)
 }
 
+// pointTypes lists the types of a node's live points, for choosing one.
+export function pointTypes(node: Node): string[] {
+	return [...new Set(node.points.filter((p) => p.tombstone === 0).map((p) => p.type))].sort()
+}
+
+// pointKeys lists the keys a node's live points of one type carry.
+export function pointKeys(node: Node, type: string): string[] {
+	return [
+		...new Set(node.points.filter((p) => p.tombstone === 0 && p.type === type).map((p) => p.key)),
+	].sort()
+}
+
 // isTombstone is set when the edge to the parent is deleted.
 export function isTombstone(node: Node): boolean {
 	return getBool(node.edgePoints, PointType.Tombstone)

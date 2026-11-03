@@ -8,7 +8,15 @@
 		key = "0",
 		label = "",
 		placeholder = "",
-	}: { type: string; key?: string; label?: string; placeholder?: string } = $props()
+		suggestions = [],
+	}: {
+		type: string
+		key?: string
+		label?: string
+		placeholder?: string
+		// suggestions are offered as the browser's completions
+		suggestions?: readonly string[]
+	} = $props()
 
 	const ctx = inputContext()
 	const id = $props.id()
@@ -44,6 +52,14 @@
 		{value}
 		{placeholder}
 		{oninput}
+		list={suggestions.length > 0 ? `${id}-list` : undefined}
 		aria-label={label === "" ? placeholder || type : undefined}
 	/>
+	{#if suggestions.length > 0}
+		<datalist id="{id}-list">
+			{#each suggestions as s (s)}
+				<option value={s}></option>
+			{/each}
+		</datalist>
+	{/if}
 </Label>

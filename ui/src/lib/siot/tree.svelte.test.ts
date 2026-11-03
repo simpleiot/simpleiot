@@ -50,6 +50,22 @@ function env(nodes: Node[]): Env {
 		}),
 		getNodes: (_anchor: string, parent: string, id: string, opts: { depth: number }) =>
 			Promise.resolve(serve(nodes, parent, id, opts.depth)),
+		// the server answers a search with the matches and their ancestors
+		searchNodes: (anchor: string, query: string) => {
+			const q = query.toLowerCase()
+			const byId = new Map(nodes.map((n) => [n.id, n]))
+			const out: Node[] = []
+			for (const n of nodes) {
+				if (n.id === anchor || !getText(n.points, "description").toLowerCase().includes(q)) {
+					continue
+				}
+				out.push(n)
+				for (let p = byId.get(n.parent); p && p.id !== anchor; p = byId.get(p.parent)) {
+					out.push(p)
+				}
+			}
+			return Promise.resolve(out)
+		},
 	} as unknown as SiotConnection
 	return {
 		connect: () => Promise.resolve(conn),
@@ -91,4 +107,30 @@ test("expanding shows changes made below it while it was collapsed", async () =>
 	const shown = store.find("G/G/a/b/c/d")
 	expect(getText(shown?.node.points ?? [], "description")).toBe("renamed")
 	await store.stop()
+})
+
+test("searchNodes ranks server matches with their path, and resolveNode fetches by ID", async () => {
+	const nodes = [
+		group("G", "root"),
+		group("A", "G"),
+		{ ...group("p1", "A"), points: [newText("description", "0", "pump 1")] },
+		{ ...group("s", "G"), points: [newText("description", "0", "sump pump")] },
+	]
+	const store = new TreeStore(env(nodes))
+	store.start("t", () => undefined)
+	await vi.waitFor(() => {
+		expect(store.ready).toBe(true)
+	})
+
+	const m = await store.searchNodes("pump")
+	expect(m.map((x) => [x.id, x.rank, x.path])).toEqual([
+		["p1", 0, ["G", "A"]],
+		["s", 1, ["G"]],
+	])
+	expect(await store.searchNodes("  ")).toEqual([])
+
+	// G is on the page; p1 is not expanded, so it is fetched
+	expect((await store.resolveNode("G"))?.id).toBe("G")
+	expect(getText((await store.resolveNode("p1"))?.points ?? [], "description")).toBe("pump 1")
+	expect(await store.resolveNode("missing")).toBeUndefined()
 })

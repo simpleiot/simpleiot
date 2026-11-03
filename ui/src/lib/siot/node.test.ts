@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { nodeStatus, onlineStatus, type Node } from "./node.ts"
+import { nodeStatus, onlineStatus, pointKeys, pointTypes, type Node } from "./node.ts"
 import { DataType, newText, type Point } from "./point.ts"
 import { PointType } from "./schema.ts"
 
@@ -55,4 +55,21 @@ describe("onlineStatus", () => {
 		)
 		expect(onlineStatus([at(PointType.Online, 0, t)], now)).toMatch(/^Offline since /)
 	})
+})
+
+it("pointTypes and pointKeys list what a node carries, live points only", () => {
+	const n = {
+		id: "n",
+		type: "device",
+		parent: "G",
+		points: [
+			newText("description", "0", "d"),
+			{ ...newText("value", "1", "a"), tombstone: 0 },
+			{ ...newText("value", "0", "b"), tombstone: 0 },
+			{ ...newText("gone", "0", ""), tombstone: 1 },
+		],
+		edgePoints: [],
+	}
+	expect(pointTypes(n)).toEqual(["description", "value"])
+	expect(pointKeys(n, "value")).toEqual(["0", "1"])
 })

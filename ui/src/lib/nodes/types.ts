@@ -3,6 +3,7 @@
 
 import type { Node } from "#lib/siot/node.ts"
 import type { Point } from "#lib/siot/point.ts"
+import type { NodeMatch } from "#lib/siot/search.ts"
 import type { TreeNode } from "#lib/siot/tree.ts"
 
 // Clipboard is a node copied for pasting elsewhere.
@@ -40,6 +41,10 @@ export interface EditorProps {
 	generatedToken: GeneratedToken | null
 	// findNode looks up a node on the page by ID
 	findNode: (id: string) => Node | undefined
+	// searchNodes finds nodes by description on the server, and
+	// resolveNode fetches one by ID that may not be on the page
+	searchNodes: (query: string) => Promise<NodeMatch[]>
+	resolveNode: (id: string) => Promise<Node | undefined>
 	// onEditPoints records edits to save; onSendPoints sends points at once
 	onEditPoints: (points: Point[]) => void
 	onSendPoints: (points: Point[]) => void

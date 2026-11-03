@@ -2,15 +2,16 @@
 	// One editor serves both actions run while the rule is active and those
 	// run while it is inactive.
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
-	import Indent from "#lib/inputs/Indent.svelte"
 	import CheckboxInput from "#lib/inputs/CheckboxInput.svelte"
 	import KeyValueInput from "#lib/inputs/KeyValueInput.svelte"
 	import NumberInput from "#lib/inputs/NumberInput.svelte"
 	import OnOffInput from "#lib/inputs/OnOffInput.svelte"
+	import NodeRefInput from "#lib/inputs/NodeRefInput.svelte"
 	import OptionInput from "#lib/inputs/OptionInput.svelte"
-	import PasteButton from "#lib/inputs/PasteButton.svelte"
+	import SelectInput from "#lib/inputs/SelectInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
-	import { getBestDesc, getBool, getText } from "#lib/siot/point.ts"
+	import { pointKeys, pointTypes, type Node } from "#lib/siot/node.ts"
+	import { getBool, getText } from "#lib/siot/point.ts"
 	import { NodeType, PointType, PointValue } from "#lib/siot/schema.ts"
 	import type { EditorProps } from "../types.ts"
 	import TrendingDown from "@lucide/svelte/icons/trending-down"
@@ -30,7 +31,21 @@
 	const actionNotify = $derived(actionType === PointValue.Notify)
 	const valueType = $derived(getText(points, PointType.ValueType))
 	const nodeId = $derived(getText(points, PointType.NodeID))
-	const target = $derived(nodeId === "" ? undefined : props.findNode(nodeId))
+	const pointType = $derived(getText(points, PointType.PointType))
+
+	// the target node, from the page or fetched, for its point types and keys
+	let resolved = $state<{ id: string; node: Node | undefined } | null>(null)
+	const onPage = $derived(nodeId === "" ? undefined : props.findNode(nodeId))
+	$effect(() => {
+		const id = nodeId
+		if (id === "" || onPage || resolved?.id === id) {
+			return
+		}
+		void props.resolveNode(id).then((node) => {
+			resolved = { id, node }
+		})
+	})
+	const target = $derived(onPage ?? (resolved?.id === nodeId ? resolved.node : undefined))
 </script>
 
 <NodeEditor
@@ -53,7 +68,15 @@
 		<NumberInput type={PointType.RepeatInterval} label="Repeat interval (m)" />
 	{/if}
 	{#if actionSetValue}
-		<OptionInput
+		<NodeRefInput
+			type={PointType.NodeID}
+			label="Node"
+			search={props.searchNodes}
+			resolve={props.resolveNode}
+			findNode={props.findNode}
+			suggest={props.copy}
+		/>
+		<SelectInput
 			type={PointType.PointType}
 			label="Point Type"
 			options={[
@@ -62,28 +85,13 @@
 				[PointType.LightSet, "set light state"],
 				[PointType.SwitchSet, "set switch state"],
 			]}
+			extra={target ? pointTypes(target) : []}
 		/>
-		<TextInput type={PointType.PointKey} label="Point Key" />
-		<TextInput type={PointType.NodeID} label="Node ID" />
-	{/if}
-	{#if nodeId !== ""}
-		<Indent>
-			<div class="node-desc">
-				{#if target}
-					<span class="found">({getBestDesc(target.points)})</span>
-				{:else}
-					<span class="not-found">(node not found)</span>
-				{/if}
-			</div>
-		</Indent>
-	{/if}
-	{#if actionSetValue && props.copy && nodeId !== props.copy.id}
-		<PasteButton type={PointType.NodeID} value={props.copy.id}>
-			<span>paste ID for node:</span>
-			<span class="copy-desc">{props.copy.description}</span>
-		</PasteButton>
-	{/if}
-	{#if actionSetValue}
+		<TextInput
+			type={PointType.PointKey}
+			label="Point Key"
+			suggestions={target ? pointKeys(target, pointType) : []}
+		/>
 		<OptionInput
 			type={PointType.ValueType}
 			label="Point Value Type"
@@ -116,25 +124,6 @@
 </NodeEditor>
 
 <style>
-	.node-desc {
-		font-style: italic;
-	}
-
-	.found,
-	.copy-desc {
-		background: var(--badge-bg);
-		color: var(--badge-fg);
-	}
-
-	.copy-desc {
-		font-style: italic;
-	}
-
-	.not-found {
-		background: var(--orange);
-		color: #000000;
-	}
-
 	.error-text {
 		color: var(--red);
 	}

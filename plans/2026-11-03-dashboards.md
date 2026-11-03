@@ -212,29 +212,31 @@ dashboard's parent" when the chosen node is below that parent and writes
 
 ### Phase 0: Schema, edge roles, and server search
 
-- [ ] Constants in `data/schema.go` and `ui/src/lib/siot/schema.ts`;
+- [x] Constants in `data/schema.go` and `ui/src/lib/siot/schema.ts`;
       `schema_ts_test.go` passes.
-- [ ] `edge_role.go`: the three types in `treeScopedTypes`, `widget` and `link`
+- [x] `edge_role.go`: the three types in `treeScopedTypes`, `widget` and `link`
       owned by `dashboard`.
-- [ ] `getNodesSearch` in `store/jetstream.go` and the `search` case in
+- [x] `getNodesSearch` in `store/jetstream.go` and the `search` case in
       `nodesRequest`, with tests for scope, ranking, limit, the visit cap, and
       ancestors in the reply.
-- [ ] `docs/ref/api.md`: the two parameters.
-- [ ] `siot_test` passes. Commit.
+- [x] `docs/ref/api.md`: the two parameters.
+- [x] `siot_test` passes. Commit.
 
 ### Phase 1: Node reference picker and rule editing
 
-- [ ] `searchNodes` in `frontend/lib/siot-nats.js` and its types;
+- [x] `searchNodes` in `frontend/lib/siot-nats.js` and its types;
       `connection.ts` and `tree.svelte.ts` expose `searchNodes` and
       `resolveNode` with the ID cache.
-- [ ] `NodeRefInput.svelte` with vitest coverage of ranking display, keyboard
+- [x] `NodeRefInput.svelte` with vitest coverage of ranking display, keyboard
       handling, and the not-found state.
-- [ ] `EditorProps` gains `searchNodes` and `resolveNode`; `TreePage.svelte`
+- [x] `EditorProps` gains `searchNodes` and `resolveNode`; `TreePage.svelte`
       supplies them.
-- [ ] Condition and action editors use the picker and the point type and key
+- [x] Condition and action editors use the picker and the point type and key
       options from the chosen node.
-- [ ] `docs/user/rules.md`: choosing a node. Changelog entry.
-- [ ] `siot_test` passes. Commit.
+- [x] `docs/user/rules.md`: choosing a node. Changelog entry.
+- [x] `ui/e2e/picker.spec.ts`: a browser test of the picker in a condition (run
+      with `SIOT_E2E_CHANNEL=chrome` where the downloaded browser is missing).
+- [x] `siot_test` passes. Commit.
 
 ### Phase 2: Node types, viewer, grid host
 

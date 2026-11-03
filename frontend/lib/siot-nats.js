@@ -146,6 +146,19 @@ export class SiotConnection {
 		return decodeNodes(m.data)
 	}
 
+	// searchNodes finds nodes below an anchor whose description, ID, or
+	// type matches query, with their ancestors, as nodes.<anchor>.all with
+	// a search point does. `limit` caps the matches.
+	async searchNodes(anchor, query, { limit = 0, timeout } = {}) {
+		const params = [{ type: "search", text: query }]
+		if (limit > 0) {
+			params.push({ type: "limit", value: limit })
+		}
+		const subject = `u.${anchor}.${this.userId}.nodes.${anchor}.all`
+		const m = await this.request(subject, encodePoints(params), timeout)
+		return decodeNodes(m.data)
+	}
+
 	// sendNodePoints writes points to a node under an anchor. Each point is
 	// its own message, as in the Go client, and an error reply is thrown.
 	async sendNodePoints(anchor, id, points, { timeout } = {}) {

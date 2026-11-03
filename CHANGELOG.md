@@ -13,6 +13,11 @@ For more details or to discuss releases, please visit the
 
 ### Added
 
+- **Conditions and actions pick their node by description.** Typing in the
+  Node field searches the server and lists matches with where they sit; the
+  chosen node shows as a link, and the point type and key fields offer what
+  that node carries. The node ID text field and paste button are gone. See
+  [rules](docs/user/rules.md#node-linking).
 - **Node requests can search by description.** A `search` point on a
   `nodes.<id>.all` request returns the nodes below `id` whose description, ID,
   or type matches, with their ancestors, so a client can find a node it has not
