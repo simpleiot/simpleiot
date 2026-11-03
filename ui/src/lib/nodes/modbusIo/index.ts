@@ -10,4 +10,5 @@ export default defineNodeType({
 	parents: [NodeType.Modbus],
 	ownedBy: NodeType.Modbus,
 	editor: Editor,
+	widget: "value",
 })

@@ -23,6 +23,9 @@ export interface NodeTypeDescriptor {
 	// sortKey orders siblings of different types; the type name otherwise
 	sortKey?: string
 	editor?: Component<EditorProps>
+	// widget names the dashboard widget that shows a node of this type
+	// when a widget's component is "auto"
+	widget?: string
 }
 
 export function defineNodeType(d: NodeTypeDescriptor): NodeTypeDescriptor {

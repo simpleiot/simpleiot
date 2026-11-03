@@ -1,5 +1,6 @@
 <script lang="ts">
 	import "../app.css"
+	import "#lib/vendor/nautilus/tokens.css"
 	import { goto } from "$app/navigation"
 	import { resolve } from "$app/paths"
 	import { page } from "$app/state"

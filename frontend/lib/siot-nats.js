@@ -148,11 +148,15 @@ export class SiotConnection {
 
 	// searchNodes finds nodes below an anchor whose description, ID, or
 	// type matches query, with their ancestors, as nodes.<anchor>.all with
-	// a search point does. `limit` caps the matches.
-	async searchNodes(anchor, query, { limit = 0, timeout } = {}) {
+	// a search point does. `limit` caps the matches; `type` keeps only
+	// nodes of that type, and with an empty query lists them all.
+	async searchNodes(anchor, query, { limit = 0, type = "", timeout } = {}) {
 		const params = [{ type: "search", text: query }]
 		if (limit > 0) {
 			params.push({ type: "limit", value: limit })
+		}
+		if (type) {
+			params.push({ type: "nodeType", text: type })
 		}
 		const subject = `u.${anchor}.${this.userId}.nodes.${anchor}.all`
 		const m = await this.request(subject, encodePoints(params), timeout)

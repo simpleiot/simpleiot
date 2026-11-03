@@ -1525,12 +1525,14 @@ const (
 // getNodesSearch finds nodes below anchor whose description, ID, or type
 // matches query, so a client can pick a node it has not loaded. Matches
 // are ranked: a description starting with the query, then one containing
-// it, then an equal ID, then a type containing it. The reply carries each
-// match's ancestors up to the anchor, one path each, so the client can
-// show where a match sits; the anchor itself is not included.
-func (db *DbJetStream) getNodesSearch(anchor, query string, limit int) ([]data.NodeEdge, error) {
+// it, then an equal ID, then a type containing it. With typ set only nodes
+// of that type are considered, and an empty query then lists them all,
+// which is how a client finds every dashboard it may open. The reply
+// carries each match's ancestors up to the anchor, one path each, so the
+// client can show where a match sits; the anchor itself is not included.
+func (db *DbJetStream) getNodesSearch(anchor, query string, limit int, typ string) ([]data.NodeEdge, error) {
 	query = strings.ToLower(strings.TrimSpace(query))
-	if query == "" {
+	if query == "" && typ == "" {
 		return nil, nil
 	}
 	if limit <= 0 {
@@ -1565,7 +1567,12 @@ func (db *DbJetStream) getNodesSearch(anchor, query string, limit int) ([]data.N
 				}
 				parentOf[c.ID] = c.Parent
 				next = append(next, c.ID)
-				if r := searchRank(c, query); r >= 0 {
+				if typ != "" && c.Type != typ {
+					continue
+				}
+				if query == "" {
+					matches = append(matches, match{c, 0})
+				} else if r := searchRank(c, query); r >= 0 {
 					matches = append(matches, match{c, r})
 				}
 			}

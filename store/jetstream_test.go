@@ -1867,7 +1867,7 @@ func TestDbJetStreamSearch(t *testing.T) {
 
 	// prefix matches rank ahead of substring matches, case folded, and
 	// nothing outside the anchor is found
-	nodes, err := db.getNodesSearch(group, "pump", 0)
+	nodes, err := db.getNodesSearch(group, "pump", 0, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1895,7 +1895,7 @@ func TestDbJetStreamSearch(t *testing.T) {
 	}
 
 	// limit keeps the best matches
-	nodes, err = db.getNodesSearch(group, "pump", 1)
+	nodes, err = db.getNodesSearch(group, "pump", 1, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1905,13 +1905,27 @@ func TestDbJetStreamSearch(t *testing.T) {
 	}
 
 	// an ID and a type match when the description does not
-	nodes, err = db.getNodesSearch(group, strings.ToUpper(sump), 0)
+	nodes, err = db.getNodesSearch(group, strings.ToUpper(sump), 0, "")
 	if err != nil || len(nodes) == 0 || nodes[0].ID != sump {
 		t.Fatalf("search by ID failed: %v %v", nodes, err)
 	}
-	nodes, err = db.getNodesSearch(group, "device", 0)
+	nodes, err = db.getNodesSearch(group, "device", 0, "")
 	if err != nil || len(nodes) != 2 {
 		t.Fatalf("search by type should find two devices, got %v %v", nodes, err)
+	}
+
+	// a type filter narrows the matches, and alone it lists every node of
+	// the type below the anchor
+	nodes, err = db.getNodesSearch(group, "pump", 0, data.NodeTypeDevice)
+	if err != nil || len(nodes) != 0 {
+		t.Fatalf("no device is described pump, got %v %v", nodes, err)
+	}
+	nodes, err = db.getNodesSearch(group, "", 0, data.NodeTypeVariable)
+	if err != nil || len(nodes) != 5 {
+		t.Fatalf("type alone should list three variables and two devices above them, got %v %v", len(nodes), err)
+	}
+	if nodes, err = db.getNodesSearch(group, "", 0, ""); err != nil || len(nodes) != 0 {
+		t.Fatalf("an empty search with no type matches nothing, got %v %v", nodes, err)
 	}
 
 	// the store request routes a search point to the same lookup and

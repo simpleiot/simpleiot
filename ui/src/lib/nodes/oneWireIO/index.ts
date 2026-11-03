@@ -10,4 +10,5 @@ export default defineNodeType({
 	parents: [],
 	ownedBy: NodeType.OneWire,
 	editor: Editor,
+	widget: "value",
 })

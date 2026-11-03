@@ -240,21 +240,21 @@ dashboard's parent" when the chosen node is below that parent and writes
 
 ### Phase 2: Node types, viewer, grid host
 
-- [ ] `ui/src/lib/nodes/dashboard/`, `widget/`, `link/` with descriptors and
+- [x] `ui/src/lib/nodes/dashboard/`, `widget/`, `link/` with descriptors and
       editors; the widget editor uses the picker for bindings.
-- [ ] `ui/src/lib/widgets/` registry with `value`, `gauge`, `status`, and
+- [x] `ui/src/lib/widgets/` registry with `value`, `gauge`, `status`, and
       `trend` (live, `TrendBuffer`); `widget` on `NodeTypeDescriptor` for
       `auto`, set on the types that have an obvious widget.
-- [ ] `bindings.svelte.ts` with tests for the three states.
-- [ ] `Dashboard.svelte`, `Grid.svelte`, the unknown-component placeholder, the
+- [x] `bindings.svelte.ts` with tests for the three states.
+- [x] `Dashboard.svelte`, `Grid.svelte`, the unknown-component placeholder, the
       one-column reflow.
-- [ ] Routes `/dash` and `/dash/[id]`, `?kiosk`, header links, the Open button
+- [x] Routes `/dash` and `/dash/[id]`, `?kiosk`, header links, the Open button
       in the tree.
-- [ ] Vendor the nautilus pieces this phase needs with attribution and the token
+- [x] Vendor the nautilus pieces this phase needs with attribution and the token
       mapping.
-- [ ] `docs/user/dashboards.md` started; `docs/user/ui.md` replaces the Grafana
+- [x] `docs/user/dashboards.md` started; `docs/user/ui.md` replaces the Grafana
       paragraph with a pointer. Changelog entry.
-- [ ] `siot_test` passes; `siot_build_ui` and `ui/build` staged. Commit.
+- [x] `siot_test` passes; `siot_build_ui` and `ui/build` staged. Commit.
 
 ### Phase 3: Edit mode, faceplates, home dashboard
 

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { asset, resolve } from "$app/paths"
+	import { page } from "$app/state"
 	import Moon from "@lucide/svelte/icons/moon"
 	import Sun from "@lucide/svelte/icons/sun"
 	import { prefs } from "#lib/prefs.svelte.ts"
@@ -18,6 +19,8 @@
 		search?: Snippet
 	} = $props()
 
+	const onDash = $derived(page.route.id?.startsWith("/dash") ?? false)
+
 	// re-read when the preference changes
 	const dark = $derived(
 		prefs.theme !== undefined ? prefs.theme === "dark" : effectiveTheme() === "dark"
@@ -31,6 +34,10 @@
 	{#if badge}
 		<span class="badge" role="status">{badge}</span>
 	{/if}
+	<nav aria-label="Pages">
+		<a href={resolve("/dash")} aria-current={onDash ? "page" : undefined}>Dashboards</a>
+		<a href={resolve("/")} aria-current={onDash ? undefined : "page"}>Nodes</a>
+	</nav>
 	<div class="spacer"></div>
 	{#if search}
 		<div class="search">{@render search()}</div>
@@ -60,6 +67,28 @@
 
 	.spacer {
 		flex: 1;
+	}
+
+	nav {
+		display: flex;
+		gap: 4px;
+	}
+
+	nav a {
+		padding: 6px 12px;
+		border-radius: 4px;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	nav a:hover {
+		background: var(--hover);
+	}
+
+	nav a[aria-current="page"] {
+		font-weight: 600;
+		background: var(--badge-bg);
+		color: var(--badge-fg);
 	}
 
 	.icon {

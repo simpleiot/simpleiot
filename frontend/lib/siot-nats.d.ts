@@ -38,6 +38,7 @@ export interface GetNodesOptions {
 
 export interface SearchNodesOptions {
 	limit?: number
+	type?: string
 	timeout?: number
 }
 

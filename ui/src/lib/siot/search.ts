@@ -49,7 +49,8 @@ export function buildMatches(
 	nodes: readonly Node[],
 	query: string,
 	anchor: string,
-	anchorName?: string
+	anchorName?: string,
+	type = ""
 ): NodeMatch[] {
 	const byId = new Map<string, Node>()
 	for (const n of nodes) {
@@ -59,7 +60,10 @@ export function buildMatches(
 	}
 	const matches: NodeMatch[] = []
 	for (const n of nodes) {
-		const rank = rankMatch(n, query)
+		if (type !== "" && n.type !== type) {
+			continue
+		}
+		const rank = query.trim() === "" && type !== "" ? 0 : rankMatch(n, query)
 		if (rank < 0) {
 			continue
 		}

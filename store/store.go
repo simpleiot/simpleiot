@@ -569,6 +569,7 @@ func (st *Store) nodesRequest(subject string, payload []byte) (data.Nodes, error
 	var nodeType string
 	var depth int
 	var search string
+	var hasSearch bool
 	var limit int
 
 	chunks := strings.Split(subject, ".")
@@ -595,19 +596,20 @@ func (st *Store) nodesRequest(subject string, payload []byte) (data.Nodes, error
 				depth = int(p.Val())
 			case data.PointTypeSearch:
 				search = p.Txt()
+				hasSearch = true
 			case data.PointTypeLimit:
 				limit = int(p.Val())
 			}
 		}
 	}
 
-	if search != "" {
+	if hasSearch {
 		// a search walks down from the parent, so it is only meaningful
 		// for the children-of form
 		if nodeID != "all" || parent == "all" || parent == "root" {
 			return nil, fmt.Errorf("search needs a nodes.<id>.all subject, got %v", subject)
 		}
-		return st.db.getNodesSearch(parent, search, limit)
+		return st.db.getNodesSearch(parent, search, limit, nodeType)
 	}
 
 	nodes, err := st.db.getNodesDepth(parent, nodeID, nodeType, includeDel, depth)

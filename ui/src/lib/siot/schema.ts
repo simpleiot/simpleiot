@@ -303,6 +303,7 @@ export const NodeType = {
 	Browser: "browser",
 	CanBus: "canBus",
 	Condition: "condition",
+	Dashboard: "dashboard",
 	Db: "db",
 	Device: "device",
 	DeviceCred: "deviceCred",
@@ -313,6 +314,7 @@ export const NodeType = {
 	Group: "group",
 	Iio: "iio",
 	IioChannel: "iioChannel",
+	Link: "link",
 	Metrics: "metrics",
 	Modbus: "modbus",
 	ModbusIO: "modbusIo",
@@ -341,4 +343,5 @@ export const NodeType = {
 	Update: "update",
 	User: "user",
 	Variable: "variable",
+	Widget: "widget",
 } as const

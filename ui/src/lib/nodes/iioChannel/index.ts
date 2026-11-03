@@ -10,4 +10,5 @@ export default defineNodeType({
 	parents: [NodeType.Iio],
 	ownedBy: NodeType.Iio,
 	editor: Editor,
+	widget: "value",
 })

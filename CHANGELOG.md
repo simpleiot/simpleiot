@@ -22,8 +22,15 @@ For more details or to discuss releases, please visit the
   `nodes.<id>.all` request returns the nodes below `id` whose description, ID,
   or type matches, with their ancestors, so a client can find a node it has not
   loaded. See the [API reference](docs/ref/api.md).
-- **Dashboard node types.** `dashboard`, `widget`, and `link` nodes are defined
-  and classified; the web UI that renders them follows in a later release.
+- **Dashboards.** A dashboard is a node holding widget nodes, each bound to
+  points on other nodes, and it syncs like any other node. The web UI lists
+  dashboards under Dashboards and shows each as a grid of value, gauge,
+  status, and trend widgets that reflows to one column on a phone. Widgets
+  are added and configured in the node tree for now. See
+  [dashboards](docs/user/dashboards.md).
+- **Searching nodes by type.** A `nodeType` point beside `search` on a node
+  request limits matches to that type, and an empty search then lists every
+  node of the type.
 
 ## [0.32.0] - 2026-11-03
 
