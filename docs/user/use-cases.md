@@ -62,6 +62,9 @@ information.
 
 ## Multiple upstreams
 
+> **Status:** multiple levels of upstream instances are planned and do not work
+> yet.
+
 Because we run the same SIOT application everywhere, we can add upstream
 instances at multiple levels.
 

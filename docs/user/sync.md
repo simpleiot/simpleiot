@@ -5,6 +5,9 @@ WebSocket.
 
 ![upstream](images/multiple-upstream.svg)
 
+> **Status:** multiple levels of upstream instances are planned and do not work
+> yet.
+
 To create an upstream sync, add a sync node to the root node on the downstream
 instance. If your upstream server has a name of `myserver.com`, then you can use
 the following connections URIs:
