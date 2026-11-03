@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.31.1] - 2026-11-03
+
 ### Changed
 
 - **Documentation diagrams are redrawn as SVG in one consistent style.** They
