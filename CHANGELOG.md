@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-11-03
+
 ### Changed
 
 - **Current values arrive first after a reconnect.** While sync catches up a
