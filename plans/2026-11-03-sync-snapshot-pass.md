@@ -138,6 +138,17 @@ pump implementation.
       to the device grant list. `docs/adr/7-jetstream-store.md`: a short note
       under the sync section that current values are sent ahead of history
       and why the streams are not split.
+- [ ] Adapt this plan's diagrams for `docs/ref/sync.md` ("Offline
+      catch-up"), saved in `docs/ref/images/`:
+  - `snapshot-catchup.svg` becomes `sync-catchup.svg`: keep the device stream
+    and the snapshot lane with the broadcast marks, and drop the "today"
+    lane, since the docs describe the current behavior.
+  - `snapshot-flow.svg` becomes `sync-snapshot-flow.svg`: drop the "new ·"
+    tags and the "as now" and "unchanged" notes.
+  - `sync-connection.svg`: show the snapshot running alongside the history
+    in the catch-up part of the sequence.
+  - Add the new diagrams to the gallery in `docs/ref/diagrams.md`, following
+    its style guide.
 - [ ] `CHANGELOG.md`: current values arrive first after a reconnect, and
       rules on the upstream see them instead of a replay of the backlog. Both
       sides need this version: an older upstream denies the `snap.` publish
