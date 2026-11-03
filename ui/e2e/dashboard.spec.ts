@@ -23,7 +23,7 @@ test("a dashboard shows a widget bound to a variable", async ({ page }) => {
 	const vkey = (await added.getAttribute("data-key")) ?? ""
 	const variable = page.locator(`[role="treeitem"][data-key="${vkey}"]`)
 	await variable.getByRole("button", { name: "Open details" }).click()
-	await variable.getByLabel("Description").fill("Tank level")
+	await variable.getByLabel("Description").fill("Sump level")
 	await variable.getByRole("radio", { name: "number" }).check()
 	await variable.getByLabel("Value").fill("42.5")
 	await variable.getByRole("button", { name: "save" }).click()
@@ -54,11 +54,11 @@ test("a dashboard shows a widget bound to a variable", async ({ page }) => {
 	await widget.getByRole("button", { name: "Open details" }).click()
 	await widget.getByLabel("Label").fill("Level")
 	const node = widget.getByRole("combobox", { name: "value node" })
-	await node.fill("tank")
-	await expect(page.getByRole("option", { name: /Tank level/ }).first()).toBeVisible()
+	await node.fill("sump")
+	await expect(page.getByRole("option", { name: /Sump level/ }).first()).toBeVisible()
 	await node.press("ArrowDown")
 	await node.press("Enter")
-	await expect(widget.getByRole("link", { name: "Tank level" })).toBeVisible()
+	await expect(widget.getByRole("link", { name: "Sump level" })).toBeVisible()
 	await widget.getByLabel("Width").fill("4")
 	await widget.getByRole("button", { name: "save" }).click()
 	await expect(widget.getByRole("button", { name: "save" })).toBeHidden()
@@ -69,6 +69,44 @@ test("a dashboard shows a widget bound to a variable", async ({ page }) => {
 	await expect(page.getByText("42.5")).toBeVisible()
 	await expect(page.getByText("Level", { exact: true })).toBeVisible()
 
+	// edit mode adds a widget and opens its settings
+	await page.getByRole("button", { name: "edit" }).click()
+	await page.getByRole("button", { name: "add widget" }).click()
+	const panel = page.getByRole("complementary", { name: "Widget settings" })
+	await expect(panel.getByLabel("Label")).toBeVisible()
+	await panel.getByLabel("Label").fill("Second")
+	await panel.getByRole("button", { name: "save" }).click()
+	await expect(panel.getByRole("button", { name: "save" })).toBeHidden()
+	await expect(page.locator("main").getByText("Second", { exact: true }).first()).toBeVisible()
+	await page.getByRole("button", { name: "done" }).click()
+
 	await page.getByRole("link", { name: "Dashboards" }).click()
 	await expect(page.locator(`main a[href="${href}"]`)).toHaveText("Lift station")
+
+	// the home dashboard, set on the user, is where "/" lands
+	await page.getByRole("link", { name: "Nodes" }).click()
+	const user = tree.getByRole("treeitem", { name: /^User:/ }).first()
+	await user.getByRole("button", { name: "Open details" }).click()
+	const home = user.getByRole("combobox", { name: "Home dashboard" })
+	await home.fill("lift")
+	await expect(page.getByRole("option", { name: /Lift station/ }).first()).toBeVisible()
+	await home.press("ArrowDown")
+	await home.press("Enter")
+	await user.getByRole("button", { name: "save" }).click()
+	await expect(user.getByRole("button", { name: "save" })).toBeHidden()
+	await page.goto("/")
+	await expect(page).toHaveURL(/\/dash\/[\w-]+$/)
+	await expect(page.getByRole("heading", { name: "Lift station" })).toBeVisible()
+
+	// clear it again, so other tests land where they expect
+	await page.goto("/nodes")
+	const user2 = tree.getByRole("treeitem", { name: /^User:/ }).first()
+	await expect(user2).toBeVisible()
+	// the open detail is remembered across the reload
+	if ((await user2.getByRole("button", { name: "Clear" }).count()) === 0) {
+		await user2.getByRole("button", { name: "Open details" }).click()
+	}
+	await user2.getByRole("button", { name: "Clear" }).click()
+	await user2.getByRole("button", { name: "save" }).click()
+	await expect(user2.getByRole("button", { name: "save" })).toBeHidden()
 })

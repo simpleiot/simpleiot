@@ -1,23 +1,131 @@
 <script lang="ts">
 	// Grid is the widget host for tiles: columns and rows, each widget
 	// spanning its place. Below the breakpoint it becomes one column in
-	// tree order.
-	import type { Placed } from "./bindings.ts"
+	// tree order. In edit mode a widget is dragged by its body and resized
+	// by its corner, and the new place is reported when the pointer lifts.
+	import type { Layout, Placed } from "./bindings.ts"
+	import { cellDelta, metrics, moved, sameLayout } from "./gridMath.ts"
 	import WidgetFrame from "./WidgetFrame.svelte"
 
-	let { cols, placed }: { cols: number; placed: readonly Placed[] } = $props()
+	let {
+		cols,
+		placed,
+		edit = false,
+		selected = "",
+		onSelect,
+		onOpen,
+		onLayout,
+	}: {
+		cols: number
+		placed: readonly Placed[]
+		edit?: boolean
+		// selected is the widget whose panel is open in edit mode
+		selected?: string
+		onSelect?: (id: string) => void
+		// onOpen is a tap on a widget in view mode
+		onOpen?: (p: Placed) => void
+		onLayout?: (id: string, layout: Layout) => void
+	} = $props()
+
+	let gridEl: HTMLDivElement | undefined = $state()
+
+	interface Drag {
+		id: string
+		mode: "move" | "resize"
+		startX: number
+		startY: number
+		start: Layout
+		cur: Layout
+		moved: boolean
+	}
+	let drag = $state<Drag | null>(null)
+
+	function layoutOf(p: Placed): Layout {
+		return drag?.id === p.node.id ? drag.cur : p.layout
+	}
+
+	function down(e: PointerEvent, p: Placed, mode: "move" | "resize") {
+		if (!edit || e.button !== 0) {
+			return
+		}
+		e.preventDefault()
+		;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+		drag = {
+			id: p.node.id,
+			mode,
+			startX: e.clientX,
+			startY: e.clientY,
+			start: p.layout,
+			cur: p.layout,
+			moved: false,
+		}
+	}
+
+	function move(e: PointerEvent) {
+		if (!drag || !gridEl) {
+			return
+		}
+		const m = metrics(gridEl.clientWidth, cols)
+		const { dc, dr } = cellDelta(e.clientX - drag.startX, e.clientY - drag.startY, m)
+		const next = moved(drag.start, drag.mode, dc, dr, cols)
+		if (!sameLayout(next, drag.cur)) {
+			drag = { ...drag, cur: next, moved: true }
+		}
+	}
+
+	function up() {
+		const d = drag
+		drag = null
+		if (!d) {
+			return
+		}
+		if (d.moved && !sameLayout(d.cur, d.start)) {
+			onLayout?.(d.id, d.cur)
+		} else if (d.mode === "move") {
+			onSelect?.(d.id)
+		}
+	}
 </script>
 
-<div class="grid" style:--cols={cols}>
+<div class="grid" class:edit style:--cols={cols} bind:this={gridEl}>
 	{#each placed as p (p.node.id)}
+		{@const l = layoutOf(p)}
 		<div
 			class="cell"
-			style:--x={Math.min(p.layout.x, cols - 1)}
-			style:--w={Math.min(p.layout.w, cols - Math.min(p.layout.x, cols - 1))}
-			style:--y={p.layout.y}
-			style:--h={p.layout.h}
+			class:selected={edit && selected === p.node.id}
+			class:dragging={drag?.id === p.node.id}
+			style:--x={Math.min(l.x, cols - 1)}
+			style:--w={Math.min(l.w, cols - Math.min(l.x, cols - 1))}
+			style:--y={l.y}
+			style:--h={l.h}
 		>
-			<WidgetFrame {p} />
+			{#if edit}
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					class="handle move"
+					onpointerdown={(e) => down(e, p, "move")}
+					onpointermove={move}
+					onpointerup={up}
+					onpointercancel={up}
+				>
+					<WidgetFrame {p} />
+				</div>
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					class="handle resize"
+					title="Resize"
+					onpointerdown={(e) => down(e, p, "resize")}
+					onpointermove={move}
+					onpointerup={up}
+					onpointercancel={up}
+				></div>
+			{:else if onOpen}
+				<button class="open" type="button" onclick={() => onOpen(p)} aria-label="Open {p.label}">
+					<WidgetFrame {p} />
+				</button>
+			{:else}
+				<WidgetFrame {p} />
+			{/if}
 		</div>
 	{/each}
 	{#if placed.length === 0}
@@ -35,9 +143,62 @@
 	}
 
 	.cell {
+		position: relative;
 		grid-column: calc(var(--x) + 1) / span var(--w);
 		grid-row: calc(var(--y) + 1) / span var(--h);
 		min-width: 0;
+	}
+
+	.cell.selected {
+		outline: 2px solid var(--blue);
+		outline-offset: 2px;
+		border-radius: 8px;
+	}
+
+	.cell.dragging {
+		opacity: 0.8;
+		z-index: 2;
+	}
+
+	.handle.move {
+		height: 100%;
+		cursor: grab;
+		touch-action: none;
+	}
+
+	.dragging .handle.move {
+		cursor: grabbing;
+	}
+
+	.handle.resize {
+		position: absolute;
+		right: 2px;
+		bottom: 2px;
+		width: 18px;
+		height: 18px;
+		cursor: nwse-resize;
+		touch-action: none;
+		border-right: 3px solid var(--muted);
+		border-bottom: 3px solid var(--muted);
+		border-radius: 0 0 6px 0;
+	}
+
+	.open {
+		display: block;
+		width: 100%;
+		height: 100%;
+		padding: 0;
+		border: none;
+		background: none;
+		font: inherit;
+		color: inherit;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.open:focus-visible {
+		outline: 2px solid var(--focus);
+		border-radius: 8px;
 	}
 
 	.empty {

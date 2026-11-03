@@ -258,13 +258,17 @@ dashboard's parent" when the chosen node is below that parent and writes
 
 ### Phase 3: Edit mode, faceplates, home dashboard
 
-- [ ] Edit toggle; drag and resize writing position points; add widget from a
+- [x] Edit toggle; drag and resize writing position points; add widget from a
       component list or a node through the picker with `auto`.
-- [ ] Widget panel: the widget editor beside the grid, live.
-- [ ] Faceplate on tap: dialog above 900px, `/nodes/[id]` below.
-- [ ] `homeDashboard` on the user editor with the picker; `/` redirect rules;
-      the Playwright smoke test covers sign-in to home dashboard.
-- [ ] Docs and changelog. `siot_test` passes. Commit.
+- [x] Widget panel: the widget editor beside the grid, live.
+- [x] Faceplate on tap: dialog above 900px, `/nodes/[id]` below.
+- [x] `homeDashboard` on the user editor with the picker; `/` redirect rules;
+      the dashboard browser test covers setting the home dashboard and landing
+      on it. The tree moved to `/nodes` so the Nodes link does not bounce
+      through the redirect.
+- [x] `NodeHost.svelte` edits any live node off the tree, and serves both the
+      widget panel and the faceplate dialog.
+- [x] Docs and changelog. `siot_test` passes. Commit.
 
 ### Phase 4: Canvas host and links
 

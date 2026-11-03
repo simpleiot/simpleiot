@@ -13,6 +13,7 @@
 		resolveBindings,
 		widgetLayout,
 		widgetOptions,
+		type Layout,
 		type Placed,
 	} from "./bindings.ts"
 	import Grid from "./Grid.svelte"
@@ -21,10 +22,20 @@
 		dashboard,
 		children,
 		lookup,
+		edit = false,
+		selected = "",
+		onSelect,
+		onOpen,
+		onLayout,
 	}: {
 		dashboard: Node
 		children: readonly Node[]
 		lookup: (id: string) => Node | undefined
+		edit?: boolean
+		selected?: string
+		onSelect?: (id: string) => void
+		onOpen?: (p: Placed) => void
+		onLayout?: (id: string, layout: Layout) => void
 	} = $props()
 
 	// componentOf picks the widget for a node: its component, or for
@@ -71,7 +82,7 @@
 {#if layout === PointValue.Canvas}
 	<p class="pending">Canvas layouts are not drawn yet; showing the widgets as a grid.</p>
 {/if}
-<Grid {cols} {placed} />
+<Grid {cols} {placed} {edit} {selected} {onSelect} {onOpen} {onLayout} />
 
 <style>
 	.pending {

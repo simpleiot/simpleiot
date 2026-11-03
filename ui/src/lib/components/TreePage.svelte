@@ -1,5 +1,5 @@
 <script lang="ts">
-	// TreePage is the node tree with its header. Both "/" and
+	// TreePage is the node tree with its header. Both "/nodes" and
 	// "/nodes/[id]" render it; the store outlives either.
 	import ClipboardIcon from "@lucide/svelte/icons/clipboard"
 	import X from "@lucide/svelte/icons/x"
@@ -34,7 +34,7 @@
 				replace: true,
 			})
 		} else if (location.pathname.endsWith(`/nodes/${encodeURIComponent(node.id)}`)) {
-			void goto(resolve("/"), { shallow: true, replace: true })
+			void goto(resolve("/nodes"), { shallow: true, replace: true })
 		}
 	}
 

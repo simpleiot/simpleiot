@@ -1,6 +1,7 @@
 <script lang="ts">
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
 	import KeyValueInput from "#lib/inputs/KeyValueInput.svelte"
+	import NodeRefInput from "#lib/inputs/NodeRefInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
 	import { blankMagicValue, getText, type Point } from "#lib/siot/point.ts"
 	import { PointType } from "#lib/siot/schema.ts"
@@ -36,5 +37,12 @@
 	<Scope view={blankHashedPass}>
 		<TextInput type={PointType.Pass} label="Pass" />
 	</Scope>
+	<NodeRefInput
+		type={PointType.HomeDashboard}
+		label="Home dashboard"
+		search={props.searchNodes}
+		resolve={props.resolveNode}
+		findNode={props.findNode}
+	/>
 	<KeyValueInput type={PointType.Tag} label="Tags" buttonLabel="Add Tag" />
 </NodeEditor>

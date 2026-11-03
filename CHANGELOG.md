@@ -11,6 +11,12 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Changed
+
+- **The node tree moved to `/nodes`.** The address `/` now lands on the user's
+  home dashboard, the dashboard list, or the tree, in that order of what
+  exists. Bookmarks to `/nodes/<id>` are unchanged.
+
 ### Added
 
 - **Conditions and actions pick their node by description.** Typing in the
@@ -25,9 +31,10 @@ For more details or to discuss releases, please visit the
 - **Dashboards.** A dashboard is a node holding widget nodes, each bound to
   points on other nodes, and it syncs like any other node. The web UI lists
   dashboards under Dashboards and shows each as a grid of value, gauge,
-  status, and trend widgets that reflows to one column on a phone. Widgets
-  are added and configured in the node tree for now. See
-  [dashboards](docs/user/dashboards.md).
+  status, and trend widgets that reflows to one column on a phone. Edit mode
+  adds, drags, resizes, and configures widgets in place; a tap on a widget
+  opens the node behind it. A user's home dashboard, set on the user node, is
+  where signing in lands. See [dashboards](docs/user/dashboards.md).
 - **Searching nodes by type.** A `nodeType` point beside `search` on a node
   request limits matches to that type, and an empty search then lists every
   node of the type.

@@ -20,6 +20,7 @@
 	} = $props()
 
 	const onDash = $derived(page.route.id?.startsWith("/dash") ?? false)
+	const onNodes = $derived(page.route.id?.startsWith("/nodes") ?? false)
 
 	// re-read when the preference changes
 	const dark = $derived(
@@ -36,7 +37,7 @@
 	{/if}
 	<nav aria-label="Pages">
 		<a href={resolve("/dash")} aria-current={onDash ? "page" : undefined}>Dashboards</a>
-		<a href={resolve("/")} aria-current={onDash ? undefined : "page"}>Nodes</a>
+		<a href={resolve("/nodes")} aria-current={onNodes ? "page" : undefined}>Nodes</a>
 	</nav>
 	<div class="spacer"></div>
 	{#if search}

@@ -787,6 +787,37 @@ export class TreeStore {
 		await this.expand(parentKey)
 	}
 
+	// addChild adds a node under a parent by ID, with the given points
+	// beside the usual description, and returns the new node's ID.
+	async addChild(parentId: string, type: string, points: Point[] = []): Promise<string> {
+		try {
+			const resp = await http.insertNode(this.#token, {
+				id: "",
+				type,
+				parent: parentId,
+				points: [newText(PointType.Description, "", "New, please edit"), ...points],
+				edgePoints: [],
+			})
+			this.#notify("Node added")
+			return resp.id ?? ""
+		} catch (err) {
+			this.popError(`Error adding node: ${errorText(err)}`)
+			return ""
+		}
+	}
+
+	// removeNode deletes the edge from a node to a parent, by ID.
+	async removeNode(id: string, parentId: string): Promise<boolean> {
+		try {
+			await http.deleteNode(this.#token, id, parentId)
+		} catch (err) {
+			this.popError(`Error deleting node: ${errorText(err)}`)
+			return false
+		}
+		this.#notify("Node deleted")
+		return true
+	}
+
 	async deleteNode(key: string) {
 		const n = this.find(key)
 		this.op = { kind: "none" }
