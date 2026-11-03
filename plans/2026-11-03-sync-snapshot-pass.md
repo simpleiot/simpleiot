@@ -104,30 +104,36 @@ pump implementation.
 
 ### Phase 2: Pump snapshot pass
 
-- [ ] `client/sync.go`: in `runPump`, after `CreateOrUpdateConsumer`, read the
-      ack floor, start the snapshot loop (`snapshotTips`) in its own
-      goroutine, and start the window loop. The window loop stops the
-      snapshot loop the first time a window ends with nothing pending. Log
-      the ack floor and the count of messages sent as snapshots at
-      `Sync <desc>:` level like the other session messages.
-- [ ] The snapshot loop never holds up the history pass. On an error, it logs,
-      deletes its consumer, and stops; the history pass carries on alone.
-- [ ] Give the sync connection an async error handler. On a permissions
-      violation for a `snap.` subject, stop the snapshot loop for the rest of
-      the session, so an upstream without the `snap.` grant (an older
-      version) logs one violation per reconnect instead of one per point.
-- [ ] Tests (`client/sync_test.go`): with the upstream stopped, write N points
-      to one subject and one point to a second subject on the device; on
-      reconnect the upstream's cache shows both tips before the history
-      consumer's pending count reaches zero. A subject unchanged since the
-      last session is not in the snapshot (count tips on the `snap.` subject).
-      A point written on the device while the history is still catching up
-      reaches the upstream's cache before the history does. The snapshot
-      consumer is gone once the history has caught up. First sync of a new
-      device snapshots every subject. Against an upstream whose device grant
-      lacks `snap.X.X.>`, catch-up still completes through the history pass
-      and the snapshot loop stops after the first refusal.
-- [ ] `go test -race ./client/... ./store/...`, `golangci-lint run`. Commit.
+- [x] `client/sync.go`: in `runPump`, after `CreateOrUpdateConsumer`, read the
+      ack floor, start the snapshot loop (`runSnapshot`) in its own
+      goroutine when the durable consumer has a backlog, and start the
+      window loop. The window loop stops the snapshot loop the first time a
+      window ends with nothing pending. Log the ack floor and the count of
+      messages sent as snapshots at `Sync <desc>:` level like the other
+      session messages.
+- [x] The snapshot loop never holds up the history pass. On an error, it
+      logs and stops; the history pass carries on alone. Its consumer is
+      left to its inactivity threshold (30 s) rather than deleted, since a
+      device is not granted consumer deletion on its upstream.
+- [x] Stop the snapshot for the session when the receiving server refuses
+      the `snap.` subject. Instead of an async error handler, the first
+      snapshot message is followed by a flush: nats.go records a
+      permissions violation on the connection before it processes the
+      server's PONG, so the refusal is known before a second message goes
+      out, and an older upstream logs one violation per session.
+- [x] Tests (`client/sync_snapshot_test.go`, two embedded JetStream servers,
+      with a test-only delay between windows to keep a backlog in flight):
+      after an earlier session, the current values of the changed subjects
+      arrive before the history catches up, and a subject unchanged since
+      that session is not sent; a point written during catch-up is sent
+      before the history reaches it; the snapshot consumer goes away once
+      the history has caught up, and later points are not sent as
+      snapshots. First sync of a new device snapshots every subject.
+      Against a server whose grant lacks `snap.>`, the snapshot stops after
+      the first message and the history still catches up. Merging into the
+      upstream's cache is covered by Phase 1, and end to end by the existing
+      `TestSyncOfflineCatchup`.
+- [x] `go test -race ./client/... ./store/...`, `golangci-lint run`. Commit.
 
 ### Phase 3: Permissions and docs
 
