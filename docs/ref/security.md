@@ -224,6 +224,8 @@ credential from another group's token before approving it.
 
 ### How the authorizer works
 
+![each connection is checked by the authorizer and granted a scope from what it presents](images/auth-principals.svg)
+
 The authorizer (`server/auth.go`) is set as `CustomClientAuthentication` in the
 `server.Options` the embedded server is started with (`server/nats-server.go`).
 The options configure no users, tokens, or accounts of their own, so NATS hands

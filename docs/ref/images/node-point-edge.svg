@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 430" width="860" height="430" role="img" aria-label="A parent node and a child node, each a set of points, joined by an edge that carries its own points; each point has a type, key, time, value, and origin">
+  <!-- Simple IoT diagram style: see docs/ref/documentation.md (Diagrams). -->
+  <style>
+  :root {
+    --bg: #ffffff; --fg: #1f1f1f; --muted: #5f5f5f; --line: #3a3a3a;
+    --blue: #dae8fc; --blue-s: #6c8ebf;
+    --green: #d5e8d4; --green-s: #82b366;
+    --yellow: #fff2cc; --yellow-s: #d6b656;
+    --purple: #e1d5e7; --purple-s: #9673a6;
+    --orange: #ffe6cc; --orange-s: #d79b00;
+    --red: #f8cecc; --red-s: #b85450;
+    --gray: #f5f5f5; --gray-s: #9a9a9a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a; --fg: #f0f0f0; --muted: #a8a8a8; --line: #c8c8c8;
+      --blue: #1e2a3d; --green: #1f3320; --yellow: #38321c;
+      --purple: #2f2538; --orange: #3d2a14; --red: #3d1f1f;
+      --gray: #242424; --gray-s: #5a5a5a;
+    }
+  }
+  svg { font-family: Inter, Helvetica, Arial, sans-serif; }
+  .bg { fill: var(--bg); }
+  text { fill: var(--fg); font-size: 12px; dominant-baseline: central; }
+  .title { font-size: 14px; font-weight: 600; dominant-baseline: auto; }
+  .small { font-size: 11px; }
+  .muted { fill: var(--muted); }
+  .bold { font-weight: 600; }
+  .mono { font-family: "JetBrains Mono", Menlo, Consolas, monospace; font-size: 11px; }
+  .shape { stroke-width: 1.2; }
+  .blue { fill: var(--blue); stroke: var(--blue-s); }
+  .green { fill: var(--green); stroke: var(--green-s); }
+  .yellow { fill: var(--yellow); stroke: var(--yellow-s); }
+  .purple { fill: var(--purple); stroke: var(--purple-s); }
+  .orange { fill: var(--orange); stroke: var(--orange-s); }
+  .red { fill: var(--red); stroke: var(--red-s); }
+  .gray { fill: var(--gray); stroke: var(--gray-s); }
+  .dashed { stroke-dasharray: 5 4; }
+  .edge { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-linejoin: round; }
+  .edge.c-blue { stroke: var(--blue-s); }
+  .edge.c-green { stroke: var(--green-s); }
+  .edge.c-purple { stroke: var(--purple-s); }
+  .edge.c-orange { stroke: var(--orange-s); }
+  .edge.c-red { stroke: var(--red-s); }
+  .head { fill: var(--line); }
+  .head.c-blue { fill: var(--blue-s); }
+  .head.c-green { fill: var(--green-s); }
+  .head.c-purple { fill: var(--purple-s); }
+  .head.c-orange { fill: var(--orange-s); }
+  .head.c-red { fill: var(--red-s); }
+  .actor { fill: none; stroke: var(--fg); stroke-width: 1.5; }
+  .label-bg { fill: var(--bg); }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-blue" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-green" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-purple" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-orange" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-red" d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+  <rect class="bg" width="860" height="430" rx="8"/>
+  <rect class="shape green" x="20" y="40" width="220" height="74" rx="6"/>
+  <text x="130" y="55" text-anchor="middle" class="bold">🏢 group  ·  7H3K2Q</text>
+  <rect class="shape yellow" x="26" y="70" width="208" height="38" rx="3"/>
+  <text x="34" y="80.5" text-anchor="start" class="small">description = Site 1</text>
+  <text x="34" y="97.5" text-anchor="start" class="small">disabled = 0</text>
+  <rect class="shape green" x="20" y="250" width="220" height="91" rx="6"/>
+  <text x="130" y="265" text-anchor="middle" class="bold">📟 modbusIO  ·  9PX4M1</text>
+  <rect class="shape yellow" x="26" y="280" width="208" height="55" rx="3"/>
+  <text x="34" y="290.5" text-anchor="start" class="small">description = Tank level</text>
+  <text x="34" y="307.5" text-anchor="start" class="small">value = 4.2</text>
+  <text x="34" y="324.5" text-anchor="start" class="small">units = m</text>
+  <text x="20" y="24" text-anchor="start" class="small muted">node type and ID, with its points below</text>
+  <polygon class="shape yellow" points="130,152 205,180 130,208 55,180"/>
+  <text x="130" y="173" text-anchor="middle">Edge</text>
+  <text x="130" y="188" text-anchor="middle" class="small muted">points on the edge</text>
+  <path class="edge" d="M130,114 L130,152"/>
+  <path class="edge" d="M130,208 L130,250" marker-end="url(#arrow)"/>
+  <rect class="shape yellow" x="250" y="155" width="170" height="50" rx="6"/>
+  <text x="335" y="173" text-anchor="middle">primary = 1</text>
+  <text x="335" y="187.5" text-anchor="middle" class="small muted">tombstone, role, …</text>
+  <path class="edge dashed" d="M205,180 L250,180"/>
+  <rect class="shape gray" x="470" y="20" width="370" height="390" rx="10"/>
+  <text class="title" x="482" y="42">🔍 One point</text>
+  <rect class="shape yellow" x="486" y="64" width="150" height="40" rx="6"/>
+  <text x="561" y="84" text-anchor="middle" class="mono">type</text>
+  <text x="650" y="77" text-anchor="start" class="mono">value</text>
+  <text x="650" y="93" text-anchor="start" class="small muted">what the point is</text>
+  <rect class="shape yellow" x="486" y="116" width="150" height="40" rx="6"/>
+  <text x="561" y="136" text-anchor="middle" class="mono">key</text>
+  <text x="650" y="129" text-anchor="start" class="mono">0</text>
+  <text x="650" y="145" text-anchor="start" class="small muted">map key or array index</text>
+  <rect class="shape yellow" x="486" y="168" width="150" height="40" rx="6"/>
+  <text x="561" y="188" text-anchor="middle" class="mono">time</text>
+  <text x="650" y="181" text-anchor="start" class="mono">10:05:12.4</text>
+  <text x="650" y="197" text-anchor="start" class="small muted">when it was taken</text>
+  <rect class="shape yellow" x="486" y="220" width="150" height="40" rx="6"/>
+  <text x="561" y="240" text-anchor="middle" class="mono">dataType + data</text>
+  <text x="650" y="233" text-anchor="start" class="mono">4.2</text>
+  <text x="650" y="249" text-anchor="start" class="small muted">the value</text>
+  <rect class="shape yellow" x="486" y="272" width="150" height="40" rx="6"/>
+  <text x="561" y="292" text-anchor="middle" class="mono">tombstone</text>
+  <text x="650" y="285" text-anchor="start" class="mono">0</text>
+  <text x="650" y="301" text-anchor="start" class="small muted">odd means deleted</text>
+  <rect class="shape yellow" x="486" y="324" width="150" height="40" rx="6"/>
+  <text x="561" y="344" text-anchor="middle" class="mono">origin</text>
+  <text x="650" y="337" text-anchor="start" class="mono">(blank)</text>
+  <text x="650" y="353" text-anchor="start" class="small muted">who wrote it, if not the node</text>
+  <path class="edge dashed" d="M240,316 L470,260" marker-end="url(#arrow)"/>
+  <rect class="label-bg" x="323.72" y="279" width="62.56" height="18" rx="3"/>
+  <text x="355" y="288" text-anchor="middle" class="small">each point</text>
+  <text x="486" y="396" text-anchor="start" class="small muted">type + key identify the point within a node</text>
+</svg>

@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 450" width="860" height="450" role="img" aria-label="Monthly bytes a syncing device sends, per source: the keepalive dominates the defaults; store metrics and per-minute byte counters are optional">
+  <!-- Simple IoT diagram style: see docs/ref/documentation.md (Diagrams). -->
+  <style>
+  :root {
+    --bg: #ffffff; --fg: #1f1f1f; --muted: #5f5f5f; --line: #3a3a3a;
+    --blue: #dae8fc; --blue-s: #6c8ebf;
+    --green: #d5e8d4; --green-s: #82b366;
+    --yellow: #fff2cc; --yellow-s: #d6b656;
+    --purple: #e1d5e7; --purple-s: #9673a6;
+    --orange: #ffe6cc; --orange-s: #d79b00;
+    --red: #f8cecc; --red-s: #b85450;
+    --gray: #f5f5f5; --gray-s: #9a9a9a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a; --fg: #f0f0f0; --muted: #a8a8a8; --line: #c8c8c8;
+      --blue: #1e2a3d; --green: #1f3320; --yellow: #38321c;
+      --purple: #2f2538; --orange: #3d2a14; --red: #3d1f1f;
+      --gray: #242424; --gray-s: #5a5a5a;
+    }
+  }
+  svg { font-family: Inter, Helvetica, Arial, sans-serif; }
+  .bg { fill: var(--bg); }
+  text { fill: var(--fg); font-size: 12px; dominant-baseline: central; }
+  .title { font-size: 14px; font-weight: 600; dominant-baseline: auto; }
+  .small { font-size: 11px; }
+  .muted { fill: var(--muted); }
+  .bold { font-weight: 600; }
+  .mono { font-family: "JetBrains Mono", Menlo, Consolas, monospace; font-size: 11px; }
+  .shape { stroke-width: 1.2; }
+  .blue { fill: var(--blue); stroke: var(--blue-s); }
+  .green { fill: var(--green); stroke: var(--green-s); }
+  .yellow { fill: var(--yellow); stroke: var(--yellow-s); }
+  .purple { fill: var(--purple); stroke: var(--purple-s); }
+  .orange { fill: var(--orange); stroke: var(--orange-s); }
+  .red { fill: var(--red); stroke: var(--red-s); }
+  .gray { fill: var(--gray); stroke: var(--gray-s); }
+  .dashed { stroke-dasharray: 5 4; }
+  .edge { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-linejoin: round; }
+  .edge.c-blue { stroke: var(--blue-s); }
+  .edge.c-green { stroke: var(--green-s); }
+  .edge.c-purple { stroke: var(--purple-s); }
+  .edge.c-orange { stroke: var(--orange-s); }
+  .edge.c-red { stroke: var(--red-s); }
+  .head { fill: var(--line); }
+  .head.c-blue { fill: var(--blue-s); }
+  .head.c-green { fill: var(--green-s); }
+  .head.c-purple { fill: var(--purple-s); }
+  .head.c-orange { fill: var(--orange-s); }
+  .head.c-red { fill: var(--red-s); }
+  .actor { fill: none; stroke: var(--fg); stroke-width: 1.5; }
+  .label-bg { fill: var(--bg); }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-blue" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-green" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-purple" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-orange" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-red" d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+  <rect class="bg" width="860" height="450" rx="8"/>
+  <path d="M250,30 V370" style="stroke: var(--gray-s); stroke-width: 1; stroke-dasharray: 2 3"/>
+  <text x="250" y="384" text-anchor="middle" class="small muted">0 MB</text>
+  <path d="M363.333,30 V370" style="stroke: var(--gray-s); stroke-width: 1; stroke-dasharray: 2 3"/>
+  <text x="363.333" y="384" text-anchor="middle" class="small muted">20 MB</text>
+  <path d="M476.667,30 V370" style="stroke: var(--gray-s); stroke-width: 1; stroke-dasharray: 2 3"/>
+  <text x="476.667" y="384" text-anchor="middle" class="small muted">40 MB</text>
+  <path d="M590,30 V370" style="stroke: var(--gray-s); stroke-width: 1; stroke-dasharray: 2 3"/>
+  <text x="590" y="384" text-anchor="middle" class="small muted">60 MB</text>
+  <path d="M703.333,30 V370" style="stroke: var(--gray-s); stroke-width: 1; stroke-dasharray: 2 3"/>
+  <text x="703.333" y="384" text-anchor="middle" class="small muted">80 MB</text>
+  <text x="20" y="51" text-anchor="start" class="small bold muted">Always on</text>
+  <text x="36" y="81" text-anchor="start" class="small">Configuration stream keepalive</text>
+  <rect class="shape blue" x="250" y="71" width="102" height="20" rx="3"/>
+  <text x="360" y="81" text-anchor="start" class="small">18 MB</text>
+  <text x="36" y="115" text-anchor="start" class="small">Connection pings</text>
+  <rect class="shape blue" x="250" y="105" width="2" height="20" rx="3"/>
+  <text x="260" y="115" text-anchor="start" class="small">0.2 MB</text>
+  <text x="36" y="149" text-anchor="start" class="small">Sync byte counters, hourly</text>
+  <rect class="shape blue" x="250" y="139" width="3.96667" height="20" rx="3"/>
+  <text x="261.967" y="149" text-anchor="start" class="small">0.7 MB</text>
+  <text x="20" y="187" text-anchor="start" class="small bold muted">Optional settings</text>
+  <text x="36" y="217" text-anchor="start" class="small">Sync byte counters, every minute</text>
+  <rect class="shape blue dashed" x="250" y="207" width="221" height="20" rx="3"/>
+  <text x="479" y="217" text-anchor="start" class="small">39 MB</text>
+  <text x="36" y="251" text-anchor="start" class="small">Store metrics</text>
+  <rect class="shape blue dashed" x="250" y="241" width="476" height="20" rx="3"/>
+  <text x="734" y="251" text-anchor="start" class="small">84 MB</text>
+  <text x="20" y="289" text-anchor="start" class="small bold muted">Points written</text>
+  <text x="36" y="319" text-anchor="start" class="small">One point a minute</text>
+  <rect class="shape yellow" x="250" y="309" width="107.667" height="20" rx="3"/>
+  <text x="365.667" y="319" text-anchor="start" class="small">19 MB</text>
+  <text x="36" y="353" text-anchor="start" class="small">One point every 15 minutes</text>
+  <rect class="shape yellow" x="250" y="343" width="7.36667" height="20" rx="3"/>
+  <text x="265.367" y="353" text-anchor="start" class="small">1.3 MB</text>
+  <text x="250" y="414" text-anchor="start" class="small muted">Defaults total about 19 MB a month, nearly all of it the keepalive. Dashed bars are settings that are off by default.</text>
+  <text x="250" y="432" text-anchor="start" class="small muted">A reconnect costs about 8 KB each.</text>
+</svg>

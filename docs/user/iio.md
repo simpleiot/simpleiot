@@ -146,6 +146,8 @@ the top. Read as a voltage channel, that is:
 - `Offset`: -25, so that 0.4 V lands on 0
 - `Units`: `%`
 
+![the driver scale turns a raw count into 1.2 V, and the node Scale and Offset turn 1.2 V into 50 percent](images/iio-scale.svg)
+
 A reading of 1.2 V then publishes as 50 percent, and a broken loop reading 0 V
 publishes as -25, which is visibly out of range rather than a plausible empty
 tank.

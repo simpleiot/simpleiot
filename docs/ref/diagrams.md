@@ -153,7 +153,7 @@ Used in [Data](data.md) and [ADR-7](../adr/7-jetstream-store.md).
 
 ![primary and mirror edges](images/primary-mirror-edges.svg)
 
-Used in [Data](data.md).
+Used in [Data](data.md) and [Client](client.md).
 
 ### Sync streams
 
@@ -197,3 +197,93 @@ Used in [MCU Devices](../user/mcu.md) and [Serial Devices](serial.md).
 ![up subjects](../adr/assets/up-subjects.svg)
 
 Used in [ADR-7](../adr/7-jetstream-store.md).
+
+### Node, point, and edge
+
+![a parent and child node joined by an edge, with the fields of one point](images/node-point-edge.svg)
+
+Used in [Data](data.md).
+
+### Store boundaries
+
+![nodes grouped into hub and device boundaries and their streams](images/store-boundaries.svg)
+
+Used in [Store](store.md).
+
+### Merging subject tips
+
+![the newest tip of two streams becomes the current point](images/store-tip-merge.svg)
+
+Used in [Store](store.md).
+
+### Life of a sync connection
+
+![sequence of a device connecting, being adopted, syncing, and catching up](images/sync-connection.svg)
+
+Used in [Synchronization](sync.md).
+
+### Device enrollment
+
+![a device enrolls with a token, waits for approval, then syncs with its own key](../user/images/sync-enrollment.svg)
+
+Used in [Synchronization](../user/sync.md).
+
+### Who connects
+
+![each kind of connection is checked by the authorizer and granted a scope](images/auth-principals.svg)
+
+Used in [Authentication and authorization](auth.md) and [Security](security.md).
+
+### Browser connections
+
+![the browser uses HTTP for sign-in and node operations and NATS over WebSocket for data](images/browser-paths.svg)
+
+Used in [Frontend](frontend.md).
+
+### High availability approaches
+
+![active/passive, active/active, and peers replicating through sync](images/high-availability-approaches.svg)
+
+Used in [High Availability](high-availability.md).
+
+### Notification delivery
+
+![a notification becomes messages that each messaging service deduplicates, rate limits, and delivers](images/notification-delivery.svg)
+
+Used in [Notifications](notifications.md).
+
+### Bandwidth budget
+
+![monthly bytes a syncing device sends, per source](images/bandwidth-budget.svg)
+
+Used in [Bandwidth](bandwidth.md).
+
+### PLC integration paths
+
+![the ways PLC data reaches Simple IoT](../user/images/plc-paths.svg)
+
+Used in [PLCs](../user/plc.md).
+
+### MQTT topic schema
+
+![each named topic level becomes a node with a tag](../user/images/mqtt-topic-schema.svg)
+
+Used in [MQTT](../user/mqtt.md).
+
+### IIO scaling
+
+![a 4-20 mA reading scaled by the driver and then by the node](../user/images/iio-scale.svg)
+
+Used in [IIO](../user/iio.md).
+
+### Configuration provisioning
+
+![provisioning files applied to the node tree with their status recorded](../user/images/provisioning.svg)
+
+Used in [Configuration](../user/configuration.md).
+
+### ADR-9: file transfer and updates
+
+![file contents uploaded in the cloud, fetched by the device, and installed](../adr/assets/file-fetch-ota.svg)
+
+Used in [ADR-9](../adr/9-large-files-over-nats.md).

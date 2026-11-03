@@ -34,6 +34,8 @@ everything under it; see
 
 ## Who connects
 
+![each connection is checked by the authorizer and granted a scope from what it presents](images/auth-principals.svg)
+
 | Principal                 | Presents                             | Reaches                                                     |
 | ------------------------- | ------------------------------------ | ----------------------------------------------------------- |
 | The operator's tools      | the shared token (`SIOT_AUTH_TOKEN`) | everything on the instance                                  |

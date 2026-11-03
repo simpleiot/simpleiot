@@ -16,6 +16,8 @@ As a client developer, there are two main primary structures:
 and [`Point`](https://pkg.go.dev/github.com/simpleiot/simpleiot/data#Point). A
 `Node` can be considered a collection of `Points`.
 
+![a parent and child node, each a set of points, joined by an edge with its own points](images/node-point-edge.svg)
+
 These data structures describe most data that is stored and transferred in a
 Simple IoT system.
 

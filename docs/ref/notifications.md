@@ -66,6 +66,8 @@ Scope comes from position in the tree: a service or user sees notifications
 raised anywhere in its parent's subtree, so moving a node changes its
 notification scope.
 
+![a notification point becomes message points, then each messaging service deduplicates, rate limits, and delivers](images/notification-delivery.svg)
+
 ## Rate limit
 
 Each service sends at most 30 messages at once and then one more every 30

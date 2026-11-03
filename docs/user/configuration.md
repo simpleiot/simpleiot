@@ -356,6 +356,8 @@ applies the same files `siot import` does, and applies them at start-up and
 whenever they change, so a unit built from an image comes up configured with no
 import step and no operator involvement.
 
+![provisioning applies files from a directory and uploads, creates nodes, and records status](images/provisioning.svg)
+
 There are two places files come from:
 
 - **A directory on disk**, given by `-provisioningDir` or

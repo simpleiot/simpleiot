@@ -84,6 +84,8 @@ the single-writer property intact everywhere.
 
 ## Life of a connection
 
+![sequence of a sync connection between a device and a hub, then catch-up after a disconnect](images/sync-connection.svg)
+
 1. The sync client connects to the upstream NATS server (plain NATS or NATS over
    WebSocket).
 2. **Adoption:** if the upstream tree has no node with this instance's root ID,

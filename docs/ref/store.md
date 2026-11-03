@@ -46,6 +46,8 @@ boundary. Boundaries align with the natural units of synchronization and
 authorization: a device's subtree syncs as a unit, and permissions are typically
 granted at device or group level.
 
+![hub nodes stored in inst_R_R and the device subtree in the device's streams](images/store-boundaries.svg)
+
 Each (boundary, origin instance) pair gets one stream:
 
 ```
@@ -110,6 +112,8 @@ across all `inst_<boundaryID>_*` streams, under one rule:
    origin ID, so every instance converges on the same winner.
 3. An identical (timestamp, origin) delivery is a no-op, which makes the merge
    idempotent when the same point arrives more than once.
+
+![the newest tip across two streams becomes the current point](images/store-tip-merge.svg)
 
 The store holds this merged state in two in-memory caches — an edge cache (the
 tree) and a point cache (current points) — populated by reading every stream's

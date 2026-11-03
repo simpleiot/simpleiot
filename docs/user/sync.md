@@ -183,6 +183,8 @@ on a private network. For a fleet on the public internet, use enrollment.
 
 ### 2. Devices that enroll themselves
 
+![a device enrolls with a token, waits for approval, then syncs with its own key](images/sync-enrollment.svg)
+
 Every instance generates its own key on first start, and an _enrollment token_
 lets it ask the upstream for a credential for that key. Nothing is copied by
 hand in either direction, and the device's node appears on the upstream on its

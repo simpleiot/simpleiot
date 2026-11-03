@@ -11,6 +11,13 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Added
+
+- **New diagrams across the documentation.** Data, storage, sync, enrollment,
+  authorization, the browser, high availability, notifications, bandwidth, PLCs,
+  MQTT, IIO scaling, provisioning, and file transfer now each have a diagram.
+  See the [Diagrams](docs/ref/diagrams.md) gallery.
+
 ## [0.31.1] - 2026-11-03
 
 ### Changed

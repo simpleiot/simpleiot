@@ -7,6 +7,8 @@ the Svelte UI.
 
 ## How the browser talks to Simple IoT
 
+![the browser uses HTTP for sign-in and node operations, and NATS over WebSocket for reads, writes, and live updates](images/browser-paths.svg)
+
 The browser connects to the embedded NATS server, through a WebSocket the HTTP
 port relays, and uses it for reading the tree, writing points, and live updates.
 HTTP carries only sign-in and the node operations that change the tree's shape.
