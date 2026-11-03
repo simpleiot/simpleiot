@@ -381,8 +381,7 @@ export class TreeStore {
 		return tree.findById(id, this.forest)?.node
 	}
 
-	// toggleChildren expands or collapses a node. Expanding fetches the
-	// children afresh, which doubles as a refresh.
+	// toggleChildren expands or collapses a node.
 	async toggleChildren(key: string) {
 		const n = this.find(key)
 		if (!n) {
@@ -395,13 +394,17 @@ export class TreeStore {
 		}
 	}
 
+	// expand opens a node and fetches its children afresh, along with those
+	// of the nodes below it left expanded, since nothing under a collapsed
+	// node is watched.
 	async expand(key: string) {
 		const n = this.find(key)
 		if (!n) {
 			return
 		}
 		this.#setForest(tree.setExpanded(key, true, this.forest))
-		await this.fetchChildren(n.anchor, n.node.id)
+		const expanded = tree.expandedIds([{ ...n, expChildren: true }])
+		await Promise.all(expanded.map((e) => this.fetchChildren(e.anchor, e.id)))
 	}
 
 	setDetail(key: string, open: boolean) {
@@ -611,7 +614,7 @@ export class TreeStore {
 			return
 		}
 		this.#notify("Node added")
-		await this.#expandAndRefetch(parentKey)
+		await this.expand(parentKey)
 	}
 
 	async deleteNode(key: string) {
@@ -686,20 +689,7 @@ export class TreeStore {
 		}
 		this.op = { kind: "none" }
 		this.#notify({ move: "Node moved", mirror: "Node mirrored", duplicate: "Node duplicated" }[how])
-		await this.#expandAndRefetch(destKey)
-	}
-
-	async #expandAndRefetch(key: string) {
-		const n = this.find(key)
-		if (!n) {
-			return
-		}
-		this.#setForest(
-			tree.mapForest(this.forest, (t) =>
-				t.key === key && !t.expChildren ? { ...t, expChildren: true } : t
-			)
-		)
-		await this.fetchChildren(n.anchor, n.node.id)
+		await this.expand(destKey)
 	}
 
 	// ownerOf is the parent type the copied node must live under to work.

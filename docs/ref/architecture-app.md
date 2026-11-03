@@ -31,7 +31,7 @@ functionality by writing a new client. Following the constraints of
 readable by other clients, as well as being automatically synchronized to
 upstream instances.
 
-![application architecture](images/arch-app.png)
+![application architecture](images/arch-app.svg)
 
 ## Application Lifecycle
 

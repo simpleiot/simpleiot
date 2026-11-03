@@ -11,7 +11,7 @@ It is common in embedded systems architectures for an MPU (Linux-based running
 SIOT) to be connected via a serial link (RS232, RS485, CAN, USB serial) to an
 MCU.
 
-![mcu connection](../user/images/mcu.png)
+![mcu connection](../user/images/mcu.svg)
 
 See
 [this article](http://bec-systems.com/site/1540/microcontroller-mcu-or-microprocessor-mpu)
@@ -25,7 +25,7 @@ points. An example of nodes and points is shown below. These can be arranged in
 any structure that makes sense and is convenient. Simple devices may only have a
 single node with a handful of points.
 
-![nodes/points](images/mcu-nodes.png)
+![nodes/points](images/mcu-nodes.svg)
 
 SIOT does not differentiate between state (ex: sensor values) and config (ex:
 pump turn-on delay) - it is all points. This simplifies the transport and allows

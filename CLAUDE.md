@@ -208,6 +208,13 @@ When working through a plan, commit after each phase completes. Update the
 changelog (`CHANGELOG.md`), `CLAUDE.md`, and any relevant documentation as part
 of each phase.
 
+## Diagrams
+
+Documentation diagrams are hand-written SVG files, not draw.io. Copy an existing
+SVG to keep the shared style header, follow the style guide in
+[docs/ref/diagrams.md](docs/ref/diagrams.md), and add each new diagram to the
+gallery on that page.
+
 ## Changelog
 
 The changelog uses [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
