@@ -112,6 +112,10 @@ pump implementation.
       `Sync <desc>:` level like the other session messages.
 - [ ] The snapshot loop never holds up the history pass. On an error, it logs,
       deletes its consumer, and stops; the history pass carries on alone.
+- [ ] Give the sync connection an async error handler. On a permissions
+      violation for a `snap.` subject, stop the snapshot loop for the rest of
+      the session, so an upstream without the `snap.` grant (an older
+      version) logs one violation per reconnect instead of one per point.
 - [ ] Tests (`client/sync_test.go`): with the upstream stopped, write N points
       to one subject and one point to a second subject on the device; on
       reconnect the upstream's cache shows both tips before the history
@@ -120,7 +124,9 @@ pump implementation.
       A point written on the device while the history is still catching up
       reaches the upstream's cache before the history does. The snapshot
       consumer is gone once the history has caught up. First sync of a new
-      device snapshots every subject.
+      device snapshots every subject. Against an upstream whose device grant
+      lacks `snap.X.X.>`, catch-up still completes through the history pass
+      and the snapshot loop stops after the first refusal.
 - [ ] `go test -race ./client/... ./store/...`, `golangci-lint run`. Commit.
 
 ### Phase 3: Permissions and docs
@@ -150,10 +156,13 @@ pump implementation.
   - Add the new diagrams to the gallery in `docs/ref/diagrams.md`, following
     its style guide.
 - [ ] `CHANGELOG.md`: current values arrive first after a reconnect, and
-      rules on the upstream see them instead of a replay of the backlog. Both
-      sides need this version: an older upstream denies the `snap.` publish
-      and the device falls back to history order only, with a permissions
-      violation in the upstream log.
+      rules on the upstream see them instead of a replay of the backlog.
+      Upgrade the upstream first. Older and newer devices and servers work
+      together, and stored data is unchanged. A new device with an older
+      upstream works but gets no benefit for its own data, and the upstream
+      logs a permissions violation each time the device reconnects. With the
+      shared token, an older upstream drops the snapshot messages silently,
+      so they only add traffic during catch-up until it is upgraded.
 - [ ] `siot_test`. Commit. Close #836 with a link to this plan.
 
 ## Not in this plan
