@@ -60,6 +60,12 @@ names -- should pass them through `data.SubjectSafeToken` first.
         nodes requested (`1` adds their children, `2` grandchildren as well).
         The reply is flat; the `parent` field of each node says where it goes.
         `nodeType` applies to the requested nodes only.
+      - `search` with the text field set, on a `nodes.<id>.all` request, finds
+        nodes below `id` whose description starts with or contains the text, or
+        whose ID equals it, or whose type contains it, in that order. The reply
+        carries each match and its ancestors below `id`, placed by `parent`, so
+        a client can show where a match sits. `limit` with value `n` caps the
+        matches (20 by default, 100 at most).
   - `p.<nodeId>.<type>.<key>`
     - used to listen for or publish node point changes.
   - `ep.<nodeId>.<parentId>.<type>.<key>`

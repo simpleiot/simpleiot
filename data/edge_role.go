@@ -146,6 +146,11 @@ var treeScopedTypes = map[string]bool{
 	NodeTypeFile:           true,
 	NodeTypeDeviceCred:     true,
 	NodeTypeEnrollToken:    true,
+	// Dashboards are configuration the web UI renders; nothing runs for
+	// them, and one dashboard placed under several nodes is meaningful.
+	NodeTypeDashboard: true,
+	NodeTypeWidget:    true,
+	NodeTypeLink:      true,
 }
 
 // nodeTypeOwners names the parent type a node type must live under. A node
@@ -162,6 +167,8 @@ var nodeTypeOwners = map[string]string{
 	NodeTypeActionInactive:       NodeTypeRule,
 	NodeTypeNetworkManagerDevice: NodeTypeNetworkManager,
 	NodeTypeNetworkManagerConn:   NodeTypeNetworkManager,
+	NodeTypeWidget:               NodeTypeDashboard,
+	NodeTypeLink:                 NodeTypeDashboard,
 	NodeTypeProvisioningFile:     NodeTypeProvisioning,
 	// A credential authorizes the device it sits under, so one that is
 	// moved elsewhere authorizes nothing.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -1831,5 +1832,98 @@ func TestStoreMetricsConfig(t *testing.T) {
 	_, period = st.metricsConfig(rootID)
 	if period != metricsPeriodFloor {
 		t.Fatalf("short period: got %v, want %v", period, metricsPeriodFloor)
+	}
+}
+
+func TestDbJetStreamSearch(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
+
+	rootID := db.rootNodeID()
+
+	group := uuid.New().String()
+	devA := uuid.New().String()
+	devB := uuid.New().String()
+	pumpA := uuid.New().String()
+	pumpB := uuid.New().String()
+	sump := uuid.New().String()
+	outside := uuid.New().String()
+
+	mkTestNode(t, db, rootID, group, data.NodeTypeGroup, "site")
+	mkTestNode(t, db, group, devA, data.NodeTypeDevice, "station A")
+	mkTestNode(t, db, group, devB, data.NodeTypeDevice, "station B")
+	mkTestNode(t, db, devA, pumpA, data.NodeTypeVariable, "pump 1")
+	mkTestNode(t, db, devB, pumpB, data.NodeTypeVariable, "Pump 2")
+	mkTestNode(t, db, devB, sump, data.NodeTypeVariable, "sump pump")
+	mkTestNode(t, db, rootID, outside, data.NodeTypeVariable, "pump outside")
+
+	ids := func(nodes []data.NodeEdge) map[string]string {
+		m := map[string]string{}
+		for _, n := range nodes {
+			m[n.ID] = n.Parent
+		}
+		return m
+	}
+
+	// prefix matches rank ahead of substring matches, case folded, and
+	// nothing outside the anchor is found
+	nodes, err := db.getNodesSearch(group, "pump", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var matched []string
+	for _, n := range nodes {
+		if n.Type == data.NodeTypeVariable {
+			matched = append(matched, n.Desc())
+		}
+	}
+	if len(matched) != 3 || matched[0] != "pump 1" || matched[1] != "Pump 2" || matched[2] != "sump pump" {
+		t.Fatalf("unexpected matches: %v", matched)
+	}
+	got := ids(nodes)
+	if _, ok := got[outside]; ok {
+		t.Fatal("search returned a node outside the anchor")
+	}
+
+	// each match comes with its ancestors below the anchor, placed by
+	// parent, and the anchor itself is left out
+	if got[devA] != group || got[devB] != group {
+		t.Fatalf("ancestors missing or misplaced: %v", got)
+	}
+	if _, ok := got[group]; ok {
+		t.Fatal("search returned the anchor")
+	}
+
+	// limit keeps the best matches
+	nodes, err = db.getNodesSearch(group, "pump", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got = ids(nodes)
+	if _, ok := got[pumpA]; !ok || len(got) != 2 {
+		t.Fatalf("limit 1 should return pump 1 and station A, got %v", got)
+	}
+
+	// an ID and a type match when the description does not
+	nodes, err = db.getNodesSearch(group, strings.ToUpper(sump), 0)
+	if err != nil || len(nodes) == 0 || nodes[0].ID != sump {
+		t.Fatalf("search by ID failed: %v %v", nodes, err)
+	}
+	nodes, err = db.getNodesSearch(group, "device", 0)
+	if err != nil || len(nodes) != 2 {
+		t.Fatalf("search by type should find two devices, got %v %v", nodes, err)
+	}
+
+	// the store request routes a search point to the same lookup and
+	// refuses the forms a search cannot walk
+	st := &Store{db: db, metricCycleNode: client.NewMetric(nil, "", data.PointTypeMetricNatsCycleNode, time.Hour)}
+	pts := data.Points{data.NewPointString(data.PointTypeSearch, "", "sump")}
+	payload := pts.Encode()
+	nodes, err = st.nodesRequest("nodes."+group+".all", payload)
+	if err != nil || len(nodes) == 0 || nodes[0].ID != sump {
+		t.Fatalf("nodes request search failed: %v %v", nodes, err)
+	}
+	if _, err = st.nodesRequest("nodes.all."+sump, payload); err == nil {
+		t.Fatal("search on a parents request should be refused")
 	}
 }

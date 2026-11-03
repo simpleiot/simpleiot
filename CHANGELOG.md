@@ -11,6 +11,15 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Added
+
+- **Node requests can search by description.** A `search` point on a
+  `nodes.<id>.all` request returns the nodes below `id` whose description, ID,
+  or type matches, with their ancestors, so a client can find a node it has not
+  loaded. See the [API reference](docs/ref/api.md).
+- **Dashboard node types.** `dashboard`, `widget`, and `link` nodes are defined
+  and classified; the web UI that renders them follows in a later release.
+
 ## [0.32.0] - 2026-11-03
 
 ### Changed
