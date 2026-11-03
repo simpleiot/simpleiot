@@ -492,6 +492,10 @@ func isLoopback(addr net.Addr) bool {
 //     request carries a whole configuration
 //   - pull inst_X_R, the stream this instance writes the device's
 //     configuration to, which the store creates when it adopts the device
+//   - send current values ahead of its history while it catches up
+//     (snap.X.X.>), and read inst_X_R the same way through an ephemeral
+//     consumer, which the consumer grants on inst_X_R already cover; the
+//     consumer is left to expire, so no delete is granted
 //   - receive replies
 //
 // A device never needs p.>, up.>, auth.*, admin.*, or any other instance's
@@ -506,6 +510,7 @@ func devicePermissions(pubKey, deviceID, rootID string) *server.Permissions {
 		"nodes.all." + X,
 		fmt.Sprintf("ep.%v.%v", X, rootID),
 		fmt.Sprintf("inst.%v.%v.>", X, X),
+		fmt.Sprintf("%v.%v.%v.>", client.SnapshotPrefix, X, X),
 		"$JS.API.STREAM.INFO." + own,
 		"$JS.API.STREAM.INFO." + pull,
 		"$JS.API.CONSUMER.CREATE." + pull + ".>",

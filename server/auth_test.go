@@ -23,6 +23,7 @@ func TestDevicePermissions(t *testing.T) {
 		"nodes.all.X",
 		"ep.X.R",
 		"inst.X.X.>",
+		"snap.X.X.>",
 		"$JS.API.STREAM.INFO.inst_X_X",
 		"$JS.API.STREAM.INFO.inst_X_R",
 		"$JS.API.CONSUMER.CREATE.inst_X_R.>",
@@ -46,7 +47,7 @@ func TestDevicePermissions(t *testing.T) {
 
 	// nothing a device must never touch is in the list
 	for _, s := range p.Publish.Allow {
-		for _, bad := range []string{"p.", "up.", "auth.", "admin.", "inst.Y", "$JS.API.STREAM.LIST", "$JS.API.STREAM.NAMES", "$JS.API.STREAM.CREATE"} {
+		for _, bad := range []string{"p.", "up.", "auth.", "admin.", "inst.Y", "snap.Y", "snap.X.R", "$JS.API.STREAM.LIST", "$JS.API.STREAM.NAMES", "$JS.API.STREAM.CREATE"} {
 			if len(s) >= len(bad) && s[:len(bad)] == bad {
 				t.Errorf("publish allow includes %v", s)
 			}

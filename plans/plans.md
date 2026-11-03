@@ -30,4 +30,4 @@
 | 2026-10-20-enrollment-tokens-per-group.md        | **COMPLETE**                                                                            | 1f56a211      |
 | 2026-10-23-svelte-admin-ui.md                    | **COMPLETE**                                                                            | 8ded2b93      |
 | 2026-10-29-crockford-base32-ids.md               | **COMPLETE**                                                                            | ee8f9054      |
-| 2026-11-03-sync-snapshot-pass.md                 | **NOT STARTED**                                                                         | e8d0390b      |
+| 2026-11-03-sync-snapshot-pass.md                 | **COMPLETE** (close #836 once pushed)                                                   | e8d0390b      |

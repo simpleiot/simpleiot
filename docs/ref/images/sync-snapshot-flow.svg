@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 440" width="860" height="440" role="img" aria-label="While the history catches up, the push pump forwards current values and new points as snap messages; the hub's store merges them into its cache without writing them to the replica stream">
+  <!-- Simple IoT diagram style: see docs/ref/documentation.md (Diagrams). -->
+  <style>
+  :root {
+    --bg: #ffffff; --fg: #1f1f1f; --muted: #5f5f5f; --line: #3a3a3a;
+    --blue: #dae8fc; --blue-s: #6c8ebf;
+    --green: #d5e8d4; --green-s: #82b366;
+    --yellow: #fff2cc; --yellow-s: #d6b656;
+    --purple: #e1d5e7; --purple-s: #9673a6;
+    --orange: #ffe6cc; --orange-s: #d79b00;
+    --red: #f8cecc; --red-s: #b85450;
+    --gray: #f5f5f5; --gray-s: #9a9a9a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a; --fg: #f0f0f0; --muted: #a8a8a8; --line: #c8c8c8;
+      --blue: #1e2a3d; --green: #1f3320; --yellow: #38321c;
+      --purple: #2f2538; --orange: #3d2a14; --red: #3d1f1f;
+      --gray: #242424; --gray-s: #5a5a5a;
+    }
+  }
+  svg { font-family: Inter, Helvetica, Arial, sans-serif; }
+  .bg { fill: var(--bg); }
+  text { fill: var(--fg); font-size: 12px; dominant-baseline: central; }
+  .title { font-size: 14px; font-weight: 600; dominant-baseline: auto; }
+  .small { font-size: 11px; }
+  .muted { fill: var(--muted); }
+  .bold { font-weight: 600; }
+  .mono { font-family: "JetBrains Mono", Menlo, Consolas, monospace; font-size: 11px; }
+  .shape { stroke-width: 1.2; }
+  .blue { fill: var(--blue); stroke: var(--blue-s); }
+  .green { fill: var(--green); stroke: var(--green-s); }
+  .yellow { fill: var(--yellow); stroke: var(--yellow-s); }
+  .purple { fill: var(--purple); stroke: var(--purple-s); }
+  .orange { fill: var(--orange); stroke: var(--orange-s); }
+  .red { fill: var(--red); stroke: var(--red-s); }
+  .gray { fill: var(--gray); stroke: var(--gray-s); }
+  .dashed { stroke-dasharray: 5 4; }
+  .edge { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-linejoin: round; }
+  .edge.c-blue { stroke: var(--blue-s); }
+  .edge.c-green { stroke: var(--green-s); }
+  .edge.c-purple { stroke: var(--purple-s); }
+  .edge.c-orange { stroke: var(--orange-s); }
+  .edge.c-red { stroke: var(--red-s); }
+  .head { fill: var(--line); }
+  .head.c-blue { fill: var(--blue-s); }
+  .head.c-green { fill: var(--green-s); }
+  .head.c-purple { fill: var(--purple-s); }
+  .head.c-orange { fill: var(--orange-s); }
+  .head.c-red { fill: var(--red-s); }
+  .actor { fill: none; stroke: var(--fg); stroke-width: 1.5; }
+  .label-bg { fill: var(--bg); }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-blue" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-green" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-purple" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-orange" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head c-red" d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+  <rect class="bg" width="860" height="440" rx="8"/>
+  <rect class="shape gray" x="20" y="20" width="420" height="380" rx="10"/>
+  <text class="title" x="32" y="42">📟 Device X: push pump</text>
+  <rect class="shape blue" x="40" y="60" width="170" height="56" rx="6"/>
+  <text x="125" y="74" text-anchor="middle">Durable consumer</text>
+  <text text-anchor="middle" class="small muted"><tspan x="125" y="88.5">its ack floor sets</tspan><tspan x="125" y="102.5">where the snapshot starts</tspan></text>
+  <rect class="shape blue" x="250" y="60" width="170" height="56" rx="6"/>
+  <text x="335" y="74" text-anchor="middle">Ephemeral consumer</text>
+  <text text-anchor="middle" class="small muted"><tspan x="335" y="88.5">last per subject,</tspan><tspan x="335" y="102.5">then each new point</tspan></text>
+  <rect class="shape yellow" x="250" y="190" width="170" height="50" rx="6"/>
+  <text x="335" y="208" text-anchor="middle">Forward as snap</text>
+  <text x="335" y="222.5" text-anchor="middle" class="small muted">seq above ack floor</text>
+  <rect class="shape blue" x="40" y="300" width="170" height="50" rx="6"/>
+  <text x="125" y="318" text-anchor="middle">History</text>
+  <text x="125" y="332.5" text-anchor="middle" class="small muted">windows, in order</text>
+  <path class="edge" d="M210,88 L250,88" marker-end="url(#arrow)"/>
+  <path class="edge" d="M335,116 L335,190" marker-end="url(#arrow)"/>
+  <path class="edge" d="M125,116 L125,300" marker-end="url(#arrow)"/>
+  <path class="edge dashed" d="M210,312 L335,312 L335,240" marker-end="url(#arrow)"/>
+  <rect class="label-bg" x="288.32" y="256" width="93.36" height="32" rx="3"/>
+  <text text-anchor="middle" class="small"><tspan x="335" y="265">nothing pending:</tspan><tspan x="335" y="279">stop</tspan></text>
+  <rect class="shape gray" x="520" y="20" width="320" height="380" rx="10"/>
+  <text class="title" x="532" y="42">☁️ Hub R store</text>
+  <rect class="shape blue" x="540" y="60" width="280" height="50" rx="6"/>
+  <text x="680" y="78" text-anchor="middle">snap.&gt; subscription</text>
+  <text x="680" y="92.5" text-anchor="middle" class="small muted">drop own origin, snap → inst</text>
+  <rect class="shape blue" x="540" y="180" width="280" height="50" rx="6"/>
+  <text x="680" y="198" text-anchor="middle">Merge into cache</text>
+  <text x="680" y="212.5" text-anchor="middle" class="small muted">broadcast if the tip changed</text>
+  <rect class="shape purple" x="540" y="315" width="125" height="50" rx="6"/>
+  <text x="602.5" y="333" text-anchor="middle">Replica stream</text>
+  <text x="602.5" y="347.5" text-anchor="middle" class="small muted">inst_X_X</text>
+  <rect class="shape blue" x="695" y="315" width="125" height="50" rx="6"/>
+  <text x="757.5" y="340" text-anchor="middle">Replica consumer</text>
+  <path class="edge" d="M680,110 L680,180" marker-end="url(#arrow)"/>
+  <path class="edge" d="M665,340 L695,340" marker-end="url(#arrow)"/>
+  <path class="edge" d="M757.5,315 L757.5,230" marker-end="url(#arrow)"/>
+  <path class="edge" d="M420,215 L470,215 L470,85 L540,85" marker-end="url(#arrow)"/>
+  <rect class="label-bg" x="434.705" y="134" width="70.59" height="32" rx="3"/>
+  <text text-anchor="middle" class="small"><tspan x="470" y="143">snap.X.X.…</tspan><tspan x="470" y="157">core NATS</tspan></text>
+  <path class="edge" d="M210,340 L540,340" marker-end="url(#arrow)"/>
+  <rect class="label-bg" x="312.64" y="331" width="134.72" height="18" rx="3"/>
+  <text x="380" y="340" text-anchor="middle" class="small">inst.X.X.…  JetStream</text>
+  <text x="430" y="422" text-anchor="middle" class="small muted">The pull pump works the same way toward the device. Snap messages never enter a replica stream.</text>
+</svg>

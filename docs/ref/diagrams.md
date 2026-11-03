@@ -222,6 +222,18 @@ Used in [Store](store.md).
 
 Used in [Synchronization](sync.md).
 
+### Catch-up with current values first
+
+![the hub receives current values and new points ahead of the backlog](images/sync-catchup.svg)
+
+Used in [Synchronization](sync.md).
+
+### Snapshot alongside the history
+
+![the push pump forwards snapshot messages alongside the history](images/sync-snapshot-flow.svg)
+
+Used in [Synchronization](sync.md).
+
 ### Device enrollment
 
 ![a device enrolls with a token, waits for approval, then syncs with its own key](../user/images/sync-enrollment.svg)
