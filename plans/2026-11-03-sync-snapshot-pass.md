@@ -15,11 +15,15 @@ Issue #836 proposes separate current and history streams. Writing every point
 to two streams would send every point twice over the link. This plan keeps one
 stream per boundary/origin on disk and splits the _sync_ into two passes
 instead: a snapshot of the current value of each subject that changed while
-offline, then the history as now.
+offline, followed by each point written while catching up, alongside the
+history as now.
 
-The cost is one extra message per changed subject per reconnect. The newest
-point of a changed subject crosses the link in the snapshot and again when the
-history reaches it. Unchanged subjects cost nothing. The second copy is a no-op
+![catch-up today and with the snapshot pass](images/snapshot-catchup.svg)
+
+The cost is one extra message per changed subject per reconnect, plus one
+extra message for every point written while the history is catching up. Each
+of those crosses the link in the snapshot and again when the history reaches
+it. Unchanged subjects cost nothing. The second copy is a no-op
 on the receiving side: `tipWins` (`store/merge.go`) does not replace a tip with
 an equal time from the same origin.
 
@@ -31,21 +35,43 @@ cache and broadcast locally, like a live replica message. If the receiving
 instance restarts before the history catches up, its cache rebuilds from the
 stream and the tips arrive again with the history; this is accepted for now.
 
+This changes what clients on the receiving instance see during catch-up.
+Today a rule on the upstream receives every backlog point in order, hours late
+on a slow link, because each one is newer than the cached tip and is broadcast.
+With the snapshot pass it receives the current value at once, and the older
+history messages that follow are neither merged nor broadcast: `tipWins`
+rejects a point older than the tip, or equal in time from the same origin. A
+rule that reacts to a short-lived condition inside the backlog no longer fires
+for it upstream; the device's own rules evaluated it live. The history pass
+does not wait for the snapshot, so a history message can occasionally be
+broadcast before the snapshot of its subject arrives; values still only move
+forward in time. The database client is not affected: it reads the streams
+with its own durable consumers (`client/db.go`), not the broadcasts, so it
+still records the full history.
+
 ## Approach
 
-Each pump runs a snapshot pass before it starts copying history:
+Each pump runs a snapshot pass alongside the history pass until the history
+catches up:
 
 1. Create (or find) the durable consumer as now and read its ack floor
    (`ConsumerInfo.AckFloor.Stream`).
 2. Open an ephemeral consumer on the source stream with
-   `DeliverLastPerSubjectPolicy`, filtered to the stream's capture subject.
-   Read until nothing is pending.
-3. For each tip whose stream sequence is above the ack floor, publish it on the
-   receiving side as a core NATS message on `snap.<boundary>.<origin>.<rest>`:
-   the storage subject with `snap` in place of `inst`, same payload, same
-   `OriginHeader`. No acknowledgement; the history pass carries the same
-   message durably.
-4. Delete the ephemeral consumer and start the history pass as now.
+   `DeliverLastPerSubjectPolicy`, filtered to the stream's capture subject. It
+   delivers the newest message on each subject, then every message written
+   after it was created.
+3. Publish each delivered message whose stream sequence is above the ack floor
+   on the receiving side as a core NATS message on
+   `snap.<boundary>.<origin>.<rest>`: the storage subject with `snap` in place
+   of `inst`, same payload, same `OriginHeader`. No acknowledgement; the
+   history pass carries the same message durably. Points written during
+   catch-up are forwarded as they arrive, one for one, with no coalescing.
+4. Start the history pass as now, without waiting for the snapshot.
+5. When the history pass sees nothing pending (`NumPending == 0` in
+   `fillWindow`), delete the ephemeral consumer. From then on the history pass
+   alone keeps the upstream current, as it does today.
+
+![pump snapshot pass and the upstream store](images/snapshot-flow.svg)
 
 A new durable (first sync, ack floor 0) snapshots every subject, so a newly
 adopted device shows its full current state on the upstream before any history
@@ -71,25 +97,30 @@ pump implementation.
 - [ ] Test (`store/replica_test.go` or `store_test.go`): a snapshot for a
       boundary this instance replicates updates the cache and is broadcast on
       the `p.` subject; a later, older history message for the same subject
-      does not change the tip; a snapshot claiming this instance's own origin
-      is ignored.
+      does not change the tip and is not broadcast (subscribe to `up.>` and
+      count); the history copy of the snapshot point itself is not broadcast
+      again; a snapshot claiming this instance's own origin is ignored.
 - [ ] `go test -race ./store/...`, `golangci-lint run`. Commit.
 
 ### Phase 2: Pump snapshot pass
 
 - [ ] `client/sync.go`: in `runPump`, after `CreateOrUpdateConsumer`, read the
-      ack floor, run the snapshot pass (`snapshotTips`), then start the window
-      loop. Log the count of tips sent and the ack floor at `Sync <desc>:`
-      level like the other session messages.
-- [ ] The snapshot pass must not block the session on an unreachable
-      receiver longer than one pull expiry; on error, log and go on to the
-      history pass.
+      ack floor, start the snapshot loop (`snapshotTips`) in its own
+      goroutine, and start the window loop. The window loop stops the
+      snapshot loop the first time a window ends with nothing pending. Log
+      the ack floor and the count of messages sent as snapshots at
+      `Sync <desc>:` level like the other session messages.
+- [ ] The snapshot loop never holds up the history pass. On an error, it logs,
+      deletes its consumer, and stops; the history pass carries on alone.
 - [ ] Tests (`client/sync_test.go`): with the upstream stopped, write N points
       to one subject and one point to a second subject on the device; on
       reconnect the upstream's cache shows both tips before the history
       consumer's pending count reaches zero. A subject unchanged since the
       last session is not in the snapshot (count tips on the `snap.` subject).
-      First sync of a new device snapshots every subject.
+      A point written on the device while the history is still catching up
+      reaches the upstream's cache before the history does. The snapshot
+      consumer is gone once the history has caught up. First sync of a new
+      device snapshots every subject.
 - [ ] `go test -race ./client/... ./store/...`, `golangci-lint run`. Commit.
 
 ### Phase 3: Permissions and docs
@@ -107,7 +138,8 @@ pump implementation.
       to the device grant list. `docs/adr/7-jetstream-store.md`: a short note
       under the sync section that current values are sent ahead of history
       and why the streams are not split.
-- [ ] `CHANGELOG.md`: current values arrive first after a reconnect. Both
+- [ ] `CHANGELOG.md`: current values arrive first after a reconnect, and
+      rules on the upstream see them instead of a replay of the backlog. Both
       sides need this version: an older upstream denies the `snap.` publish
       and the device falls back to history order only, with a permissions
       violation in the upstream log.
@@ -118,6 +150,3 @@ pump implementation.
 - A current-values stream on disk on the upstream, so a restart during a long
   catch-up keeps the tips. Revisit if restarts during catch-up turn out to
   matter.
-- Snapshot priority during the history pass (sending new tips ahead of the
-  backlog while catch-up is still running). The history pass's window loop
-  would need a second consumer interleaved with it.
