@@ -91,16 +91,16 @@ pump implementation.
 
 ### Phase 1: Store accepts snapshot messages
 
-- [ ] `store/replica.go`: subscribe to `snap.>` on the store's connection.
+- [x] `store/replica.go`: subscribe to `snap.>` on the store's connection.
       Handler: reject `origin == db.meta.RootID`, rewrite the subject prefix,
       `mergeReplicaMsg(subject, payload, origin, true)`, broadcast if changed.
-- [ ] Test (`store/replica_test.go` or `store_test.go`): a snapshot for a
+- [x] Test (`store/replica_test.go` or `store_test.go`): a snapshot for a
       boundary this instance replicates updates the cache and is broadcast on
       the `p.` subject; a later, older history message for the same subject
       does not change the tip and is not broadcast (subscribe to `up.>` and
       count); the history copy of the snapshot point itself is not broadcast
       again; a snapshot claiming this instance's own origin is ignored.
-- [ ] `go test -race ./store/...`, `golangci-lint run`. Commit.
+- [x] `go test -race ./store/...`, `golangci-lint run`. Commit.
 
 ### Phase 2: Pump snapshot pass
 

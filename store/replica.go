@@ -512,6 +512,35 @@ func (db *DbJetStream) releaseReplica(id string) {
 	}
 }
 
+// handleSnapshot merges a snapshot message from a sync pump. While a pump
+// catches up a backlog, it sends the newest message of each subject that
+// changed, and then each new message, as a core NATS message on
+// snap.<boundary>.<origin>.<rest>, the storage subject with snap in place of
+// inst. The same messages reach the replica stream later with the history;
+// they merge as no change then.
+//
+// A snapshot is merged and broadcast like a live replica message, but it
+// never enters the replica stream, so the stream's last message per subject
+// stays the current value. One that claims this instance as its origin is
+// dropped: replicaWait trusts streams this instance wrote, and a snapshot
+// must not be able to claim that trust.
+func (db *DbJetStream) handleSnapshot(msg *nats.Msg) {
+	tok := strings.SplitN(msg.Subject, ".", 4)
+	if len(tok) < 4 || tok[0] != client.SnapshotPrefix {
+		return
+	}
+
+	origin := tok[2]
+	if origin == db.meta.RootID {
+		return
+	}
+
+	subject := "inst." + tok[1] + "." + tok[2] + "." + tok[3]
+	if db.mergeReplicaMsg(subject, msg.Data, origin, true) {
+		db.broadcastReplica(subject, msg.Data, origin)
+	}
+}
+
 // broadcastReplica re-broadcasts a replica stream message on the core
 // NATS wire subjects, tagged with the origin header. The store's own
 // wire handlers then fan it out to up.> subjects; the origin tag keeps

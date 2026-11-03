@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
+	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
 )
 
@@ -1588,6 +1590,142 @@ func TestDbJetStreamReplicaStartsAtTips(t *testing.T) {
 			t.Fatalf("point written after start not merged, value: %v", v)
 		}
 		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+// TestDbJetStreamSnapshot checks the snapshot messages a sync pump sends
+// ahead of its history. A snapshot updates the cache and is broadcast; the
+// older history that follows, and the history copy of the snapshot itself,
+// change nothing and are not broadcast; and a snapshot claiming this
+// instance as its origin is dropped.
+func TestDbJetStreamSnapshot(t *testing.T) {
+	db, cleanup := newTestJsDb(t)
+	defer cleanup()
+
+	downID := uuid.New().String()
+	nodeID := uuid.New().String()
+
+	ctx := context.Background()
+	s, err := db.js.CreateStream(ctx, jetstream.StreamConfig{
+		Name:     streamName(downID, downID),
+		Subjects: []string{streamCaptureSubject(downID, downID)},
+	})
+	if err != nil {
+		t.Fatal("Error creating replica stream:", err)
+	}
+
+	// the node is in the replica's boundary, so its points are merged
+	edge := data.Points{data.NewPointString(data.PointTypeNodeType, "", data.NodeTypeVariable)}
+	_, err = db.js.Publish(ctx, edgePointSubject(downID, downID, downID, nodeID), edge.Encode())
+	if err != nil {
+		t.Fatal("Error publishing edge:", err)
+	}
+
+	rm := db.runReplicaManager()
+	defer rm.Stop()
+
+	snapSub, err := db.nc.Subscribe(client.SnapshotPrefix+".>", db.handleSnapshot)
+	if err != nil {
+		t.Fatal("Error subscribing to snapshots:", err)
+	}
+	defer func() { _ = snapSub.Unsubscribe() }()
+
+	// count what reaches local clients for the node
+	var bmu sync.Mutex
+	var broadcast []float64
+	bSub, err := db.nc.Subscribe(client.SubjectNodePoints(nodeID)+".>", func(msg *nats.Msg) {
+		pts, err := data.DecodePoints(msg.Data)
+		if err != nil || len(pts) == 0 {
+			return
+		}
+		bmu.Lock()
+		broadcast = append(broadcast, pts[0].Val())
+		bmu.Unlock()
+	})
+	if err != nil {
+		t.Fatal("Error subscribing to broadcasts:", err)
+	}
+	defer func() { _ = bSub.Unsubscribe() }()
+
+	waitFor := func(what string, cond func() bool) {
+		t.Helper()
+		start := time.Now()
+		for !cond() {
+			if time.Since(start) > 10*time.Second {
+				t.Fatal("timeout waiting for", what)
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+	}
+
+	waitFor("edge merge", func() bool {
+		_, ok := db.edgeCache.Get(downID, nodeID)
+		return ok
+	})
+
+	value := func() float64 {
+		db.pointMu.Lock()
+		defer db.pointMu.Unlock()
+		for _, p := range db.pointCache[nodeID] {
+			if p.Type == data.PointTypeValue {
+				return p.Val()
+			}
+		}
+		return -1
+	}
+
+	point := func(v float64, ts time.Time) []byte {
+		p := data.NewPointFloat(data.PointTypeValue, "", v)
+		p.Time = ts
+		p.Origin = downID
+		pts := data.Points{p}
+		return pts.Encode()
+	}
+
+	storage := nodePointSubject(downID, downID, nodeID, data.PointTypeValue, "")
+	base := time.Now().Add(-time.Hour)
+
+	// the snapshot carries the newest value
+	if err := db.nc.Publish(client.SubjectSnapshot(storage), point(48, base.Add(48*time.Second))); err != nil {
+		t.Fatal("Error publishing snapshot:", err)
+	}
+	waitFor("snapshot merge", func() bool { return value() == 48 })
+
+	// the history follows: an older point, then the snapshot point itself
+	if _, err := db.js.Publish(ctx, storage, point(41, base.Add(41*time.Second))); err != nil {
+		t.Fatal("Error publishing history:", err)
+	}
+	ack, err := db.js.Publish(ctx, storage, point(48, base.Add(48*time.Second)))
+	if err != nil {
+		t.Fatal("Error publishing history:", err)
+	}
+	waitFor("history delivery", func() bool {
+		var delivered uint64
+		for ci := range s.ListConsumers(ctx).Info() {
+			delivered = ci.Delivered.Stream
+		}
+		return delivered >= ack.Sequence
+	})
+
+	// a snapshot claiming this instance as its origin is dropped
+	self := db.meta.RootID
+	own := nodePointSubject(downID, self, nodeID, data.PointTypeValue, "")
+	if err := db.nc.Publish(client.SubjectSnapshot(own), point(99, time.Now())); err != nil {
+		t.Fatal("Error publishing snapshot:", err)
+	}
+	if err := db.nc.Flush(); err != nil {
+		t.Fatal("Error flushing:", err)
+	}
+	time.Sleep(200 * time.Millisecond)
+
+	if v := value(); v != 48 {
+		t.Errorf("value is %v, expected the snapshot's 48", v)
+	}
+
+	bmu.Lock()
+	defer bmu.Unlock()
+	if len(broadcast) != 1 || broadcast[0] != 48 {
+		t.Errorf("broadcast %v, expected only the snapshot [48]", broadcast)
 	}
 }
 
