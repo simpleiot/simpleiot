@@ -40,6 +40,11 @@ export interface WidgetProps {
 	// onWrite is set when the bound node accepts writes, and makes the
 	// widget a control: it sends a value for one of its bindings
 	onWrite?: (prop: string, write: Write) => void
+	// control says the widget would have an onWrite outside edit mode,
+	// and editing that the dashboard is being edited, so a control can
+	// show itself as one while it is inactive
+	control?: boolean
+	editing?: boolean
 }
 
 export interface WidgetDescriptor {

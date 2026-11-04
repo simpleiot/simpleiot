@@ -436,7 +436,7 @@
 						onpointerup={up}
 						onpointercancel={up}
 					>
-						<WidgetFrame {p} bare onWrite={edit ? undefined : onWrite} />
+						<WidgetFrame {p} bare editing={edit} onWrite={edit ? undefined : onWrite} />
 						{#if edit}
 							{#each p.ports as port (port.name)}
 								<!-- svelte-ignore a11y_no_static_element_interactions -->

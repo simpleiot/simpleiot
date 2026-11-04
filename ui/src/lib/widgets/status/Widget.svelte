@@ -5,7 +5,10 @@
 	import Confirm from "../Confirm.svelte"
 	import { wantsConfirm, type WidgetProps } from "../registry.ts"
 
-	let { label, values, options, onWrite }: WidgetProps = $props()
+	let { label, values, options, onWrite, control = false, editing = false }: WidgetProps = $props()
+
+	// in edit mode a control wears a box, so it can be told from a display
+	const boxed = $derived(editing && control)
 
 	const v = $derived(values.value)
 	const dead = $derived(!v || v.state === "dead")
@@ -29,6 +32,7 @@
 	{#if onWrite && !dead}
 		<button
 			class="pill switch"
+			class:boxed
 			class:on
 			type="button"
 			role="switch"
@@ -40,7 +44,7 @@
 			{text}
 		</button>
 	{:else}
-		<span class="pill" class:on class:dead>
+		<span class="pill" class:on class:dead class:boxed>
 			<span class="icon" aria-hidden="true">{on ? "●" : "○"}</span>
 			{text}
 		</span>
@@ -69,18 +73,21 @@
 		height: 100%;
 	}
 
+	/* the dot and the word, with no box; a switch shows an underline when
+	   pointed at, as a settable value does */
 	.pill {
 		display: inline-flex;
 		align-items: center;
-		gap: 6px;
+		gap: 8px;
 		align-self: flex-start;
-		padding: 4px 12px;
-		border: 1px solid var(--border);
-		border-radius: 999px;
+		padding: 0;
+		margin: 0;
+		border: none;
 		font: inherit;
-		font-weight: 550;
+		font-size: 20px;
+		font-weight: 600;
 		color: inherit;
-		background: var(--detail-bg);
+		background: none;
 		--c: var(--muted);
 	}
 
@@ -92,12 +99,17 @@
 		cursor: pointer;
 	}
 
-	.switch:hover {
-		background: var(--hover);
+	.boxed {
+		padding: 4px 12px;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		background: var(--detail-bg);
 	}
 
-	.switch.on {
-		border-color: var(--green);
+	.switch:hover,
+	.switch:focus-visible {
+		text-decoration: underline dotted var(--muted);
+		text-underline-offset: 5px;
 	}
 
 	.icon {

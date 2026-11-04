@@ -12,10 +12,13 @@
 	let {
 		p,
 		bare = false,
+		editing = false,
 		onWrite,
 	}: {
 		p: Placed
 		bare?: boolean
+		// editing is the dashboard's edit mode
+		editing?: boolean
 		// onWrite sends a point to a node, for the widget's controls
 		onWrite?: (nodeId: string, point: Point) => void
 	} = $props()
@@ -53,6 +56,8 @@
 			options={p.options}
 			width={bare ? p.layout.w : undefined}
 			onWrite={write}
+			control={Object.keys(p.writes).length > 0}
+			{editing}
 		/>
 	{:else}
 		<div class="unknown">

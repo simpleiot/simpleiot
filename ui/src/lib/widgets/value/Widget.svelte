@@ -6,7 +6,18 @@
 	import Confirm from "../Confirm.svelte"
 	import { num, wantsConfirm, type WidgetProps, type Write } from "../registry.ts"
 
-	let { label, values, options, onWrite }: WidgetProps = $props()
+	let {
+		label,
+		values,
+		options,
+		onWrite,
+		control = false,
+		editing: dashEditing = false,
+	}: WidgetProps = $props()
+
+	// in the dashboard's edit mode a control wears a box, so it can be told
+	// from a display
+	const boxed = $derived(dashEditing && control)
 
 	const v = $derived(values.value)
 	const dead = $derived(!v || v.state === "dead")
@@ -90,11 +101,11 @@
 			onblur={() => (editing = false)}
 		/>
 	{:else if onWrite && !dead}
-		<button class="num settable" type="button" aria-label="Edit {label}" onclick={begin}
+		<button class="num settable" class:boxed type="button" aria-label="Edit {label}" onclick={begin}
 			>{text}</button
 		>
 	{:else}
-		<span class="num">{text}</span>
+		<span class="num" class:boxed>{text}</span>
 	{/if}
 	{#if options.unit}<span class="unit">{options.unit}</span>{/if}
 	<span class="label">{label}</span>
@@ -146,6 +157,13 @@
 	.settable:focus-visible {
 		text-decoration: underline dotted var(--muted);
 		text-underline-offset: 6px;
+	}
+
+	.boxed {
+		padding: 0 6px;
+		border: 1px dashed var(--border);
+		border-radius: 6px;
+		background: var(--hover);
 	}
 
 	.box {
