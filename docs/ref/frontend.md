@@ -104,7 +104,7 @@ the app. See `ui/README.md` for the build, test, and dev server commands.
   second opened down to one node; `/dash` lists dashboards and `/dash/[id]`
   shows one; `/` lands on the user's home dashboard, the list, or the tree.
 - `src/lib/siot`: the client layer. `connection.ts` owns the NATS connection
-  (built on `frontend/lib`), `tree.ts` holds the pure tree code, and
+  (built on `js/simpleiot-js`), `tree.ts` holds the pure tree code, and
   `tree.svelte.ts` is the store the page reads: the tree, pending edits, and the
   node operation in progress. `http.ts` has the operations that go over HTTP,
   and `schema.ts` the point and node types, which a Go test checks against
@@ -158,7 +158,7 @@ default) limits the file size.
 
 ## SIOT JavaScript library using NATS over WebSockets
 
-[`frontend/lib`](https://github.com/simpleiot/simpleiot/tree/master/frontend/lib)
+[`js/simpleiot-js`](https://github.com/simpleiot/simpleiot/tree/master/js/simpleiot-js)
 is `simpleiot-js`, the client the web UI uses to talk to the backend over NATS
 WebSockets, and it can be used by any other JavaScript frontend. It connects as
 a signed-in user with the JWT from `POST /v1/auth`, learns which groups the user
@@ -171,9 +171,9 @@ bundles both with Vite.
 
 `codec.js` mirrors the binary point and node encoding in `data/point.go` and
 `data/node.go`. The Go test `data/point_fixture_test.go` writes fixtures into
-`frontend/lib/testdata`, and `npm test` in `frontend/lib` decodes and re-encodes
-them, so the two encoders are checked against the same bytes. Run the Go test
-with `UPDATE_FIXTURES=1` after changing the encoding.
+`js/simpleiot-js/testdata`, and `npm test` in `js/simpleiot-js` decodes and
+re-encodes them, so the two encoders are checked against the same bytes. Run the
+Go test with `UPDATE_FIXTURES=1` after changing the encoding.
 
 ## Custom UIs
 

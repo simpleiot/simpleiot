@@ -17,8 +17,7 @@ siot_install_proto_gen_go() {
 }
 
 siot_install_frontend_deps() {
-	(cd "frontend" && npm install)
-	(cd "frontend/lib" && npm ci)
+	(cd "js/simpleiot-js" && npm ci)
 	(cd "ui" && npm ci)
 }
 
@@ -185,8 +184,8 @@ siot_test_ui() {
 # the codec tests check the JavaScript encoder against fixtures the Go
 # tests write (data/point_fixture_test.go)
 siot_test_frontend_js() {
-	(cd frontend && npx eslint lib/*.js || return 1) || return 1
-	(cd frontend/lib && npm test || return 1) || return 1
+	(cd js/simpleiot-js && npm run --silent lint || return 1) || return 1
+	(cd js/simpleiot-js && npm test || return 1) || return 1
 }
 
 # The browser smoke test (ui/e2e) is opt-in: it is not part of siot_test or
@@ -242,15 +241,15 @@ _siot_md_files() {
 	done
 }
 
-# Prefer a prettier on PATH, and fall back to the copy the frontend
+# Prefer a prettier on PATH, and fall back to the copy the simpleiot-js
 # dependencies already install. Both read .prettierrc at the repo root.
 _siot_prettier_bin() {
 	if command -v prettier >/dev/null 2>&1; then
 		command -v prettier
 		return 0
 	fi
-	if [ -x frontend/node_modules/.bin/prettier ]; then
-		echo ./frontend/node_modules/.bin/prettier
+	if [ -x js/simpleiot-js/node_modules/.bin/prettier ]; then
+		echo ./js/simpleiot-js/node_modules/.bin/prettier
 		return 0
 	fi
 	echo "prettier not found -- run siot_install_frontend_deps" >&2
@@ -309,7 +308,7 @@ siot_protobuf_go() {
 }
 
 siot_protobuf_js() {
-	protoc --proto_path=internal/pb internal/pb/*.proto --js_out=import_style=commonjs,binary:./frontend/lib/protobuf/ || return 1
+	protoc --proto_path=internal/pb internal/pb/*.proto --js_out=import_style=commonjs,binary:./js/simpleiot-js/protobuf/ || return 1
 }
 
 # The Sparkplug B definition is vendored from Eclipse Tahu and only the Go

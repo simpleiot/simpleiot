@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "test": "node --test test.js",
-    "format": "prettier --ignore-path ../.gitignore --write \"./*.js\"",
+    "format": "prettier --write \"./*.js\"",
     "lint": "eslint ./*.js"
   },
   "author": "Blake Miner <miner.blake@gmail.com> (http://blakeminer.com)",
@@ -22,8 +22,13 @@
     "type": "git",
     "url": "https://github.com/simpleiot/simpleiot.git"
   },
-  "homepage": "https://github.com/simpleiot/simpleiot/tree/master/frontend/lib#readme",
+  "homepage": "https://github.com/simpleiot/simpleiot/tree/master/js/simpleiot-js#readme",
   "dependencies": {
     "nats.ws": "^1.30.3"
+  },
+  "devDependencies": {
+    "eslint": "^8.27.0",
+    "eslint-config-prettier": "^8.5.0",
+    "prettier": "^2.7.1"
   }
 }

@@ -95,7 +95,7 @@ siot_test_ui
 - `data/` - Core data structures (Node, Point, etc.)
 - `store/` - JetStream storage layer (boundary-origin streams, see ADR-7)
 - `ui/` - Svelte web UI, served at `/`
-- `frontend/lib/` - `simpleiot-js`, the browser client the Svelte UI bundles
+- `js/simpleiot-js/` - the browser client the Svelte UI bundles
 - `modbus/` - Modbus protocol implementation
 - `network/` - Network management utilities
 

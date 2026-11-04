@@ -267,7 +267,7 @@ implication for having separate messages?
 ### UI Implications
 
 Because NATS and JetStream subjects overlap, the UI could
-[subscribe to the current state changes](https://github.com/simpleiot/simpleiot/tree/master/frontend/lib)
+[subscribe to the current state changes](https://github.com/simpleiot/simpleiot/tree/master/js/simpleiot-js)
 much as is done today. A few things would need to change:
 
 - Getting the initial state could still use the

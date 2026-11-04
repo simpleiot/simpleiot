@@ -34,7 +34,7 @@ data over the NATS connection. This will not work well for a multi-tenant
 application or applications where user access must be closely controlled.
 
 Similarly, web browsers can access the NATS API using
-[the WebSocket library](https://github.com/simpleiot/simpleiot/tree/master/frontend/lib),
+[the WebSocket library](https://github.com/simpleiot/simpleiot/tree/master/js/simpleiot-js),
 but since they act as another NATS client, no additional security is provided;
 browsers can read / write all data over the NATS connection.
 

@@ -111,8 +111,8 @@ Facts about the instance that shaped the demo tree:
 - A client Modbus IO shows `(cmd pending)` until `valueSet` equals `value`.
 - Schedule times are stored in UTC and shown in the browser's zone.
 - A file node's header appends the file name, so the description leaves it out.
-- The Elm-era codec in `frontend/lib/codec.js` reads integer points unsigned, so
-  a negative number in the YAML is written as a float (`-5.0`) until that is
+- The codec in `js/simpleiot-js/codec.js` reads integer points unsigned, so a
+  negative number in the YAML is written as a float (`-5.0`) until that is
   fixed.
 - A fresh browser session starts with the root collapsed; `signIn` expands it.
 - The provisioning node has no description, so its shot finds it by type.

@@ -32,7 +32,7 @@ export default defineConfig({
 				bypass: (req) => (req.headers.upgrade ? undefined : req.url),
 			},
 		},
-		fs: { allow: ["../frontend/lib"] },
+		fs: { allow: ["../js/simpleiot-js"] },
 	},
 	test: {
 		include: ["src/**/*.test.ts"],
