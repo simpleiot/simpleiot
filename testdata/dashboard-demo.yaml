@@ -15,6 +15,11 @@ apiVersion: 1
 root:
   description: Demo site
 nodes:
+  # the admin user a fresh instance creates, matched by email, lands on
+  # the overview after signing in
+  - user:
+      email: admin
+      homeDashboard: Overview
   - group:
       description: Dashboard demo
       children:
