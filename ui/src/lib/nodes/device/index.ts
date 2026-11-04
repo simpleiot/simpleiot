@@ -11,4 +11,5 @@ export default defineNodeType({
 	hasChildren: true,
 	sortKey: "A",
 	editor: Editor,
+	widget: "status",
 })

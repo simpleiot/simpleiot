@@ -1,15 +1,16 @@
 <script lang="ts">
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
-	import Indent from "#lib/inputs/Indent.svelte"
 	import CheckboxInput from "#lib/inputs/CheckboxInput.svelte"
 	import KeyValueInput from "#lib/inputs/KeyValueInput.svelte"
 	import NumberInput from "#lib/inputs/NumberInput.svelte"
+	import NodeRefInput from "#lib/inputs/NodeRefInput.svelte"
 	import OnOffInput from "#lib/inputs/OnOffInput.svelte"
 	import OptionInput from "#lib/inputs/OptionInput.svelte"
-	import PasteButton from "#lib/inputs/PasteButton.svelte"
 	import ScheduleInput from "#lib/inputs/ScheduleInput.svelte"
+	import SelectInput from "#lib/inputs/SelectInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
-	import { getBestDesc, getBool, getText } from "#lib/siot/point.ts"
+	import { pointKeys, pointTypes, type Node } from "#lib/siot/node.ts"
+	import { getBool, getText } from "#lib/siot/point.ts"
 	import { PointType, PointValue } from "#lib/siot/schema.ts"
 	import type { EditorProps } from "../types.ts"
 	import Check from "@lucide/svelte/icons/check"
@@ -24,7 +25,21 @@
 
 	const conditionValueType = $derived(getText(points, PointType.ValueType))
 	const nodeId = $derived(getText(points, PointType.NodeID))
-	const target = $derived(nodeId === "" ? undefined : props.findNode(nodeId))
+	const pointType = $derived(getText(points, PointType.PointType))
+
+	// the target node, from the page or fetched, for its point types and keys
+	let resolved = $state<{ id: string; node: Node | undefined } | null>(null)
+	const onPage = $derived(nodeId === "" ? undefined : props.findNode(nodeId))
+	$effect(() => {
+		const id = nodeId
+		if (id === "" || onPage || resolved?.id === id) {
+			return
+		}
+		void props.resolveNode(id).then((node) => {
+			resolved = { id, node }
+		})
+	})
+	const target = $derived(onPage ?? (resolved?.id === nodeId ? resolved.node : undefined))
 
 	const operators = $derived.by((): [string, string][] => {
 		switch (conditionValueType) {
@@ -63,25 +78,15 @@
 		]}
 	/>
 	{#if conditionType === PointValue.PointValue}
-		<TextInput type={PointType.NodeID} label="Node ID" />
-		{#if nodeId !== ""}
-			<Indent>
-				<div class="node-desc">
-					{#if target}
-						<span class="found">({getBestDesc(target.points)})</span>
-					{:else}
-						<span class="not-found">(node not found)</span>
-					{/if}
-				</div>
-			</Indent>
-		{/if}
-		{#if props.copy && nodeId !== props.copy.id}
-			<PasteButton type={PointType.NodeID} value={props.copy.id}>
-				<span>paste ID for node:</span>
-				<span class="copy-desc">{props.copy.description}</span>
-			</PasteButton>
-		{/if}
-		<OptionInput
+		<NodeRefInput
+			type={PointType.NodeID}
+			label="Node"
+			search={props.searchNodes}
+			resolve={props.resolveNode}
+			findNode={props.findNode}
+			suggest={props.copy}
+		/>
+		<SelectInput
 			type={PointType.PointType}
 			label="Point Type"
 			options={[
@@ -91,8 +96,13 @@
 				[PointType.Online, "online"],
 				[PointType.Active, "active"],
 			]}
+			extra={target ? pointTypes(target) : []}
 		/>
-		<TextInput type={PointType.PointKey} label="Point Key" />
+		<TextInput
+			type={PointType.PointKey}
+			label="Point Key"
+			suggestions={target ? pointKeys(target, pointType) : []}
+		/>
 		<OptionInput
 			type={PointType.ValueType}
 			label="Point Value Type"
@@ -125,25 +135,6 @@
 </NodeEditor>
 
 <style>
-	.node-desc {
-		font-style: italic;
-	}
-
-	.found,
-	.copy-desc {
-		background: var(--badge-bg);
-		color: var(--badge-fg);
-	}
-
-	.copy-desc {
-		font-style: italic;
-	}
-
-	.not-found {
-		background: var(--orange);
-		color: #000000;
-	}
-
 	.error-text {
 		color: var(--red);
 	}

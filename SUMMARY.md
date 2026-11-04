@@ -7,6 +7,7 @@
 - [Installation](docs/user/installation.md)
 - [Use Cases](docs/user/use-cases.md)
 - [User Interface](docs/user/ui.md)
+- [Dashboards](docs/user/dashboards.md)
 - [Users/Groups](docs/user/users-groups.md)
 - [Notifications](docs/user/notifications.md)
 - [Clients](docs/user/clients.md)

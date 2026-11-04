@@ -36,6 +36,12 @@ export interface GetNodesOptions {
 	timeout?: number
 }
 
+export interface SearchNodesOptions {
+	limit?: number
+	type?: string
+	timeout?: number
+}
+
 // Message is a decoded message from a point subject. parentId is set for
 // edge points only.
 export interface Message {
@@ -67,6 +73,7 @@ export declare class SiotConnection {
 	request(subject: string, payload?: Uint8Array, timeout?: number): Promise<Msg>
 	me(): Promise<Me>
 	getNodes(anchor: string, parent: string, id: string, opts?: GetNodesOptions): Promise<Node[]>
+	searchNodes(anchor: string, query: string, opts?: SearchNodesOptions): Promise<Node[]>
 	sendNodePoints(
 		anchor: string,
 		id: string,

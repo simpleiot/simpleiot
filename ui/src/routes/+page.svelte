@@ -1,5 +1,6 @@
 <script lang="ts">
-	import TreePage from "#lib/components/TreePage.svelte"
+	// "/" decides where to land; see Home.
+	import Home from "#lib/nodes/dashboard/Home.svelte"
 </script>
 
-<TreePage />
+<Home />

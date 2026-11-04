@@ -388,6 +388,11 @@ func (rc *RuleClient) Run() error {
 		}
 	}
 
+	// a condition that names a node starts from that node's current
+	// points, so a rule takes the state it finds rather than waiting for
+	// the node's next change
+	rc.seedConditions(run)
+
 done:
 	for {
 		select {
@@ -456,6 +461,34 @@ done:
 	}
 
 	return rc.upSub.Unsubscribe()
+}
+
+// seedConditions runs the rule once for each node a point value condition
+// names, with that node's current points, so a condition is met from the
+// start when the value it watches is already there. Without it a condition
+// stays unmet until the node next sends a point, and a switch that is
+// already on would have to be turned off and on again before the rule
+// followed it. Actions run only if this is a change from the persisted
+// state, so a rule resuming in the state it finds runs nothing.
+func (rc *RuleClient) seedConditions(run func(id string, pts data.Points)) {
+	seen := map[string]bool{}
+	for _, c := range rc.config.Conditions {
+		if c.ConditionType != data.PointValuePointValue || c.NodeID == "" || seen[c.NodeID] {
+			continue
+		}
+		seen[c.NodeID] = true
+
+		nodes, err := GetNodes(rc.nc, "all", c.NodeID, "", false)
+		if err != nil {
+			log.Printf("Rule %v: error reading condition node %v: %v", rc.config.Description, c.NodeID, err)
+			continue
+		}
+		if len(nodes) == 0 || len(nodes[0].Points) == 0 {
+			continue
+		}
+
+		run(c.NodeID, nodes[0].Points)
+	}
 }
 
 // Stop sends a signal to the Run function to exit

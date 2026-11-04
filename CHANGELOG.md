@@ -11,6 +11,61 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-11-04
+
+### Changed
+
+- **A signal generator continues where it stopped.** Disabling a generator and
+  enabling it again, or changing its range, rate, or frequency, continues the
+  signal rather than starting it over from the initial value. See the
+  [signal generator](docs/user/signal-generator.md#disabling-a-generator).
+- **A rule starts from the current value of the nodes its conditions watch.** A
+  rule that watches a switch which is already on is active as soon as it starts,
+  rather than waiting for the switch to change. Before, the switch had to be
+  turned off and on again before the rule followed it. See
+  [rules](docs/user/rules.md#node-state).
+
+- **Signing in returns to the page that asked for it.** A link to a dashboard or
+  a widget's settings opened while signed out lands there after sign-in, rather
+  than on the home page.
+- **The node tree moved to `/nodes`.** The address `/` now lands on the user's
+  home dashboard, the dashboard list, or the tree, in that order of what exists.
+  Bookmarks to `/nodes/<id>` are unchanged.
+
+### Added
+
+- **Conditions and actions pick their node by description.** Typing in the Node
+  field searches the server and lists matches with where they sit; the chosen
+  node shows as a link, and the point type and key fields offer what that node
+  carries. The node ID text field and paste button are gone. See
+  [rules](docs/user/rules.md#node-linking).
+- **Node requests can search by description.** A `search` point on a
+  `nodes.<id>.all` request returns the nodes below `id` whose description, ID,
+  or type matches, with their ancestors, so a client can find a node it has not
+  loaded. See the [API reference](docs/ref/api.md).
+- **Dashboards.** A dashboard is a node holding widget nodes, each bound to
+  points on other nodes, and it syncs like any other node. The web UI lists
+  dashboards under Dashboards and shows each as a grid of value, gauge, status,
+  and trend widgets that reflows to one column on a phone. Edit mode adds,
+  drags, resizes, and configures widgets in place. A user's home dashboard, set
+  on the user node, is where signing in lands. A canvas layout draws process
+  mimics with tank, pump, and valve components and links drawn from port to
+  port, which follow the equipment when it moves. A binding can be a path
+  relative to the dashboard's parent, so one dashboard mirrored under several
+  devices shows each device's nodes, and a nested dashboard component shows one
+  dashboard inside another. See [dashboards](docs/user/dashboards.md).
+  `testdata/dashboard-demo.yaml` is a demo to import. A `scale` option sizes any
+  widget, and a canvas widget is resized by its corner. A widget can be
+  duplicated, or copied and pasted into another dashboard. A status widget on an
+  on/off variable is a switch, and a value widget on a variable or an output is
+  a setting with an edit box; a `confirm` option asks before a change is sent.
+- **Configuration files resolve dashboard references by description.** A
+  widget's `bindNode` points and a user's `homeDashboard` name their node by
+  description, as `nodeID` does, and export the same way.
+- **Searching nodes by type.** A `nodeType` point beside `search` on a node
+  request limits matches to that type, and an empty search then lists every node
+  of the type.
+
 ## [0.32.0] - 2026-11-03
 
 ### Changed

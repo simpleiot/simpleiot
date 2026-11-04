@@ -14,6 +14,7 @@ import {
 	DataType,
 	getBestDesc,
 	getBool,
+	getText,
 	newText,
 	updatePoints,
 	type Point,
@@ -21,6 +22,9 @@ import {
 import { PointType } from "./schema.ts"
 import * as tree from "./tree.ts"
 import type { Forest, TreeNode } from "./tree.ts"
+import { SvelteMap } from "svelte/reactivity"
+import { pickChild, splitPath } from "#lib/nodes/dashboard/paths.ts"
+import { buildMatches, rankMatches, type NodeMatch } from "./search.ts"
 
 // Edit is the pending edit of one node, by its key on the page.
 export interface Edit {
@@ -99,6 +103,24 @@ export class TreeStore {
 	#onAuthFailed: () => void = () => undefined
 	#deepFetched = false
 	#saved = ""
+	// resolved holds nodes fetched by ID for display off the tree; it is
+	// dropped on each connect, since those nodes are not watched
+	#resolved = new Map<string, Node>()
+
+	// liveNodes are nodes a page off the tree, such as a dashboard, keeps
+	// current: fetched by ID, then updated from their points as the tree
+	// is. liveAnchors records the anchor each was reached through, and
+	// liveEdges the nodes whose child edges the page wants to hear about.
+	liveNodes = new SvelteMap<string, Node>()
+	#liveAnchors = new Map<string, string>()
+	#liveEdges = new Set<string>()
+	// liveWants is what each watcher on the page asked for, by key; the
+	// nodes kept live are the union
+	#liveWants = new Map<string, { ids: string[]; edges: string[] }>()
+	// paths caches relative bindings resolved from a parent
+	#paths = new Map<string, string | undefined>()
+	// onLiveEdge runs when an edge below a node in liveEdges changes
+	onLiveEdge: ((parentId: string) => void) | null = null
 
 	constructor(private readonly env: Env) {}
 
@@ -130,6 +152,13 @@ export class TreeStore {
 					let f = this.forest
 					for (const i of items) {
 						f = tree.applyPoints(i.nodeId, i.points, f)
+						const live = this.liveNodes.get(i.nodeId)
+						if (live) {
+							this.liveNodes.set(i.nodeId, {
+								...live,
+								points: updatePoints(live.points, i.points),
+							})
+						}
 					}
 					this.#setForest(f)
 				},
@@ -159,6 +188,11 @@ export class TreeStore {
 		this.#deepFetched = false
 		this.#saved = ""
 		this.#watching = []
+		this.liveNodes.clear()
+		this.#liveAnchors = new Map()
+		this.#liveEdges = new Set()
+		this.#liveWants = new Map()
+		this.#paths = new Map()
 		this.edit = null
 		this.op = { kind: "none" }
 		this.clipboard = null
@@ -204,10 +238,17 @@ export class TreeStore {
 		if (!this.#conn || !this.connected) {
 			return
 		}
-		const subjects = tree.watchSubjects(this.forest, this.searchKeys)
-		if (subjects.join("\n") !== this.#watching.join("\n")) {
-			this.#watching = subjects
-			this.#conn.watch(subjects)
+		const subjects = new Set(tree.watchSubjects(this.forest, this.searchKeys))
+		for (const [id, anchor] of this.#liveAnchors) {
+			subjects.add(`up.${anchor}.${id}.*.*`)
+			if (this.#liveEdges.has(id)) {
+				subjects.add(`up.${anchor}.*.${id}.*.*`)
+			}
+		}
+		const sorted = [...subjects].sort()
+		if (sorted.join("\n") !== this.#watching.join("\n")) {
+			this.#watching = sorted
+			this.#conn.watch(sorted)
 		}
 	}
 
@@ -216,6 +257,11 @@ export class TreeStore {
 		this.anchors = anchors
 		this.connected = true
 		this.#watching = []
+		this.#resolved = new Map()
+		this.#paths = new Map()
+		// live nodes are fetched afresh, as the tree is
+		this.#liveAnchors = new Map()
+		void this.#reconcileLive()
 		// fetch every group afresh, and every expanded node, since points
 		// sent while the connection was down were missed
 		const f = this.forest.filter((t) => anchors.includes(t.anchor))
@@ -355,12 +401,198 @@ export class TreeStore {
 		return this.#conn.getNodes(anchor, parent, id, depth)
 	}
 
+	// searchNodes asks every anchor for nodes matching query and merges the
+	// replies, ranked, each with the path it sits on. With a type, only
+	// nodes of that type match, and an empty query lists them all.
+	async searchNodes(query: string, limit = 20, type = ""): Promise<NodeMatch[]> {
+		const c = this.#conn
+		if (!c || (query.trim() === "" && type === "")) {
+			return []
+		}
+		const replies = await Promise.all(
+			this.anchors.map(async (anchor) => {
+				try {
+					return { anchor, nodes: await c.searchNodes(anchor, query, limit, type) }
+				} catch {
+					return { anchor, nodes: [] }
+				}
+			})
+		)
+		const matches: NodeMatch[] = []
+		for (const r of replies) {
+			const top = this.findNode(r.anchor)
+			matches.push(
+				...buildMatches(
+					r.nodes,
+					query,
+					r.anchor,
+					top ? getText(top.points, PointType.Description) : undefined,
+					type
+				)
+			)
+		}
+		return rankMatches(matches).slice(0, limit)
+	}
+
+	// locate finds the anchor a node sits under, and the node itself.
+	async #locate(id: string): Promise<{ anchor: string; node: Node } | undefined> {
+		const c = this.#conn
+		if (!c || id === "") {
+			return undefined
+		}
+		const onPage = tree.findById(id, this.forest)
+		if (onPage) {
+			return { anchor: onPage.anchor, node: onPage.node }
+		}
+		for (const anchor of this.anchors) {
+			try {
+				const nodes = await c.getNodes(anchor, "all", id, 0)
+				const n = nodes[0]
+				if (n) {
+					return { anchor, node: n }
+				}
+			} catch {
+				// not under this anchor
+			}
+		}
+		return undefined
+	}
+
+	// fetchSubtree fetches a node with depth levels below it, through the
+	// anchor it sits under, without putting it in the tree.
+	async fetchSubtree(id: string, depth: number): Promise<{ anchor: string; nodes: Node[] } | null> {
+		const c = this.#conn
+		const where = await this.#locate(id)
+		if (!c || !where) {
+			return null
+		}
+		try {
+			return { anchor: where.anchor, nodes: await c.getNodes(where.anchor, "all", id, depth) }
+		} catch (err) {
+			this.popError(errorText(err))
+			return null
+		}
+	}
+
+	// watchNodes keeps the given nodes current in liveNodes, and reports
+	// edge changes below those in edgesOf through onLiveEdge. Each watcher
+	// names itself with a key; nodes no watcher names any more are
+	// dropped.
+	async watchNodes(ids: readonly string[], edgesOf: readonly string[] = [], key = "page") {
+		if (ids.length === 0 && edgesOf.length === 0) {
+			this.#liveWants.delete(key)
+		} else {
+			this.#liveWants.set(key, { ids: [...ids], edges: [...edgesOf] })
+		}
+		await this.#reconcileLive()
+	}
+
+	async #reconcileLive() {
+		const want = new Set<string>()
+		const edges = new Set<string>()
+		for (const w of this.#liveWants.values()) {
+			for (const id of w.ids) {
+				want.add(id)
+			}
+			for (const id of w.edges) {
+				edges.add(id)
+			}
+		}
+		for (const id of [...this.#liveAnchors.keys()]) {
+			if (!want.has(id)) {
+				this.#liveAnchors.delete(id)
+				this.liveNodes.delete(id)
+			}
+		}
+		this.#liveEdges = edges
+		await Promise.all(
+			[...want]
+				.filter((id) => !this.#liveAnchors.has(id))
+				.map(async (id) => {
+					const where = await this.#locate(id)
+					if (where && want.has(id)) {
+						this.#liveAnchors.set(id, where.anchor)
+						this.liveNodes.set(id, where.node)
+					} else {
+						this.liveNodes.delete(id)
+					}
+				})
+		)
+		this.#updateWatch()
+	}
+
+	// resolvePath follows a relative binding, "type/description" segments,
+	// down from a node, and returns the node it reaches. Results are kept
+	// until the next connect.
+	async resolvePath(from: string, path: string): Promise<string | undefined> {
+		const cacheKey = `${from}|${path}`
+		if (this.#paths.has(cacheKey)) {
+			return this.#paths.get(cacheKey)
+		}
+		const segments = splitPath(path)
+		const c = this.#conn
+		if (!segments || !c || from === "") {
+			return undefined
+		}
+		const where = await this.#locate(from)
+		let cur = where?.node.id
+		for (const seg of segments) {
+			if (!cur || !where) {
+				break
+			}
+			try {
+				const kids = await c.getNodes(where.anchor, cur, "all", 0)
+				cur = pickChild(
+					kids.filter((k) => !isTombstone(k)),
+					seg
+				)?.id
+			} catch {
+				cur = undefined
+			}
+		}
+		this.#paths.set(cacheKey, cur)
+		return cur
+	}
+
+	// resolveNode finds a node by ID for display: on the page if it is
+	// there, else fetched once through any anchor it sits under.
+	async resolveNode(id: string): Promise<Node | undefined> {
+		const onPage = this.findNode(id)
+		if (onPage) {
+			return onPage
+		}
+		const cached = this.#resolved.get(id)
+		if (cached) {
+			return cached
+		}
+		const c = this.#conn
+		if (!c || id === "") {
+			return undefined
+		}
+		for (const anchor of this.anchors) {
+			try {
+				const nodes = await c.getNodes(anchor, "all", id, 0)
+				const n = nodes[0]
+				if (n) {
+					this.#resolved.set(id, n)
+					return n
+				}
+			} catch {
+				// not under this anchor
+			}
+		}
+		return undefined
+	}
+
 	#edgePoints(items: { nodeId: string; parentId: string; points: Point[] }[]) {
 		// an edge the tree does not have is a new child of a node on
 		// screen: fetch it, with its children if the parent is open
 		let f = this.forest
 		const fetches: Promise<void>[] = []
 		for (const i of items) {
+			if (this.#liveEdges.has(i.parentId)) {
+				this.onLiveEdge?.(i.parentId)
+			}
 			const [next, missing] = tree.applyEdgePoints(i.nodeId, i.parentId, i.points, f)
 			f = next
 			if (!getBool(i.points, PointType.Tombstone)) {
@@ -523,11 +755,16 @@ export class TreeStore {
 		})
 	}
 
-	// sendPoints sends points to a node, reporting whether they went.
+	// sendPoints sends points to a node, reporting whether they went. A
+	// node shown live off the tree is reached through its own anchor.
 	async sendPoints(id: string, points: Point[]): Promise<boolean> {
-		const anchor = tree.anchorOf(id, this.forest)
+		const anchor = tree.anchorOf(id, this.forest) ?? this.#liveAnchors.get(id)
 		if (!anchor || !this.#conn) {
 			return false
+		}
+		const live = this.liveNodes.get(id)
+		if (live) {
+			this.liveNodes.set(id, { ...live, points: updatePoints(live.points, points) })
 		}
 		try {
 			await this.#conn.sendPoints(anchor, id, points)
@@ -615,6 +852,52 @@ export class TreeStore {
 		}
 		this.#notify("Node added")
 		await this.expand(parentKey)
+	}
+
+	// addChild adds a node under a parent by ID, with the given points
+	// beside the usual description, and returns the new node's ID.
+	async addChild(parentId: string, type: string, points: Point[] = []): Promise<string> {
+		const described = points.some((p) => p.type === PointType.Description)
+		try {
+			const resp = await http.insertNode(this.#token, {
+				id: "",
+				type,
+				parent: parentId,
+				points: described
+					? points
+					: [newText(PointType.Description, "", "New, please edit"), ...points],
+				edgePoints: [],
+			})
+			this.#notify("Node added")
+			return resp.id ?? ""
+		} catch (err) {
+			this.popError(`Error adding node: ${errorText(err)}`)
+			return ""
+		}
+	}
+
+	// copyLive puts a node shown live off the tree on the clipboard, as
+	// copy does for a node in the tree.
+	copyLive(id: string) {
+		const n = this.liveNodes.get(id)
+		if (!n) {
+			return
+		}
+		this.clipboard = { id: n.id, parent: n.parent, description: getBestDesc(n.points) }
+		this.#notify("Copied")
+		writeClipboard(n.id)
+	}
+
+	// removeNode deletes the edge from a node to a parent, by ID.
+	async removeNode(id: string, parentId: string): Promise<boolean> {
+		try {
+			await http.deleteNode(this.#token, id, parentId)
+		} catch (err) {
+			this.popError(`Error deleting node: ${errorText(err)}`)
+			return false
+		}
+		this.#notify("Node deleted")
+		return true
 	}
 
 	async deleteNode(key: string) {

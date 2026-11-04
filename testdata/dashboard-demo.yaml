@@ -1,0 +1,629 @@
+# A dashboard demo: a small water system under one group, drawn on four
+# canvas dashboards and gathered on an Overview, with rules that make the
+# switches do something. Open Dashboards in the web UI after loading.
+#
+#   siot import < testdata/dashboard-demo.yaml
+#
+# Each canvas is 600 by 270, which fills a tile six columns wide and four
+# rows high on the Overview grid. The switches drive the simulation
+# through rules: the pump switch starts the pump speed, pressure, and flow
+# signals and opens the discharge valve; the inlet switch opens the inlet
+# valve and runs the tank level; the heater switch runs the temperatures;
+# and a high tank level raises an alarm that must be acknowledged.
+#
+# Widget bindings name their node by description, and link ends name a
+# widget by its description, so the file reads as the dashboard looks. A
+# widget's own description must differ from the node it shows, since a
+# reference is resolved across the whole tree; the label a widget shows
+# follows the bound node unless the description says otherwise.
+apiVersion: 1
+# the instance's own node, which the node picker shows as the top of a path
+root:
+  description: Demo site
+nodes:
+  # the admin user a fresh instance creates, matched by email, lands on
+  # the overview after signing in
+  - user:
+      email: admin
+      homeDashboard: Overview
+  - group:
+      description: Dashboard demo
+      children:
+        # ---- switches and settings; the rules below act on them
+        - variable:
+            description: Pump enable
+            variableType: onOff
+            value: 1
+        - variable:
+            description: Inlet enable
+            variableType: onOff
+            value: 1
+        - variable:
+            description: Heater enable
+            variableType: onOff
+            value: 1
+        - variable:
+            description: Alarm acknowledged
+            variableType: onOff
+            value: 1
+        - variable:
+            description: Level setpoint
+            variableType: number
+            units: "%"
+            value: 65
+        - variable:
+            description: Shift note
+            variableType: text
+            value: Day shift
+
+        # ---- values the rules set: valve positions and the alarm
+        - variable:
+            description: Discharge valve position
+            variableType: number
+            units: "%"
+            value: 100
+        - variable:
+            description: Inlet valve position
+            variableType: number
+            units: "%"
+            value: 100
+        - variable:
+            description: High level alarm
+            variableType: onOff
+            value: 0
+
+        # ---- live signals, one sample a second
+        - signalGenerator:
+            description: Pump speed
+            signalType: random walk
+            units: "%"
+            minValue: 60
+            maxValue: 95
+            initialValue: 80
+            minIncrement: -1
+            maxIncrement: 1
+            sampleRate: 1
+            roundTo: 1
+        - signalGenerator:
+            description: Line pressure
+            signalType: random walk
+            units: psi
+            minValue: 40
+            maxValue: 80
+            initialValue: 60
+            minIncrement: -1
+            maxIncrement: 1
+            sampleRate: 1
+            roundTo: 0.1
+        - signalGenerator:
+            description: Flow rate
+            signalType: random walk
+            units: gpm
+            minValue: 5
+            maxValue: 20
+            initialValue: 12
+            minIncrement: -0.5
+            maxIncrement: 0.5
+            sampleRate: 1
+            roundTo: 0.1
+        - signalGenerator:
+            description: Flow fraction
+            signalType: sine
+            minValue: 0.4
+            maxValue: 1
+            frequency: 0.01
+            sampleRate: 1
+            roundTo: 0.01
+        - signalGenerator:
+            description: Tank level
+            signalType: triangle
+            units: "%"
+            minValue: 10
+            maxValue: 90
+            frequency: 0.005 # one cycle every 200 s
+            sampleRate: 1
+            roundTo: 0.1
+        - signalGenerator:
+            description: Tank temperature
+            signalType: sine
+            units: °C
+            minValue: 20
+            maxValue: 80
+            frequency: 0.002
+            sampleRate: 1
+            roundTo: 0.1
+        - signalGenerator:
+            description: Motor temperature
+            signalType: random walk
+            units: °C
+            minValue: 30
+            maxValue: 90
+            initialValue: 55
+            minIncrement: -0.4
+            maxIncrement: 0.4
+            sampleRate: 1
+            roundTo: 0.1
+
+        # ---- rules: what the switches do
+        - rule:
+            description: Pump enabled
+            children:
+              - condition:
+                  description: Pump switch on
+                  conditionType: pointValue
+                  nodeID: Pump enable
+                  pointType: value
+                  valueType: onOff
+                  value: 1
+              - action:
+                  description: Run the pump speed signal
+                  action: setValue
+                  nodeID: Pump speed
+                  pointType: disabled
+                  valueType: onOff
+                  value: 0
+              - action:
+                  description: Run the pressure signal
+                  action: setValue
+                  nodeID: Line pressure
+                  pointType: disabled
+                  valueType: onOff
+                  value: 0
+              - action:
+                  description: Run the flow signal
+                  action: setValue
+                  nodeID: Flow rate
+                  pointType: disabled
+                  valueType: onOff
+                  value: 0
+              - action:
+                  description: Open the discharge valve
+                  action: setValue
+                  nodeID: Discharge valve position
+                  pointType: value
+                  valueType: number
+                  value: 100
+              - actionInactive:
+                  description: Stop the pump speed signal
+                  action: setValue
+                  nodeID: Pump speed
+                  pointType: disabled
+                  valueType: onOff
+                  value: 1
+              - actionInactive:
+                  description: Pump speed to zero
+                  action: setValue
+                  nodeID: Pump speed
+                  pointType: value
+                  valueType: number
+                  value: 0
+              - actionInactive:
+                  description: Stop the pressure signal
+                  action: setValue
+                  nodeID: Line pressure
+                  pointType: disabled
+                  valueType: onOff
+                  value: 1
+              - actionInactive:
+                  description: Stop the flow signal
+                  action: setValue
+                  nodeID: Flow rate
+                  pointType: disabled
+                  valueType: onOff
+                  value: 1
+              - actionInactive:
+                  description: Flow to zero
+                  action: setValue
+                  nodeID: Flow rate
+                  pointType: value
+                  valueType: number
+                  value: 0
+              - actionInactive:
+                  description: Close the discharge valve
+                  action: setValue
+                  nodeID: Discharge valve position
+                  pointType: value
+                  valueType: number
+                  value: 0
+        - rule:
+            description: Inlet open
+            children:
+              - condition:
+                  description: Inlet switch on
+                  conditionType: pointValue
+                  nodeID: Inlet enable
+                  pointType: value
+                  valueType: onOff
+                  value: 1
+              - action:
+                  description: Open the inlet valve
+                  action: setValue
+                  nodeID: Inlet valve position
+                  pointType: value
+                  valueType: number
+                  value: 100
+              - action:
+                  description: Run the tank level signal
+                  action: setValue
+                  nodeID: Tank level
+                  pointType: disabled
+                  valueType: onOff
+                  value: 0
+              - actionInactive:
+                  description: Close the inlet valve
+                  action: setValue
+                  nodeID: Inlet valve position
+                  pointType: value
+                  valueType: number
+                  value: 0
+              - actionInactive:
+                  description: Hold the tank level
+                  action: setValue
+                  nodeID: Tank level
+                  pointType: disabled
+                  valueType: onOff
+                  value: 1
+        - rule:
+            description: Heater on
+            children:
+              - condition:
+                  description: Heater switch on
+                  conditionType: pointValue
+                  nodeID: Heater enable
+                  pointType: value
+                  valueType: onOff
+                  value: 1
+              - action:
+                  description: Run the tank temperature signal
+                  action: setValue
+                  nodeID: Tank temperature
+                  pointType: disabled
+                  valueType: onOff
+                  value: 0
+              - action:
+                  description: Run the motor temperature signal
+                  action: setValue
+                  nodeID: Motor temperature
+                  pointType: disabled
+                  valueType: onOff
+                  value: 0
+              - actionInactive:
+                  description: Hold the tank temperature
+                  action: setValue
+                  nodeID: Tank temperature
+                  pointType: disabled
+                  valueType: onOff
+                  value: 1
+              - actionInactive:
+                  description: Hold the motor temperature
+                  action: setValue
+                  nodeID: Motor temperature
+                  pointType: disabled
+                  valueType: onOff
+                  value: 1
+        - rule:
+            description: Tank high
+            children:
+              - condition:
+                  description: Level above 80
+                  conditionType: pointValue
+                  nodeID: Tank level
+                  pointType: value
+                  valueType: number
+                  operator: ">"
+                  value: 80
+              - action:
+                  description: Raise the alarm
+                  action: setValue
+                  nodeID: High level alarm
+                  pointType: value
+                  valueType: onOff
+                  value: 1
+              - action:
+                  description: Ask for an acknowledgement
+                  action: setValue
+                  nodeID: Alarm acknowledged
+                  pointType: value
+                  valueType: onOff
+                  value: 0
+              - actionInactive:
+                  description: Clear the alarm
+                  action: setValue
+                  nodeID: High level alarm
+                  pointType: value
+                  valueType: onOff
+                  value: 0
+
+        # ---- the overview: the four canvases as tiles
+        - dashboard:
+            description: Overview
+            layout: grid
+            cols: 12
+            children:
+              - widget:
+                  description: Supply pump view
+                  component: dashboard
+                  x: 0
+                  y: 0
+                  w: 6
+                  h: 4
+                  bindNode:
+                    dashboard: Supply pump
+              - widget:
+                  description: Storage tank view
+                  component: dashboard
+                  x: 6
+                  y: 0
+                  w: 6
+                  h: 4
+                  bindNode:
+                    dashboard: Storage tank
+              - widget:
+                  description: Heating loop view
+                  component: dashboard
+                  x: 0
+                  y: 4
+                  w: 6
+                  h: 4
+                  bindNode:
+                    dashboard: Heating loop
+              - widget:
+                  description: Alarms view
+                  component: dashboard
+                  x: 6
+                  y: 4
+                  w: 6
+                  h: 4
+                  bindNode:
+                    dashboard: Alarms
+
+        # ---- the pump: its switch starts the signals and opens the valve
+        - dashboard:
+            description: Supply pump
+            layout: canvas
+            canvasWidth: 600
+            canvasHeight: 270
+            children:
+              - widget:
+                  description: Pump switch
+                  component: status
+                  x: 20
+                  y: 20
+                  w: 160
+                  bindNode:
+                    value: Pump enable
+                  prop:
+                    on: Running
+                    off: Stopped
+              - widget:
+                  description: Pump
+                  component: pump
+                  x: 60
+                  y: 130
+                  w: 110
+                  bindNode:
+                    running: Pump enable
+                    speed: Pump speed
+              - widget:
+                  description: Outlet
+                  component: valve
+                  x: 250
+                  y: 90
+                  w: 80
+                  bindNode:
+                    open: Discharge valve position
+              - widget:
+                  description: Pressure
+                  component: gauge
+                  x: 400
+                  y: 10
+                  w: 130
+                  bindNode:
+                    value: Line pressure
+                  prop:
+                    min: "40"
+                    max: "80"
+                    unit: psi
+              - widget:
+                  description: Flow
+                  component: value
+                  x: 400
+                  y: 180
+                  w: 170
+                  bindNode:
+                    value: Flow rate
+                  prop:
+                    unit: gpm
+                    decimals: "1"
+              - link:
+                  description: Pump to outlet
+                  from: Pump.discharge
+                  to: Outlet.in
+                  routing: orthogonal
+                  bindNode:
+                    flowing: Pump enable
+                    rate: Flow fraction
+
+        # ---- the tank: its switch opens the inlet and runs the level
+        - dashboard:
+            description: Storage tank
+            layout: canvas
+            canvasWidth: 600
+            canvasHeight: 270
+            children:
+              - widget:
+                  description: Inlet switch
+                  component: status
+                  x: 20
+                  y: 20
+                  w: 160
+                  bindNode:
+                    value: Inlet enable
+                  prop:
+                    on: Open
+                    off: Closed
+              - widget:
+                  description: Level
+                  component: value
+                  x: 20
+                  y: 110
+                  w: 160
+                  bindNode:
+                    value: Tank level
+                  prop:
+                    unit: "%"
+                    decimals: "1"
+              - widget:
+                  description: Setpoint
+                  component: value
+                  x: 20
+                  y: 190
+                  w: 160
+                  bindNode:
+                    value: Level setpoint
+                  prop:
+                    unit: "%"
+                    decimals: "0"
+                    confirm: "on"
+              - widget:
+                  description: Inlet
+                  component: valve
+                  x: 210
+                  y: 60
+                  w: 80
+                  bindNode:
+                    open: Inlet valve position
+              - widget:
+                  description: Tank
+                  component: tank
+                  x: 390
+                  y: 10
+                  w: 170
+                  bindNode:
+                    level: Tank level
+                    temp: Tank temperature
+              - link:
+                  description: Inlet to tank
+                  from: Inlet.out
+                  to: Tank.left
+                  routing: orthogonal
+                  bindNode:
+                    flowing: Inlet enable
+                    rate: Flow fraction
+
+        # ---- the heater: its switch runs the circulation pump and the
+        # temperatures
+        - dashboard:
+            description: Heating loop
+            layout: canvas
+            canvasWidth: 600
+            canvasHeight: 270
+            children:
+              - widget:
+                  description: Heater switch
+                  component: status
+                  x: 20
+                  y: 20
+                  w: 160
+                  bindNode:
+                    value: Heater enable
+                  prop:
+                    on: Enabled
+                    off: Off
+              - widget:
+                  description: Circulation pump
+                  component: pump
+                  x: 50
+                  y: 130
+                  w: 110
+                  bindNode:
+                    running: Heater enable
+              - widget:
+                  description: Temperature
+                  component: gauge
+                  x: 220
+                  y: 10
+                  w: 130
+                  bindNode:
+                    value: Tank temperature
+                  prop:
+                    min: "20"
+                    max: "80"
+                    unit: °C
+              - widget:
+                  description: Trend
+                  component: trend
+                  x: 380
+                  y: 20
+                  w: 200
+                  bindNode:
+                    value: Tank temperature
+                  prop:
+                    unit: °C
+                    min: "20"
+                    max: "80"
+                    window: "120"
+              - widget:
+                  description: Motor
+                  component: value
+                  x: 220
+                  y: 180
+                  w: 170
+                  bindNode:
+                    value: Motor temperature
+                  prop:
+                    unit: °C
+                    decimals: "1"
+
+        # ---- alarms and notes: a high level raises the alarm and asks for
+        # an acknowledgement
+        - dashboard:
+            description: Alarms
+            layout: canvas
+            canvasWidth: 600
+            canvasHeight: 270
+            children:
+              - widget:
+                  description: Level alarm
+                  component: status
+                  x: 20
+                  y: 20
+                  w: 160
+                  bindNode:
+                    value: High level alarm
+                  prop:
+                    on: High level
+                    off: Level normal
+                    control: "off"
+              - widget:
+                  description: Acknowledge
+                  component: status
+                  x: 20
+                  y: 100
+                  w: 160
+                  bindNode:
+                    value: Alarm acknowledged
+                  prop:
+                    on: Acknowledged
+                    off: Unacknowledged
+              - widget:
+                  description: Note
+                  component: value
+                  x: 20
+                  y: 180
+                  w: 160
+                  bindNode:
+                    value: Shift note
+              - widget:
+                  description: Pressure trend
+                  component: trend
+                  x: 340
+                  y: 20
+                  w: 220
+                  bindNode:
+                    value: Line pressure
+                  prop:
+                    unit: psi
+                    min: "40"
+                    max: "80"
+                    window: "120"

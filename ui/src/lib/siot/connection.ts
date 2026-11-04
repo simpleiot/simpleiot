@@ -175,6 +175,14 @@ export class Connection {
 		return c.getNodes(anchor, parent, id, { depth })
 	}
 
+	async searchNodes(anchor: string, query: string, limit: number, type = ""): Promise<Node[]> {
+		const c = this.#conn
+		if (!c) {
+			throw new Error("not connected")
+		}
+		return c.searchNodes(anchor, query, { limit, type })
+	}
+
 	async sendPoints(anchor: string, id: string, points: readonly PointInput[]) {
 		const c = this.#conn
 		if (!c) {

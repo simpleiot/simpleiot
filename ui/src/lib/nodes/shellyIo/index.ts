@@ -11,4 +11,5 @@ export default defineNodeType({
 	ownedBy: NodeType.Shelly,
 	sortKey: "Q",
 	editor: Editor,
+	widget: "value",
 })

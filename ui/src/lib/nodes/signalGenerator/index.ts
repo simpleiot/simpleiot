@@ -10,4 +10,5 @@ export default defineNodeType({
 	parents: [NodeType.Device, NodeType.Group],
 	sortKey: "F",
 	editor: Editor,
+	widget: "value",
 })

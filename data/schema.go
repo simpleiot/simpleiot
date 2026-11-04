@@ -704,4 +704,53 @@ const (
 	// MinChange is how far a value must move from the last published one
 	// before it is sent again, which keeps ADC noise out of the store.
 	PointTypeMinChange = "minChange"
+
+	// Dashboards are trees of nodes: a dashboard holds widget and link
+	// nodes, and a widget binds its props to points on other nodes. No
+	// client runs for any of them; the web UI renders them. See
+	// docs/user/dashboards.md.
+	NodeTypeDashboard = "dashboard"
+	NodeTypeWidget    = "widget"
+	NodeTypeLink      = "link"
+
+	// Layout is the dashboard's widget host: a reflowing grid or a scaled
+	// canvas.
+	PointTypeLayout       = "layout"
+	PointValueGrid        = "grid"
+	PointValueCanvas      = "canvas"
+	PointTypeCols         = "cols"
+	PointTypeCanvasWidth  = "canvasWidth"
+	PointTypeCanvasHeight = "canvasHeight"
+
+	// A widget names its component and its place: columns and rows on a
+	// grid, canvas units on a canvas.
+	PointTypeComponent = "component"
+	PointTypeX         = "x"
+	PointTypeY         = "y"
+	PointTypeW         = "w"
+	PointTypeH         = "h"
+
+	// Prop is a static display option, keyed by the option name. A binding
+	// is three points keyed by the widget prop it feeds: the node, the
+	// point type, and the point key. BindPath is a relative alternative to
+	// BindNode, resolved from the dashboard's parent.
+	PointTypeProp     = "prop"
+	PointTypeBindNode = "bindNode"
+	PointTypeBindType = "bindType"
+	PointTypeBindKey  = "bindKey"
+	PointTypeBindPath = "bindPath"
+
+	// A link joins two widget ports, "<widgetID>.<port>", with interior
+	// vertices keyed by index as "x,y". From is shared with other types.
+	PointTypeTo            = "to"
+	PointTypeRouting       = "routing"
+	PointValueDirect       = "direct"
+	PointValueOrthogonal   = "orthogonal"
+	PointTypeVertex        = "vertex"
+	PointTypeHomeDashboard = "homeDashboard"
+
+	// Search on a nodes.<anchor>.all request finds nodes below the anchor
+	// by description, ID, or type; Limit caps the matches returned.
+	PointTypeSearch = "search"
+	PointTypeLimit  = "limit"
 )

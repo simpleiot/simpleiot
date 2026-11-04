@@ -40,6 +40,15 @@ rounding, if value is currently 0, there's a 25% chance it becomes 1. If 1,
 there's a 65% chance it becomes 0. This means that the value will be 0 roughly
 91.25% (= 75% + (1 - 75%) \* 65%) of the time.
 
+## Disabling a generator
+
+A disabled generator stops writing and the last value it wrote stays on the
+node. When it is enabled again, or when its range, rate, or frequency is
+changed, the signal continues from where it stopped, so a waveform keeps its
+phase and a random walk its value. A generator starts from `Initial value` only
+when it starts fresh, as it does when the instance starts or when its signal
+type changes.
+
 ## Schema
 
 `signalType` is `sine`, `square`, `triangle`, or `random walk`. `frequency`

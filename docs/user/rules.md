@@ -23,11 +23,16 @@ thus both the `D5 on rule` or the `Device offline rule` are eligible to be run.
 
 ## Node linking
 
-Both conditions and actions can be linked to a node ID. If you copy a node, its
-ID is stored in a virtual clipboard and displayed at the top of the screen. You
-can then paste this node ID into the Node ID field in a condition or action.
+A condition watches a node and an action sets one. To choose it, start typing
+its description in the Node field and pick from the matches. The search runs on
+the server, so the node need not be expanded in the tree. The field then shows
+the node's description with a link to it, and stores the node's ID. A node that
+no longer exists shows as not found, with its ID.
 
-![rule-linking](images/rule-copy-paste-node-id.png)
+A node copied in the tree is offered first, before anything is typed.
+
+Once a node is chosen, the point type list includes the types that node carries,
+and the point key field suggests the keys it has for the chosen type.
 
 ## Conditions
 
@@ -74,6 +79,12 @@ value/text fields for a number of conditions including:
 - number: `>`, `<`, `=`, `!=`
 - text: `=`, `!=`, `contains`
 - boolean: `on`, `off`
+
+A condition that names a node starts from that node's current points, so a rule
+takes the state it finds when it starts rather than waiting for the node's next
+change. A rule watching a switch that is already on is active as soon as it
+starts, and a rule created by an import follows its switches from the first
+change.
 
 ### Schedule
 

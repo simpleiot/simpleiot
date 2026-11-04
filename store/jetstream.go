@@ -1514,6 +1514,118 @@ func (db *DbJetStream) getNodesDepth(parent, id, typ string, includeDel bool, de
 	return data.RemoveDuplicateNodesIDParent(nodes), nil
 }
 
+// Search limits: matches returned by default and at most, and how many
+// nodes one search may visit before it stops descending.
+const (
+	defaultSearchLimit = 20
+	maxSearchLimit     = 100
+	maxSearchVisits    = 100000
+)
+
+// getNodesSearch finds nodes below anchor whose description, ID, or type
+// matches query, so a client can pick a node it has not loaded. Matches
+// are ranked: a description starting with the query, then one containing
+// it, then an equal ID, then a type containing it. With typ set only nodes
+// of that type are considered, and an empty query then lists them all,
+// which is how a client finds every dashboard it may open. The reply
+// carries each match's ancestors up to the anchor, one path each, so the
+// client can show where a match sits; the anchor itself is not included.
+func (db *DbJetStream) getNodesSearch(anchor, query string, limit int, typ string) ([]data.NodeEdge, error) {
+	query = strings.ToLower(strings.TrimSpace(query))
+	if query == "" && typ == "" {
+		return nil, nil
+	}
+	if limit <= 0 {
+		limit = defaultSearchLimit
+	}
+	if limit > maxSearchLimit {
+		limit = maxSearchLimit
+	}
+
+	type match struct {
+		node data.NodeEdge
+		rank int
+	}
+	var matches []match
+	// parentOf records the edge each node was first reached through,
+	// which is the path reported for it
+	parentOf := map[string]string{}
+	frontier := []string{anchor}
+	visited := 0
+
+	for level := 0; level < maxNodesDepth && len(frontier) > 0 && visited < maxSearchVisits; level++ {
+		var next []string
+		for _, id := range frontier {
+			children, err := db.getNodes(nil, id, "all", "", false)
+			if err != nil {
+				return nil, err
+			}
+			for _, c := range children {
+				visited++
+				if _, seen := parentOf[c.ID]; seen || c.ID == anchor {
+					continue
+				}
+				parentOf[c.ID] = c.Parent
+				next = append(next, c.ID)
+				if typ != "" && c.Type != typ {
+					continue
+				}
+				if query == "" {
+					matches = append(matches, match{c, 0})
+				} else if r := searchRank(c, query); r >= 0 {
+					matches = append(matches, match{c, r})
+				}
+			}
+		}
+		frontier = next
+	}
+
+	sort.SliceStable(matches, func(i, j int) bool {
+		if matches[i].rank != matches[j].rank {
+			return matches[i].rank < matches[j].rank
+		}
+		return strings.ToLower(matches[i].node.Desc()) < strings.ToLower(matches[j].node.Desc())
+	})
+	if len(matches) > limit {
+		matches = matches[:limit]
+	}
+
+	var ret []data.NodeEdge
+	included := map[string]bool{}
+	for _, m := range matches {
+		ret = append(ret, m.node)
+		included[m.node.ID] = true
+		for cur := m.node.Parent; cur != anchor && cur != "" && !included[cur]; cur = parentOf[cur] {
+			included[cur] = true
+			nodes, err := db.getNodes(nil, parentOf[cur], cur, "", false)
+			if err != nil {
+				return nil, err
+			}
+			ret = append(ret, nodes...)
+		}
+	}
+
+	return ret, nil
+}
+
+// searchRank scores a node against a lower-cased query: 0 for a
+// description starting with it, 1 for one containing it, 2 for an equal
+// ID, 3 for a type containing it, and -1 for no match.
+func searchRank(n data.NodeEdge, query string) int {
+	desc := strings.ToLower(n.Points.Desc())
+	switch {
+	case desc != "" && strings.HasPrefix(desc, query):
+		return 0
+	case strings.Contains(desc, query):
+		return 1
+	case strings.ToLower(n.ID) == query:
+		return 2
+	case strings.Contains(strings.ToLower(n.Type), query):
+		return 3
+	}
+	return -1
+}
+
 // edgeDeleted reports whether a set of edge points marks the edge deleted.
 func edgeDeleted(points data.Points) bool {
 	p, ok := points.Find(data.PointTypeTombstone, "")

@@ -207,7 +207,8 @@ that differ, and it leaves points it does not mention alone.
 ### Referring to another node
 
 A point of type `nodeID` names the node it refers to by description, and is
-resolved the same way `parent` is:
+resolved the same way `parent` is. A dashboard widget's `bindNode` points, one
+per prop, and a user's `homeDashboard` are resolved the same way:
 
 ```yaml
 nodes:

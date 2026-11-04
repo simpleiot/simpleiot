@@ -1,0 +1,23 @@
+/* The nautilus components read the kit's theme tokens. Map them onto the
+   Simple IoT theme so they follow light and dark mode with everything
+   else. Only the tokens the vendored files use are defined. */
+
+:root {
+	--s1: var(--blue);
+	--s2: var(--green);
+	--s3: var(--orange);
+	--grid: var(--border);
+	--surface: var(--bg);
+	--surface-2: var(--detail-bg);
+	--ink: var(--fg);
+	--ink-2: var(--fg);
+	--good: var(--green);
+	--warn: var(--orange);
+	--serious: var(--orange);
+	--crit: var(--red);
+	--font-2xs: 12px;
+	--axis: var(--border);
+	--pipe-wall: var(--border);
+	--pipe-bore: var(--bg);
+	--pipe-dead: var(--muted);
+}

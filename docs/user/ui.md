@@ -160,11 +160,11 @@ run outside of the SImple IoT application.
 
 <img src="./assets/image-20231219103622737.png" alt="image-20231219103622737" style="zoom: 50%;" />
 
-## Graphing and advanced dashboards
+## Graphing and dashboards
 
-If you need graphs and more advanced dashboards, consider coupling Simple IoT
-[with Grafana](graphing.md). Someday we hope to have dashboard capabilities
-built in.
+[Dashboards](dashboards.md) show live values, gauges, status, and trends from
+any nodes on one page. For graphs over stored history, Simple IoT also works
+[with Grafana](graphing.md).
 
 ## Custom UIs
 

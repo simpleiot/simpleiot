@@ -79,6 +79,16 @@ type SignalGeneratorClient struct {
 	newEdgePoints chan NewPoints
 }
 
+// genState is where a generator left off: the phase of a waveform, in
+// radians, or the last value of a random walk. A generator started after
+// another one stopped picks up from it, so disabling a generator and
+// enabling it again, or changing its range or rate, continues the signal
+// rather than starting it over from the initial value.
+type genState struct {
+	signalType string
+	last       float64
+}
+
 // NewSignalGeneratorClient ...
 func NewSignalGeneratorClient(nc *nats.Conn, config SignalGenerator) Client {
 	return &SignalGeneratorClient{
@@ -191,17 +201,26 @@ func (sgc *SignalGeneratorClient) Run() error {
 	sgc.log.Printf("Starting client: %v", sgc.config.Description)
 
 	chStopGen := make(chan struct{})
+	// chGenState carries where a generator left off when it stops
+	chGenState := make(chan genState)
 
-	generator := func(config SignalGenerator, configValid bool) {
+	generator := func(config SignalGenerator, configValid bool, resume *genState) {
 		amplitude := config.MaxValue - config.MinValue
 		lastValue := config.InitialValue
+		if resume != nil && resume.signalType == config.SignalType {
+			lastValue = resume.last
+		}
+
+		defer func() {
+			chGenState <- genState{config.SignalType, lastValue}
+		}()
 
 		switch config.SignalType {
 		case "sine", "square", "triangle":
 			// Note: lastValue is in radians; let's just sanitize it a bit
 			lastValue = math.Mod(lastValue, (2 * math.Pi))
 		case "random walk":
-			lastValue = clamp(config.InitialValue, config.MinValue, config.MaxValue)
+			lastValue = clamp(lastValue, config.MinValue, config.MaxValue)
 		}
 
 		natsSubject := config.Destination.Subject(config.ID, config.Parent)
@@ -348,13 +367,21 @@ func (sgc *SignalGeneratorClient) Run() error {
 	// on the node, and starts a generator with it. The generator always
 	// runs so that it can be stopped the same way whether or not the
 	// configuration was valid.
+	var resume *genState
 	startGen := func() {
 		valid, errS := sgc.validate(sgc.config)
 		sgc.setError(errS)
 		if !valid && errS == "" {
 			sgc.log.Printf("%v: disabled\n", sgc.config.Description)
 		}
-		go generator(sgc.config, valid)
+		go generator(sgc.config, valid, resume)
+	}
+
+	// stopGen stops the running generator and keeps where it left off
+	stopGen := func() {
+		chStopGen <- struct{}{}
+		st := <-chGenState
+		resume = &st
 	}
 
 	startGen()
@@ -363,7 +390,7 @@ done:
 	for {
 		select {
 		case <-sgc.stop:
-			chStopGen <- struct{}{}
+			stopGen()
 			sgc.log.Printf("Stopped client: %v", sgc.config.Description)
 			break done
 		case pts := <-sgc.newPoints:
@@ -387,7 +414,7 @@ done:
 					data.PointTypeMinIncrement,
 					data.PointTypeMaxIncrement:
 					// restart generator
-					chStopGen <- struct{}{}
+					stopGen()
 					startGen()
 				}
 			}
