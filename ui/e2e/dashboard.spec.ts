@@ -92,6 +92,15 @@ test("a dashboard shows a widget bound to a variable", async ({ page }) => {
 	// the address names the selected widget, and opens its panel again
 	await expect(page).toHaveURL(/\/dash\/[\w-]+\/[\w-]+$/)
 	const widgetUrl = page.url()
+
+	// duplicate adds a copy and opens it; copy and paste add another
+	await panel.getByRole("button", { name: "duplicate" }).click()
+	await expect(page).not.toHaveURL(widgetUrl)
+	await expect(panel.getByLabel("Label")).toHaveValue("Second")
+	await panel.getByRole("button", { name: "copy" }).click()
+	await page.getByRole("button", { name: /^paste / }).click()
+	await expect(page.locator("main").getByText("Second", { exact: true })).toHaveCount(4)
+	await page.goto(widgetUrl)
 	await page.reload()
 	await expect(
 		page.getByRole("complementary", { name: "Widget settings" }).getByLabel("Label")
@@ -130,6 +139,10 @@ test("a dashboard shows a widget bound to a variable", async ({ page }) => {
 	await page.getByRole("link", { name: "Nodes" }).click()
 	const user = tree.getByRole("treeitem", { name: /^User:/ }).first()
 	await user.getByRole("button", { name: "Open details" }).click()
+	// a home dashboard set earlier, such as by the demo file, is cleared first
+	if ((await user.getByRole("button", { name: "Clear" }).count()) > 0) {
+		await user.getByRole("button", { name: "Clear" }).click()
+	}
 	const home = user.getByRole("combobox", { name: "Home dashboard" })
 	await home.fill("lift")
 	await expect(page.getByRole("option", { name: /Lift station/ }).first()).toBeVisible()

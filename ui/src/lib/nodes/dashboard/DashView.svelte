@@ -196,6 +196,51 @@
 		}
 	}
 
+	// duplicateFrom adds a copy of a widget or link under this dashboard,
+	// with the same points but placed on the next free row, or offset on a
+	// canvas, and opens its panel
+	async function duplicateFrom(source: Node) {
+		if (source.type !== NodeType.Widget && source.type !== NodeType.Link) {
+			return
+		}
+		const t = new Date().toISOString()
+		const l = widgetLayout(source, { x: 20, y: 20, w: 160, h: 80 })
+		const place = canvas
+			? [newValue(PointType.X, "0", l.x + 20, t), newValue(PointType.Y, "0", l.y + 20, t)]
+			: [
+					newValue(PointType.X, "0", 0, t),
+					newValue(PointType.Y, "0", nextRow(children.map((c) => widgetLayout(c))), t),
+				]
+		const skip = new Set<string>([PointType.X, PointType.Y])
+		const points = [
+			newText(PointType.Description, "0", getText(source.points, PointType.Description), t),
+			...source.points
+				.filter((p) => p.tombstone === 0 && !skip.has(p.type) && p.type !== PointType.Description)
+				.map((p) => ({ ...p, time: t })),
+			...(source.type === NodeType.Widget ? place : []),
+		]
+		const added = await store.addChild(id, source.type, points)
+		if (added) {
+			await load(id)
+			choose(added)
+		}
+	}
+
+	// the clipboard's node, when it is a widget or a link, may be pasted
+	let pasteable = $state<Node | null>(null)
+	$effect(() => {
+		const clip = store.clipboard
+		pasteable = null
+		if (!clip) {
+			return
+		}
+		void store.resolveNode(clip.id).then((n) => {
+			if (n && store.clipboard?.id === clip.id) {
+				pasteable = n.type === NodeType.Widget || n.type === NodeType.Link ? n : null
+			}
+		})
+	})
+
 	async function addLink(
 		from: { equip: string; port: string },
 		to: { equip: string; port: string }
@@ -273,6 +318,12 @@
 					>
 					{#if edit}
 						<button class="btn green" onclick={() => void addWidget()}>add widget</button>
+						{#if pasteable}
+							{@const clip = pasteable}
+							<button class="btn green" onclick={() => void duplicateFrom(clip)}
+								>paste {getBestDesc(clip.points)}</button
+							>
+						{/if}
 					{/if}
 					<a class="tree-link" href={resolve("/nodes/[id]", { id })}>in the tree</a>
 				</div>
@@ -301,6 +352,8 @@
 								id={selected}
 								parent={{ ...dashboard, parent: via }}
 								onDelete={() => void deleteSelected()}
+								onCopy={() => store.copyLive(selected)}
+								onDuplicate={() => void duplicateFrom(selectedNode)}
 							/>
 						{:else if canvas}
 							<p class="not-found">

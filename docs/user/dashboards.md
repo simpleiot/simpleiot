@@ -21,7 +21,11 @@ on a narrow one.
    key if the default `value` is not what you want. Drag a widget by its body to
    move it and by its corner to resize it; the place is saved when you let go.
    Press **done** to leave edit mode. The address follows the selected widget,
-   `/dash/<dashboard>/<widget>`, so a link opens that widget's settings.
+   `/dash/<dashboard>/<widget>`, so a link opens that widget's settings. A
+   widget's settings also offer **duplicate**, which adds a copy with the same
+   bindings and options and opens it, and **copy**, which puts the widget on the
+   clipboard; **paste** then adds a copy of it to any dashboard in edit mode,
+   this one or another.
 3. Leave the component on **auto** to show the node the usual way for its type,
    or pick one:
 
@@ -35,7 +39,9 @@ on a narrow one.
 4. A dashboard has 12 columns unless its **Columns** setting says otherwise. The
    column, row, width, and height fields in the widget's settings set its place
    in grid units when dragging is not convenient.
-5. Add options under **Options**, keyed by the names in the table.
+5. Add options under **Options**, keyed by the names in the table. Every widget
+   also takes `scale`: `2` draws it at twice the size, for a reading that should
+   carry across a room, and `0.5` at half.
 
 Widgets are nodes under the dashboard, so everything above can also be done in
 the node tree, by a script, or by an agent.
@@ -45,8 +51,8 @@ the node tree, by a script, or by an agent.
 Set a dashboard's **Layout** to **canvas** for a process mimic: a plane of
 **Canvas width** by **Canvas height** units (900 by 500 unless set), scaled to
 fit the page. Drag the background to pan, and zoom with the buttons in the
-corner or with ctrl and the mouse wheel. Below the breakpoint the plane becomes
-one column of cards.
+corner or with ctrl and the mouse wheel. A canvas stays a canvas on a phone,
+scaled to fit the width; zoom in for a closer look.
 
 Equipment components draw on the canvas:
 
@@ -57,7 +63,8 @@ Equipment components draw on the canvas:
 | valve     | a disc that turns with the position        | `open`             |
 
 The grid widgets work on a canvas as well. **X**, **Y**, and **Width** are in
-canvas units there.
+canvas units there. In edit mode, drag the corner of a widget to set its width,
+which is the size the equipment draws at.
 
 Links join two widgets at their **ports**, the named points on a widget's edge
 that show as dots in edit mode. Drag from one port to another to draw a link. A

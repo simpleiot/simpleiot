@@ -857,12 +857,15 @@ export class TreeStore {
 	// addChild adds a node under a parent by ID, with the given points
 	// beside the usual description, and returns the new node's ID.
 	async addChild(parentId: string, type: string, points: Point[] = []): Promise<string> {
+		const described = points.some((p) => p.type === PointType.Description)
 		try {
 			const resp = await http.insertNode(this.#token, {
 				id: "",
 				type,
 				parent: parentId,
-				points: [newText(PointType.Description, "", "New, please edit"), ...points],
+				points: described
+					? points
+					: [newText(PointType.Description, "", "New, please edit"), ...points],
 				edgePoints: [],
 			})
 			this.#notify("Node added")
@@ -871,6 +874,18 @@ export class TreeStore {
 			this.popError(`Error adding node: ${errorText(err)}`)
 			return ""
 		}
+	}
+
+	// copyLive puts a node shown live off the tree on the clipboard, as
+	// copy does for a node in the tree.
+	copyLive(id: string) {
+		const n = this.liveNodes.get(id)
+		if (!n) {
+			return
+		}
+		this.clipboard = { id: n.id, parent: n.parent, description: getBestDesc(n.points) }
+		this.#notify("Copied")
+		writeClipboard(n.id)
 	}
 
 	// removeNode deletes the edge from a node to a parent, by ID.

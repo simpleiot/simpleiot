@@ -26,6 +26,13 @@
 	const dead = $derived(Object.values(p.values).some((v) => v.state === "dead"))
 	const C = $derived(p.descriptor?.component)
 
+	// scale enlarges or shrinks the widget's content, for a tile that
+	// should read from across the room or sit small in a corner
+	const scale = $derived.by(() => {
+		const s = Number(p.options.scale)
+		return Number.isFinite(s) && s > 0 ? s : 1
+	})
+
 	// a write from the widget goes to the target its binding names
 	const write = $derived(
 		onWrite && Object.keys(p.writes).length > 0
@@ -56,15 +63,17 @@
 	{#if p.nested}
 		<NestedDashboard id={p.nested} ancestors={p.ancestors} />
 	{:else if C}
-		<C
-			label={p.label}
-			values={p.values}
-			options={p.options}
-			width={bare ? p.layout.w : undefined}
-			onWrite={write}
-			control={Object.keys(p.writes).length > 0}
-			{editing}
-		/>
+		<div class="content" style:zoom={scale}>
+			<C
+				label={p.label}
+				values={p.values}
+				options={p.options}
+				width={bare ? p.layout.w / scale : undefined}
+				onWrite={write}
+				control={Object.keys(p.writes).length > 0}
+				{editing}
+			/>
+		</div>
 	{:else}
 		<div class="unknown">
 			<span class="name">{p.component}?</span>
@@ -95,6 +104,10 @@
 	.dead {
 		border-color: var(--muted);
 		border-style: dashed;
+	}
+
+	.content {
+		height: 100%;
 	}
 
 	.bare {

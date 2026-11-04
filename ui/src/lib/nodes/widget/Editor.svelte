@@ -61,9 +61,11 @@
 	</div>
 	<div class="hint">Columns and rows on a grid; canvas units on a canvas.</div>
 	<KeyValueInput type={PointType.Prop} label="Options" buttonLabel="Add option" />
-	{#if optionNames.length > 0}
-		<div class="hint">Options for this component: {optionNames.join(", ")}.</div>
-	{/if}
+	<div class="hint">
+		Every widget takes <code>scale</code> (1 is normal size){optionNames.length > 0
+			? `; this component also takes ${optionNames.join(", ")}`
+			: ""}.
+	</div>
 	<KeyValueInput type={PointType.Port} label="Ports" buttonLabel="Add port" />
 	<div class="hint">
 		A port is "x,y" or "x,y,dir" as fractions of the widget; an empty value removes a default.

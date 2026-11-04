@@ -13,12 +13,16 @@
 		id,
 		parent,
 		onDelete,
+		onCopy,
+		onDuplicate,
 	}: {
 		id: string
 		// parent is the node the edited one sits under, when the page knows
 		parent?: Node
-		// onDelete, when given, offers a delete button
+		// onDelete, onCopy, and onDuplicate, when given, offer those buttons
 		onDelete?: () => void
+		onCopy?: () => void
+		onDuplicate?: () => void
 	} = $props()
 
 	let pending = $state<Point[]>([])
@@ -100,6 +104,12 @@
 				<span class="unsaved">Unsaved changes</span>
 				<button class="btn blue" onclick={save}>save</button>
 				<button class="btn gray" onclick={() => (pending = [])}>discard</button>
+			{/if}
+			{#if onDuplicate}
+				<button class="btn green" onclick={onDuplicate}>duplicate</button>
+			{/if}
+			{#if onCopy}
+				<button class="btn gray" onclick={onCopy}>copy</button>
 			{/if}
 			{#if onDelete}
 				<button class="btn red" onclick={onDelete}>delete</button>

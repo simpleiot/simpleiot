@@ -4,8 +4,9 @@
 	// buttons or ctrl and the wheel. Links are drawn under the equipment,
 	// anchored to ports so they follow a moved widget. In edit mode
 	// equipment is dragged, a link is drawn from port to port, and the
-	// selected link's vertices are dragged. Below the breakpoint the plane
-	// is replaced by one column of cards.
+	// selected link's vertices are dragged. A canvas is a drawing, so it
+	// stays one at every width, scaled to fit, with the zoom for a closer
+	// look.
 	import Minus from "@lucide/svelte/icons/minus"
 	import Plus from "@lucide/svelte/icons/plus"
 	import Maximize from "@lucide/svelte/icons/maximize"
@@ -25,7 +26,6 @@
 	import type { Point as SiotPoint } from "#lib/siot/point.ts"
 	import type { Layout, Placed, PlacedLink } from "./bindings.ts"
 	import { canvasDelta, fitScale, toCanvas, zoomAt, type View } from "./canvasMath.ts"
-	import Grid from "./Grid.svelte"
 	import WidgetFrame from "./WidgetFrame.svelte"
 
 	let {
@@ -60,7 +60,6 @@
 
 	let frame: HTMLDivElement | undefined = $state()
 	let frameWidth = $state(0)
-	let narrow = $state(false)
 	$effect(() => {
 		const el = frame
 		if (!el) {
@@ -70,14 +69,7 @@
 		update()
 		const ro = new ResizeObserver(update)
 		ro.observe(el)
-		const mq = window.matchMedia("(max-width: 900px)")
-		const onMq = () => (narrow = mq.matches)
-		onMq()
-		mq.addEventListener("change", onMq)
-		return () => {
-			ro.disconnect()
-			mq.removeEventListener("change", onMq)
-		}
+		return () => ro.disconnect()
 	})
 
 	const fit = $derived(fitScale(frameWidth, width))
@@ -203,6 +195,8 @@
 	type Drag =
 		| {
 				kind: "move"
+				// resize is a drag of the corner, which sets the width
+				mode: "move" | "resize"
 				id: string
 				sx: number
 				sy: number
@@ -227,7 +221,7 @@
 		;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
 	}
 
-	function downWidget(e: PointerEvent, p: Placed) {
+	function downWidget(e: PointerEvent, p: Placed, mode: "move" | "resize" = "move") {
 		if (e.button !== 0) {
 			return
 		}
@@ -241,6 +235,7 @@
 		capture(e)
 		drag = {
 			kind: "move",
+			mode,
 			id: p.node.id,
 			sx: e.clientX,
 			sy: e.clientY,
@@ -298,8 +293,11 @@
 		switch (d.kind) {
 			case "move": {
 				const [dx, dy] = canvasDelta(e.clientX - d.sx, e.clientY - d.sy, view)
-				const cur = { ...d.start, x: Math.max(0, d.start.x + dx), y: Math.max(0, d.start.y + dy) }
-				if (cur.x !== d.cur.x || cur.y !== d.cur.y) {
+				const cur =
+					d.mode === "resize"
+						? { ...d.start, w: Math.max(40, d.start.w + dx) }
+						: { ...d.start, x: Math.max(0, d.start.x + dx), y: Math.max(0, d.start.y + dy) }
+				if (cur.x !== d.cur.x || cur.y !== d.cur.y || cur.w !== d.cur.w) {
 					drag = { ...d, cur, moved: true }
 				}
 				break
@@ -332,7 +330,7 @@
 			case "move":
 				if (d.moved) {
 					onLayout?.(d.id, d.cur)
-				} else {
+				} else if (d.mode === "move") {
 					onSelect?.(d.id)
 				}
 				break
@@ -355,123 +353,126 @@
 		}
 	}
 
-	// the card fallback gives every widget the same short height
-	const cards = $derived(placed.map((p) => ({ ...p, layout: { x: 0, y: 0, w: 1, h: 3 } })))
 	const layers = ["wall", "bore", "flow"] as const
 </script>
 
-{#if narrow}
-	<Grid cols={1} placed={cards} {edit} {selected} {onSelect} {onWrite} />
-{:else}
-	<div class="canvas-host">
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="canvas-host">
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="frame"
+		class:edit
+		bind:this={frame}
+		style:height="{height * fit}px"
+		{onwheel}
+		onpointerdown={downBackground}
+		onpointermove={move}
+		onpointerup={up}
+		onpointercancel={up}
+	>
 		<div
-			class="frame"
-			class:edit
-			bind:this={frame}
-			style:height="{height * fit}px"
-			{onwheel}
-			onpointerdown={downBackground}
-			onpointermove={move}
-			onpointerup={up}
-			onpointercancel={up}
+			class="plane"
+			style:width="{width}px"
+			style:height="{height}px"
+			style:transform="translate({pan.x}px, {pan.y}px) scale({view.scale})"
 		>
-			<div
-				class="plane"
-				style:width="{width}px"
-				style:height="{height}px"
-				style:transform="translate({pan.x}px, {pan.y}px) scale({view.scale})"
-			>
-				<svg class="links" viewBox="0 0 {width} {height}" {width} {height}>
-					{#each layers as layer (layer)}
-						{#each paths as { link, d } (link.node.id + layer)}
-							<Pipe {d} flowing={link.flowing} rate={link.rate} dead={link.dead} {layer} />
-						{/each}
+			<svg class="links" viewBox="0 0 {width} {height}" {width} {height}>
+				{#each layers as layer (layer)}
+					{#each paths as { link, d } (link.node.id + layer)}
+						<Pipe {d} flowing={link.flowing} rate={link.rate} dead={link.dead} {layer} />
 					{/each}
-					{#if edit}
-						{#each paths as { link, d } (link.node.id)}
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<path
-								class="hit"
-								class:selected={selected === link.node.id}
-								{d}
-								onpointerdown={(e) => {
-									e.stopPropagation()
-									onSelect?.(link.node.id)
-								}}
-							/>
-							{#if selected === link.node.id}
-								{#each drag?.kind === "vertex" && drag.id === link.node.id ? drag.points : link.points as v, i (i)}
-									<!-- svelte-ignore a11y_no_static_element_interactions -->
-									<circle
-										class="vertex"
-										cx={v[0]}
-										cy={v[1]}
-										r="6"
-										onpointerdown={(e) => downVertex(e, link, i)}
-										onpointermove={move}
-										onpointerup={up}
-										onpointercancel={up}
-									/>
-								{/each}
-							{/if}
-						{/each}
-						{#if drag?.kind === "link"}
-							<path class="drawing" d={pointsToPath([drag.at, drag.to])} />
-						{/if}
-					{/if}
-				</svg>
-				{#each placed as p (p.node.id)}
-					{@const l = layoutOf(p)}
-					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div
-						class="equipment"
-						class:selected={edit && selected === p.node.id}
-						style:left="{l.x}px"
-						style:top="{l.y}px"
-						style:width="{l.w}px"
-						use:measure={p.node.id}
-						onpointerdown={(e) => downWidget(e, p)}
-						onpointermove={move}
-						onpointerup={up}
-						onpointercancel={up}
-					>
-						<WidgetFrame {p} bare editing={edit} onWrite={edit ? undefined : onWrite} />
-						{#if edit}
-							{#each p.ports as port (port.name)}
+				{/each}
+				{#if edit}
+					{#each paths as { link, d } (link.node.id)}
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<path
+							class="hit"
+							class:selected={selected === link.node.id}
+							{d}
+							onpointerdown={(e) => {
+								e.stopPropagation()
+								onSelect?.(link.node.id)
+							}}
+						/>
+						{#if selected === link.node.id}
+							{#each drag?.kind === "vertex" && drag.id === link.node.id ? drag.points : link.points as v, i (i)}
 								<!-- svelte-ignore a11y_no_static_element_interactions -->
-								<div
-									class="port"
-									title={port.name}
-									style:left="{port.x * 100}%"
-									style:top="{port.y * 100}%"
-									onpointerdown={(e) => downPort(e, p.node.id, port.name)}
+								<circle
+									class="vertex"
+									cx={v[0]}
+									cy={v[1]}
+									r="6"
+									onpointerdown={(e) => downVertex(e, link, i)}
 									onpointermove={move}
 									onpointerup={up}
 									onpointercancel={up}
-								></div>
+								/>
 							{/each}
 						{/if}
-					</div>
-				{/each}
-			</div>
-			{#if placed.length === 0}
-				<p class="empty">This dashboard has no widgets yet.</p>
-			{/if}
+					{/each}
+					{#if drag?.kind === "link"}
+						<path class="drawing" d={pointsToPath([drag.at, drag.to])} />
+					{/if}
+				{/if}
+			</svg>
+			{#each placed as p (p.node.id)}
+				{@const l = layoutOf(p)}
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					class="equipment"
+					class:selected={edit && selected === p.node.id}
+					style:left="{l.x}px"
+					style:top="{l.y}px"
+					style:width="{l.w}px"
+					use:measure={p.node.id}
+					onpointerdown={(e) => downWidget(e, p)}
+					onpointermove={move}
+					onpointerup={up}
+					onpointercancel={up}
+				>
+					<WidgetFrame {p} bare editing={edit} onWrite={edit ? undefined : onWrite} />
+					{#if edit}
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<div
+							class="resize"
+							title="Resize"
+							onpointerdown={(e) => downWidget(e, p, "resize")}
+							onpointermove={move}
+							onpointerup={up}
+							onpointercancel={up}
+						></div>
+						{#each p.ports as port (port.name)}
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div
+								class="port"
+								title={port.name}
+								style:left="{port.x * 100}%"
+								style:top="{port.y * 100}%"
+								onpointerdown={(e) => downPort(e, p.node.id, port.name)}
+								onpointermove={move}
+								onpointerup={up}
+								onpointercancel={up}
+							></div>
+						{/each}
+					{/if}
+				</div>
+			{/each}
 		</div>
-		<div class="zoom">
-			<IconButton label="Zoom in" onclick={() => zoomBy(1.25)}><Plus size={18} /></IconButton>
-			<IconButton label="Zoom out" onclick={() => zoomBy(1 / 1.25)}><Minus size={18} /></IconButton>
-			<IconButton
-				label="Fit"
-				onclick={() => {
-					zoom = 1
-					pan = { x: 0, y: 0 }
-				}}><Maximize size={18} /></IconButton
-			>
-		</div>
+		{#if placed.length === 0}
+			<p class="empty">This dashboard has no widgets yet.</p>
+		{/if}
 	</div>
-{/if}
+	<div class="zoom">
+		<IconButton label="Zoom in" onclick={() => zoomBy(1.25)}><Plus size={18} /></IconButton>
+		<IconButton label="Zoom out" onclick={() => zoomBy(1 / 1.25)}><Minus size={18} /></IconButton>
+		<IconButton
+			label="Fit"
+			onclick={() => {
+				zoom = 1
+				pan = { x: 0, y: 0 }
+			}}><Maximize size={18} /></IconButton
+		>
+	</div>
+</div>
 
 <style>
 	.canvas-host {
@@ -540,6 +541,19 @@
 		outline: 2px solid var(--blue);
 		outline-offset: 4px;
 		border-radius: 6px;
+	}
+
+	.resize {
+		position: absolute;
+		right: -8px;
+		bottom: -8px;
+		width: 16px;
+		height: 16px;
+		cursor: nwse-resize;
+		touch-action: none;
+		border-right: 3px solid var(--blue);
+		border-bottom: 3px solid var(--blue);
+		border-radius: 0 0 4px 0;
 	}
 
 	.port {

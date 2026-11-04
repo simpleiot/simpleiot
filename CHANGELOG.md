@@ -42,7 +42,9 @@ For more details or to discuss releases, please visit the
   relative to the dashboard's parent, so one dashboard mirrored under several
   devices shows each device's nodes, and a nested dashboard component shows one
   dashboard inside another. See [dashboards](docs/user/dashboards.md).
-  `testdata/dashboard-demo.yaml` is a demo to import. A status widget on an
+  `testdata/dashboard-demo.yaml` is a demo to import. A `scale` option sizes any
+  widget, and a canvas widget is resized by its corner. A widget can be
+  duplicated, or copied and pasted into another dashboard. A status widget on an
   on/off variable is a switch, and a value widget on a variable or an output is
   a setting with an edit box; a `confirm` option asks before a change is sent.
 - **Configuration files resolve dashboard references by description.** A
