@@ -4,7 +4,15 @@ import { num, withDefaults } from "./registry.ts"
 
 describe("widgets", () => {
 	test("every widget declares a host, its bindings, and defaults", () => {
-		expect(widgets.all.map((w) => w.name).sort()).toEqual(["gauge", "status", "trend", "value"])
+		expect(widgets.all.map((w) => w.name).sort()).toEqual([
+			"gauge",
+			"pump",
+			"status",
+			"tank",
+			"trend",
+			"value",
+			"valve",
+		])
 		for (const w of widgets.all) {
 			expect(["grid", "canvas", "both"]).toContain(w.host)
 			expect(w.bindings.length).toBeGreaterThan(0)

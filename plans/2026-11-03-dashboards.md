@@ -272,13 +272,16 @@ dashboard's parent" when the chosen node is below that parent and writes
 
 ### Phase 4: Canvas host and links
 
-- [ ] `Canvas.svelte` with scaling, pan, pinch-zoom, and the card fallback.
-- [ ] Equipment widgets `tank`, `pump`, `valve` with ports; `link` rendering
+- [x] `Canvas.svelte` with scaling, pan, pinch-zoom, and the card fallback.
+- [x] Equipment widgets `tank`, `pump`, `valve` with ports; `link` rendering
       with anchoring, orthogonal routing, and the three pipe states.
-- [ ] Link editing: draw from port to port, drag vertices, the link editor.
-- [ ] Unit tests on the vendored `mimic.ts` helpers, carried from nautilus's
-      `tests/mimic.test.ts`.
-- [ ] Docs and changelog. `siot_test` passes. Commit.
+- [x] Link editing: draw from port to port, drag vertices, the link editor.
+- [x] Unit tests on the vendored `mimic.ts` helpers. nautilus's own tests
+      cover only the editor-side attach helpers, which are not vendored, so
+      the routing and anchoring tests here are new.
+- [x] `ui/e2e/canvas.spec.ts`: a browser test of a canvas with a pump, a
+      tank, and a link.
+- [x] Docs and changelog. `siot_test` passes. Commit.
 
 ### Phase 5: Relative bindings, nested dashboards, wrap-up
 

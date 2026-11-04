@@ -8,14 +8,18 @@
 	import { widgets } from "#lib/widgets/index.ts"
 	import { autoWidget, fallbackWidget, withDefaults } from "#lib/widgets/registry.ts"
 	import { registry } from "../index.ts"
+	import type { Point } from "#lib/vendor/nautilus/mimic.ts"
 	import {
 		parseBindings,
+		parseLink,
+		parsePorts,
 		resolveBindings,
 		widgetLayout,
 		widgetOptions,
 		type Layout,
 		type Placed,
 	} from "./bindings.ts"
+	import Canvas from "./Canvas.svelte"
 	import Grid from "./Grid.svelte"
 
 	let {
@@ -27,6 +31,8 @@
 		onSelect,
 		onOpen,
 		onLayout,
+		onLink,
+		onVertex,
 	}: {
 		dashboard: Node
 		children: readonly Node[]
@@ -36,6 +42,8 @@
 		onSelect?: (id: string) => void
 		onOpen?: (p: Placed) => void
 		onLayout?: (id: string, layout: Layout) => void
+		onLink?: (from: { equip: string; port: string }, to: { equip: string; port: string }) => void
+		onVertex?: (id: string, index: number, point: Point) => void
 	} = $props()
 
 	// componentOf picks the widget for a node: its component, or for
@@ -50,6 +58,18 @@
 		return (bound && registry.get(bound.type)?.widget) || fallbackWidget
 	}
 
+	const layout = $derived(getText(dashboard.points, PointType.Layout) || PointValue.Grid)
+	const canvas = $derived(layout === PointValue.Canvas)
+	const cols = $derived.by(() => {
+		const c = Math.floor(Number(getText(dashboard.points, PointType.Cols)) || 0)
+		return c > 0 ? c : 12
+	})
+	const size = $derived.by(() => {
+		const w = Number(getText(dashboard.points, PointType.CanvasWidth)) || 0
+		const h = Number(getText(dashboard.points, PointType.CanvasHeight)) || 0
+		return { width: w > 0 ? w : 900, height: h > 0 ? h : 500 }
+	})
+
 	const placed = $derived.by((): Placed[] =>
 		children
 			.filter((c) => c.type === NodeType.Widget)
@@ -60,6 +80,10 @@
 				const first = Object.values(bindings)[0]
 				const bound = first ? lookup(first.nodeId) : undefined
 				const own = getText(w.points, PointType.Description)
+				// on a canvas the default size is the component's
+				const defaults = canvas
+					? { x: 20, y: 20, w: descriptor?.width ?? 160, h: 80 }
+					: { x: 0, y: 0, w: 3, h: 2 }
 				return {
 					node: w,
 					label: own !== "" ? own : bound ? getBestDesc(bound.points) : "",
@@ -67,26 +91,31 @@
 					descriptor,
 					values: resolveBindings(bindings, lookup),
 					options: descriptor ? withDefaults(descriptor, widgetOptions(w)) : widgetOptions(w),
-					layout: widgetLayout(w),
+					layout: widgetLayout(w, defaults),
+					ports: parsePorts(w, descriptor?.ports),
 				}
 			})
 	)
 
-	const layout = $derived(getText(dashboard.points, PointType.Layout) || PointValue.Grid)
-	const cols = $derived.by(() => {
-		const c = Math.floor(Number(getText(dashboard.points, PointType.Cols)) || 0)
-		return c > 0 ? c : 12
-	})
+	const links = $derived(
+		children.filter((c) => c.type === NodeType.Link).map((l) => parseLink(l, lookup))
+	)
 </script>
 
-{#if layout === PointValue.Canvas}
-	<p class="pending">Canvas layouts are not drawn yet; showing the widgets as a grid.</p>
+{#if canvas}
+	<Canvas
+		width={size.width}
+		height={size.height}
+		{placed}
+		{links}
+		{edit}
+		{selected}
+		{onSelect}
+		{onOpen}
+		{onLayout}
+		{onLink}
+		{onVertex}
+	/>
+{:else}
+	<Grid {cols} {placed} {edit} {selected} {onSelect} {onOpen} {onLayout} />
 {/if}
-<Grid {cols} {placed} {edit} {selected} {onSelect} {onOpen} {onLayout} />
-
-<style>
-	.pending {
-		margin: 0 0 12px;
-		color: var(--muted);
-	}
-</style>

@@ -16,4 +16,8 @@
 	--serious: var(--orange);
 	--crit: var(--red);
 	--font-2xs: 12px;
+	--axis: var(--border);
+	--pipe-wall: var(--border);
+	--pipe-bore: var(--bg);
+	--pipe-dead: var(--muted);
 }

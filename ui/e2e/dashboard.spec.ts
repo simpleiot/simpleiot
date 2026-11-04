@@ -7,6 +7,9 @@ test("a dashboard shows a widget bound to a variable", async ({ page }) => {
 	await page.getByLabel("Email").fill("admin")
 	await page.getByLabel("Password").fill("admin")
 	await page.getByRole("button", { name: "Sign In" }).click()
+	// "/" lands on a home dashboard when the user has one; the tree is at /nodes
+	await expect(page).not.toHaveURL(/\/sign-in$/)
+	await page.goto("/nodes")
 
 	const tree = page.getByRole("tree", { name: "Nodes" })
 	const root = tree.getByRole("treeitem").first()

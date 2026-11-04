@@ -4,6 +4,8 @@ import { newText, newValue } from "#lib/siot/point.ts"
 import {
 	boundNodeIds,
 	parseBindings,
+	parseLink,
+	parsePorts,
 	resolveBindings,
 	widgetLayout,
 	widgetOptions,
@@ -60,5 +62,63 @@ describe("bindings", () => {
 	test("options skip deleted points and layout fills defaults", () => {
 		expect(widgetOptions(widget)).toEqual({ unit: "°C" })
 		expect(widgetLayout(widget)).toEqual({ x: 2, y: 0, w: 4, h: 2 })
+	})
+})
+
+describe("canvas", () => {
+	test("ports override the defaults by name, and an empty one removes it", () => {
+		const w: Node = {
+			id: "w",
+			type: "widget",
+			parent: "d",
+			points: [
+				newText("port", "in", "0.5,0,down"),
+				newText("port", "out", ""),
+				newText("port", "bad", "x"),
+			],
+			edgePoints: [],
+		}
+		expect(
+			parsePorts(w, [
+				{ name: "in", x: 0.5, y: 0, dir: "up" },
+				{ name: "out", x: 0.5, y: 1 },
+			])
+		).toEqual([{ name: "in", x: 0.5, y: 0, dir: "down" }])
+	})
+
+	test("a link reads its ends, ordered vertices, routing, and flow", () => {
+		const link: Node = {
+			id: "l",
+			type: "link",
+			parent: "d",
+			points: [
+				newText("from", "0", "pump.discharge"),
+				newText("to", "0", "tank.in"),
+				newText("routing", "0", "orthogonal"),
+				newText("vertex", "1", "300,40"),
+				newText("vertex", "0", "200,40"),
+				newText("bindNode", "flowing", "p"),
+			],
+			edgePoints: [],
+		}
+		const pump: Node = {
+			id: "p",
+			type: "variable",
+			parent: "d",
+			points: [newValue("value", "0", 1)],
+			edgePoints: [],
+		}
+		const l = parseLink(link, (id) => (id === "p" ? pump : undefined))
+		expect(l.from).toEqual({ equip: "pump", port: "discharge" })
+		expect(l.to).toEqual({ equip: "tank", port: "in" })
+		expect(l.routing).toBe("orthogonal")
+		expect(l.points).toEqual([
+			[200, 40],
+			[300, 40],
+		])
+		expect(l.flowing).toBe(true)
+		expect(l.rate).toBe(1)
+		expect(l.dead).toBe(false)
+		expect(parseLink(link, () => undefined).dead).toBe(true)
 	})
 })

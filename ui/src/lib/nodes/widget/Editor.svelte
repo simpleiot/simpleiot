@@ -44,15 +44,20 @@
 		<BindingInputs {name} {props} />
 	{/each}
 	<div class="row">
-		<NumberInput type={PointType.X} label="Column" />
-		<NumberInput type={PointType.Y} label="Row" />
+		<NumberInput type={PointType.X} label="X" />
+		<NumberInput type={PointType.Y} label="Y" />
 		<NumberInput type={PointType.W} label="Width" />
 		<NumberInput type={PointType.H} label="Height" />
 	</div>
+	<div class="hint">Columns and rows on a grid; canvas units on a canvas.</div>
 	<KeyValueInput type={PointType.Prop} label="Options" buttonLabel="Add option" />
 	{#if optionNames.length > 0}
 		<div class="hint">Options for this component: {optionNames.join(", ")}.</div>
 	{/if}
+	<KeyValueInput type={PointType.Port} label="Ports" buttonLabel="Add port" />
+	<div class="hint">
+		A port is "x,y" or "x,y,dir" as fractions of the widget; an empty value removes a default.
+	</div>
 </NodeEditor>
 
 <style>

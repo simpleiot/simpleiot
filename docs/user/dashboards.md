@@ -39,6 +39,36 @@ on a narrow one.
 Widgets are nodes under the dashboard, so everything above can also be done in
 the node tree, by a script, or by an agent.
 
+## Canvas layouts
+
+Set a dashboard's **Layout** to **canvas** for a process mimic: a plane of
+**Canvas width** by **Canvas height** units (900 by 500 unless set), scaled to
+fit the page. Drag the background to pan, and zoom with the buttons in the
+corner or with ctrl and the mouse wheel. Below the breakpoint the plane becomes
+one column of cards.
+
+Equipment components draw on the canvas:
+
+| Component | Shows                                       | Bindings           |
+| --------- | ------------------------------------------- | ------------------ |
+| tank      | liquid at the level, tinted by temperature  | `level`, `temp`    |
+| pump      | an impeller that turns while running        | `running`, `speed` |
+| valve     | a disc that turns with the position         | `open`             |
+
+The grid widgets work on a canvas as well. **X**, **Y**, and **Width** are in
+canvas units there.
+
+Links join two widgets at their **ports**, the named points on a widget's edge
+that show as dots in edit mode. Drag from one port to another to draw a link.
+Select a link to drag its corner points and to set its routing, direct or
+orthogonal, in the panel. A link's `flowing` and `rate` bindings animate it, and
+a link whose bound node is missing is drawn dashed and dim. Links are drawn,
+not run: a pipe from a pump to a tank describes the plant and implies nothing
+about where data goes.
+
+A widget's ports can be changed under **Ports**: `x,y` or `x,y,dir` as fractions
+of the widget's box, where `dir` is `left`, `right`, `up`, or `down`.
+
 A widget whose node cannot be found draws with a dashed border and shows no
 value. A dashboard synced to a device that lacks some of the nodes still shows
 its shape.
@@ -64,5 +94,4 @@ display.
 
 ## Coming later
 
-A canvas layout for process mimics with links between equipment, and trends
-over stored history.
+Trends over stored history, and nested dashboards.

@@ -34,7 +34,9 @@ For more details or to discuss releases, please visit the
   status, and trend widgets that reflows to one column on a phone. Edit mode
   adds, drags, resizes, and configures widgets in place; a tap on a widget
   opens the node behind it. A user's home dashboard, set on the user node, is
-  where signing in lands. See [dashboards](docs/user/dashboards.md).
+  where signing in lands. A canvas layout draws process mimics with tank,
+  pump, and valve components and links drawn from port to port, which follow
+  the equipment when it moves. See [dashboards](docs/user/dashboards.md).
 - **Searching nodes by type.** A `nodeType` point beside `search` on a node
   request limits matches to that type, and an empty search then lists every
   node of the type.

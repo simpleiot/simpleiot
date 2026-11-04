@@ -6,6 +6,7 @@
 // test.
 
 import type { Component } from "svelte"
+import type { MimicPort } from "#lib/vendor/nautilus/mimic.ts"
 
 // BindState is how current a bound value is: live when the node and the
 // point are there, stale when the node is there but the point is not yet,
@@ -27,6 +28,8 @@ export interface WidgetProps {
 	// options are the widget's prop.* points, with the descriptor's
 	// defaults filled in
 	options: Readonly<Record<string, string>>
+	// width is the rendered width in canvas units, on a canvas
+	width?: number
 }
 
 export interface WidgetDescriptor {
@@ -38,6 +41,10 @@ export interface WidgetDescriptor {
 	bindings: readonly string[]
 	// options are the display options and their defaults
 	options: Readonly<Record<string, string>>
+	// ports are where links attach on a canvas, as fractions of the box
+	ports?: readonly MimicPort[]
+	// width is the default width on a canvas, in canvas units
+	width?: number
 	component: Component<WidgetProps>
 }
 

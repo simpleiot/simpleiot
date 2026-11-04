@@ -5,15 +5,20 @@
 	// still shows its shape.
 	import type { Placed } from "./bindings.ts"
 
-	let { p }: { p: Placed } = $props()
+	let { p, bare = false }: { p: Placed; bare?: boolean } = $props()
 
 	const dead = $derived(Object.values(p.values).some((v) => v.state === "dead"))
 	const C = $derived(p.descriptor?.component)
 </script>
 
-<div class="frame" class:dead title={dead ? "a bound node was not found" : undefined}>
+<div class="frame" class:bare class:dead title={dead ? "a bound node was not found" : undefined}>
 	{#if C}
-		<C label={p.label} values={p.values} options={p.options} />
+		<C
+			label={p.label}
+			values={p.values}
+			options={p.options}
+			width={bare ? p.layout.w : undefined}
+		/>
 	{:else}
 		<div class="unknown">
 			<span class="name">{p.component}?</span>
@@ -35,6 +40,17 @@
 
 	.dead {
 		border-style: dashed;
+	}
+
+	.bare {
+		padding: 0;
+		border: none;
+		background: none;
+		overflow: visible;
+	}
+
+	.bare.dead {
+		outline: 1px dashed var(--muted);
 	}
 
 	.unknown {

@@ -15,8 +15,9 @@
 	import IconButton from "#lib/components/IconButton.svelte"
 	import NodeHost from "#lib/components/NodeHost.svelte"
 	import { isTombstone, type Node } from "#lib/siot/node.ts"
-	import { getBestDesc, newValue } from "#lib/siot/point.ts"
-	import { NodeType, PointType } from "#lib/siot/schema.ts"
+	import { getBestDesc, getText, newText, newValue } from "#lib/siot/point.ts"
+	import { NodeType, PointType, PointValue } from "#lib/siot/schema.ts"
+	import type { Point } from "#lib/vendor/nautilus/mimic.ts"
 	import { store } from "#lib/siot/store.ts"
 	import {
 		boundNodeIds,
@@ -121,13 +122,40 @@
 		])
 	}
 
+	const canvas = $derived(
+		dashboard !== undefined && getText(dashboard.points, PointType.Layout) === PointValue.Canvas
+	)
+
 	async function addWidget() {
-		const row = nextRow(children.map((c) => widgetLayout(c)))
 		const t = new Date().toISOString()
-		const added = await store.addChild(id, NodeType.Widget, [
-			newValue(PointType.Y, "0", row, t),
-			newValue(PointType.W, "0", 3, t),
-			newValue(PointType.H, "0", 2, t),
+		const place = canvas
+			? [
+					newValue(PointType.X, "0", 20, t),
+					newValue(PointType.Y, "0", 20, t),
+					newValue(PointType.W, "0", 160, t),
+					newValue(PointType.H, "0", 80, t),
+				]
+			: [
+					newValue(PointType.Y, "0", nextRow(children.map((c) => widgetLayout(c))), t),
+					newValue(PointType.W, "0", 3, t),
+					newValue(PointType.H, "0", 2, t),
+				]
+		const added = await store.addChild(id, NodeType.Widget, place)
+		if (added) {
+			await load(id)
+			selected = added
+		}
+	}
+
+	async function addLink(
+		from: { equip: string; port: string },
+		to: { equip: string; port: string }
+	) {
+		const t = new Date().toISOString()
+		const added = await store.addChild(id, NodeType.Link, [
+			newText(PointType.From, "0", `${from.equip}.${from.port}`, t),
+			newText(PointType.To, "0", `${to.equip}.${to.port}`, t),
+			newText(PointType.Routing, "0", PointValue.Orthogonal, t),
 		])
 		if (added) {
 			await load(id)
@@ -135,9 +163,15 @@
 		}
 	}
 
+	function onVertex(linkId: string, index: number, point: Point) {
+		void store.sendPoints(linkId, [
+			newText(PointType.Vertex, String(index), `${point[0]},${point[1]}`, new Date().toISOString()),
+		])
+	}
+
 	async function deleteSelected() {
 		const w = selected
-		if (w === "" || !window.confirm("Delete this widget?")) {
+		if (w === "" || !window.confirm("Delete this item?")) {
 			return
 		}
 		selected = ""
@@ -223,12 +257,20 @@
 						onSelect={(w: string) => (selected = selected === w ? "" : w)}
 						onOpen={open}
 						{onLayout}
+						onLink={(from: { equip: string; port: string }, to: { equip: string; port: string }) =>
+							void addLink(from, to)}
+						{onVertex}
 					/>
 				</div>
 				{#if edit}
 					<aside class="panel" aria-label="Widget settings">
 						{#if selectedNode}
 							<NodeHost id={selected} onDelete={() => void deleteSelected()} />
+						{:else if canvas}
+							<p class="not-found">
+								Select a widget or a link to configure it, add a widget, or drag from one port to
+								another to draw a link.
+							</p>
 						{:else}
 							<p class="not-found">Select a widget to configure it, or add one.</p>
 						{/if}
