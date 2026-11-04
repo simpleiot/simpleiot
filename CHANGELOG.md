@@ -13,6 +13,9 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+- **Signing in returns to the page that asked for it.** A link to a dashboard or
+  a widget's settings opened while signed out lands there after sign-in, rather
+  than on the home page.
 - **The node tree moved to `/nodes`.** The address `/` now lands on the user's
   home dashboard, the dashboard list, or the tree, in that order of what exists.
   Bookmarks to `/nodes/<id>` are unchanged.

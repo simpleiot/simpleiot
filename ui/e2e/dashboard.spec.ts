@@ -91,12 +91,26 @@ test("a dashboard shows a widget bound to a variable", async ({ page }) => {
 
 	// the address names the selected widget, and opens its panel again
 	await expect(page).toHaveURL(/\/dash\/[\w-]+\/[\w-]+$/)
+	const widgetUrl = page.url()
 	await page.reload()
 	await expect(
 		page.getByRole("complementary", { name: "Widget settings" }).getByLabel("Label")
 	).toHaveValue("Second")
 	await page.getByRole("button", { name: "done" }).click()
 	await expect(page).toHaveURL(/\/dash\/[\w-]+$/)
+
+	// signed out, the link asks for sign-in and then lands where it pointed
+	await page.getByRole("button", { name: /sign out/ }).click()
+	await page.goto(widgetUrl)
+	await expect(page).toHaveURL(/\/sign-in\?next=/)
+	await page.getByLabel("Email").fill("admin")
+	await page.getByLabel("Password").fill("admin")
+	await page.getByRole("button", { name: "Sign In" }).click()
+	await expect(page).toHaveURL(widgetUrl)
+	await expect(
+		page.getByRole("complementary", { name: "Widget settings" }).getByLabel("Label")
+	).toHaveValue("Second")
+	await page.getByRole("button", { name: "done" }).click()
 
 	await page.getByRole("link", { name: "Dashboards" }).click()
 	await expect(page.locator(`main a[href="${href}"]`)).toHaveText("Lift station")
