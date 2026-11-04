@@ -28,6 +28,16 @@
 	}
 </script>
 
+{#snippet words()}
+	<!-- both states sit in one cell, so the pill is as wide as the longer
+	     one and keeps its size when the state changes -->
+	<span class="words">
+		<span class="word" class:shown={!dead && on}>{options.on}</span>
+		<span class="word" class:shown={!dead && !on}>{options.off}</span>
+		{#if dead}<span class="word shown">{text}</span>{/if}
+	</span>
+{/snippet}
+
 <div class="status">
 	{#if onWrite && !dead}
 		<button
@@ -41,12 +51,12 @@
 			onclick={toggle}
 		>
 			<span class="icon" aria-hidden="true">{on ? "●" : "○"}</span>
-			{text}
+			{@render words()}
 		</button>
 	{:else}
 		<span class="pill" class:on class:dead class:boxed>
 			<span class="icon" aria-hidden="true">{on ? "●" : "○"}</span>
-			{text}
+			{@render words()}
 		</span>
 	{/if}
 	<span class="label">{label}</span>
@@ -116,6 +126,20 @@
 
 	.icon {
 		color: var(--c);
+	}
+
+	.words {
+		display: inline-grid;
+	}
+
+	.word {
+		grid-area: 1 / 1;
+		text-align: center;
+		visibility: hidden;
+	}
+
+	.word.shown {
+		visibility: visible;
 	}
 
 	.dead {
