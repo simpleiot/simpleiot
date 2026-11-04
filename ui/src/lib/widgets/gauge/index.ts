@@ -6,7 +6,7 @@ export default defineWidget({
 	label: "Gauge",
 	host: "both",
 	bindings: ["value"],
-	options: { min: "0", max: "100", unit: "", decimals: "1" },
+	options: { min: "0", max: "100", unit: "", decimals: "1", multiplier: "1" },
 	fit: "width",
 	component: Widget,
 })

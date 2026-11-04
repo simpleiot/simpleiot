@@ -6,6 +6,6 @@ export default defineWidget({
 	label: "Value",
 	host: "both",
 	bindings: ["value"],
-	options: { decimals: "1", unit: "", confirm: "" },
+	options: { decimals: "1", unit: "", multiplier: "1", confirm: "" },
 	component: Widget,
 })

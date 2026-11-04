@@ -11,6 +11,23 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Added
+
+- **A widget can scale the reading it shows.** The value, gauge, and trend
+  widgets take a `multiplier` option, so an uptime in seconds reads in days and
+  a memory figure in bytes reads in megabytes. `min` and `max` are in the shown
+  unit, and a value edited as a setting is scaled back before it is sent. See
+  [dashboards](docs/user/dashboards.md#building-one).
+
+### Fixed
+
+- **A nested dashboard's relative bindings resolve.** A dashboard shown inside
+  another through the nested dashboard component drew every widget with a
+  relative binding dead. The paths now start from the parent the outer
+  dashboard was opened under, so an overview mirrored under several devices
+  shows each device's nodes in its tiles. See
+  [nested dashboards](docs/user/dashboards.md#nested-dashboards).
+
 ## [0.33.0] - 2026-11-04
 
 ### Changed

@@ -1,7 +1,7 @@
 <script lang="ts">
 	// A radial gauge over a numeric range, from the nautilus faceplate.
 	import Gauge from "#lib/vendor/nautilus/Gauge.svelte"
-	import { num, type WidgetProps } from "../registry.ts"
+	import { multiplier, num, type WidgetProps } from "../registry.ts"
 
 	let { label, values, options }: WidgetProps = $props()
 
@@ -11,7 +11,7 @@
 
 <div class="gauge" class:dead>
 	<Gauge
-		value={dead ? num(options, "min", 0) : (v?.value ?? 0)}
+		value={dead ? num(options, "min", 0) : (v?.value ?? 0) * multiplier(options)}
 		min={num(options, "min", 0)}
 		max={num(options, "max", 100)}
 		unit={options.unit ?? ""}

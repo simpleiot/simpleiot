@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest"
 import { widgets } from "./index.ts"
-import { num, withDefaults } from "./registry.ts"
+import { multiplier, num, withDefaults } from "./registry.ts"
 
 describe("widgets", () => {
 	test("every widget declares a host, its bindings, and defaults", () => {
@@ -30,5 +30,16 @@ describe("widgets", () => {
 		expect(o.min).toBe(gauge.options.min)
 		expect(num(o, "max", 0)).toBe(250)
 		expect(num({ max: "abc" }, "max", 7)).toBe(7)
+	})
+
+	test("the multiplier scales a reading for display, and is 1 when unusable", () => {
+		expect(multiplier({ multiplier: "0.001" })).toBe(0.001)
+		expect(multiplier({})).toBe(1)
+		expect(multiplier({ multiplier: "" })).toBe(1)
+		expect(multiplier({ multiplier: "abc" })).toBe(1)
+		expect(multiplier({ multiplier: "0" })).toBe(1)
+		for (const name of ["value", "gauge", "trend"]) {
+			expect(widgets.get(name)?.options.multiplier).toBe("1")
+		}
 	})
 })

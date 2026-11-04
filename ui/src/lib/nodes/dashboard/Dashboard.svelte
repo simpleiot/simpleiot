@@ -36,6 +36,7 @@
 		onVertex,
 		onWrite,
 		resolvePath = () => undefined,
+		via = "",
 		ancestors = [],
 	}: {
 		dashboard: Node
@@ -43,6 +44,9 @@
 		lookup: (id: string) => Node | undefined
 		// resolvePath turns a relative binding into a node ID
 		resolvePath?: (path: string) => string | undefined
+		// via is the parent resolvePath starts from, handed to nested
+		// dashboards so their relative bindings start there too
+		via?: string
 		// ancestors are the dashboards this one is nested in, for the
 		// cycle guard
 		ancestors?: readonly string[]
@@ -107,6 +111,7 @@
 					ports: parsePorts(w, descriptor?.ports),
 					...(component === nestedWidget && first ? { nested: first.nodeId } : {}),
 					ancestors,
+					via,
 				}
 			})
 	)

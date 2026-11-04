@@ -148,6 +148,9 @@ export interface Placed {
 	nested?: string
 	// ancestors are the dashboards this one is drawn inside, outermost first
 	ancestors: readonly string[]
+	// via is the parent relative bindings start from, which a nested
+	// dashboard takes over from the one it is drawn in
+	via: string
 }
 
 const dirs: readonly PortDir[] = ["left", "right", "up", "down"]

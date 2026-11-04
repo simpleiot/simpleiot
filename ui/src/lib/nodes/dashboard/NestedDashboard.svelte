@@ -2,15 +2,28 @@
 	// NestedDashboard shows one dashboard inside another: its widgets, kept
 	// live by the store under their own watch key, drawn in view mode. A
 	// dashboard that contains itself, however far down, stops here.
+	// Relative bindings start from the parent the outer dashboard was
+	// opened under, so an overview mirrored under several devices shows
+	// each device's nodes in its tiles.
 	import { untrack } from "svelte"
 	import { resolve } from "$app/paths"
 	import { isTombstone, type Node } from "#lib/siot/node.ts"
 	import { getBestDesc, type Point } from "#lib/siot/point.ts"
 	import { store } from "#lib/siot/store.ts"
-	import { boundNodeIds, parseBindings } from "./bindings.ts"
+	import { SvelteMap } from "svelte/reactivity"
+	import { bindingPaths, boundNodeIds, parseBindings } from "./bindings.ts"
 	import Dashboard from "./Dashboard.svelte"
 
-	let { id, ancestors = [] }: { id: string; ancestors?: readonly string[] } = $props()
+	let {
+		id,
+		ancestors = [],
+		via = "",
+	}: {
+		id: string
+		ancestors?: readonly string[]
+		// via is the parent relative bindings start from
+		via?: string
+	} = $props()
 
 	const cycle = $derived(ancestors.includes(id))
 	const key = $derived(`nested:${ancestors.join("/")}/${id}`)
@@ -46,6 +59,24 @@
 		childIds.map((c) => store.liveNodes.get(c)).filter((n): n is Node => n !== undefined)
 	)
 
+	// relative paths are resolved from via, as the dashboard page does
+	const pathIds = new SvelteMap<string, string>()
+	$effect(() => {
+		const from = via
+		const paths = new Set(children.flatMap((c) => bindingPaths(c)))
+		for (const p of paths) {
+			const k = `${from}|${p}`
+			if (pathIds.has(k)) {
+				continue
+			}
+			pathIds.set(k, "")
+			void store.resolvePath(from, p).then((nodeId) => {
+				pathIds.set(k, nodeId ?? "")
+			})
+		}
+	})
+	const resolvePath = (p: string) => pathIds.get(`${via}|${p}`) || undefined
+
 	// the watcher is unregistered when this component goes or its key
 	// changes, in an effect of its own, so refreshing the wanted set below
 	// never drops what was just loaded
@@ -60,7 +91,7 @@
 		}
 		const wanted = new Set([id, ...childIds])
 		for (const c of children) {
-			for (const b of boundNodeIds(parseBindings(c))) {
+			for (const b of boundNodeIds(parseBindings(c, resolvePath))) {
 				wanted.add(b)
 			}
 		}
@@ -83,6 +114,8 @@
 			{dashboard}
 			{children}
 			{lookup}
+			{resolvePath}
+			{via}
 			ancestors={[...ancestors, id]}
 			onWrite={(nodeId: string, point: Point) => void store.sendPoints(nodeId, [point])}
 		/>

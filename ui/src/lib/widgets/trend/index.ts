@@ -6,6 +6,6 @@ export default defineWidget({
 	label: "Trend",
 	host: "both",
 	bindings: ["value"],
-	options: { window: "120", min: "", max: "", unit: "", decimals: "1" },
+	options: { window: "120", min: "", max: "", unit: "", decimals: "1", multiplier: "1" },
 	component: Widget,
 })

@@ -335,6 +335,7 @@
 						{children}
 						{lookup}
 						{resolvePath}
+						{via}
 						{edit}
 						{selected}
 						onSelect={choose}
