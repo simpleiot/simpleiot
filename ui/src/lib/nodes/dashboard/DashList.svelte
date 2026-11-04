@@ -9,6 +9,7 @@
 	import IconButton from "#lib/components/IconButton.svelte"
 	import type { NodeMatch } from "#lib/siot/search.ts"
 	import { store } from "#lib/siot/store.ts"
+	import { dashHref } from "./href.ts"
 	import { dashboardType } from "./index.ts"
 
 	let list = $state<NodeMatch[] | null>(null)
@@ -68,7 +69,9 @@
 			<ul>
 				{#each list as d (d.id)}
 					<li>
-						<a href={resolve("/dash/[id]/[[widget]]", { id: d.id })}>{d.description}</a>
+						<!-- the path is resolved in dashHref; only the query is appended -->
+						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+						<a href={dashHref(d.id, d.parent)}>{d.description}</a>
 						{#if d.path.length > 0}<span class="path">{d.path.join(" / ")}</span>{/if}
 					</li>
 				{/each}

@@ -1,7 +1,8 @@
 <script lang="ts">
 	// A dashboard is a layout of widgets; the tree edits its settings and
-	// opens it, and the dashboard page shows it.
-	import { resolve } from "$app/paths"
+	// opens it, and the dashboard page shows it. The open link carries the
+	// parent it sits under here, so a mirrored dashboard shows this
+	// place's nodes.
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
 	import NumberInput from "#lib/inputs/NumberInput.svelte"
 	import OptionInput from "#lib/inputs/OptionInput.svelte"
@@ -10,6 +11,7 @@
 	import { PointType, PointValue } from "#lib/siot/schema.ts"
 	import type { EditorProps } from "../types.ts"
 	import LayoutDashboardIcon from "@lucide/svelte/icons/layout-dashboard"
+	import { dashHref } from "./href.ts"
 
 	let props: EditorProps = $props()
 
@@ -18,7 +20,9 @@
 
 <NodeEditor {props} icon={LayoutDashboardIcon}>
 	{#snippet header()}
-		<a class="open" href={resolve("/dash/[id]/[[widget]]", { id: props.node.id })}>open</a>
+		<!-- the path is resolved in dashHref; only the query is appended -->
+		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+		<a class="open" href={dashHref(props.node.id, props.parent?.id ?? "")}>open</a>
 	{/snippet}
 	<TextInput type={PointType.Description} label="Description" />
 	<OptionInput

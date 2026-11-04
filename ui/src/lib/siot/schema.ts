@@ -98,6 +98,7 @@ export const PointType = {
 	Hdop: "hdop",
 	Heading: "heading",
 	HomeDashboard: "homeDashboard",
+	HomeVia: "homeVia",
 	HRDest: "hrDest",
 	HrRx: "hrRx",
 	HrRxReset: "hrRxReset",

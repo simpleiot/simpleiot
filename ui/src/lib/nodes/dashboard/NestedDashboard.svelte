@@ -6,7 +6,7 @@
 	// opened under, so an overview mirrored under several devices shows
 	// each device's nodes in its tiles.
 	import { untrack } from "svelte"
-	import { resolve } from "$app/paths"
+	import { dashHref } from "./href.ts"
 	import { isTombstone, type Node } from "#lib/siot/node.ts"
 	import { getBestDesc, type Point } from "#lib/siot/point.ts"
 	import { store } from "#lib/siot/store.ts"
@@ -107,7 +107,9 @@
 	{:else if missing}
 		<p class="muted">Dashboard {id} was not found.</p>
 	{:else if dashboard}
-		<a class="title" href={resolve("/dash/[id]/[[widget]]", { id })} title="Open this dashboard"
+		<!-- the path is resolved in dashHref; only the query is appended -->
+		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+		<a class="title" href={dashHref(id, via)} title="Open this dashboard"
 			>{getBestDesc(dashboard.points)} &rarr;</a
 		>
 		<Dashboard

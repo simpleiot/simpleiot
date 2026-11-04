@@ -39,6 +39,7 @@ describe("buildMatches", () => {
 			"device/station A",
 			"variable/pump 1",
 		])
+		expect(m.map((x) => x.parent)).toEqual(["devA", "devB"])
 	})
 
 	test("an ancestor without a description reads as its type, and a blank anchor is left out", () => {
@@ -61,10 +62,10 @@ describe("buildMatches", () => {
 describe("rankMatches", () => {
 	test("orders by rank then description and drops repeats", () => {
 		const m = rankMatches([
-			{ id: "x", type: "", description: "sump pump", path: [], rank: 1, chain: [] },
-			{ id: "y", type: "", description: "pump b", path: [], rank: 0, chain: [] },
-			{ id: "z", type: "", description: "Pump a", path: [], rank: 0, chain: [] },
-			{ id: "y", type: "", description: "pump b", path: ["other"], rank: 0, chain: [] },
+			{ id: "x", type: "", description: "sump pump", parent: "", path: [], rank: 1, chain: [] },
+			{ id: "y", type: "", description: "pump b", parent: "", path: [], rank: 0, chain: [] },
+			{ id: "z", type: "", description: "Pump a", parent: "", path: [], rank: 0, chain: [] },
+			{ id: "y", type: "", description: "pump b", parent: "", path: ["other"], rank: 0, chain: [] },
 		])
 		expect(m.map((x) => x.id)).toEqual(["z", "y", "x"])
 	})

@@ -8,6 +8,7 @@
 	import { getText } from "#lib/siot/point.ts"
 	import { PointType } from "#lib/siot/schema.ts"
 	import { store } from "#lib/siot/store.ts"
+	import { dashHref } from "./href.ts"
 	import { dashboardType } from "./index.ts"
 
 	$effect(() => {
@@ -28,7 +29,10 @@
 		const me = await store.resolveNode(store.userId)
 		const home = me ? getText(me.points, PointType.HomeDashboard) : ""
 		if (home !== "" && (await store.resolveNode(home))) {
-			await goto(resolve("/dash/[id]/[[widget]]", { id: home }), { replaceState: true })
+			const via = me ? getText(me.points, PointType.HomeVia) : ""
+			// the path is resolved in dashHref; only the query is appended
+			// eslint-disable-next-line svelte/no-navigation-without-resolve
+			await goto(dashHref(home, via), { replaceState: true })
 			return
 		}
 		const any = await store.searchNodes("", 1, dashboardType)
