@@ -63,7 +63,7 @@
 	{#if p.nested}
 		<NestedDashboard id={p.nested} ancestors={p.ancestors} />
 	{:else if C}
-		<div class="content" style:zoom={scale}>
+		<div class="content" class:sized={!bare} style:zoom={scale}>
 			<C
 				label={p.label}
 				values={p.values}
@@ -108,6 +108,15 @@
 
 	.content {
 		height: 100%;
+	}
+
+	/* on a grid the tile's height sets the size of a value or a pill, so
+	   a taller tile reads from further away; a canvas widget keeps the
+	   fixed sizes, since its box has no height of its own */
+	.content.sized {
+		container-type: size;
+		--num-size: clamp(22px, 34cqh, 200px);
+		--pill-size: clamp(15px, 18cqh, 100px);
 	}
 
 	.bare {

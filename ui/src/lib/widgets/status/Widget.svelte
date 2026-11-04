@@ -89,7 +89,7 @@
 		border: 1px solid var(--border);
 		border-radius: 999px;
 		font: inherit;
-		font-size: 18px;
+		font-size: var(--pill-size, 18px);
 		font-weight: 600;
 		color: inherit;
 		background: none;

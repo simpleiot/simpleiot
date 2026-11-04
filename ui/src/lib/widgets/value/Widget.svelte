@@ -134,7 +134,7 @@
 	}
 
 	.num {
-		font-size: 32px;
+		font-size: var(--num-size, 32px);
 		font-weight: 650;
 		font-variant-numeric: tabular-nums;
 		line-height: 1.1;
@@ -147,7 +147,7 @@
 		border: none;
 		background: none;
 		font: inherit;
-		font-size: 32px;
+		font-size: var(--num-size, 32px);
 		font-weight: 650;
 		color: inherit;
 		cursor: text;
@@ -168,12 +168,12 @@
 
 	.box {
 		width: min(12em, 100%);
-		font-size: 24px;
+		font-size: calc(var(--num-size, 32px) * 0.75);
 		font-weight: 600;
 	}
 
 	.unit {
-		font-size: 14px;
+		font-size: calc(var(--num-size, 32px) * 0.45);
 		color: var(--muted);
 	}
 
