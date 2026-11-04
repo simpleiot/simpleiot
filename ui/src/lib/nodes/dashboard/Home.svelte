@@ -28,7 +28,7 @@
 		const me = await store.resolveNode(store.userId)
 		const home = me ? getText(me.points, PointType.HomeDashboard) : ""
 		if (home !== "" && (await store.resolveNode(home))) {
-			await goto(resolve("/dash/[id]", { id: home }), { replaceState: true })
+			await goto(resolve("/dash/[id]/[[widget]]", { id: home }), { replaceState: true })
 			return
 		}
 		const any = await store.searchNodes("", 1, dashboardType)

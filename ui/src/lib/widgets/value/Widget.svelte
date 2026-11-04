@@ -1,14 +1,17 @@
 <script lang="ts">
 	// A value tile: one number or text, large, with its unit. With an
 	// onWrite it is a setting: a click on the value opens an edit box, and
-	// Enter sends the new value.
-	import { num, type WidgetProps } from "../registry.ts"
+	// Enter sends the new value, or asks first when the confirm option is
+	// on. Until it is edited the value looks like any other.
+	import Confirm from "../Confirm.svelte"
+	import { num, wantsConfirm, type WidgetProps, type Write } from "../registry.ts"
 
 	let { label, values, options, onWrite }: WidgetProps = $props()
 
 	const v = $derived(values.value)
 	const dead = $derived(!v || v.state === "dead")
 	const isText = $derived(v !== undefined && v.text !== "")
+	const decimals = $derived(num(options, "decimals", 1))
 	const text = $derived.by(() => {
 		if (!v || dead) {
 			return "—"
@@ -16,13 +19,15 @@
 		if (v.text !== "") {
 			return v.text
 		}
-		return v.value.toFixed(num(options, "decimals", 1))
+		return v.value.toFixed(decimals)
 	})
 
 	let editing = $state(false)
 	// a number input binds a number, a text input a string
 	let draft = $state<string | number>("")
 	let box: HTMLInputElement | undefined = $state()
+	// pending is a write waiting to be confirmed
+	let pending = $state<Write | null>(null)
 
 	function begin(e: MouseEvent) {
 		e.stopPropagation()
@@ -39,14 +44,21 @@
 		if (!onWrite) {
 			return
 		}
-		const text = String(draft).trim()
+		const t = String(draft).trim()
+		let w: Write
 		if (isText) {
-			onWrite("value", { value: 0, text })
-			return
+			w = { value: 0, text: t }
+		} else {
+			const n = Number(t)
+			if (t === "" || !Number.isFinite(n)) {
+				return
+			}
+			w = { value: n, text: "" }
 		}
-		const n = Number(text)
-		if (text !== "" && Number.isFinite(n)) {
-			onWrite("value", { value: n, text: "" })
+		if (wantsConfirm(options)) {
+			pending = w
+		} else {
+			onWrite("value", w)
 		}
 	}
 
@@ -58,6 +70,10 @@
 			editing = false
 		}
 	}
+
+	const pendingText = $derived(
+		pending ? (pending.text !== "" ? pending.text : pending.value.toFixed(decimals)) : ""
+	)
 </script>
 
 <div class="value" class:dead class:stale={v?.state === "stale"}>
@@ -82,6 +98,19 @@
 	{/if}
 	{#if options.unit}<span class="unit">{options.unit}</span>{/if}
 	<span class="label">{label}</span>
+	{#if pending}
+		<Confirm
+			text="Set to {pendingText}{options.unit ? ` ${options.unit}` : ''}?"
+			onConfirm={() => {
+				const w = pending
+				pending = null
+				if (w) {
+					onWrite?.("value", w)
+				}
+			}}
+			onCancel={() => (pending = null)}
+		/>
+	{/if}
 </div>
 
 <style>
@@ -100,12 +129,11 @@
 		line-height: 1.1;
 	}
 
+	/* a settable value looks like any other until it is pointed at */
 	.settable {
-		padding: 0 4px;
-		margin: 0 -4px;
+		padding: 0;
+		margin: 0;
 		border: none;
-		border-bottom: 2px dashed var(--border);
-		border-radius: 4px 4px 0 0;
 		background: none;
 		font: inherit;
 		font-size: 32px;
@@ -114,8 +142,10 @@
 		cursor: text;
 	}
 
-	.settable:hover {
-		background: var(--hover);
+	.settable:hover,
+	.settable:focus-visible {
+		text-decoration: underline dotted var(--muted);
+		text-underline-offset: 6px;
 	}
 
 	.box {

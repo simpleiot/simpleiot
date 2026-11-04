@@ -94,6 +94,12 @@ export function withDefaults(
 	return out
 }
 
+// wantsConfirm reads the confirm option a control honours: on, yes, true,
+// or 1 ask before a write.
+export function wantsConfirm(options: Readonly<Record<string, string>>): boolean {
+	return ["on", "yes", "true", "1"].includes((options.confirm ?? "").trim().toLowerCase())
+}
+
 // num reads a numeric option, or the fallback when it is not a number.
 export function num(
 	options: Readonly<Record<string, string>>,

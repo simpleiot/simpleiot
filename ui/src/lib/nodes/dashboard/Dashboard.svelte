@@ -31,7 +31,6 @@
 		edit = false,
 		selected = "",
 		onSelect,
-		onOpen,
 		onLayout,
 		onLink,
 		onVertex,
@@ -50,7 +49,6 @@
 		edit?: boolean
 		selected?: string
 		onSelect?: (id: string) => void
-		onOpen?: (p: Placed) => void
 		onLayout?: (id: string, layout: Layout) => void
 		onLink?: (from: { equip: string; port: string }, to: { equip: string; port: string }) => void
 		onVertex?: (id: string, index: number, point: PointXY) => void
@@ -130,12 +128,11 @@
 		{edit}
 		{selected}
 		{onSelect}
-		{onOpen}
 		{onLayout}
 		{onLink}
 		{onVertex}
 		{onWrite}
 	/>
 {:else}
-	<Grid {cols} {placed} {edit} {selected} {onSelect} {onOpen} {onLayout} {onWrite} />
+	<Grid {cols} {placed} {edit} {selected} {onSelect} {onLayout} {onWrite} />
 {/if}

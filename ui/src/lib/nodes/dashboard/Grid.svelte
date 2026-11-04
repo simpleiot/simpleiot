@@ -14,7 +14,6 @@
 		edit = false,
 		selected = "",
 		onSelect,
-		onOpen,
 		onLayout,
 		onWrite,
 	}: {
@@ -24,8 +23,6 @@
 		// selected is the widget whose panel is open in edit mode
 		selected?: string
 		onSelect?: (id: string) => void
-		// onOpen is a tap on a widget in view mode
-		onOpen?: (p: Placed) => void
 		onLayout?: (id: string, layout: Layout) => void
 		onWrite?: (nodeId: string, point: Point) => void
 	} = $props()
@@ -122,22 +119,6 @@
 					onpointerup={up}
 					onpointercancel={up}
 				></div>
-			{:else if onOpen}
-				<!-- a div, not a button, since a widget may hold controls of its own -->
-				<div
-					class="open"
-					role="button"
-					tabindex="0"
-					aria-label="Open {p.label}"
-					onclick={() => onOpen(p)}
-					onkeydown={(e) => {
-						if (e.key === "Enter" && e.target === e.currentTarget) {
-							onOpen(p)
-						}
-					}}
-				>
-					<WidgetFrame {p} {onWrite} />
-				</div>
 			{:else}
 				<WidgetFrame {p} {onWrite} />
 			{/if}
@@ -196,24 +177,6 @@
 		border-right: 3px solid var(--muted);
 		border-bottom: 3px solid var(--muted);
 		border-radius: 0 0 6px 0;
-	}
-
-	.open {
-		display: block;
-		width: 100%;
-		height: 100%;
-		padding: 0;
-		border: none;
-		background: none;
-		font: inherit;
-		color: inherit;
-		text-align: left;
-		cursor: pointer;
-	}
-
-	.open:focus-visible {
-		outline: 2px solid var(--focus);
-		border-radius: 8px;
 	}
 
 	.empty {

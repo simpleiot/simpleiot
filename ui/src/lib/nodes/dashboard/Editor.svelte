@@ -18,7 +18,7 @@
 
 <NodeEditor {props} icon={LayoutDashboardIcon}>
 	{#snippet header()}
-		<a class="open" href={resolve("/dash/[id]", { id: props.node.id })}>open</a>
+		<a class="open" href={resolve("/dash/[id]/[[widget]]", { id: props.node.id })}>open</a>
 	{/snippet}
 	<TextInput type={PointType.Description} label="Description" />
 	<OptionInput

@@ -99,6 +99,17 @@ test("a dashboard shows a widget bound to a variable", async ({ page }) => {
 	await page.getByRole("button", { name: "done" }).click()
 	await expect(page).toHaveURL(/\/dash\/[\w-]+$/)
 
+	// going to the tree and back lands on the widget link with its panel
+	await page.goto(widgetUrl)
+	await page.getByRole("link", { name: "in the tree" }).click()
+	await expect(page.getByRole("tree", { name: "Nodes" })).toBeVisible()
+	await page.goBack()
+	await expect(page).toHaveURL(widgetUrl)
+	await expect(
+		page.getByRole("complementary", { name: "Widget settings" }).getByLabel("Label")
+	).toHaveValue("Second")
+	await page.getByRole("button", { name: "done" }).click()
+
 	// signed out, the link asks for sign-in and then lands where it pointed
 	await page.getByRole("button", { name: /sign out/ }).click()
 	await page.goto(widgetUrl)

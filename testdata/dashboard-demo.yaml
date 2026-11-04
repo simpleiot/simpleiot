@@ -302,6 +302,18 @@ nodes:
                     value: Flow rate
                   prop:
                     unit: gpm
+              - widget:
+                  description: Setpoint
+                  component: value
+                  x: 640
+                  y: 330
+                  w: 160
+                  bindNode:
+                    value: Level setpoint
+                  prop:
+                    unit: "%"
+                    decimals: "0"
+                    confirm: "on"
               - link:
                   description: Pump to valve
                   from: Pump.discharge

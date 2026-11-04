@@ -1,7 +1,9 @@
 <script lang="ts">
 	// A status pill: on or off from a value, never color alone. With an
-	// onWrite it is a switch: a click sends the other state.
-	import type { WidgetProps } from "../registry.ts"
+	// onWrite it is a switch: a click sends the other state, or asks first
+	// when the confirm option is on.
+	import Confirm from "../Confirm.svelte"
+	import { wantsConfirm, type WidgetProps } from "../registry.ts"
 
 	let { label, values, options, onWrite }: WidgetProps = $props()
 
@@ -10,9 +12,16 @@
 	const on = $derived(!dead && (v?.value ?? 0) !== 0)
 	const text = $derived(dead ? "no data" : on ? options.on : options.off)
 
+	// pending is the state waiting to be confirmed
+	let pending = $state<boolean | null>(null)
+
 	function toggle(e: MouseEvent) {
 		e.stopPropagation()
-		onWrite?.("value", { value: on ? 0 : 1, text: "" })
+		if (wantsConfirm(options)) {
+			pending = !on
+		} else {
+			onWrite?.("value", { value: on ? 0 : 1, text: "" })
+		}
 	}
 </script>
 
@@ -37,6 +46,19 @@
 		</span>
 	{/if}
 	<span class="label">{label}</span>
+	{#if pending !== null}
+		<Confirm
+			text="Set {label} to {pending ? options.on : options.off}?"
+			onConfirm={() => {
+				const next = pending
+				pending = null
+				if (next !== null) {
+					onWrite?.("value", { value: next ? 1 : 0, text: "" })
+				}
+			}}
+			onCancel={() => (pending = null)}
+		/>
+	{/if}
 </div>
 
 <style>

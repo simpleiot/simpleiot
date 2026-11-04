@@ -68,7 +68,7 @@
 			<ul>
 				{#each list as d (d.id)}
 					<li>
-						<a href={resolve("/dash/[id]", { id: d.id })}>{d.description}</a>
+						<a href={resolve("/dash/[id]/[[widget]]", { id: d.id })}>{d.description}</a>
 						{#if d.path.length > 0}<span class="path">{d.path.join(" / ")}</span>{/if}
 					</li>
 				{/each}

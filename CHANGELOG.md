@@ -35,16 +35,16 @@ For more details or to discuss releases, please visit the
   points on other nodes, and it syncs like any other node. The web UI lists
   dashboards under Dashboards and shows each as a grid of value, gauge, status,
   and trend widgets that reflows to one column on a phone. Edit mode adds,
-  drags, resizes, and configures widgets in place; a tap on a widget opens the
-  node behind it. A user's home dashboard, set on the user node, is where
-  signing in lands. A canvas layout draws process mimics with tank, pump, and
-  valve components and links drawn from port to port, which follow the equipment
-  when it moves. A binding can be a path relative to the dashboard's parent, so
-  one dashboard mirrored under several devices shows each device's nodes, and a
-  nested dashboard component shows one dashboard inside another. See
-  [dashboards](docs/user/dashboards.md). `testdata/dashboard-demo.yaml` is a
-  demo to import. A status widget on an on/off variable is a switch, and a value
-  widget on a variable or an output is a setting with an edit box.
+  drags, resizes, and configures widgets in place. A user's home dashboard, set
+  on the user node, is where signing in lands. A canvas layout draws process
+  mimics with tank, pump, and valve components and links drawn from port to
+  port, which follow the equipment when it moves. A binding can be a path
+  relative to the dashboard's parent, so one dashboard mirrored under several
+  devices shows each device's nodes, and a nested dashboard component shows one
+  dashboard inside another. See [dashboards](docs/user/dashboards.md).
+  `testdata/dashboard-demo.yaml` is a demo to import. A status widget on an
+  on/off variable is a switch, and a value widget on a variable or an output is
+  a setting with an edit box; a `confirm` option asks before a change is sent.
 - **Configuration files resolve dashboard references by description.** A
   widget's `bindNode` points and a user's `homeDashboard` name their node by
   description, as `nodeID` does, and export the same way.

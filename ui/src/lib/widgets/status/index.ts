@@ -6,6 +6,6 @@ export default defineWidget({
 	label: "Status",
 	host: "both",
 	bindings: ["value"],
-	options: { on: "On", off: "Off" },
+	options: { on: "On", off: "Off", confirm: "" },
 	component: Widget,
 })

@@ -2,9 +2,9 @@
 	// DashView is the page for one dashboard: the node and its widgets,
 	// kept live by the store, with the nodes they bind to. In edit mode
 	// widgets are dragged, resized, added, and configured in a panel that
-	// is the widget node's own editor. In view mode a tap opens the bound
-	// node's faceplate: a dialog on a wide screen, the tree page on a
-	// narrow one. ?kiosk hides the chrome for a wall display.
+	// is the widget node's own editor, with a link to the bound node. In
+	// view mode a click does nothing but work a widget's own controls.
+	// ?kiosk hides the chrome for a wall display.
 	import X from "@lucide/svelte/icons/x"
 	import { untrack } from "svelte"
 	import { goto } from "$app/navigation"
@@ -32,7 +32,6 @@
 		parseBindings,
 		widgetLayout,
 		type Layout,
-		type Placed,
 	} from "./bindings.ts"
 	import Dashboard from "./Dashboard.svelte"
 	import { nextRow } from "./gridMath.ts"
@@ -48,14 +47,11 @@
 	} = $props()
 
 	const kiosk = $derived(page.url.searchParams.has("kiosk"))
-	const breakpoint = 900
 
 	let notFound = $state(false)
 	let childIds = $state.raw<string[]>([])
 	let edit = $state(false)
 	let selected = $state("")
-	let faceplate = $state("")
-	let dialog: HTMLDialogElement | undefined = $state()
 
 	$effect(() => {
 		const user = auth.user
@@ -85,25 +81,26 @@
 		if (selected !== "" && !childIds.includes(selected)) {
 			selected = ""
 		}
-		// a link to a widget opens its panel once
-		if (select !== "" && applied !== select && childIds.includes(select)) {
-			applied = select
-			edit = true
-			selected = select
-		}
 	}
-	let applied = ""
 
-	// the address follows the selection, so a widget's settings can be
-	// linked to
+	// the address names the selected widget, so its settings can be
+	// linked to. A widget in the address, from a link or from going back
+	// to it, opens edit mode with its panel.
+	$effect(() => {
+		const s = select
+		if (s !== "" && s !== selected) {
+			edit = true
+			selected = s
+		} else if (s === "" && selected !== "") {
+			selected = ""
+		}
+	})
+
 	function choose(w: string) {
 		selected = selected === w ? "" : w
-		void goto(
-			selected === ""
-				? resolve("/dash/[id]", { id })
-				: resolve("/dash/[id]/[widget]", { id, widget: selected }),
-			{ shallow: true, replace: true }
-		)
+		void goto(resolve("/dash/[id]/[[widget]]", { id, widget: selected || undefined }), {
+			replaceState: true,
+		})
 	}
 
 	$effect(() => {
@@ -148,17 +145,14 @@
 	})
 	const resolvePath = (p: string) => pathIds.get(`${via}|${p}`) || undefined
 
-	// the nodes to keep live: the dashboard, its children, what they bind
-	// to, and the faceplate's node
+	// the nodes to keep live: the dashboard, its children, and what they
+	// bind to
 	$effect(() => {
 		const wanted = new Set([id, ...childIds])
 		for (const c of children) {
 			for (const b of boundNodeIds(parseBindings(c, resolvePath))) {
 				wanted.add(b)
 			}
-		}
-		if (faceplate !== "") {
-			wanted.add(faceplate)
 		}
 		void store.watchNodes([...wanted], [id])
 	})
@@ -234,26 +228,6 @@
 		await load(id)
 	}
 
-	// ---- the faceplate
-
-	function open(p: Placed) {
-		const first = Object.values(parseBindings(p.node, resolvePath))[0]
-		if (!first) {
-			return
-		}
-		if (window.innerWidth < breakpoint) {
-			void goto(resolve("/nodes/[id]", { id: first.nodeId }))
-			return
-		}
-		faceplate = first.nodeId
-		dialog?.showModal()
-	}
-
-	function closeFaceplate() {
-		faceplate = ""
-		dialog?.close()
-	}
-
 	function signOut() {
 		void store.stop()
 		auth.signOut()
@@ -313,7 +287,6 @@
 						{edit}
 						{selected}
 						onSelect={choose}
-						onOpen={open}
 						{onLayout}
 						onLink={(from: { equip: string; port: string }, to: { equip: string; port: string }) =>
 							void addLink(from, to)}
@@ -345,15 +318,6 @@
 		{/if}
 	</main>
 </div>
-
-<dialog bind:this={dialog} class="faceplate" onclose={() => (faceplate = "")}>
-	{#if faceplate !== ""}
-		<div class="faceplate-head">
-			<IconButton label="Close" onclick={closeFaceplate}><X size={20} /></IconButton>
-		</div>
-		<NodeHost id={faceplate} />
-	{/if}
-</dialog>
 
 <style>
 	.page {
@@ -402,25 +366,6 @@
 		align-self: start;
 		max-height: calc(100vh - 24px);
 		overflow-y: auto;
-	}
-
-	.faceplate {
-		width: min(720px, calc(100vw - 32px));
-		max-height: calc(100vh - 32px);
-		padding: 12px;
-		border: 1px solid var(--border);
-		border-radius: 8px;
-		background: var(--bg);
-		color: var(--fg);
-	}
-
-	.faceplate::backdrop {
-		background: rgb(0 0 0 / 0.4);
-	}
-
-	.faceplate-head {
-		display: flex;
-		justify-content: flex-end;
 	}
 
 	.error {

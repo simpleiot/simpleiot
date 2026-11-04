@@ -36,7 +36,6 @@
 		edit = false,
 		selected = "",
 		onSelect,
-		onOpen,
 		onLayout,
 		onLink,
 		onVertex,
@@ -49,7 +48,6 @@
 		edit?: boolean
 		selected?: string
 		onSelect?: (id: string) => void
-		onOpen?: (p: Placed) => void
 		onLayout?: (id: string, layout: Layout) => void
 		// onLink reports a link drawn from one port to another
 		onLink?: (from: { equip: string; port: string }, to: { equip: string; port: string }) => void
@@ -230,10 +228,15 @@
 	}
 
 	function downWidget(e: PointerEvent, p: Placed) {
-		if (!edit || e.button !== 0) {
+		if (e.button !== 0) {
 			return
 		}
+		// in view mode the press belongs to the widget's own controls, so
+		// it must not start a pan, which would capture the pointer
 		e.stopPropagation()
+		if (!edit) {
+			return
+		}
 		e.preventDefault()
 		capture(e)
 		drag = {
@@ -358,7 +361,7 @@
 </script>
 
 {#if narrow}
-	<Grid cols={1} placed={cards} {edit} {selected} {onSelect} {onOpen} {onWrite} />
+	<Grid cols={1} placed={cards} {edit} {selected} {onSelect} {onWrite} />
 {:else}
 	<div class="canvas-host">
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -433,25 +436,7 @@
 						onpointerup={up}
 						onpointercancel={up}
 					>
-						{#if edit || !onOpen}
-							<WidgetFrame {p} bare onWrite={edit ? undefined : onWrite} />
-						{:else}
-							<!-- a div, not a button, since a widget may hold controls of its own -->
-							<div
-								class="open"
-								role="button"
-								tabindex="0"
-								aria-label="Open {p.label}"
-								onclick={() => onOpen(p)}
-								onkeydown={(e) => {
-									if (e.key === "Enter" && e.target === e.currentTarget) {
-										onOpen(p)
-									}
-								}}
-							>
-								<WidgetFrame {p} bare {onWrite} />
-							</div>
-						{/if}
+						<WidgetFrame {p} bare onWrite={edit ? undefined : onWrite} />
 						{#if edit}
 							{#each p.ports as port (port.name)}
 								<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -566,16 +551,6 @@
 		background: var(--bg);
 		border: 2px solid var(--blue);
 		cursor: crosshair;
-	}
-
-	.open {
-		display: block;
-		padding: 0;
-		border: none;
-		background: none;
-		font: inherit;
-		color: inherit;
-		cursor: pointer;
 	}
 
 	.empty {

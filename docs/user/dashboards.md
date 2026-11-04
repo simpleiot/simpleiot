@@ -27,9 +27,9 @@ on a narrow one.
 
    | Component | Shows                       | Options                          |
    | --------- | --------------------------- | -------------------------------- |
-   | value     | the number or text, large   | `decimals`, `unit`               |
+   | value     | the number or text, large   | `decimals`, `unit`, `confirm`    |
    | gauge     | a radial gauge over a range | `min`, `max`, `unit`, `decimals` |
-   | status    | on or off                   | `on`, `off` (the labels)         |
+   | status    | on or off                   | `on`, `off`, `confirm`           |
    | trend     | the last values as a line   | `window`, `min`, `max`, `unit`   |
 
 4. A dashboard has 12 columns unless its **Columns** setting says otherwise. The
@@ -80,12 +80,14 @@ its shape.
 A widget bound to a node that accepts a new value is a control. A status pill on
 an on/off variable is a switch: click it to flip the state. A value tile on a
 number or text variable is a setting: click the value for an edit box, and Enter
-sends it. Clicking elsewhere on the card still opens the node behind it.
+sends it. A click anywhere else on a dashboard does nothing; the node behind a
+widget is reached through edit mode, where the widget's settings link to it.
 
 Which nodes accept writes, and on which point, is part of each node type: a
 variable takes the value itself, and an output such as a Modbus IO or a GPIO
 takes a set request. Set the `control` option to `off` on a widget that should
-only show.
+only show, and `confirm` to `on` for one whose change must be confirmed before
+it is sent.
 
 ## Relative bindings
 
