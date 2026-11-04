@@ -17,8 +17,9 @@ export default defineConfig({
 			adapter: adapter({ fallback: "index.html" }),
 			paths: { relative: false },
 			// The build is committed, so it must not change unless the source
-			// does. The default name is a timestamp; the UI ships in the same
-			// binary as the server, so it never needs to detect a new deploy.
+			// does. The default name is a timestamp. The UI ships in the same
+			// binary as the server, so a new deploy is detected by the server's
+			// version (see TreeStore) rather than by this name.
 			version: { name: "siot" },
 		}),
 	],

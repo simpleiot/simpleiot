@@ -13,6 +13,9 @@ For more details or to discuss releases, please visit the
 
 ### Added
 
+- **Open browser tabs reload after an upgrade.** When the server comes back
+  running a new version, the Svelte UI reloads itself, so a tab left open does
+  not keep running the previous build.
 - **A configuration file can mirror a node into a second place.** An entry with
   a `mirror` key names an existing node by description and adds it under the
   entry's parent, so a provisioning file can put a device's bus in a site group

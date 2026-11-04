@@ -39,4 +39,15 @@ export const browserEnv: Env = {
 	warn: (...args) => {
 		console.warn(...args)
 	},
+	async version() {
+		const res = await fetch("/v1/version", { cache: "no-store" })
+		if (!res.ok) {
+			throw new Error(`Bad status: ${res.status}`)
+		}
+		const body = (await res.json()) as { version?: unknown }
+		return typeof body.version === "string" ? body.version : ""
+	},
+	reload: () => {
+		location.reload()
+	},
 }

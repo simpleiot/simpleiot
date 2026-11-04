@@ -605,6 +605,7 @@ func (s *Server) Run() error {
 		Nc:                 s.nc,
 		DeviceAuth:         auth,
 		DeviceAuthRequired: o.DeviceAuth == DeviceAuthRequired,
+		AppVersion:         o.AppVersion,
 	})
 
 	g.Add(func() error {
