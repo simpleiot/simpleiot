@@ -3,6 +3,7 @@
 	// live by the store under their own watch key, drawn in view mode. A
 	// dashboard that contains itself, however far down, stops here.
 	import { untrack } from "svelte"
+	import { resolve } from "$app/paths"
 	import { isTombstone, type Node } from "#lib/siot/node.ts"
 	import { getBestDesc, type Point } from "#lib/siot/point.ts"
 	import { store } from "#lib/siot/store.ts"
@@ -75,7 +76,9 @@
 	{:else if missing}
 		<p class="muted">Dashboard {id} was not found.</p>
 	{:else if dashboard}
-		<div class="title">{getBestDesc(dashboard.points)}</div>
+		<a class="title" href={resolve("/dash/[id]/[[widget]]", { id })} title="Open this dashboard"
+			>{getBestDesc(dashboard.points)} &rarr;</a
+		>
 		<Dashboard
 			{dashboard}
 			{children}
@@ -97,10 +100,19 @@
 		overflow: auto;
 	}
 
+	/* the title opens the nested dashboard on its own page */
 	.title {
+		align-self: flex-start;
 		font-size: 13px;
 		font-weight: 600;
 		color: var(--muted);
+		text-decoration: none;
+	}
+
+	.title:hover,
+	.title:focus-visible {
+		color: var(--blue);
+		text-decoration: underline;
 	}
 
 	.muted {
