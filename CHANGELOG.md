@@ -11,6 +11,10 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.33.4] - 2026-11-04
+
+- update UI assets
+
 ## [0.33.3] - 2026-11-04
 
 - release checks.
