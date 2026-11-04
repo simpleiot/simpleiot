@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.33.1] - 2026-11-04
+
 ### Added
 
 - **Open browser tabs reload after an upgrade.** When the server comes back
@@ -33,9 +35,9 @@ For more details or to discuss releases, please visit the
 
 - **A nested dashboard's relative bindings resolve.** A dashboard shown inside
   another through the nested dashboard component drew every widget with a
-  relative binding dead. The paths now start from the parent the outer
-  dashboard was opened under, so an overview mirrored under several devices
-  shows each device's nodes in its tiles. See
+  relative binding dead. The paths now start from the parent the outer dashboard
+  was opened under, so an overview mirrored under several devices shows each
+  device's nodes in its tiles. See
   [nested dashboards](docs/user/dashboards.md#nested-dashboards).
 
 ## [0.33.0] - 2026-11-04
