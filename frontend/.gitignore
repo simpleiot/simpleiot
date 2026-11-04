@@ -1,9 +1,0 @@
-# Folders to ignore
-elm-stuff
-node_modules
-src/Spa/Generated
-.elm-spa
-public/dist/*.js
-
-# MacOS weird stuff
-.DS_Store

@@ -31,8 +31,7 @@ siot_install_frontend_deps
 # Build everything (frontend + backend)
 siot_build
 
-# Build frontend only (the Svelte UI; the old Elm UI uses the committed
-# build in frontend/public/dist)
+# Build frontend only (the Svelte UI)
 siot_build_frontend
 
 # Build the Svelte UI only
@@ -73,11 +72,6 @@ golangci-lint run
 
 # Svelte UI checks (prettier, eslint, svelte-check, vitest)
 siot_test_ui
-
-# Old Elm UI, only when changing it: siot_setup_elm once, then rebuild and
-# test it
-siot_build_elm
-siot_test_elm
 ```
 
 ## Architecture
@@ -101,7 +95,7 @@ siot_test_elm
 - `data/` - Core data structures (Node, Point, etc.)
 - `store/` - JetStream storage layer (boundary-origin streams, see ADR-7)
 - `ui/` - Svelte web UI, served at `/`
-- `frontend/` - Elm-based web UI, served at `/old` until it is removed
+- `js/simpleiot-js/` - the browser client the Svelte UI bundles
 - `modbus/` - Modbus protocol implementation
 - `network/` - Network management utilities
 
@@ -146,10 +140,6 @@ canary for nats-server upgrades. See [security](docs/ref/security.md) and
 
 ### Frontend Architecture
 
-The Svelte UI is the admin UI, served at `/`. The Elm UI is kept at `/old`, with
-the same sign-in, until it is removed; changes to the admin UI go in the Svelte
-UI only.
-
 The Svelte UI (`ui/`) is a SvelteKit app built with `adapter-static`, embedded
 by `ui/embed.go`, and served at `/` by `api/ui.go`:
 
@@ -173,18 +163,6 @@ by `ui/embed.go`, and served at `/` by `api/ui.go`:
   changing both.
 - **Checks**: strict TypeScript, `svelte-check` fails the build, vitest unit
   tests, prettier and eslint.
-
-The Elm UI (`frontend/`):
-
-- **Elm SPA**: Single-page application using elm-spa framework
-- **Components**: Node-specific UI components in `Components/` directory
-- **API**: Nodes are read and points written over NATS WebSockets through
-  `frontend/lib` (`simpleiot-js`) and the `Api.Nats` port module; sign-in and
-  node operations (add, delete, move, mirror, duplicate, notify) use HTTP
-- **Build**: Not rebuilt by `siot_build`, `siot_run`, `siot_watch`, or
-  `siot_test`; they use the compiled files committed in `frontend/public/dist`.
-  To change it, run `siot_setup_elm` once, then `siot_build_elm` (or
-  `siot_watch_elm`) and `siot_test_elm`
 
 ## Design Priorities
 
@@ -250,26 +228,18 @@ branch, switch branches, or start a worktree unless I ask for one.
 
 ## Committing
 
-Commit the Svelte UI build in `ui/build` together with any change to `ui/`, so a
-clone builds with Go alone. Run `siot_build_ui` and stage it with
-`git add -A ui/build`; the file names carry content hashes, so this also records
-the old files as deleted. The build is reproducible, so unchanged source leaves
-`ui/build` unchanged.
+Do not commit the UI build assets as part of a code change. The Svelte UI build
+in `ui/build` is rebuilt and committed by the user before a release. Leave it
+out of staging even when `ui/` changes; if `siot_build_ui` was run, do not stage
+the result.
 
-The Elm UI build in `frontend/public/dist` (`elm.js.gz`, `siot-nats.js.gz`,
-`codec.js.gz`, `nats.js.gz`) is committed only when the Elm UI or `frontend/lib`
-changes and `siot_build_elm` is run.
-
-Otherwise, stage the files you edited rather than using `git add -A` or
-`git commit -a`.
+Stage the files you edited rather than using `git add -A` or `git commit -a`.
 
 ## Important Notes
 
 - Always source `envsetup.sh` before running build commands
-- Frontend build generates compressed files in `frontend/public/dist` and
-  `ui/build` (see Committing above). The Elm UI's JavaScript in
-  `frontend/public/dist` is copied from `frontend/lib` and `nats.ws`, not
-  bundled; `siot_build_elm` refreshes it. The Svelte UI bundles both with Vite
+- The UI build generates compressed files in `ui/build`; these are committed by
+  the user before a release, not with code changes (see Committing above)
 - NATS JetStream stores all application data (one stream per boundary/origin
   pair; see ADR-7)
 - System supports TLS with certificates via `siot_mkcert` and `siot_run_tls`

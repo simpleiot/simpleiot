@@ -170,8 +170,8 @@ session is editing the tree, leave its files alone and say so in the report.
 go run golang.org/x/vuln/cmd/govulncheck@latest ./...          # source: only called symbols count
 govulncheck -mode binary <release binary>                      # what actually shipped, and with which Go
 go version <release binary>
-cd frontend && npm audit --omit=dev                            # what reaches the browser
-cd frontend/lib && npm audit --omit=dev
+cd ui && npm audit --omit=dev                                  # what reaches the browser
+cd js/simpleiot-js && npm audit --omit=dev
 rg -n 'recover\(\)|InsecureSkipVerify|math/rand|exec\.Command|sh -c' --glob '*.go'
 git ls-files | xargs rg -l 'BEGIN .*PRIVATE KEY|\bS[UA][A-Z2-7]{56}\b'
 ```

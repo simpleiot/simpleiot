@@ -84,25 +84,4 @@ func TestUIFallback(t *testing.T) {
 		}
 	}
 
-	// the Elm UI at /old keeps its own policy and routes sign-in itself
-	elm := fstest.MapFS{
-		"index.html": {Data: []byte("<html>elm</html>")},
-		"main.js":    {Data: []byte("main()")},
-	}
-	app.PublicHandler = http.FileServer(http.FS(elm))
-	for path, body := range map[string]string{
-		"/old":         "<html>elm</html>",
-		"/old/":        "<html>elm</html>",
-		"/old/sign-in": "<html>elm</html>",
-		"/old/main.js": "main()",
-	} {
-		rec := httptest.NewRecorder()
-		app.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
-		if rec.Code != http.StatusOK || rec.Body.String() != body {
-			t.Errorf("%v: status %v body %q, want %q", path, rec.Code, rec.Body.String(), body)
-		}
-		if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, importMapHash) {
-			t.Errorf("%v: policy %q lacks the import map hash", path, csp)
-		}
-	}
 }

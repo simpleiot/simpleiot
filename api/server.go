@@ -17,9 +17,6 @@ const maxBodyBytes = 4 << 20
 
 // App is a struct that implements http.Handler interface
 type App struct {
-	// PublicHandler serves the Elm UI at /old, with the prefix removed,
-	// and the fonts both UIs use
-	PublicHandler  http.Handler
 	V1ApiHandler   http.Handler
 	WebsocketProxy http.Handler
 	// UIHandler serves the Svelte UI at every path the others do not take
@@ -36,19 +33,6 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		req.URL.Path = path
 		req.Body = http.MaxBytesReader(res, req.Body, maxBodyBytes)
 		h.V1ApiHandler.ServeHTTP(res, req)
-	case "fonts":
-		// the font files are named for their face and never change
-		// in place; embedded files carry no modification time, so
-		// without this the browser fetches them on every use
-		res.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-		h.PublicHandler.ServeHTTP(res, req)
-	case "old":
-		// the Elm UI routes /old/sign-in in the browser
-		if path == "/sign-in" {
-			path = "/"
-		}
-		req.URL.Path = path
-		h.PublicHandler.ServeHTTP(res, req)
 	default:
 		headerUpgrade := req.Header["Upgrade"]
 		if req.URL.Path == "/" && h.WebsocketProxy != nil &&
@@ -64,15 +48,10 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// importMapHash is the SHA-256 of the import map in the Elm UI's index.html,
-// the one inline script the page has. The content security policy allows
-// it by hash; a test checks the hash against the embedded file.
-const importMapHash = "sha256-EkMpvz/rx+j836ZrgR3u9tCkTtFnW1WP7NuO2bQE368="
-
 // contentSecurityPolicy is the policy for a page whose scripts are the ones
-// scriptSrc allows. It allows what the UIs are built from: their own
-// scripts, styles (the Elm UI sets styles inline) and fonts, and a
-// WebSocket back to the server; and refuses to be framed.
+// scriptSrc allows. It allows what the UI is built from: its own scripts,
+// styles and fonts, and a WebSocket back to the server; and refuses to be
+// framed.
 func contentSecurityPolicy(scriptSrc string) string {
 	return "default-src 'self'; " +
 		"script-src " + scriptSrc + "; " +
@@ -86,10 +65,10 @@ func contentSecurityPolicy(scriptSrc string) string {
 }
 
 // setSecurityHeaders puts the response headers every reply carries. The
-// policy allows the Elm UI's import map; the Svelte UI replaces it with
-// its own (see uiHandler).
+// UI replaces the policy with one that allows its page script (see
+// uiHandler).
 func setSecurityHeaders(h http.Header) {
-	h.Set("Content-Security-Policy", contentSecurityPolicy("'self' '"+importMapHash+"'"))
+	h.Set("Content-Security-Policy", contentSecurityPolicy("'self'"))
 	h.Set("X-Content-Type-Options", "nosniff")
 	h.Set("X-Frame-Options", "DENY")
 	h.Set("Referrer-Policy", "same-origin")
@@ -114,7 +93,6 @@ func NewAppHandler(args ServerArgs) http.Handler {
 	}
 
 	app := &App{
-		PublicHandler:  http.FileServer(args.Filesystem),
 		V1ApiHandler:   v1,
 		WebsocketProxy: wsProxy,
 	}
@@ -126,8 +104,7 @@ func NewAppHandler(args ServerArgs) http.Handler {
 
 // ServerArgs can be used to pass arguments to the server subsystem
 type ServerArgs struct {
-	Port       string
-	Filesystem http.FileSystem
+	Port string
 	// UIFilesystem holds the build of the Svelte UI
 	UIFilesystem fs.FS
 	// UIDev is set when UIFilesystem is a directory being rebuilt

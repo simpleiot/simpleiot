@@ -28,7 +28,7 @@
 		"globals": "^17.13.0",
 		"prettier": "^3.9.10",
 		"prettier-plugin-svelte": "^4.1.1",
-		"simpleiot-js": "file:../frontend/lib",
+		"simpleiot-js": "file:../js/simpleiot-js",
 		"svelte": "^5.57.2",
 		"svelte-check": "^4.7.7",
 		"typescript": "~6.0",

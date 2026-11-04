@@ -13,12 +13,12 @@ func TestFontsAreCacheable(t *testing.T) {
 		"fonts/a.css":  {Data: []byte("@font-face{}")},
 		"fonts/a.woff": {Data: []byte("x")},
 	}
-	app := &App{PublicHandler: http.FileServer(http.FS(fsys))}
+	app := &App{UIHandler: newUIHandler(fsys, false)}
 
 	for path, want := range map[string]string{
 		"/fonts/a.css":  "public, max-age=31536000, immutable",
 		"/fonts/a.woff": "public, max-age=31536000, immutable",
-		"/old/":         "",
+		"/":             "no-cache",
 	} {
 		rec := httptest.NewRecorder()
 		app.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))

@@ -7,7 +7,6 @@ import (
 	"io/fs"
 	"log"
 	"net"
-	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -21,7 +20,6 @@ import (
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
-	"github.com/simpleiot/simpleiot/frontend"
 	"github.com/simpleiot/simpleiot/store"
 	"github.com/simpleiot/simpleiot/ui"
 )
@@ -516,33 +514,28 @@ func (s *Server) Run() error {
 	// Embedded files
 	// ====================================
 
-	var feFS fs.FS
+	// the Svelte UI, served at /
+	var uiFS fs.FS
 
 	if o.CustomUIDir != "" {
-		log.Println("Using custom frontend directory:", o.CustomUIDir)
-		feFS = os.DirFS(o.CustomUIDir)
+		log.Println("Using custom UI directory:", o.CustomUIDir)
+		uiFS = os.DirFS(o.CustomUIDir)
 	} else if o.CustomUIFS != nil {
-		feFS = o.CustomUIFS
-		if err != nil {
-			log.Fatal("Error getting frontend subtree: ", err)
-		}
+		uiFS = o.CustomUIFS
+	} else if o.Dev {
+		log.Println("SIOT HTTP Server -- using local instead of embedded files")
+		uiFS = os.DirFS("./ui/build")
 	} else {
-		if o.Dev {
-			log.Println("SIOT HTTP Server -- using local instead of embedded files")
-			feFS = os.DirFS("./frontend/public")
-		} else {
-			// remove output dir name from frontend assets filesystem
-			feFS, err = fs.Sub(frontend.Content, "public")
-			if err != nil {
-				log.Fatal("Error getting frontend subtree: ", err)
-			}
+		uiFS, err = fs.Sub(ui.Content, "build")
+		if err != nil {
+			log.Fatal("Error getting UI subtree: ", err)
 		}
 	}
 
 	var listFiles func(fs.FS, string, int) error
 
 	listFiles = func(fsys fs.FS, dir string, level int) error {
-		entries, err := fs.ReadDir(feFS, dir)
+		entries, err := fs.ReadDir(fsys, dir)
 		if err != nil {
 			return err
 		}
@@ -567,25 +560,10 @@ func (s *Server) Run() error {
 	}
 
 	if o.UIAssetsDebug {
-		log.Println("List frontend assets: ")
-		err := listFiles(feFS, ".", 0)
+		log.Println("List UI assets: ")
+		err := listFiles(uiFS, ".", 0)
 		if err != nil {
-			log.Println("Error listing frontend assets:", err)
-		}
-	}
-
-	// wrap with fs that will automatically look for and decompress gz
-	// versions of files.
-	feFSDecomp := newFsDecomp(feFS, "index.html")
-
-	// the Svelte UI, served at /
-	var uiFS fs.FS
-	if o.Dev {
-		uiFS = os.DirFS("./ui/build")
-	} else {
-		uiFS, err = fs.Sub(ui.Content, "build")
-		if err != nil {
-			log.Fatal("Error getting UI subtree: ", err)
+			log.Println("Error listing UI assets:", err)
 		}
 	}
 
@@ -593,10 +571,11 @@ func (s *Server) Run() error {
 	// HTTP API
 	// ====================================
 	httpAPI := api.NewServer(api.ServerArgs{
-		Port:               o.HTTPPort,
-		NatsWSPort:         o.NatsWSPort,
-		NatsTLSCert:        o.NatsTLSCert,
-		Filesystem:         http.FS(feFSDecomp),
+		Port:        o.HTTPPort,
+		NatsWSPort:  o.NatsWSPort,
+		NatsTLSCert: o.NatsTLSCert,
+		// wrap with fs that will automatically look for and decompress gz
+		// versions of files.
 		UIFilesystem:       newFsDecomp(uiFS, "index.html"),
 		UIDev:              o.Dev,
 		Debug:              o.DebugHTTP,

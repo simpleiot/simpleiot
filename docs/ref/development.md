@@ -50,11 +50,6 @@ following:
 These are run in a [`run-pty`](https://github.com/lydell/run-pty) wrapper, which
 allows you to see the output of each process.
 
-The old Elm UI, served at `/old` until it is removed, is not rebuilt by these
-commands. The build uses the compiled files committed in `frontend/public/dist`.
-To change it, run `siot_setup_elm` once, then `siot_build_elm` (or
-`siot_watch_elm`) and `siot_test_elm`.
-
 ## Using Simple IoT as a library
 
 Simple IoT can be used a library for your custom application. The SIOT
@@ -107,7 +102,6 @@ Please configure your editor to run code formatters:
 
 - **Go**: `goimports`
 - **Svelte and TypeScript**: `prettier`, with the `.prettierrc` in `ui/`
-- **Elm** (old UI): `elm-format`
 - **Markdown**: `prettier` (note, there is a `.prettierrc` in this project that
   configures prettier to wrap markdown to 80 characters. Whether to wrap
   markdown or not is debatable, as wrapping can make diffs harder to read, but

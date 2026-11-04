@@ -1,8 +1,0 @@
-{
-	"targets": {
-		"SIOT Frontend": {
-			"inputs": ["src/Main.elm"],
-			"output": "public/dist/elm.js"
-		}
-	}
-}

@@ -1,9 +1,7 @@
 # Frontend
 
-Two web UIs are served during the move from Elm to Svelte: the Svelte UI at `/`
-and the Elm UI at `/old`. They share one sign-in. The Elm UI will be removed in
-a later release. Both use the connection described below; this page documents
-the Svelte UI.
+The web UI is a Svelte app served at `/`. This page documents how it talks to
+Simple IoT, how its code is organized, and the JavaScript client it is built on.
 
 ## How the browser talks to Simple IoT
 
@@ -106,7 +104,7 @@ the app. See `ui/README.md` for the build, test, and dev server commands.
   second opened down to one node; `/dash` lists dashboards and `/dash/[id]`
   shows one; `/` lands on the user's home dashboard, the list, or the tree.
 - `src/lib/siot`: the client layer. `connection.ts` owns the NATS connection
-  (built on `frontend/lib`), `tree.ts` holds the pure tree code, and
+  (built on `js/simpleiot-js`), `tree.ts` holds the pure tree code, and
   `tree.svelte.ts` is the store the page reads: the tree, pending edits, and the
   node operation in progress. `http.ts` has the operations that go over HTTP,
   and `schema.ts` the point and node types, which a Go test checks against
@@ -160,7 +158,7 @@ default) limits the file size.
 
 ## SIOT JavaScript library using NATS over WebSockets
 
-[`frontend/lib`](https://github.com/simpleiot/simpleiot/tree/master/frontend/lib)
+[`js/simpleiot-js`](https://github.com/simpleiot/simpleiot/tree/master/js/simpleiot-js)
 is `simpleiot-js`, the client the web UI uses to talk to the backend over NATS
 WebSockets, and it can be used by any other JavaScript frontend. It connects as
 a signed-in user with the JWT from `POST /v1/auth`, learns which groups the user
@@ -173,9 +171,9 @@ bundles both with Vite.
 
 `codec.js` mirrors the binary point and node encoding in `data/point.go` and
 `data/node.go`. The Go test `data/point_fixture_test.go` writes fixtures into
-`frontend/lib/testdata`, and `npm test` in `frontend/lib` decodes and re-encodes
-them, so the two encoders are checked against the same bytes. Run the Go test
-with `UPDATE_FIXTURES=1` after changing the encoding.
+`js/simpleiot-js/testdata`, and `npm test` in `js/simpleiot-js` decodes and
+re-encodes them, so the two encoders are checked against the same bytes. Run the
+Go test with `UPDATE_FIXTURES=1` after changing the encoding.
 
 ## Custom UIs
 
@@ -192,7 +190,8 @@ custom web UI optimized for your products, there are several options:
 There are ways to use a custom UI with SIOT at the app and package level:
 
 1. **Application:** pass a directory containing your public web assets to the
-   app using: `siot serve -customUIDir <your web assets>`
+   app using: `siot serve -customUIDir <your web assets>`. The directory
+   replaces the embedded Svelte UI build and is served at `/`.
 1. **Package:** populate `CustomUIFS` with a
    [`fs.FS`](https://pkg.go.dev/io/fs#FS) in the SIOT
    [server options`](https://pkg.go.dev/github.com/simpleiot/simpleiot/server#Options).

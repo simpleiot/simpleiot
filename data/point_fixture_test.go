@@ -10,13 +10,13 @@ import (
 	"time"
 )
 
-// The JavaScript codec in frontend/lib/codec.mjs mirrors the point and
+// The JavaScript codec in js/simpleiot-js/codec.js mirrors the point and
 // node encodings here. These fixtures are what ties the two together: this
 // test writes them when UPDATE_FIXTURES is set and otherwise checks that the
 // Go encoder still produces the checked-in bytes, and the JavaScript tests
 // decode the same bytes and compare against the JSON.
 
-const fixtureDir = "../frontend/lib/testdata"
+const fixtureDir = "../js/simpleiot-js/testdata"
 
 func fixturePoints() Points {
 	t0 := time.Date(2026, 9, 1, 12, 30, 45, 123000000, time.UTC)
