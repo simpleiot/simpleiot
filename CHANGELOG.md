@@ -13,6 +13,12 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+- **A rule starts from the current value of the nodes its conditions watch.** A
+  rule that watches a switch which is already on is active as soon as it starts,
+  rather than waiting for the switch to change. Before, the switch had to be
+  turned off and on again before the rule followed it. See
+  [rules](docs/user/rules.md#node-state).
+
 - **Signing in returns to the page that asked for it.** A link to a dashboard or
   a widget's settings opened while signed out lands there after sign-in, rather
   than on the home page.

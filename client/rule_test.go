@@ -81,6 +81,12 @@ func (rts *ruleTestServer) sendPoint(id string, point data.Point) {
 }
 
 func setupRuleTest(t *testing.T, numConditions int) (ruleTestServer, error) {
+	return setupRuleTestWithInput(t, numConditions, 0)
+}
+
+// setupRuleTestWithInput is setupRuleTest with the input variable already
+// at vinValue when the rule is created, for the rule to find on start.
+func setupRuleTestWithInput(t *testing.T, numConditions int, vinValue float64) (ruleTestServer, error) {
 
 	var r ruleTestServer
 	var err error
@@ -102,6 +108,15 @@ func setupRuleTest(t *testing.T, numConditions int) (ruleTestServer, error) {
 	err = client.SendNodeType(r.nc, r.vin, "test")
 	if err != nil {
 		return r, fmt.Errorf("Error sending vin node: %w", err)
+	}
+
+	if vinValue != 0 {
+		p := data.NewPointFloat(data.PointTypeValue, "", vinValue)
+		p.Origin = "test"
+		err = client.SendNodePoint(r.nc, r.vin.ID, p, true)
+		if err != nil {
+			return r, fmt.Errorf("Error sending vin value: %w", err)
+		}
 	}
 
 	r.vout = client.Variable{
@@ -247,6 +262,46 @@ func TestRule(t *testing.T) {
 	// clear vin and look for vout to change
 	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
 	r.checkVout(0, "look for vout to clear", "0")
+}
+
+// TestRuleStartsFromCurrentValue creates the rule after its input is
+// already on. The rule reads the input when it starts, so it is active
+// without waiting for the input to change, and it follows the input from
+// there.
+func TestRuleStartsFromCurrentValue(t *testing.T) {
+	r, err := setupRuleTestWithInput(t, 1, 1)
+	if err != nil {
+		t.Fatal("Rule test setup failed: ", err)
+	}
+
+	defer r.stop()
+	defer r.voutStop()
+
+	ruleGet, ruleStop, err := client.NodeWatcher[client.Rule](r.nc, r.r.ID, r.r.Parent)
+	if err != nil {
+		t.Fatal("Error watching rule: ", err)
+	}
+	defer ruleStop()
+
+	waitActive := func(expected bool, msg string) {
+		start := time.Now()
+		for ruleGet().Active != expected {
+			if time.Since(start) > time.Second {
+				t.Fatalf("rule active is not %v: %v", expected, msg)
+			}
+			<-time.After(time.Millisecond * 10)
+		}
+	}
+
+	waitActive(true, "active from the input's current value")
+
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 0))
+	waitActive(false, "inactive after the input clears")
+	r.checkVout(0, "inactive action ran", "0")
+
+	r.sendPoint(r.vin.ID, data.NewPointFloat(data.PointTypeValue, "", 1))
+	waitActive(true, "active after the input is set")
+	r.checkVout(1, "active action ran", "0")
 }
 
 /*

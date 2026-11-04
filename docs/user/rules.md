@@ -80,6 +80,12 @@ value/text fields for a number of conditions including:
 - text: `=`, `!=`, `contains`
 - boolean: `on`, `off`
 
+A condition that names a node starts from that node's current points, so a rule
+takes the state it finds when it starts rather than waiting for the node's next
+change. A rule watching a switch that is already on is active as soon as it
+starts, and a rule created by an import follows its switches from the first
+change.
+
 ### Schedule
 
 Rule conditions can be driven by a schedule that is composed of:
