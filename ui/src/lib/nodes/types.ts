@@ -41,9 +41,10 @@ export interface EditorProps {
 	generatedToken: GeneratedToken | null
 	// findNode looks up a node on the page by ID
 	findNode: (id: string) => Node | undefined
-	// searchNodes finds nodes by description on the server, and
+	// searchNodes finds nodes by description on the server, of one type
+	// when given, and
 	// resolveNode fetches one by ID that may not be on the page
-	searchNodes: (query: string) => Promise<NodeMatch[]>
+	searchNodes: (query: string, type?: string) => Promise<NodeMatch[]>
 	resolveNode: (id: string) => Promise<Node | undefined>
 	// onEditPoints records edits to save; onSendPoints sends points at once
 	onEditPoints: (points: Point[]) => void

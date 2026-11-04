@@ -58,7 +58,7 @@
 		scratch: store.scratch,
 		generatedToken: store.generatedToken,
 		findNode: (id: string) => store.findNode(id),
-		searchNodes: (query: string) => store.searchNodes(query),
+		searchNodes: (query: string, type?: string) => store.searchNodes(query, 20, type),
 		resolveNode: (id: string) => store.resolveNode(id),
 		onEditPoints: (points: Point[]) => {
 			store.editPoints(t.key, points)

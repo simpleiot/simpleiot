@@ -4,7 +4,7 @@
 	import NodeRefInput from "#lib/inputs/NodeRefInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
 	import { blankMagicValue, getText, type Point } from "#lib/siot/point.ts"
-	import { PointType } from "#lib/siot/schema.ts"
+	import { NodeType, PointType } from "#lib/siot/schema.ts"
 	import type { EditorProps } from "../types.ts"
 	import Scope from "./Scope.svelte"
 	import UserIcon from "@lucide/svelte/icons/user"
@@ -40,7 +40,7 @@
 	<NodeRefInput
 		type={PointType.HomeDashboard}
 		label="Home dashboard"
-		search={props.searchNodes}
+		search={(query: string) => props.searchNodes(query, NodeType.Dashboard)}
 		resolve={props.resolveNode}
 		findNode={props.findNode}
 	/>

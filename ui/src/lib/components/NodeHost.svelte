@@ -56,7 +56,7 @@
 					scratch,
 					generatedToken: null,
 					findNode: (nodeId: string) => store.findNode(nodeId) ?? store.liveNodes.get(nodeId),
-					searchNodes: (query: string) => store.searchNodes(query),
+					searchNodes: (query: string, type?: string) => store.searchNodes(query, 20, type),
 					resolveNode: (nodeId: string) => store.resolveNode(nodeId),
 					onEditPoints: (points: Point[]) => {
 						pending = updatePoints(pending, points)

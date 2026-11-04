@@ -10,7 +10,7 @@
 	import { inputContext, editTime } from "#lib/inputs/context.ts"
 	import { pointKeys, pointTypes, type Node } from "#lib/siot/node.ts"
 	import { getText, newText, newTombstone } from "#lib/siot/point.ts"
-	import { PointType } from "#lib/siot/schema.ts"
+	import { NodeType, PointType } from "#lib/siot/schema.ts"
 	import type { NodeMatch } from "#lib/siot/search.ts"
 	import { pathBelow } from "../dashboard/paths.ts"
 	import type { EditorProps } from "../types.ts"
@@ -27,6 +27,14 @@
 	} = $props()
 
 	const ctx = inputContext()
+
+	// a binding reads a node's points, which a dashboard, widget, or link
+	// has none of; the nested dashboard's binding wants dashboards alone
+	const layoutTypes: readonly string[] = [NodeType.Dashboard, NodeType.Widget, NodeType.Link]
+	const search = (query: string) =>
+		name === "dashboard"
+			? props.searchNodes(query, NodeType.Dashboard)
+			: props.searchNodes(query).then((m) => m.filter((x) => !layoutTypes.includes(x.type)))
 	const points = $derived(props.node.points)
 	const nodeId = $derived(getText(points, PointType.BindNode, name))
 	const path = $derived(getText(points, PointType.BindPath, name))
@@ -64,7 +72,7 @@
 	type={PointType.BindNode}
 	key={name}
 	label="{name} node"
-	search={props.searchNodes}
+	{search}
 	resolve={props.resolveNode}
 	findNode={props.findNode}
 	suggest={props.copy}
