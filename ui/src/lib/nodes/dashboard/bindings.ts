@@ -45,6 +45,30 @@ export function bindingPaths(widget: Node): string[] {
 	return live(widget.points, PointType.BindPath).map((p) => p.text)
 }
 
+// writeTargets picks the bindings a widget may write through: those that
+// read the value of a node whose type accepts writes, unless the widget's
+// control option is off. The target is the node's write point under the
+// binding's key.
+export function writeTargets(
+	bindings: Readonly<Record<string, Binding>>,
+	lookup: (id: string) => Node | undefined,
+	writeTypeOf: (nodeType: string) => string | undefined,
+	options: Readonly<Record<string, string>>
+): Record<string, Binding> {
+	const out: Record<string, Binding> = {}
+	if (options.control === "off") {
+		return out
+	}
+	for (const [prop, b] of Object.entries(bindings)) {
+		const n = lookup(b.nodeId)
+		const type = n ? writeTypeOf(n.type) : undefined
+		if (n && type !== undefined && b.type === PointType.Value) {
+			out[prop] = { nodeId: b.nodeId, type, key: b.key }
+		}
+	}
+	return out
+}
+
 // boundNodeIds lists the nodes a set of bindings reads, once each.
 export function boundNodeIds(bindings: Readonly<Record<string, Binding>>): string[] {
 	return [...new Set(Object.values(bindings).map((b) => b.nodeId))]
@@ -118,6 +142,8 @@ export interface Placed {
 	options: Record<string, string>
 	layout: Layout
 	ports: MimicPort[]
+	// writes are the bindings the widget may write through, as controls
+	writes: Record<string, Binding>
 	// nested is the dashboard a nested-dashboard widget shows
 	nested?: string
 	// ancestors are the dashboards this one is drawn inside, outermost first

@@ -15,7 +15,13 @@
 	import IconButton from "#lib/components/IconButton.svelte"
 	import NodeHost from "#lib/components/NodeHost.svelte"
 	import { isTombstone, type Node } from "#lib/siot/node.ts"
-	import { getBestDesc, getText, newText, newValue } from "#lib/siot/point.ts"
+	import {
+		getBestDesc,
+		getText,
+		newText,
+		newValue,
+		type Point as SiotPoint,
+	} from "#lib/siot/point.ts"
 	import { NodeType, PointType, PointValue } from "#lib/siot/schema.ts"
 	import type { Point } from "#lib/vendor/nautilus/mimic.ts"
 	import { store } from "#lib/siot/store.ts"
@@ -31,7 +37,15 @@
 	import Dashboard from "./Dashboard.svelte"
 	import { nextRow } from "./gridMath.ts"
 
-	let { id }: { id: string } = $props()
+	let {
+		id,
+		select = "",
+	}: {
+		id: string
+		// select opens edit mode with this widget or link selected, from a
+		// link to /dash/<id>/<widget>
+		select?: string
+	} = $props()
 
 	const kiosk = $derived(page.url.searchParams.has("kiosk"))
 	const breakpoint = 900
@@ -71,6 +85,25 @@
 		if (selected !== "" && !childIds.includes(selected)) {
 			selected = ""
 		}
+		// a link to a widget opens its panel once
+		if (select !== "" && applied !== select && childIds.includes(select)) {
+			applied = select
+			edit = true
+			selected = select
+		}
+	}
+	let applied = ""
+
+	// the address follows the selection, so a widget's settings can be
+	// linked to
+	function choose(w: string) {
+		selected = selected === w ? "" : w
+		void goto(
+			selected === ""
+				? resolve("/dash/[id]", { id })
+				: resolve("/dash/[id]/[widget]", { id, widget: selected }),
+			{ shallow: true, replace: true }
+		)
 	}
 
 	$effect(() => {
@@ -165,7 +198,7 @@
 		const added = await store.addChild(id, NodeType.Widget, place)
 		if (added) {
 			await load(id)
-			selected = added
+			choose(added)
 		}
 	}
 
@@ -181,7 +214,7 @@
 		])
 		if (added) {
 			await load(id)
-			selected = added
+			choose(added)
 		}
 	}
 
@@ -259,7 +292,9 @@
 						aria-pressed={edit}
 						onclick={() => {
 							edit = !edit
-							selected = ""
+							if (selected !== "") {
+								choose(selected)
+							}
 						}}>{edit ? "done" : "edit"}</button
 					>
 					{#if edit}
@@ -277,12 +312,13 @@
 						{resolvePath}
 						{edit}
 						{selected}
-						onSelect={(w: string) => (selected = selected === w ? "" : w)}
+						onSelect={choose}
 						onOpen={open}
 						{onLayout}
 						onLink={(from: { equip: string; port: string }, to: { equip: string; port: string }) =>
 							void addLink(from, to)}
 						{onVertex}
+						onWrite={(nodeId: string, point: SiotPoint) => void store.sendPoints(nodeId, [point])}
 					/>
 				</div>
 				{#if edit}

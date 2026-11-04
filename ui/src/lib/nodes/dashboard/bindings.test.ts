@@ -10,6 +10,7 @@ import {
 	resolveBindings,
 	widgetLayout,
 	widgetOptions,
+	writeTargets,
 } from "./bindings.ts"
 
 const widget: Node = {
@@ -77,6 +78,27 @@ describe("bindings", () => {
 		})
 		expect(r.setpoint?.state).toBe("stale")
 		expect(resolveBindings(parseBindings(widget), () => undefined).value?.state).toBe("dead")
+	})
+
+	test("write targets follow the bound node's type unless control is off", () => {
+		const nodes: Record<string, Node> = {
+			n1: { id: "n1", type: "variable", parent: "d", points: [], edgePoints: [] },
+			n2: { id: "n2", type: "variable", parent: "d", points: [], edgePoints: [] },
+		}
+		const writeTypeOf = (t: string) => (t === "variable" ? "value" : undefined)
+		const w = writeTargets(parseBindings(widget), (id) => nodes[id], writeTypeOf, {})
+		expect(w).toEqual({ value: { nodeId: "n1", type: "value", key: "0" } })
+		expect(
+			writeTargets(parseBindings(widget), (id) => nodes[id], writeTypeOf, { control: "off" })
+		).toEqual({})
+		expect(
+			writeTargets(
+				parseBindings(widget),
+				(id) => nodes[id],
+				() => undefined,
+				{}
+			)
+		).toEqual({})
 	})
 
 	test("options skip deleted points and layout fills defaults", () => {

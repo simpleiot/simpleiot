@@ -3,6 +3,7 @@
 	// spanning its place. Below the breakpoint it becomes one column in
 	// tree order. In edit mode a widget is dragged by its body and resized
 	// by its corner, and the new place is reported when the pointer lifts.
+	import type { Point } from "#lib/siot/point.ts"
 	import type { Layout, Placed } from "./bindings.ts"
 	import { cellDelta, metrics, moved, sameLayout } from "./gridMath.ts"
 	import WidgetFrame from "./WidgetFrame.svelte"
@@ -15,6 +16,7 @@
 		onSelect,
 		onOpen,
 		onLayout,
+		onWrite,
 	}: {
 		cols: number
 		placed: readonly Placed[]
@@ -25,6 +27,7 @@
 		// onOpen is a tap on a widget in view mode
 		onOpen?: (p: Placed) => void
 		onLayout?: (id: string, layout: Layout) => void
+		onWrite?: (nodeId: string, point: Point) => void
 	} = $props()
 
 	let gridEl: HTMLDivElement | undefined = $state()
@@ -120,11 +123,23 @@
 					onpointercancel={up}
 				></div>
 			{:else if onOpen}
-				<button class="open" type="button" onclick={() => onOpen(p)} aria-label="Open {p.label}">
-					<WidgetFrame {p} />
-				</button>
+				<!-- a div, not a button, since a widget may hold controls of its own -->
+				<div
+					class="open"
+					role="button"
+					tabindex="0"
+					aria-label="Open {p.label}"
+					onclick={() => onOpen(p)}
+					onkeydown={(e) => {
+						if (e.key === "Enter" && e.target === e.currentTarget) {
+							onOpen(p)
+						}
+					}}
+				>
+					<WidgetFrame {p} {onWrite} />
+				</div>
 			{:else}
-				<WidgetFrame {p} />
+				<WidgetFrame {p} {onWrite} />
 			{/if}
 		</div>
 	{/each}

@@ -4,7 +4,7 @@
 	// dashboard that contains itself, however far down, stops here.
 	import { untrack } from "svelte"
 	import { isTombstone, type Node } from "#lib/siot/node.ts"
-	import { getBestDesc } from "#lib/siot/point.ts"
+	import { getBestDesc, type Point } from "#lib/siot/point.ts"
 	import { store } from "#lib/siot/store.ts"
 	import { boundNodeIds, parseBindings } from "./bindings.ts"
 	import Dashboard from "./Dashboard.svelte"
@@ -76,7 +76,13 @@
 		<p class="muted">Dashboard {id} was not found.</p>
 	{:else if dashboard}
 		<div class="title">{getBestDesc(dashboard.points)}</div>
-		<Dashboard {dashboard} {children} {lookup} ancestors={[...ancestors, id]} />
+		<Dashboard
+			{dashboard}
+			{children}
+			{lookup}
+			ancestors={[...ancestors, id]}
+			onWrite={(nodeId: string, point: Point) => void store.sendPoints(nodeId, [point])}
+		/>
 	{:else}
 		<p class="muted">Loading...</p>
 	{/if}

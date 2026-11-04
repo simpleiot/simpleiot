@@ -40,7 +40,8 @@ For more details or to discuss releases, please visit the
   one dashboard mirrored under several devices shows each device's nodes, and a
   nested dashboard component shows one dashboard inside another. See
   [dashboards](docs/user/dashboards.md). `testdata/dashboard-demo.yaml` is a
-  demo to import.
+  demo to import. A status widget on an on/off variable is a switch, and a value
+  widget on a variable or an output is a setting with an edit box.
 - **Configuration files resolve dashboard references by description.** A
   widget's `bindNode` points and a user's `homeDashboard` name their node by
   description, as `nodeID` does, and export the same way.

@@ -72,8 +72,15 @@ test("a dashboard shows a widget bound to a variable", async ({ page }) => {
 	await expect(page.getByText("42.5")).toBeVisible()
 	await expect(page.getByText("Level", { exact: true })).toBeVisible()
 
+	// the tile is a control: a click opens an edit box, and Enter writes
+	await page.getByRole("button", { name: "Edit Level" }).click()
+	const box = page.getByRole("spinbutton", { name: "Set Level" })
+	await box.fill("50")
+	await box.press("Enter")
+	await expect(page.getByText("50.0")).toBeVisible()
+
 	// edit mode adds a widget and opens its settings
-	await page.getByRole("button", { name: "edit" }).click()
+	await page.getByRole("button", { name: "edit", exact: true }).click()
 	await page.getByRole("button", { name: "add widget" }).click()
 	const panel = page.getByRole("complementary", { name: "Widget settings" })
 	await expect(panel.getByLabel("Label")).toBeVisible()
@@ -81,7 +88,15 @@ test("a dashboard shows a widget bound to a variable", async ({ page }) => {
 	await panel.getByRole("button", { name: "save" }).click()
 	await expect(panel.getByRole("button", { name: "save" })).toBeHidden()
 	await expect(page.locator("main").getByText("Second", { exact: true }).first()).toBeVisible()
+
+	// the address names the selected widget, and opens its panel again
+	await expect(page).toHaveURL(/\/dash\/[\w-]+\/[\w-]+$/)
+	await page.reload()
+	await expect(
+		page.getByRole("complementary", { name: "Widget settings" }).getByLabel("Label")
+	).toHaveValue("Second")
 	await page.getByRole("button", { name: "done" }).click()
+	await expect(page).toHaveURL(/\/dash\/[\w-]+$/)
 
 	await page.getByRole("link", { name: "Dashboards" }).click()
 	await expect(page.locator(`main a[href="${href}"]`)).toHaveText("Lift station")

@@ -21,6 +21,13 @@ export interface Bound {
 	time: string
 }
 
+// Write is what a control asks to send: a number, or text when text is
+// not empty.
+export interface Write {
+	value: number
+	text: string
+}
+
 export interface WidgetProps {
 	label: string
 	// values holds one entry per binding the widget declares
@@ -30,6 +37,9 @@ export interface WidgetProps {
 	options: Readonly<Record<string, string>>
 	// width is the rendered width in canvas units, on a canvas
 	width?: number
+	// onWrite is set when the bound node accepts writes, and makes the
+	// widget a control: it sends a value for one of its bindings
+	onWrite?: (prop: string, write: Write) => void
 }
 
 export interface WidgetDescriptor {

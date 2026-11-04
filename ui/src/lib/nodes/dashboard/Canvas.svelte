@@ -22,6 +22,7 @@
 		type EquipmentBox,
 		type Point,
 	} from "#lib/vendor/nautilus/mimic.ts"
+	import type { Point as SiotPoint } from "#lib/siot/point.ts"
 	import type { Layout, Placed, PlacedLink } from "./bindings.ts"
 	import { canvasDelta, fitScale, toCanvas, zoomAt, type View } from "./canvasMath.ts"
 	import Grid from "./Grid.svelte"
@@ -39,6 +40,7 @@
 		onLayout,
 		onLink,
 		onVertex,
+		onWrite,
 	}: {
 		width: number
 		height: number
@@ -53,6 +55,7 @@
 		onLink?: (from: { equip: string; port: string }, to: { equip: string; port: string }) => void
 		// onVertex reports a moved vertex of a link
 		onVertex?: (id: string, index: number, point: Point) => void
+		onWrite?: (nodeId: string, point: SiotPoint) => void
 	} = $props()
 
 	// ---- the frame and the view
@@ -355,7 +358,7 @@
 </script>
 
 {#if narrow}
-	<Grid cols={1} placed={cards} {edit} {selected} {onSelect} {onOpen} />
+	<Grid cols={1} placed={cards} {edit} {selected} {onSelect} {onOpen} {onWrite} />
 {:else}
 	<div class="canvas-host">
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -431,16 +434,23 @@
 						onpointercancel={up}
 					>
 						{#if edit || !onOpen}
-							<WidgetFrame {p} bare />
+							<WidgetFrame {p} bare onWrite={edit ? undefined : onWrite} />
 						{:else}
-							<button
+							<!-- a div, not a button, since a widget may hold controls of its own -->
+							<div
 								class="open"
-								type="button"
-								onclick={() => onOpen(p)}
+								role="button"
+								tabindex="0"
 								aria-label="Open {p.label}"
+								onclick={() => onOpen(p)}
+								onkeydown={(e) => {
+									if (e.key === "Enter" && e.target === e.currentTarget) {
+										onOpen(p)
+									}
+								}}
 							>
-								<WidgetFrame {p} bare />
-							</button>
+								<WidgetFrame {p} bare {onWrite} />
+							</div>
 						{/if}
 						{#if edit}
 							{#each p.ports as port (port.name)}

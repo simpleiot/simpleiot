@@ -20,7 +20,8 @@ on a narrow one.
    reads by typing its description in the node field, then the point type and
    key if the default `value` is not what you want. Drag a widget by its body to
    move it and by its corner to resize it; the place is saved when you let go.
-   Press **done** to leave edit mode.
+   Press **done** to leave edit mode. The address follows the selected widget,
+   `/dash/<dashboard>/<widget>`, so a link opens that widget's settings.
 3. Leave the component on **auto** to show the node the usual way for its type,
    or pick one:
 
@@ -73,6 +74,18 @@ of the widget's box, where `dir` is `left`, `right`, `up`, or `down`.
 A widget whose node cannot be found draws with a dashed border and shows no
 value. A dashboard synced to a device that lacks some of the nodes still shows
 its shape.
+
+## Controls
+
+A widget bound to a node that accepts a new value is a control. A status pill on
+an on/off variable is a switch: click it to flip the state. A value tile on a
+number or text variable is a setting: click the value for an edit box, and Enter
+sends it. Clicking elsewhere on the card still opens the node behind it.
+
+Which nodes accept writes, and on which point, is part of each node type: a
+variable takes the value itself, and an output such as a Modbus IO or a GPIO
+takes a set request. Set the `control` option to `off` on a widget that should
+only show.
 
 ## Relative bindings
 

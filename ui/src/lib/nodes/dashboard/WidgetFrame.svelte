@@ -2,14 +2,45 @@
 	// WidgetFrame is the card around a widget: the component when the
 	// registry has it, a placeholder naming it when not, and a mark when a
 	// binding is dead so a dashboard synced to a device missing the node
-	// still shows its shape.
+	// still shows its shape. A widget whose bound node accepts writes gets
+	// an onWrite, and acts as a control.
+	import { newText, newValue, type Point } from "#lib/siot/point.ts"
+	import type { Write } from "#lib/widgets/registry.ts"
 	import type { Placed } from "./bindings.ts"
 	import NestedDashboard from "./NestedDashboard.svelte"
 
-	let { p, bare = false }: { p: Placed; bare?: boolean } = $props()
+	let {
+		p,
+		bare = false,
+		onWrite,
+	}: {
+		p: Placed
+		bare?: boolean
+		// onWrite sends a point to a node, for the widget's controls
+		onWrite?: (nodeId: string, point: Point) => void
+	} = $props()
 
 	const dead = $derived(Object.values(p.values).some((v) => v.state === "dead"))
 	const C = $derived(p.descriptor?.component)
+
+	// a write from the widget goes to the target its binding names
+	const write = $derived(
+		onWrite && Object.keys(p.writes).length > 0
+			? (prop: string, w: Write) => {
+					const target = p.writes[prop]
+					if (!target) {
+						return
+					}
+					const t = new Date().toISOString()
+					onWrite(
+						target.nodeId,
+						w.text !== ""
+							? newText(target.type, target.key, w.text, t)
+							: newValue(target.type, target.key, w.value, t)
+					)
+				}
+			: undefined
+	)
 </script>
 
 <div class="frame" class:bare class:dead title={dead ? "a bound node was not found" : undefined}>
@@ -21,6 +52,7 @@
 			values={p.values}
 			options={p.options}
 			width={bare ? p.layout.w : undefined}
+			onWrite={write}
 		/>
 	{:else}
 		<div class="unknown">

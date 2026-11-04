@@ -8,7 +8,8 @@
 	import { widgets } from "#lib/widgets/index.ts"
 	import { autoWidget, fallbackWidget, withDefaults } from "#lib/widgets/registry.ts"
 	import { registry } from "../index.ts"
-	import type { Point } from "#lib/vendor/nautilus/mimic.ts"
+	import type { Point as PointXY } from "#lib/vendor/nautilus/mimic.ts"
+	import type { Point } from "#lib/siot/point.ts"
 	import {
 		parseBindings,
 		parseLink,
@@ -16,6 +17,7 @@
 		resolveBindings,
 		widgetLayout,
 		widgetOptions,
+		writeTargets,
 		type Layout,
 		type Placed,
 	} from "./bindings.ts"
@@ -33,6 +35,7 @@
 		onLayout,
 		onLink,
 		onVertex,
+		onWrite,
 		resolvePath = () => undefined,
 		ancestors = [],
 	}: {
@@ -50,7 +53,9 @@
 		onOpen?: (p: Placed) => void
 		onLayout?: (id: string, layout: Layout) => void
 		onLink?: (from: { equip: string; port: string }, to: { equip: string; port: string }) => void
-		onVertex?: (id: string, index: number, point: Point) => void
+		onVertex?: (id: string, index: number, point: PointXY) => void
+		// onWrite sends a point to a node, for the widgets that are controls
+		onWrite?: (nodeId: string, point: Point) => void
 	} = $props()
 
 	// componentOf picks the widget for a node: its component, or for
@@ -91,13 +96,15 @@
 				const defaults = canvas
 					? { x: 20, y: 20, w: descriptor?.width ?? 160, h: 80 }
 					: { x: 0, y: 0, w: 3, h: 2 }
+				const options = descriptor ? withDefaults(descriptor, widgetOptions(w)) : widgetOptions(w)
 				return {
 					node: w,
 					label: own !== "" ? own : bound ? getBestDesc(bound.points) : "",
 					component,
 					descriptor,
 					values: resolveBindings(bindings, lookup),
-					options: descriptor ? withDefaults(descriptor, widgetOptions(w)) : widgetOptions(w),
+					options,
+					writes: writeTargets(bindings, lookup, (t) => registry.get(t)?.writeType, options),
 					layout: widgetLayout(w, defaults),
 					ports: parsePorts(w, descriptor?.ports),
 					...(component === nestedWidget && first ? { nested: first.nodeId } : {}),
@@ -127,7 +134,8 @@
 		{onLayout}
 		{onLink}
 		{onVertex}
+		{onWrite}
 	/>
 {:else}
-	<Grid {cols} {placed} {edit} {selected} {onSelect} {onOpen} {onLayout} />
+	<Grid {cols} {placed} {edit} {selected} {onSelect} {onOpen} {onLayout} {onWrite} />
 {/if}

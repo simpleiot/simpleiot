@@ -26,6 +26,10 @@ export interface NodeTypeDescriptor {
 	// widget names the dashboard widget that shows a node of this type
 	// when a widget's component is "auto"
 	widget?: string
+	// writeType is the point type a node of this type accepts a new value
+	// on, when it does: the value itself for a variable, a set request for
+	// an output. A dashboard widget bound to such a node is a control.
+	writeType?: string
 }
 
 export function defineNodeType(d: NodeTypeDescriptor): NodeTypeDescriptor {

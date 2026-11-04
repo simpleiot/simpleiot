@@ -1,5 +1,5 @@
 import Io from "#lib/icons/Io.svelte"
-import { NodeType } from "#lib/siot/schema.ts"
+import { NodeType, PointType } from "#lib/siot/schema.ts"
 import { defineNodeType } from "../registry.ts"
 import Editor from "./Editor.svelte"
 
@@ -11,4 +11,5 @@ export default defineNodeType({
 	ownedBy: NodeType.Modbus,
 	editor: Editor,
 	widget: "value",
+	writeType: PointType.ValueSet,
 })
