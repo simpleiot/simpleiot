@@ -15,6 +15,8 @@ the file UI is implemented.
 If the `Binary` option is selected, the data is base64 encoded before it is
 transmitted and stored.
 
+![a file node](images/file.png)
+
 ## Schema
 
 The configuration of a file node:

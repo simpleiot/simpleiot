@@ -435,6 +435,8 @@ gets a `provisioningFile` child carrying its name, the checksum of what was
 applied, and the last error if it failed. An uploaded file records the same
 thing on the file node itself, so a file and its status are one node in the UI.
 
+![provisioning status in the tree](images/provisioning.png)
+
 Removing a file from the directory removes its status. The nodes it created stay
 where they are: provisioning describes what should exist, and does not own what
 it made. Use a `delete` list to remove nodes.

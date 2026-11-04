@@ -77,6 +77,8 @@ attribute, which usually needs the same rule.
 
 ## Configuration
 
+![an iio node and one of its channels](images/iio.png)
+
 The device node:
 
 | Field                   | Values                                   | Description                                   |

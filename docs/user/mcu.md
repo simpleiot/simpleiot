@@ -21,8 +21,7 @@ Files (or larger chunks of data) can be downloaded to the MCU by adding a
 [File](file.md) node to the serial node. Any child File node will then show up
 as a download option.
 
-​
-<img src="assets/image-20240903123623959.png" alt="image-20240903123623959" style="zoom:50%;" />
+![serial node with a file to download](images/serial-fw-update.png)
 
 ## Protocols
 

@@ -15,7 +15,7 @@ Below is a screen-shot of the generated data displayed in Grafana.
 
 The signal generated can be configured with the following parameters:
 
-<img src="./assets/image-20231106151540546.png" alt="image-20231106151540546" style="zoom:50%;" />
+![signal generator configuration](images/signal-generator.png)
 
 Most of the parameters are self-explanatory. With a Random Walk, you typically
 need to enter a negative number for the minimum. Increment as shown above. This

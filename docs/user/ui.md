@@ -152,11 +152,11 @@ If a node is expanded, a raw node button is available that allows you to view
 the raw type and points for any node in the tree. It is useful at times during
 development and debugging to be able to view the raw points for a node.
 
-<img src="assets/image-20231205121809598.png" alt="image-20231205121809598" style="zoom:80%;" />
+![node toolbar with the raw button](images/node-ops.png)
 
 After the raw button is pressed, the type and points are displayed:
 
-<img src="./assets/image-20231219103344798.png" alt="image-20231219103344798" style="zoom:67%;" />
+![raw view of a node](images/node-raw.png)
 
 Unknown nodes will also be displayed as raw nodes.
 
@@ -166,7 +166,7 @@ A custom node type can also be added by specifying the node type when adding a
 node. This can be useful when developing new clients or external clients that
 run outside of the SImple IoT application.
 
-<img src="./assets/image-20231219103622737.png" alt="image-20231219103622737" style="zoom: 50%;" />
+![adding a node with a custom type](images/node-add-custom.png)
 
 ## Graphing and dashboards
 

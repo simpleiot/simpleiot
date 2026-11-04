@@ -205,7 +205,7 @@ query `points_value` with MetricsQL. See the
 Point data can also be stored in an InfluxDB 2.x database by adding a Database
 node:
 
-<img src="assets/image-20240319111031186.png" alt="image-20240319111031186" style="zoom:50%;" />
+![InfluxDB database node](images/influx.png)
 
 ## TimescaleDB (planned)
 
@@ -327,7 +327,7 @@ in its value. Naming a tag `machine` and setting it to `press-3` adds a `tag`
 point with key `machine` and text `press-3` to that node. The example below adds
 a machine tag to the signal generator producing the data.
 
-<img src="assets/image-20240319112828216.png" alt="image-20240319112828216" style="zoom:50%;" />
+![signal generator with a machine tag](images/signal-generator-tags.png)
 
 **Step 2: list the point type on the Database node.** The client turns a point
 into a tag only when its type appears in this list. Open the Database node, find

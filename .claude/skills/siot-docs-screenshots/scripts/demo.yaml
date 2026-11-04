@@ -1,0 +1,329 @@
+# The tree the documentation screenshots are taken from. capture.sh imports
+# it into a fresh instance with `siot import`.
+#
+# Two rules shape it. Clients only run on nodes under the root device, so
+# anything under the "SBC" device is static: its values are whatever this
+# file says, which is how hardware that is not on the build machine (Modbus
+# RTU, 1-wire, GPIO, CAN, serial, Shelly) gets plausible readings. Nodes
+# under the root run live, so the signal generators, GPS simulator, MQTT,
+# and metrics show real values.
+#
+# Every description is unique, because rules and the screenshot script
+# both find nodes by description. Negative numbers are written as floats
+# (-5.0) because the UI shows a negative integer point unsigned.
+apiVersion: 1
+root:
+  description: root
+  versionOS: "2024.11"
+  versionHW: "rev B"
+nodes:
+  - user:
+      email: admin
+      firstName: admin
+      lastName: user
+      phone: "555-0100"
+  - group:
+      description: Site 1
+      children:
+        - user:
+            firstName: Joe
+            lastName: Smith
+            email: joe@example.com
+            phone: ""
+            pass: joe
+        - device:
+            description: SBC
+            versionOS: "0.4.1"
+            versionApp: "v0.33.0"
+            versionHW: "rev B"
+            online: 1
+            children:
+              - modbus:
+                  description: Modbus client
+                  clientServer: client
+                  protocol: RTU
+                  port: /dev/ttyUSB0
+                  baud: "9600"
+                  id: 1
+                  pollPeriod: 1000
+                  timeout: 100
+                  debug: 0
+                  children:
+                    # a client IO shows "(cmd pending)" until valueSet
+                    # matches value, so both are given
+                    - modbusIo:
+                        description: Coil @ 10
+                        id: 1
+                        address: 10
+                        modbusIoType: modbusCoil
+                        value: 0
+                        valueSet: 0
+                    - modbusIo:
+                        description: Coil @ 11
+                        id: 1
+                        address: 11
+                        modbusIoType: modbusCoil
+                        value: 1
+                        valueSet: 1
+                    - modbusIo:
+                        description: Holding reg @ 100
+                        id: 1
+                        address: 100
+                        modbusIoType: modbusHoldingRegister
+                        dataFormat: int16
+                        scale: 1
+                        offset: 0
+                        value: 10
+                        valueSet: 10
+                    - modbusIo:
+                        description: Flow @ 102
+                        id: 1
+                        address: 102
+                        modbusIoType: modbusInputRegister
+                        dataFormat: float32
+                        scale: 1
+                        offset: 0
+                        units: gpm
+                        value: 56.2
+              - oneWire:
+                  description: rPI GPIO 4 1-Wire
+                  pollPeriod: 3000
+                  children:
+                    - oneWireIO:
+                        description: temp 1
+                        id: 28-0000050cbfa0
+                        units: F
+                        value: 65.07
+                    - oneWireIO:
+                        description: temp 2
+                        id: 28-0000050cd7b1
+                        units: C
+                        value: 18.5
+              - gpio:
+                  description: Door switch
+                  chip: gpiochip0
+                  line: "4"
+                  direction: input
+                  bias: pullUp
+                  activeLow: true
+                  debounce: 50
+                  pollPeriod: 100
+                  value: 1
+              - iio:
+                  description: Tank level ADC
+                  device: ads1015
+                  pollPeriod: 1000
+                  sampleFrequency: 128
+                  children:
+                    - iioChannel:
+                        description: Tank level
+                        channel: in_voltage0
+                        channelType: voltage
+                        direction: input
+                        scale: 62.5
+                        offset: -25.0
+                        units: "%"
+                        value: 63.4
+              - canBus:
+                  description: CAN Test
+                  device: vcan0
+                  bitRate: "250000"
+                  msgsInDb: 2
+                  signalsInDb: 4
+                  children:
+                    # a file node's header adds the file name itself, so
+                    # the description leaves it out
+                    - file:
+                        description: Test DB
+                        name: test.kcd
+              - serialDev:
+                  description: Serial port
+                  port: /dev/serial/by-id/usb-ZEPHYR_Zephyr_HR_1234-if00
+                  baud: "9600"
+                  maxMessageLength: 20000
+                  protocol: binary
+                  hrDest: ""
+                  debug: 0
+                  fwVersion: "1.4.0"
+                  rx: 31831
+                  tx: 32014
+                  rate: 2
+                  children:
+                    - file:
+                        description: FW Update
+                        name: zephyr.bin
+              - shelly:
+                  description: Shelly
+                  children:
+                    - shellyIo:
+                        description: Office:plug
+                        type: PlugUS
+                        deviceID: C049EF8889A0
+                        ip: 10.0.0.210
+                        switch:
+                          "0": 1
+                        controlled: true
+                        current:
+                          "0": 1.57
+                        power:
+                          "0": 115.4
+                        voltage:
+                          "0": 121.8
+                        temp:
+                          "0": 46.3
+                    - shellyIo:
+                        description: Office:Desk1
+                        type: BulbDuo
+                        deviceID: 3C6105E4A2F1
+                        ip: 10.0.0.211
+                        light:
+                          "0": 1
+                    - shellyIo:
+                        description: Garage:door-opener
+                        type: 1pm
+                        deviceID: 8CAAB5F2C4D0
+                        ip: 10.0.0.212
+                        switch:
+                          "0": 0
+              - particle:
+                  description: Particle
+                  authToken: 7f3a9c1e5b2d4f6a8c0e1b3d5f7a9c2e4b6d8f0a
+              - browser:
+                  description: Kiosk browser
+                  url: http://localhost:8080
+                  fullscreen: true
+                  rotate: "0"
+                  screenresolution: 1920x1080
+              - update:
+                  description: Update
+                  uri: http://localhost:__UPDATE_PORT__
+                  prefix: odroid-c4-hardkernel
+                  directory: /data
+                  pollPeriod: 30
+                  autoDownload: true
+                  osUpdate: ["0.3.2", "0.3.3", "0.4.0", "0.4.1", "0.4.2"]
+              - rule:
+                  description: D5 on rule
+                  children:
+                    - condition:
+                        description: D5 on
+                        conditionType: pointValue
+                        nodeID: Coil @ 11
+                        pointType: value
+                        valueType: onOff
+                        value: 1
+                    - action:
+                        description: Turn D6 on
+                        action: setValue
+                        nodeID: Coil @ 10
+                        pointType: value
+                        valueType: onOff
+                        value: 1
+        - rule:
+            description: Device offline rule
+            children:
+              - condition:
+                  description: SBC offline
+                  conditionType: pointValue
+                  nodeID: SBC
+                  pointType: online
+                  valueType: onOff
+                  value: 0
+                  minActive: 2
+              - action:
+                  description: Notify
+                  action: notify
+                  repeatInterval: 60
+        - rule:
+            description: Night shift
+            disabled: true
+            children:
+              # times are stored in UTC and shown in the browser's zone, so
+              # capture.sh runs the browser with TZ=America/New_York to show 19:00
+              # to 07:00
+              - condition:
+                  description: After hours
+                  conditionType: schedule
+                  start: "00:00"
+                  end: "12:00"
+                  weekday: [0, 1, 1, 1, 1, 1, 0]
+              - action:
+                  description: Lights on
+                  action: setValue
+                  nodeID: Coil @ 10
+                  pointType: value
+                  valueType: onOff
+                  value: 1
+  - signalGenerator:
+      description: sine wave
+      signalType: sine
+      units: V
+      minValue: -5.0
+      maxValue: 5
+      initialValue: 0
+      roundTo: 0.01
+      sampleRate: 2
+      frequency: 0.05
+      tag:
+        machine: ceres
+  - signalGenerator:
+      description: Random Walk
+      signalType: random walk
+      units: Amps
+      minValue: 0
+      maxValue: 10
+      initialValue: 4
+      roundTo: 0.1
+      sampleRate: 10
+      batchPeriod: 1000
+      minIncrement: -0.5
+      maxIncrement: 0.5
+  - gps:
+      description: Test track
+      gpsSource: sim
+      simLatitude: 41.0998
+      simLongitude: -81.5155
+      simSpeed: 12
+      simHeading: 90
+      simHeadingRate: 0.5
+      period: 1
+  - mqtt:
+      description: Plant data
+      uri: ""
+      children:
+        - mqttSub:
+            description: Tank level
+            topic: plant/line3/tank/level
+            path: $.value
+            units: cm
+  - metrics:
+      description: system
+      type: system
+      period: 5
+  - metrics:
+      description: app
+      type: app
+      period: 5
+  - metrics:
+      description: firefox proc metrics
+      type: process
+      name: firefox
+      period: 5
+  - sync:
+      description: upstream
+      uri: wss://myserver.com
+      disabled: true
+  - msgService:
+      description: Twilio SMS
+      service: twilio
+      sid: ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      authToken: 1029481alsol19029432l12
+      from: "+15555550123"
+  - db:
+      description: influx
+      dbType: influxdb
+      uri: http://ceres:8086
+      org: siot
+      bucket: siot
+      authToken: ZirQDoy0eMQ_BmW-JcXeOcq
+      tagPointType: [tag]
