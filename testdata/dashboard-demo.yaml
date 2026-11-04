@@ -11,6 +11,9 @@
 # reference is resolved across the whole tree; the label a widget shows
 # follows the bound node unless the description says otherwise.
 apiVersion: 1
+# the instance's own node, which the node picker shows as the top of a path
+root:
+  description: Demo site
 nodes:
   - group:
       description: Dashboard demo

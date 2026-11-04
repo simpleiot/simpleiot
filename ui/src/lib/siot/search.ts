@@ -4,7 +4,7 @@
 // and gives each one the path it sits on.
 
 import type { Node } from "./node.ts"
-import { getBestDesc } from "./point.ts"
+import { getBestDesc, getText } from "./point.ts"
 import { PointType } from "./schema.ts"
 
 export interface NodeMatch {
@@ -20,6 +20,13 @@ export interface NodeMatch {
 	// chain is the nodes from the one below the anchor down to the match
 	// itself, for a path relative to any of them
 	chain: { id: string; type: string; description: string }[]
+}
+
+// pathName is how an ancestor reads in a path: its description, or its
+// type when it has none, which the root device often lacks.
+export function pathName(node: Node): string {
+	const desc = getText(node.points, PointType.Description)
+	return desc !== "" ? getBestDesc(node.points) : node.type
 }
 
 // rankMatch scores a node against a query the way the store does, or -1
@@ -79,7 +86,7 @@ export function buildMatches(
 			p = byId.get(p.parent)
 		) {
 			seen.add(p.id)
-			path.unshift(getBestDesc(p.points))
+			path.unshift(pathName(p))
 			chain.unshift({ id: p.id, type: p.type, description: getBestDesc(p.points) })
 		}
 		if (anchorName !== undefined && anchorName !== "") {

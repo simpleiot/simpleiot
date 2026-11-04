@@ -14,6 +14,7 @@ import {
 	DataType,
 	getBestDesc,
 	getBool,
+	getText,
 	newText,
 	updatePoints,
 	type Point,
@@ -421,7 +422,13 @@ export class TreeStore {
 		for (const r of replies) {
 			const top = this.findNode(r.anchor)
 			matches.push(
-				...buildMatches(r.nodes, query, r.anchor, top ? getBestDesc(top.points) : undefined, type)
+				...buildMatches(
+					r.nodes,
+					query,
+					r.anchor,
+					top ? getText(top.points, PointType.Description) : undefined,
+					type
+				)
 			)
 		}
 		return rankMatches(matches).slice(0, limit)

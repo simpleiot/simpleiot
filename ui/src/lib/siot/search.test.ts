@@ -41,6 +41,11 @@ describe("buildMatches", () => {
 		])
 	})
 
+	test("an ancestor without a description reads as its type, and a blank anchor is left out", () => {
+		const reply = [node("p1", "dev", "pump 1"), node("dev", "G", "", "device")]
+		expect(buildMatches(reply, "pump", "G", "")[0]?.path).toEqual(["device"])
+	})
+
 	test("an ancestor that matches is a match too, and a cycle stops", () => {
 		const reply = [node("pumps", "G", "pumps", "group"), node("p1", "pumps", "pump 1")]
 		const m = buildMatches(reply, "pump", "G")
