@@ -138,10 +138,14 @@ display.
 
 ## A demo
 
-`testdata/dashboard-demo.yaml` in the source tree builds a group of signal
-generators and switch variables with three dashboards over them: a tile
-overview, a canvas pump station with links, and a page of switches. Load it into
-a running instance with:
+`testdata/dashboard-demo.yaml` in the source tree builds a small water system
+under one group: a supply pump, a storage tank, a heating loop, and an alarm
+panel, each on its own canvas, and an Overview that shows the four canvases as
+tiles. Rules make the switches do something: the pump switch starts the flow and
+pressure signals and opens the outlet valve, the inlet switch opens the inlet
+valve and runs the tank level, the heater switch runs the temperatures, and a
+high tank level raises an alarm that asks to be acknowledged. Load it into a
+running instance with:
 
 ```
 siot import < testdata/dashboard-demo.yaml

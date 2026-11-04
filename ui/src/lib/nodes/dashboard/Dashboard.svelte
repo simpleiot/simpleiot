@@ -3,7 +3,7 @@
 	// host. It takes nodes and a lookup for the bound ones, so it draws the
 	// same from a page, a preview, or a test.
 	import type { Node } from "#lib/siot/node.ts"
-	import { getBestDesc, getText } from "#lib/siot/point.ts"
+	import { getBestDesc, getText, getValue } from "#lib/siot/point.ts"
 	import { NodeType, PointType, PointValue } from "#lib/siot/schema.ts"
 	import { widgets } from "#lib/widgets/index.ts"
 	import { autoWidget, fallbackWidget, withDefaults } from "#lib/widgets/registry.ts"
@@ -71,12 +71,12 @@
 	const layout = $derived(getText(dashboard.points, PointType.Layout) || PointValue.Grid)
 	const canvas = $derived(layout === PointValue.Canvas)
 	const cols = $derived.by(() => {
-		const c = Math.floor(Number(getText(dashboard.points, PointType.Cols)) || 0)
+		const c = Math.floor(getValue(dashboard.points, PointType.Cols))
 		return c > 0 ? c : 12
 	})
 	const size = $derived.by(() => {
-		const w = Number(getText(dashboard.points, PointType.CanvasWidth)) || 0
-		const h = Number(getText(dashboard.points, PointType.CanvasHeight)) || 0
+		const w = getValue(dashboard.points, PointType.CanvasWidth)
+		const h = getValue(dashboard.points, PointType.CanvasHeight)
 		return { width: w > 0 ? w : 900, height: h > 0 ? h : 500 }
 	})
 

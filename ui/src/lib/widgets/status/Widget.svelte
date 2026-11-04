@@ -85,13 +85,14 @@
 
 	/* an outlined pill with no fill: the outline is the status, the dot
 	   its color; a switch answers the pointer with a blue outline, and in
-	   edit mode a control is filled so it can be told from a display */
+	   edit mode a control is filled so it can be told from a display. The
+	   pill is as wide as its longer word, past its box on a canvas when
+	   the box is narrower */
 	.pill {
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
 		align-self: flex-start;
-		max-width: 100%;
 		box-sizing: border-box;
 		margin: 0;
 		padding: 4px 14px;

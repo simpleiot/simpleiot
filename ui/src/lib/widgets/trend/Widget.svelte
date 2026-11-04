@@ -36,7 +36,7 @@
 	<div class="head">
 		<span class="label">{label}</span>
 		<span class="num"
-			>{latest}{#if options.unit}<span class="unit"> {options.unit}</span>{/if}</span
+			>{latest}{#if options.unit}<span class="unit">{options.unit}</span>{/if}</span
 		>
 	</div>
 	<div class="chart">
@@ -72,6 +72,7 @@
 	.unit {
 		font-weight: 400;
 		color: var(--muted);
+		margin-left: 0.25em;
 	}
 
 	.chart {
