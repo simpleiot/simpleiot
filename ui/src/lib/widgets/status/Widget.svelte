@@ -73,16 +73,23 @@
 		height: 100%;
 	}
 
-	/* the dot and the word, with no box; a switch shows an underline when
-	   pointed at, as a settable value does */
+	/* an outlined pill with no fill: the outline is the status, the dot
+	   its color; a switch answers the pointer with a blue outline, and in
+	   edit mode a control is filled so it can be told from a display */
 	.pill {
 		display: inline-flex;
 		align-items: center;
 		gap: 8px;
 		align-self: flex-start;
-		padding: 0;
+		max-width: 100%;
+		box-sizing: border-box;
 		margin: 0;
-		border: none;
+		padding: 4px 14px;
+		text-align: left;
+		white-space: normal;
+		overflow-wrap: anywhere;
+		border: 1px solid var(--border);
+		border-radius: 999px;
 		font: inherit;
 		font-size: 20px;
 		font-weight: 600;
@@ -93,23 +100,20 @@
 
 	.pill.on {
 		--c: var(--green);
+		border-color: var(--green);
 	}
 
 	.switch {
 		cursor: pointer;
 	}
 
-	.boxed {
-		padding: 4px 12px;
-		border: 1px solid var(--border);
-		border-radius: 999px;
-		background: var(--detail-bg);
-	}
-
 	.switch:hover,
 	.switch:focus-visible {
-		text-decoration: underline dotted var(--muted);
-		text-underline-offset: 5px;
+		border-color: var(--blue);
+	}
+
+	.boxed {
+		background: var(--detail-bg);
 	}
 
 	.icon {
