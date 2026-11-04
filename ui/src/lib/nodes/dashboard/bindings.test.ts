@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest"
 import type { Node } from "#lib/siot/node.ts"
 import { newText, newValue } from "#lib/siot/point.ts"
 import {
+	bindingPaths,
 	boundNodeIds,
 	parseBindings,
 	parseLink,
@@ -35,6 +36,25 @@ describe("bindings", () => {
 			setpoint: { nodeId: "n2", type: "valueSet", key: "3" },
 		})
 		expect(boundNodeIds(parseBindings(widget))).toEqual(["n1", "n2"])
+	})
+
+	test("a relative path resolves through the resolver and wins over the ID", () => {
+		const w: Node = {
+			id: "w",
+			type: "widget",
+			parent: "d",
+			points: [
+				newText("bindNode", "value", "old"),
+				newText("bindPath", "value", "modbusIo/pump1"),
+				newText("bindPath", "other", "modbusIo/none"),
+			],
+			edgePoints: [],
+		}
+		expect(bindingPaths(w)).toEqual(["modbusIo/pump1", "modbusIo/none"])
+		const b = parseBindings(w, (p) => (p === "modbusIo/pump1" ? "n9" : undefined))
+		expect(b.value?.nodeId).toBe("n9")
+		expect(b.other?.nodeId).toBe("")
+		expect(parseBindings(w).value?.nodeId).toBe("")
 	})
 
 	test("resolve reports live, stale, and dead", () => {

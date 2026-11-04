@@ -33,10 +33,17 @@
 		onLayout,
 		onLink,
 		onVertex,
+		resolvePath = () => undefined,
+		ancestors = [],
 	}: {
 		dashboard: Node
 		children: readonly Node[]
 		lookup: (id: string) => Node | undefined
+		// resolvePath turns a relative binding into a node ID
+		resolvePath?: (path: string) => string | undefined
+		// ancestors are the dashboards this one is nested in, for the
+		// cycle guard
+		ancestors?: readonly string[]
 		edit?: boolean
 		selected?: string
 		onSelect?: (id: string) => void
@@ -74,7 +81,7 @@
 		children
 			.filter((c) => c.type === NodeType.Widget)
 			.map((w) => {
-				const bindings = parseBindings(w)
+				const bindings = parseBindings(w, resolvePath)
 				const component = componentOf(w, bindings)
 				const descriptor = widgets.get(component)
 				const first = Object.values(bindings)[0]
@@ -93,6 +100,8 @@
 					options: descriptor ? withDefaults(descriptor, widgetOptions(w)) : widgetOptions(w),
 					layout: widgetLayout(w, defaults),
 					ports: parsePorts(w, descriptor?.ports),
+					...(component === nestedWidget && first ? { nested: first.nodeId } : {}),
+					ancestors,
 				}
 			})
 	)
@@ -100,6 +109,9 @@
 	const links = $derived(
 		children.filter((c) => c.type === NodeType.Link).map((l) => parseLink(l, lookup))
 	)
+
+	// the widget that shows another dashboard in place
+	const nestedWidget = "dashboard"
 </script>
 
 {#if canvas}

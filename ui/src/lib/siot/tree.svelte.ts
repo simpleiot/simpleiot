@@ -22,6 +22,7 @@ import { PointType } from "./schema.ts"
 import * as tree from "./tree.ts"
 import type { Forest, TreeNode } from "./tree.ts"
 import { SvelteMap } from "svelte/reactivity"
+import { pickChild, splitPath } from "#lib/nodes/dashboard/paths.ts"
 import { buildMatches, rankMatches, type NodeMatch } from "./search.ts"
 
 // Edit is the pending edit of one node, by its key on the page.
@@ -112,6 +113,11 @@ export class TreeStore {
 	liveNodes = new SvelteMap<string, Node>()
 	#liveAnchors = new Map<string, string>()
 	#liveEdges = new Set<string>()
+	// liveWants is what each watcher on the page asked for, by key; the
+	// nodes kept live are the union
+	#liveWants = new Map<string, { ids: string[]; edges: string[] }>()
+	// paths caches relative bindings resolved from a parent
+	#paths = new Map<string, string | undefined>()
 	// onLiveEdge runs when an edge below a node in liveEdges changes
 	onLiveEdge: ((parentId: string) => void) | null = null
 
@@ -184,6 +190,8 @@ export class TreeStore {
 		this.liveNodes.clear()
 		this.#liveAnchors = new Map()
 		this.#liveEdges = new Set()
+		this.#liveWants = new Map()
+		this.#paths = new Map()
 		this.edit = null
 		this.op = { kind: "none" }
 		this.clipboard = null
@@ -249,10 +257,10 @@ export class TreeStore {
 		this.connected = true
 		this.#watching = []
 		this.#resolved = new Map()
+		this.#paths = new Map()
 		// live nodes are fetched afresh, as the tree is
-		const liveIds = [...this.#liveAnchors.keys()]
 		this.#liveAnchors = new Map()
-		void this.watchNodes(liveIds, [...this.#liveEdges])
+		void this.#reconcileLive()
 		// fetch every group afresh, and every expanded node, since points
 		// sent while the connection was down were missed
 		const f = this.forest.filter((t) => anchors.includes(t.anchor))
@@ -460,17 +468,36 @@ export class TreeStore {
 	}
 
 	// watchNodes keeps the given nodes current in liveNodes, and reports
-	// edge changes below those in edgesOf through onLiveEdge. Nodes no
-	// longer named are dropped.
-	async watchNodes(ids: readonly string[], edgesOf: readonly string[] = []) {
-		const want = new Set(ids)
+	// edge changes below those in edgesOf through onLiveEdge. Each watcher
+	// names itself with a key; nodes no watcher names any more are
+	// dropped.
+	async watchNodes(ids: readonly string[], edgesOf: readonly string[] = [], key = "page") {
+		if (ids.length === 0 && edgesOf.length === 0) {
+			this.#liveWants.delete(key)
+		} else {
+			this.#liveWants.set(key, { ids: [...ids], edges: [...edgesOf] })
+		}
+		await this.#reconcileLive()
+	}
+
+	async #reconcileLive() {
+		const want = new Set<string>()
+		const edges = new Set<string>()
+		for (const w of this.#liveWants.values()) {
+			for (const id of w.ids) {
+				want.add(id)
+			}
+			for (const id of w.edges) {
+				edges.add(id)
+			}
+		}
 		for (const id of [...this.#liveAnchors.keys()]) {
 			if (!want.has(id)) {
 				this.#liveAnchors.delete(id)
 				this.liveNodes.delete(id)
 			}
 		}
-		this.#liveEdges = new Set(edgesOf)
+		this.#liveEdges = edges
 		await Promise.all(
 			[...want]
 				.filter((id) => !this.#liveAnchors.has(id))
@@ -485,6 +512,39 @@ export class TreeStore {
 				})
 		)
 		this.#updateWatch()
+	}
+
+	// resolvePath follows a relative binding, "type/description" segments,
+	// down from a node, and returns the node it reaches. Results are kept
+	// until the next connect.
+	async resolvePath(from: string, path: string): Promise<string | undefined> {
+		const cacheKey = `${from}|${path}`
+		if (this.#paths.has(cacheKey)) {
+			return this.#paths.get(cacheKey)
+		}
+		const segments = splitPath(path)
+		const c = this.#conn
+		if (!segments || !c || from === "") {
+			return undefined
+		}
+		const where = await this.#locate(from)
+		let cur = where?.node.id
+		for (const seg of segments) {
+			if (!cur || !where) {
+				break
+			}
+			try {
+				const kids = await c.getNodes(where.anchor, cur, "all", 0)
+				cur = pickChild(
+					kids.filter((k) => !isTombstone(k)),
+					seg
+				)?.id
+			} catch {
+				cur = undefined
+			}
+		}
+		this.#paths.set(cacheKey, cur)
+		return cur
 	}
 
 	// resolveNode finds a node by ID for display: on the page if it is

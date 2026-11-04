@@ -19,17 +19,30 @@ export interface Binding {
 const live = (points: readonly Point[], type: string) =>
 	getAll(points, type).filter((p) => p.tombstone === 0 && p.text !== "")
 
-// parseBindings reads a widget node's bindings, keyed by prop.
-export function parseBindings(widget: Node): Record<string, Binding> {
+// parseBindings reads a widget node's bindings, keyed by prop. A relative
+// binding (bindPath) is resolved through resolvePath when given, and takes
+// precedence over the node ID; one that does not resolve is dead.
+export function parseBindings(
+	widget: Node,
+	resolvePath: (path: string) => string | undefined = () => undefined
+): Record<string, Binding> {
 	const out: Record<string, Binding> = {}
+	const rest = (prop: string) => ({
+		type: getText(widget.points, PointType.BindType, prop) || PointType.Value,
+		key: getText(widget.points, PointType.BindKey, prop) || "0",
+	})
 	for (const p of live(widget.points, PointType.BindNode)) {
-		out[p.key] = {
-			nodeId: p.text,
-			type: getText(widget.points, PointType.BindType, p.key) || PointType.Value,
-			key: getText(widget.points, PointType.BindKey, p.key) || "0",
-		}
+		out[p.key] = { nodeId: p.text, ...rest(p.key) }
+	}
+	for (const p of live(widget.points, PointType.BindPath)) {
+		out[p.key] = { nodeId: resolvePath(p.text) ?? "", ...rest(p.key) }
 	}
 	return out
+}
+
+// bindingPaths lists a widget's relative paths, for resolving.
+export function bindingPaths(widget: Node): string[] {
+	return live(widget.points, PointType.BindPath).map((p) => p.text)
 }
 
 // boundNodeIds lists the nodes a set of bindings reads, once each.
@@ -105,6 +118,10 @@ export interface Placed {
 	options: Record<string, string>
 	layout: Layout
 	ports: MimicPort[]
+	// nested is the dashboard a nested-dashboard widget shows
+	nested?: string
+	// ancestors are the dashboards this one is drawn inside, outermost first
+	ancestors: readonly string[]
 }
 
 const dirs: readonly PortDir[] = ["left", "right", "up", "down"]

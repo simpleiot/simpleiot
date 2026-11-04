@@ -276,18 +276,18 @@ dashboard's parent" when the chosen node is below that parent and writes
 - [x] Equipment widgets `tank`, `pump`, `valve` with ports; `link` rendering
       with anchoring, orthogonal routing, and the three pipe states.
 - [x] Link editing: draw from port to port, drag vertices, the link editor.
-- [x] Unit tests on the vendored `mimic.ts` helpers. nautilus's own tests
-      cover only the editor-side attach helpers, which are not vendored, so
-      the routing and anchoring tests here are new.
-- [x] `ui/e2e/canvas.spec.ts`: a browser test of a canvas with a pump, a
-      tank, and a link.
+- [x] Unit tests on the vendored `mimic.ts` helpers. nautilus's own tests cover
+      only the editor-side attach helpers, which are not vendored, so the
+      routing and anchoring tests here are new.
+- [x] `ui/e2e/canvas.spec.ts`: a browser test of a canvas with a pump, a tank,
+      and a link.
 - [x] Docs and changelog. `siot_test` passes. Commit.
 
 ### Phase 5: Relative bindings, nested dashboards, wrap-up
 
-- [ ] `bindPath` resolver and the picker's relative toggle, with tests.
-- [ ] `dashboard` widget for nesting; a cycle guard.
-- [ ] `docs/ref/frontend.md`: a dashboards section; `CLAUDE.md`: the widgets
+- [x] `bindPath` resolver and the picker's relative toggle, with tests.
+- [x] `dashboard` widget for nesting; a cycle guard.
+- [x] `docs/ref/frontend.md`: a dashboards section; `CLAUDE.md`: the widgets
       directory and the `auto` rule; plans index. Commit.
 
 ### Follow-ups (not in this plan)
@@ -315,7 +315,8 @@ dashboard's parent" when the chosen node is below that parent and writes
 - Search ranking: is prefix, substring, ID, type enough, or should recent picks
   rank first?
 - Gridstack or the in-house grid; decided after phase 3.
-- The `bindPath` syntax: `type/description` segments, or a glob.
+- The `bindPath` syntax is `type/description` segments; a glob can come later if
+  a need appears.
 - Whether the `via` parent for relative bindings should be remembered per user,
   as expanded nodes are.
 

@@ -21,6 +21,7 @@
 		resolve,
 		findNode,
 		suggest = null,
+		onPick,
 	}: {
 		type: string
 		key?: string
@@ -30,6 +31,8 @@
 		// findNode looks among the nodes on the page, which stay live
 		findNode: (id: string) => Node | undefined
 		suggest?: { id: string; description: string } | null
+		// onPick hears the match chosen, with its chain of ancestors
+		onPick?: (m: NodeMatch) => void
 	} = $props()
 
 	const ctx = inputContext()
@@ -74,6 +77,7 @@
 							description: suggest.description,
 							path: ["clipboard"],
 							rank: 0,
+							chain: [],
 						},
 					]
 				: []
@@ -87,6 +91,11 @@
 		matches = []
 		open = false
 		active = -1
+	}
+
+	function pick(m: NodeMatch) {
+		set(m.id)
+		onPick?.(m)
 	}
 
 	function oninput(e: Event & { currentTarget: HTMLInputElement }) {
@@ -135,7 +144,7 @@
 			case "Enter": {
 				const m = list[active]
 				if (open && m) {
-					set(m.id)
+					pick(m)
 					e.preventDefault()
 				}
 				break
@@ -179,7 +188,7 @@
 							class:active={i === active}
 							onmousedown={(e) => {
 								e.preventDefault()
-								set(m.id)
+								pick(m)
 							}}
 						>
 							<span class="desc">{m.description}</span>

@@ -35,6 +35,10 @@ describe("buildMatches", () => {
 			["p1", 0, ["site", "station A"]],
 			["p2", 0, ["site", "station B"]],
 		])
+		expect(m[0]?.chain.map((c) => `${c.type}/${c.description}`)).toEqual([
+			"device/station A",
+			"variable/pump 1",
+		])
 	})
 
 	test("an ancestor that matches is a match too, and a cycle stops", () => {
@@ -52,10 +56,10 @@ describe("buildMatches", () => {
 describe("rankMatches", () => {
 	test("orders by rank then description and drops repeats", () => {
 		const m = rankMatches([
-			{ id: "x", type: "", description: "sump pump", path: [], rank: 1 },
-			{ id: "y", type: "", description: "pump b", path: [], rank: 0 },
-			{ id: "z", type: "", description: "Pump a", path: [], rank: 0 },
-			{ id: "y", type: "", description: "pump b", path: ["other"], rank: 0 },
+			{ id: "x", type: "", description: "sump pump", path: [], rank: 1, chain: [] },
+			{ id: "y", type: "", description: "pump b", path: [], rank: 0, chain: [] },
+			{ id: "z", type: "", description: "Pump a", path: [], rank: 0, chain: [] },
+			{ id: "y", type: "", description: "pump b", path: ["other"], rank: 0, chain: [] },
 		])
 		expect(m.map((x) => x.id)).toEqual(["z", "y", "x"])
 	})

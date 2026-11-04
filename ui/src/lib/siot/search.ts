@@ -17,6 +17,9 @@ export interface NodeMatch {
 	// rank is 0 for a description starting with the query, 1 for one
 	// containing it, 2 for an equal ID, and 3 for a type containing it
 	rank: number
+	// chain is the nodes from the one below the anchor down to the match
+	// itself, for a path relative to any of them
+	chain: { id: string; type: string; description: string }[]
 }
 
 // rankMatch scores a node against a query the way the store does, or -1
@@ -68,6 +71,7 @@ export function buildMatches(
 			continue
 		}
 		const path: string[] = []
+		const chain = [{ id: n.id, type: n.type, description: getBestDesc(n.points) }]
 		const seen = new Set<string>([n.id])
 		for (
 			let p = byId.get(n.parent);
@@ -76,11 +80,12 @@ export function buildMatches(
 		) {
 			seen.add(p.id)
 			path.unshift(getBestDesc(p.points))
+			chain.unshift({ id: p.id, type: p.type, description: getBestDesc(p.points) })
 		}
 		if (anchorName !== undefined && anchorName !== "") {
 			path.unshift(anchorName)
 		}
-		matches.push({ id: n.id, type: n.type, description: getBestDesc(n.points), path, rank })
+		matches.push({ id: n.id, type: n.type, description: getBestDesc(n.points), path, rank, chain })
 	}
 	return matches
 }

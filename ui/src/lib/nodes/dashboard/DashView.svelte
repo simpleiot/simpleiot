@@ -19,7 +19,9 @@
 	import { NodeType, PointType, PointValue } from "#lib/siot/schema.ts"
 	import type { Point } from "#lib/vendor/nautilus/mimic.ts"
 	import { store } from "#lib/siot/store.ts"
+	import { SvelteMap } from "svelte/reactivity"
 	import {
+		bindingPaths,
 		boundNodeIds,
 		parseBindings,
 		widgetLayout,
@@ -93,12 +95,32 @@
 		childIds.map((c) => store.liveNodes.get(c)).filter((n): n is Node => n !== undefined)
 	)
 
+	// via is the parent relative bindings start from: the one in the
+	// address, else the parent the dashboard was reached through
+	const via = $derived(page.url.searchParams.get("via") ?? dashboard?.parent ?? "")
+	const pathIds = new SvelteMap<string, string>()
+	$effect(() => {
+		const from = via
+		const paths = new Set(children.flatMap((c) => bindingPaths(c)))
+		for (const p of paths) {
+			const k = `${from}|${p}`
+			if (pathIds.has(k)) {
+				continue
+			}
+			pathIds.set(k, "")
+			void store.resolvePath(from, p).then((nodeId) => {
+				pathIds.set(k, nodeId ?? "")
+			})
+		}
+	})
+	const resolvePath = (p: string) => pathIds.get(`${via}|${p}`) || undefined
+
 	// the nodes to keep live: the dashboard, its children, what they bind
 	// to, and the faceplate's node
 	$effect(() => {
 		const wanted = new Set([id, ...childIds])
 		for (const c of children) {
-			for (const b of boundNodeIds(parseBindings(c))) {
+			for (const b of boundNodeIds(parseBindings(c, resolvePath))) {
 				wanted.add(b)
 			}
 		}
@@ -182,7 +204,7 @@
 	// ---- the faceplate
 
 	function open(p: Placed) {
-		const first = Object.values(parseBindings(p.node))[0]
+		const first = Object.values(parseBindings(p.node, resolvePath))[0]
 		if (!first) {
 			return
 		}
@@ -252,6 +274,7 @@
 						{dashboard}
 						{children}
 						{lookup}
+						{resolvePath}
 						{edit}
 						{selected}
 						onSelect={(w: string) => (selected = selected === w ? "" : w)}
@@ -264,8 +287,12 @@
 				</div>
 				{#if edit}
 					<aside class="panel" aria-label="Widget settings">
-						{#if selectedNode}
-							<NodeHost id={selected} onDelete={() => void deleteSelected()} />
+						{#if selectedNode && dashboard}
+							<NodeHost
+								id={selected}
+								parent={{ ...dashboard, parent: via }}
+								onDelete={() => void deleteSelected()}
+							/>
 						{:else if canvas}
 							<p class="not-found">
 								Select a widget or a link to configure it, add a widget, or drag from one port to

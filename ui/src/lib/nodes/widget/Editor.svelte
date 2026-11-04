@@ -7,7 +7,7 @@
 	import NumberInput from "#lib/inputs/NumberInput.svelte"
 	import SelectInput from "#lib/inputs/SelectInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
-	import { getText } from "#lib/siot/point.ts"
+	import { getBestDesc, getText } from "#lib/siot/point.ts"
 	import { PointType } from "#lib/siot/schema.ts"
 	import { widgets } from "#lib/widgets/index.ts"
 	import { autoWidget } from "#lib/widgets/registry.ts"
@@ -21,6 +21,16 @@
 	// an auto widget binds one value; a named one binds what it declares
 	const bindings = $derived(widgets.get(component)?.bindings ?? [PointType.Value])
 	const optionNames = $derived(Object.keys(widgets.get(component)?.options ?? {}))
+
+	// the dashboard's parent, which a relative binding starts from
+	const via = $derived.by(() => {
+		const viaId = props.parent?.parent
+		if (!viaId) {
+			return undefined
+		}
+		const n = props.findNode(viaId)
+		return { id: viaId, description: n ? getBestDesc(n.points) : viaId }
+	})
 </script>
 
 <NodeEditor {props} icon={BoxIcon}>
@@ -41,7 +51,7 @@
 		]}
 	/>
 	{#each bindings as name (name)}
-		<BindingInputs {name} {props} />
+		<BindingInputs {name} {props} {via} />
 	{/each}
 	<div class="row">
 		<NumberInput type={PointType.X} label="X" />

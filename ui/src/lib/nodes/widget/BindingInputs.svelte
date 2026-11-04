@@ -1,19 +1,35 @@
 <script lang="ts">
 	// BindingInputs edits one binding of a widget: the node, through the
 	// picker, then the point type and key, offered from what the chosen
-	// node carries.
+	// node carries. When the chosen node sits below the dashboard's parent,
+	// the binding can be made relative to it, so the same dashboard placed
+	// under another parent follows that parent's nodes.
 	import NodeRefInput from "#lib/inputs/NodeRefInput.svelte"
 	import SelectInput from "#lib/inputs/SelectInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
+	import { inputContext, editTime } from "#lib/inputs/context.ts"
 	import { pointKeys, pointTypes, type Node } from "#lib/siot/node.ts"
-	import { getText } from "#lib/siot/point.ts"
+	import { getText, newText, newTombstone } from "#lib/siot/point.ts"
 	import { PointType } from "#lib/siot/schema.ts"
+	import type { NodeMatch } from "#lib/siot/search.ts"
+	import { pathBelow } from "../dashboard/paths.ts"
 	import type { EditorProps } from "../types.ts"
 
-	let { name, props }: { name: string; props: EditorProps } = $props()
+	let {
+		name,
+		props,
+		via,
+	}: {
+		name: string
+		props: EditorProps
+		// via is the dashboard's parent, which a relative path starts from
+		via?: { id: string; description: string }
+	} = $props()
 
+	const ctx = inputContext()
 	const points = $derived(props.node.points)
 	const nodeId = $derived(getText(points, PointType.BindNode, name))
+	const path = $derived(getText(points, PointType.BindPath, name))
 	const type = $derived(getText(points, PointType.BindType, name) || PointType.Value)
 
 	let resolved = $state<{ id: string; node: Node | undefined } | null>(null)
@@ -28,6 +44,20 @@
 		})
 	})
 	const target = $derived(onPage ?? (resolved?.id === nodeId ? resolved.node : undefined))
+
+	// the path the last pick would have below the via, when there is one
+	let picked = $state<NodeMatch | null>(null)
+	const relative = $derived(
+		via && picked?.id === nodeId ? pathBelow(picked.chain, via.id) : undefined
+	)
+
+	function setPath(p: string) {
+		ctx.onEditPoints([
+			p === ""
+				? newTombstone(PointType.BindPath, name, editTime(ctx))
+				: newText(PointType.BindPath, name, p, editTime(ctx)),
+		])
+	}
 </script>
 
 <NodeRefInput
@@ -38,8 +68,24 @@
 	resolve={props.resolveNode}
 	findNode={props.findNode}
 	suggest={props.copy}
+	onPick={(m: NodeMatch) => (picked = m)}
 />
-{#if nodeId !== ""}
+{#if path !== ""}
+	<div class="relative">
+		<span class="path" title="relative to {via?.description ?? "the dashboard's parent"}"
+			>relative: {path}</span
+		>
+		<button class="btn gray" type="button" onclick={() => setPath("")}>absolute</button>
+	</div>
+{:else if relative !== undefined && via}
+	<div class="relative">
+		<button class="btn gray" type="button" onclick={() => setPath(relative)}>
+			make relative to {via.description}
+		</button>
+		<span class="path">{relative}</span>
+	</div>
+{/if}
+{#if nodeId !== "" || path !== ""}
 	<SelectInput
 		type={PointType.BindType}
 		key={name}
@@ -55,3 +101,25 @@
 		suggestions={target ? pointKeys(target, type) : []}
 	/>
 {/if}
+
+<style>
+	.relative {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 10px;
+		padding-left: 160px;
+	}
+
+	.path {
+		font-family: var(--mono);
+		font-size: 13px;
+		color: var(--muted);
+	}
+
+	@media (max-width: 600px) {
+		.relative {
+			padding-left: 0;
+		}
+	}
+</style>

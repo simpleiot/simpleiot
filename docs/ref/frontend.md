@@ -102,8 +102,9 @@ the app. See `ui/README.md` for the build, test, and dev server commands.
 
 ### Code Structure
 
-- `src/routes`: the pages. `/` and `/nodes/[id]` both render the tree; the
-  second opens the tree down to one node.
+- `src/routes`: the pages. `/nodes` and `/nodes/[id]` render the tree, the
+  second opened down to one node; `/dash` lists dashboards and `/dash/[id]`
+  shows one; `/` lands on the user's home dashboard, the list, or the tree.
 - `src/lib/siot`: the client layer. `connection.ts` owns the NATS connection
   (built on `frontend/lib`), `tree.ts` holds the pure tree code, and
   `tree.svelte.ts` is the store the page reads: the tree, pending edits, and the
@@ -116,12 +117,32 @@ the app. See `ui/README.md` for the build, test, and dev server commands.
   so the tree page names no node types; adding a type is adding a directory.
 - `src/lib/inputs`: the inputs editors are built from. Each reads its point from
   the node and reports an edit; none talks to the server.
-- `src/lib/components`: the tree, its rows, the operation panel, and the shared
-  editor frame.
+- `src/lib/components`: the tree, its rows, the operation panel, the shared
+  editor frame, and `NodeHost`, which edits one node off the tree for the
+  dashboard pages.
+- `src/lib/widgets`: one directory per dashboard widget, with its component and
+  a descriptor (`index.ts`) that names its bindings, options, host, and ports. A
+  widget takes resolved values and options as props and never talks to the
+  server.
+- `src/lib/vendor/nautilus`: faceplates and routing helpers vendored from the
+  nautilus HMI kit, with their license and a README of the changes.
 
 Editors take props and report through callbacks, and only the page and the store
 talk to the server, so an editor can be reused and tested on its own. Edits stay
 pending until saved, and a save shows at once, before the server confirms it.
+
+### Dashboards
+
+A dashboard is a `dashboard` node with `widget` and `link` children, so the
+pages under `src/lib/nodes/dashboard` read and write ordinary points. The store
+keeps the nodes a page shows off the tree current through `liveNodes`, watched
+by key so nested dashboards add to the set; `fetchSubtree` and `resolvePath`
+fetch what a page needs through the anchor a node sits under. `bindings.ts`
+turns a widget's `bind*` points into values with a live, stale, or dead state,
+and the `widget` field on a node type's descriptor is what an `auto` component
+shows for that type. The grid host and the canvas host take the same placed
+widgets; the canvas anchors links to ports with the vendored mimic helpers. See
+the [user documentation](../user/dashboards.md).
 
 ### Checks
 

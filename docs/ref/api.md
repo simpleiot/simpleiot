@@ -65,9 +65,9 @@ names -- should pass them through `data.SubjectSafeToken` first.
         whose ID equals it, or whose type contains it, in that order. The reply
         carries each match and its ancestors below `id`, placed by `parent`, so
         a client can show where a match sits. `limit` with value `n` caps the
-        matches (20 by default, 100 at most). With `nodeType` only nodes of
-        that type match, and an empty `search` then lists every node of the
-        type below `id`.
+        matches (20 by default, 100 at most). With `nodeType` only nodes of that
+        type match, and an empty `search` then lists every node of the type
+        below `id`.
   - `p.<nodeId>.<type>.<key>`
     - used to listen for or publish node point changes.
   - `ep.<nodeId>.<parentId>.<type>.<key>`

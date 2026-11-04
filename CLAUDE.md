@@ -161,6 +161,13 @@ by `ui/embed.go`, and served at `/` by `api/ui.go`:
 - **Editors are props-only** and built from the input kit in
   `ui/src/lib/inputs/`; only the page and the store
   (`ui/src/lib/siot/tree.svelte.ts`) talk to the server.
+- **Dashboard widgets register themselves** the same way, one directory per
+  widget in `ui/src/lib/widgets/<name>/` with a descriptor and a component that
+  takes resolved values as props. The widget an `auto` component shows for a
+  node type is the `widget` field on that type's descriptor, so no file outside
+  `src/lib/nodes` names a type. The dashboard pages live in
+  `ui/src/lib/nodes/dashboard/` for the same reason. Code copied from the
+  nautilus HMI kit sits in `ui/src/lib/vendor/nautilus/` with its license.
 - **Constants**: `ui/src/lib/siot/schema.ts` mirrors `data/schema.go`, and
   `data/schema_ts_test.go` checks it, so renaming a point or node type means
   changing both.

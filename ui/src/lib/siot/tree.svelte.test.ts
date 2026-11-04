@@ -134,3 +134,21 @@ test("searchNodes ranks server matches with their path, and resolveNode fetches 
 	expect(getText((await store.resolveNode("p1"))?.points ?? [], "description")).toBe("pump 1")
 	expect(await store.resolveNode("missing")).toBeUndefined()
 })
+
+test("resolvePath follows type and description segments from a node", async () => {
+	const nodes = [
+		group("G", "root"),
+		{ ...group("A", "G"), type: "device", points: [newText("description", "0", "Station A")] },
+		{ ...group("p1", "A"), type: "modbusIo", points: [newText("description", "0", "pump1")] },
+		{ ...group("v", "A"), type: "variable", points: [newText("description", "0", "pump1")] },
+	]
+	const store = new TreeStore(env(nodes))
+	store.start("t", () => undefined)
+	await vi.waitFor(() => {
+		expect(store.ready).toBe(true)
+	})
+	expect(await store.resolvePath("G", "device/station a/modbusIo/PUMP1")).toBe("p1")
+	expect(await store.resolvePath("A", "variable/pump1")).toBe("v")
+	expect(await store.resolvePath("A", "modbusIo/pump2")).toBeUndefined()
+	expect(await store.resolvePath("A", "bad")).toBeUndefined()
+})

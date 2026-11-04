@@ -4,15 +4,19 @@
 	// node must be among the store's live nodes, which the page arranges.
 	import { registry } from "#lib/nodes/index.ts"
 	import type { EditorProps } from "#lib/nodes/types.ts"
+	import type { Node } from "#lib/siot/node.ts"
 	import { clearText, updatePoints, type Point } from "#lib/siot/point.ts"
 	import { store } from "#lib/siot/store.ts"
 	import Raw from "./Raw.svelte"
 
 	let {
 		id,
+		parent,
 		onDelete,
 	}: {
 		id: string
+		// parent is the node the edited one sits under, when the page knows
+		parent?: Node
 		// onDelete, when given, offers a delete button
 		onDelete?: () => void
 	} = $props()
@@ -41,7 +45,7 @@
 			? {
 					node,
 					typeLabel: registry.get(node.type)?.label ?? node.type,
-					parent: undefined,
+					parent,
 					children: [],
 					now: store.now,
 					zone: store.zone,

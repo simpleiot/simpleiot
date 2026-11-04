@@ -4,6 +4,7 @@
 	// binding is dead so a dashboard synced to a device missing the node
 	// still shows its shape.
 	import type { Placed } from "./bindings.ts"
+	import NestedDashboard from "./NestedDashboard.svelte"
 
 	let { p, bare = false }: { p: Placed; bare?: boolean } = $props()
 
@@ -12,7 +13,9 @@
 </script>
 
 <div class="frame" class:bare class:dead title={dead ? "a bound node was not found" : undefined}>
-	{#if C}
+	{#if p.nested}
+		<NestedDashboard id={p.nested} ancestors={p.ancestors} />
+	{:else if C}
 		<C
 			label={p.label}
 			values={p.values}

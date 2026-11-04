@@ -14,15 +14,15 @@ For more details or to discuss releases, please visit the
 ### Changed
 
 - **The node tree moved to `/nodes`.** The address `/` now lands on the user's
-  home dashboard, the dashboard list, or the tree, in that order of what
-  exists. Bookmarks to `/nodes/<id>` are unchanged.
+  home dashboard, the dashboard list, or the tree, in that order of what exists.
+  Bookmarks to `/nodes/<id>` are unchanged.
 
 ### Added
 
-- **Conditions and actions pick their node by description.** Typing in the
-  Node field searches the server and lists matches with where they sit; the
-  chosen node shows as a link, and the point type and key fields offer what
-  that node carries. The node ID text field and paste button are gone. See
+- **Conditions and actions pick their node by description.** Typing in the Node
+  field searches the server and lists matches with where they sit; the chosen
+  node shows as a link, and the point type and key fields offer what that node
+  carries. The node ID text field and paste button are gone. See
   [rules](docs/user/rules.md#node-linking).
 - **Node requests can search by description.** A `search` point on a
   `nodes.<id>.all` request returns the nodes below `id` whose description, ID,
@@ -30,16 +30,19 @@ For more details or to discuss releases, please visit the
   loaded. See the [API reference](docs/ref/api.md).
 - **Dashboards.** A dashboard is a node holding widget nodes, each bound to
   points on other nodes, and it syncs like any other node. The web UI lists
-  dashboards under Dashboards and shows each as a grid of value, gauge,
-  status, and trend widgets that reflows to one column on a phone. Edit mode
-  adds, drags, resizes, and configures widgets in place; a tap on a widget
-  opens the node behind it. A user's home dashboard, set on the user node, is
-  where signing in lands. A canvas layout draws process mimics with tank,
-  pump, and valve components and links drawn from port to port, which follow
-  the equipment when it moves. See [dashboards](docs/user/dashboards.md).
+  dashboards under Dashboards and shows each as a grid of value, gauge, status,
+  and trend widgets that reflows to one column on a phone. Edit mode adds,
+  drags, resizes, and configures widgets in place; a tap on a widget opens the
+  node behind it. A user's home dashboard, set on the user node, is where
+  signing in lands. A canvas layout draws process mimics with tank, pump, and
+  valve components and links drawn from port to port, which follow the equipment
+  when it moves. A binding can be a path relative to the dashboard's parent, so
+  one dashboard mirrored under several devices shows each device's nodes, and a
+  nested dashboard component shows one dashboard inside another. See
+  [dashboards](docs/user/dashboards.md).
 - **Searching nodes by type.** A `nodeType` point beside `search` on a node
-  request limits matches to that type, and an empty search then lists every
-  node of the type.
+  request limits matches to that type, and an empty search then lists every node
+  of the type.
 
 ## [0.32.0] - 2026-11-03
 

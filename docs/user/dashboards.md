@@ -18,22 +18,22 @@ on a narrow one.
 2. On the dashboard page, press **edit**. **add widget** places a new widget
    below the others and opens its settings beside the grid. Pick the node it
    reads by typing its description in the node field, then the point type and
-   key if the default `value` is not what you want. Drag a widget by its body
-   to move it and by its corner to resize it; the place is saved when you let
-   go. Press **done** to leave edit mode.
+   key if the default `value` is not what you want. Drag a widget by its body to
+   move it and by its corner to resize it; the place is saved when you let go.
+   Press **done** to leave edit mode.
 3. Leave the component on **auto** to show the node the usual way for its type,
    or pick one:
 
-   | Component | Shows                       | Options                            |
-   | --------- | --------------------------- | ---------------------------------- |
-   | value     | the number or text, large   | `decimals`, `unit`                 |
-   | gauge     | a radial gauge over a range | `min`, `max`, `unit`, `decimals`   |
-   | status    | on or off                   | `on`, `off` (the labels)           |
-   | trend     | the last values as a line   | `window`, `min`, `max`, `unit`     |
+   | Component | Shows                       | Options                          |
+   | --------- | --------------------------- | -------------------------------- |
+   | value     | the number or text, large   | `decimals`, `unit`               |
+   | gauge     | a radial gauge over a range | `min`, `max`, `unit`, `decimals` |
+   | status    | on or off                   | `on`, `off` (the labels)         |
+   | trend     | the last values as a line   | `window`, `min`, `max`, `unit`   |
 
-4. A dashboard has 12 columns unless its **Columns** setting says otherwise.
-   The column, row, width, and height fields in the widget's settings set its
-   place in grid units when dragging is not convenient.
+4. A dashboard has 12 columns unless its **Columns** setting says otherwise. The
+   column, row, width, and height fields in the widget's settings set its place
+   in grid units when dragging is not convenient.
 5. Add options under **Options**, keyed by the names in the table.
 
 Widgets are nodes under the dashboard, so everything above can also be done in
@@ -49,11 +49,11 @@ one column of cards.
 
 Equipment components draw on the canvas:
 
-| Component | Shows                                       | Bindings           |
-| --------- | ------------------------------------------- | ------------------ |
-| tank      | liquid at the level, tinted by temperature  | `level`, `temp`    |
-| pump      | an impeller that turns while running        | `running`, `speed` |
-| valve     | a disc that turns with the position         | `open`             |
+| Component | Shows                                      | Bindings           |
+| --------- | ------------------------------------------ | ------------------ |
+| tank      | liquid at the level, tinted by temperature | `level`, `temp`    |
+| pump      | an impeller that turns while running       | `running`, `speed` |
+| valve     | a disc that turns with the position        | `open`             |
 
 The grid widgets work on a canvas as well. **X**, **Y**, and **Width** are in
 canvas units there.
@@ -62,9 +62,9 @@ Links join two widgets at their **ports**, the named points on a widget's edge
 that show as dots in edit mode. Drag from one port to another to draw a link.
 Select a link to drag its corner points and to set its routing, direct or
 orthogonal, in the panel. A link's `flowing` and `rate` bindings animate it, and
-a link whose bound node is missing is drawn dashed and dim. Links are drawn,
-not run: a pipe from a pump to a tank describes the plant and implies nothing
-about where data goes.
+a link whose bound node is missing is drawn dashed and dim. Links are drawn, not
+run: a pipe from a pump to a tank describes the plant and implies nothing about
+where data goes.
 
 A widget's ports can be changed under **Ports**: `x,y` or `x,y,dir` as fractions
 of the widget's box, where `dir` is `left`, `right`, `up`, or `down`.
@@ -73,17 +73,38 @@ A widget whose node cannot be found draws with a dashed border and shows no
 value. A dashboard synced to a device that lacks some of the nodes still shows
 its shape.
 
+## Relative bindings
+
+A binding usually names one node. It can instead name a path from the
+dashboard's parent: `type/description` segments, such as `modbusIo/pump1` or
+`device/Station A/modbusIo/pump1`, each picking a child of the node before it by
+type and description. A dashboard with relative bindings placed under several
+devices, by mirroring it, shows each device's own nodes. In a widget's settings,
+after picking a node that sits below the dashboard's parent, press **make
+relative to** that parent; **absolute** goes back to the node ID. A path that
+reaches nothing draws the widget dead.
+
+Opening a mirrored dashboard from the tree starts the paths from the parent it
+was opened under; `?via=<node ID>` on the dashboard's address picks the parent
+explicitly.
+
+## Nested dashboards
+
+The **nested dashboard** component shows another dashboard inside a widget: bind
+its `dashboard` to the dashboard node. A dashboard that contains itself, at any
+depth, stops there with a note.
+
 ## Home dashboard
 
-A user's **Home dashboard**, set on the user's node, is where signing in and
-the logo link land. A user without one lands on the dashboard list when any
+A user's **Home dashboard**, set on the user's node, is where signing in and the
+logo link land. A user without one lands on the dashboard list when any
 dashboard is visible to them, and on the node tree otherwise.
 
 ## What a widget does not do
 
 Widgets display; they never compute. Scaling, unit conversion, aggregation, and
-events belong in the node that produces the point, or in a [rule](rules.md),
-so the result is also available to notifications, the database, and other
+events belong in the node that produces the point, or in a [rule](rules.md), so
+the result is also available to notifications, the database, and other
 dashboards, and keeps working when no browser is open. A widget may format what
 it shows: decimals, units, a gauge range.
 
@@ -94,4 +115,4 @@ display.
 
 ## Coming later
 
-Trends over stored history, and nested dashboards.
+Trends over stored history.
