@@ -46,7 +46,13 @@
 	)
 </script>
 
-<div class="frame" class:bare class:dead title={dead ? "a bound node was not found" : undefined}>
+<div
+	class="frame"
+	class:bare
+	class:dead
+	class:editing
+	title={dead ? "a bound node was not found" : undefined}
+>
 	{#if p.nested}
 		<NestedDashboard id={p.nested} ancestors={p.ancestors} />
 	{:else if C}
@@ -68,17 +74,26 @@
 </div>
 
 <style>
+	/* in view mode only the widget shows, as on a canvas; the card around
+	   it appears in edit mode, where it is what is dragged, and a dashed
+	   one marks a widget whose node was not found */
 	.frame {
 		box-sizing: border-box;
 		height: 100%;
 		padding: 12px 14px;
-		border: 1px solid var(--border);
+		border: 1px solid transparent;
 		border-radius: 8px;
-		background: var(--detail-bg);
+		background: none;
 		overflow: hidden;
 	}
 
+	.frame.editing {
+		border-color: var(--border);
+		background: var(--detail-bg);
+	}
+
 	.dead {
+		border-color: var(--muted);
 		border-style: dashed;
 	}
 

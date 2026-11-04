@@ -85,13 +85,11 @@
 		box-sizing: border-box;
 		margin: 0;
 		padding: 4px 14px;
-		text-align: left;
-		white-space: normal;
-		overflow-wrap: anywhere;
+		white-space: nowrap;
 		border: 1px solid var(--border);
 		border-radius: 999px;
 		font: inherit;
-		font-size: 20px;
+		font-size: 18px;
 		font-weight: 600;
 		color: inherit;
 		background: none;
