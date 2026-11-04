@@ -1,15 +1,23 @@
 # User Interface
 
-**Contents**
+After Simple IoT is started, a web application is available on port `:4223`
+(typically [http://localhost:4223](http://localhost:4223)). The default
+user/pass is `admin`/`admin`.
 
-<!-- toc -->
+The interface has two views, and the header switches between them:
+
+- **Nodes** is the tree of everything the instance knows about: devices, groups,
+  users, rules, and their settings. This is where configuration is done, and the
+  rest of this page describes it.
+- **Dashboards** show live values from any nodes on one page: gauges, status,
+  trends, and process mimics. See [Dashboards](dashboards.md).
+
+Signing in lands on the user's home dashboard when one is set, on the dashboard
+list when any dashboard is visible to the user, and on the node tree otherwise.
 
 ## Basic Navigation
 
-After Simple IoT is started, a web application is available on port `:4223`
-(typically [http://localhost:4223](http://localhost:4223)). After logging in
-(default user/pass is `admin`/`admin`), you will be presented with a tree of
-nodes.
+Opening **Nodes** presents a tree of nodes.
 
 ![nodes](images/nodes.png)
 
