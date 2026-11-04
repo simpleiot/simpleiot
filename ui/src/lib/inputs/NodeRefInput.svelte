@@ -75,6 +75,7 @@
 							id: suggest.id,
 							type: "",
 							description: suggest.description,
+							parent: "",
 							path: ["clipboard"],
 							rank: 0,
 							chain: [],

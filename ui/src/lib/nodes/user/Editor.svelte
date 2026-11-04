@@ -3,7 +3,8 @@
 	import KeyValueInput from "#lib/inputs/KeyValueInput.svelte"
 	import NodeRefInput from "#lib/inputs/NodeRefInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
-	import { blankMagicValue, getText, type Point } from "#lib/siot/point.ts"
+	import { blankMagicValue, getText, newText, type Point } from "#lib/siot/point.ts"
+	import type { NodeMatch } from "#lib/siot/search.ts"
 	import { NodeType, PointType } from "#lib/siot/schema.ts"
 	import type { EditorProps } from "../types.ts"
 	import Scope from "./Scope.svelte"
@@ -16,6 +17,13 @@
 			" " +
 			getText(props.node.points, PointType.LastName)
 	)
+
+	// A dashboard can sit in more than one place. Picking one records the
+	// place it was found in, which is where its relative bindings start.
+	const pickHome = (m: NodeMatch) =>
+		props.onEditPoints([
+			newText(PointType.HomeVia, "0", m.parent, new Date(props.now).toISOString()),
+		])
 
 	const lowerCase = (points: Point[]) => points.map((p) => ({ ...p, text: p.text.toLowerCase() }))
 
@@ -41,6 +49,14 @@
 		type={PointType.HomeDashboard}
 		label="Home dashboard"
 		search={(query: string) => props.searchNodes(query, NodeType.Dashboard)}
+		resolve={props.resolveNode}
+		findNode={props.findNode}
+		onPick={pickHome}
+	/>
+	<NodeRefInput
+		type={PointType.HomeVia}
+		label="Home dashboard under"
+		search={(query: string) => props.searchNodes(query)}
 		resolve={props.resolveNode}
 		findNode={props.findNode}
 	/>

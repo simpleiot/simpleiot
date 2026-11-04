@@ -98,9 +98,10 @@
 
 	function choose(w: string) {
 		selected = selected === w ? "" : w
-		void goto(resolve("/dash/[id]/[[widget]]", { id, widget: selected || undefined }), {
-			replaceState: true,
-		})
+		const path = resolve("/dash/[id]/[[widget]]", { id, widget: selected || undefined })
+		// the path is resolved; only the query is carried over
+		// eslint-disable-next-line svelte/no-navigation-without-resolve
+		void goto(`${path}${page.url.search}`, { replaceState: true })
 	}
 
 	$effect(() => {

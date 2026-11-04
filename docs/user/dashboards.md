@@ -114,9 +114,13 @@ after picking a node that sits below the dashboard's parent, press **make
 relative to** that parent; **absolute** goes back to the node ID. A path that
 reaches nothing draws the widget dead.
 
-Opening a mirrored dashboard from the tree starts the paths from the parent it
-was opened under; `?via=<node ID>` on the dashboard's address picks the parent
-explicitly.
+Which parent the paths start from comes with the address, as `?via=<node ID>`.
+The tree's **open** link and the dashboard list fill it in with the place the
+dashboard was reached through, and a nested dashboard's title link with the
+parent it was drawn under, so a mirrored dashboard opened from any of them shows
+that place's nodes. An address without it starts from the first place the
+dashboard is found in, so a bookmark to a mirrored dashboard should keep the
+`via`.
 
 ## Nested dashboards
 
@@ -130,8 +134,11 @@ dashboards it shows need no mirroring of their own.
 ## Home dashboard
 
 A user's **Home dashboard**, set on the user's node, is where signing in and the
-logo link land. A user without one lands on the dashboard list when any
-dashboard is visible to them, and on the node tree otherwise.
+logo link land. Picking it also fills in **Home dashboard under**, the place it
+was found in, which is where its relative bindings start; change that to open a
+mirrored dashboard in another place. A user without a home dashboard lands on
+the dashboard list when any dashboard is visible to them, and on the node tree
+otherwise.
 
 ## What a widget does not do
 

@@ -748,6 +748,9 @@ const (
 	PointValueOrthogonal   = "orthogonal"
 	PointTypeVertex        = "vertex"
 	PointTypeHomeDashboard = "homeDashboard"
+	// HomeVia is the parent the home dashboard is opened under, so a
+	// mirrored dashboard's relative bindings start from the right place.
+	PointTypeHomeVia = "homeVia"
 
 	// Search on a nodes.<anchor>.all request finds nodes below the anchor
 	// by description, ID, or type; Limit caps the matches returned.

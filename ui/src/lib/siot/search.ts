@@ -11,6 +11,9 @@ export interface NodeMatch {
 	id: string
 	type: string
 	description: string
+	// parent is the node the match was reached under, for a link that
+	// opens it in that place
+	parent: string
 	// path is the descriptions of the ancestors below the anchor, nearest
 	// last, with the anchor's own description first when it is known
 	path: string[]
@@ -92,7 +95,15 @@ export function buildMatches(
 		if (anchorName !== undefined && anchorName !== "") {
 			path.unshift(anchorName)
 		}
-		matches.push({ id: n.id, type: n.type, description: getBestDesc(n.points), path, rank, chain })
+		matches.push({
+			id: n.id,
+			type: n.type,
+			description: getBestDesc(n.points),
+			parent: n.parent,
+			path,
+			rank,
+			chain,
+		})
 	}
 	return matches
 }
