@@ -14,5 +14,6 @@ export default defineWidget({
 		{ name: "suction", x: 0, y: 0.53, dir: "left" },
 		{ name: "discharge", x: 0.483, y: 0.055, dir: "up" },
 	],
+	fit: "width",
 	component: Widget,
 })

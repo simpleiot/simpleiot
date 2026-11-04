@@ -16,5 +16,6 @@ export default defineWidget({
 		{ name: "left", x: 0.155, y: 0.47, dir: "left" },
 		{ name: "right", x: 0.845, y: 0.47, dir: "right" },
 	],
+	fit: "width",
 	component: Widget,
 })

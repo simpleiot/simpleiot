@@ -60,6 +60,10 @@ export interface WidgetDescriptor {
 	ports?: readonly MimicPort[]
 	// width is the default width on a canvas, in canvas units
 	width?: number
+	// fit says how a canvas widget follows its width: a drawing takes the
+	// width as a prop and draws at that size; anything else is zoomed by
+	// the ratio of its width to the default
+	fit?: "width" | "zoom"
 	component: Component<WidgetProps>
 }
 

@@ -7,5 +7,6 @@ export default defineWidget({
 	host: "both",
 	bindings: ["value"],
 	options: { min: "0", max: "100", unit: "", decimals: "1" },
+	fit: "width",
 	component: Widget,
 })

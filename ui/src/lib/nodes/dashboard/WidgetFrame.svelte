@@ -27,11 +27,17 @@
 	const C = $derived(p.descriptor?.component)
 
 	// scale enlarges or shrinks the widget's content, for a tile that
-	// should read from across the room or sit small in a corner
-	const scale = $derived.by(() => {
+	// should read from across the room or sit small in a corner. On a
+	// canvas a widget that is not a drawing also follows its width: the
+	// corner handle then sizes its text as it does a tank's shell.
+	const option = $derived.by(() => {
 		const s = Number(p.options.scale)
 		return Number.isFinite(s) && s > 0 ? s : 1
 	})
+	const byWidth = $derived(p.descriptor?.fit === "width")
+	const scale = $derived(
+		bare && !byWidth ? (p.layout.w / (p.descriptor?.width ?? 160)) * option : option
+	)
 
 	// a write from the widget goes to the target its binding names
 	const write = $derived(
@@ -68,7 +74,7 @@
 				label={p.label}
 				values={p.values}
 				options={p.options}
-				width={bare ? p.layout.w / scale : undefined}
+				width={bare && byWidth ? p.layout.w / scale : undefined}
 				onWrite={write}
 				control={Object.keys(p.writes).length > 0}
 				{editing}
