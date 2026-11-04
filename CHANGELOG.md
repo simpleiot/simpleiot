@@ -13,6 +13,10 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+- **A signal generator continues where it stopped.** Disabling a generator and
+  enabling it again, or changing its range, rate, or frequency, continues the
+  signal rather than starting it over from the initial value. See the
+  [signal generator](docs/user/signal-generator.md#disabling-a-generator).
 - **A rule starts from the current value of the nodes its conditions watch.** A
   rule that watches a switch which is already on is active as soon as it starts,
   rather than waiting for the switch to change. Before, the switch had to be
