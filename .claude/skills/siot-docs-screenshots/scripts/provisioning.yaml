@@ -1,0 +1,9 @@
+# Applied from the data directory at start-up so the provisioning node in
+# the tree has one file to show.
+apiVersion: 1
+nodes:
+  - variable:
+      description: Provisioned setpoint
+      variableType: number
+      units: "%"
+      value: 65

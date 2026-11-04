@@ -118,3 +118,11 @@ export function num(
 	const v = Number(options[name])
 	return options[name] !== undefined && options[name] !== "" && Number.isFinite(v) ? v : fallback
 }
+
+// multiplier reads the multiplier option, which scales a reading for
+// display: seconds shown as days, bytes as megabytes. It is 1 when the
+// option is not set, not a number, or zero.
+export function multiplier(options: Readonly<Record<string, string>>): number {
+	const m = num(options, "multiplier", 1)
+	return m === 0 ? 1 : m
+}

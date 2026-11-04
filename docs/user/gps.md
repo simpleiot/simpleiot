@@ -48,6 +48,8 @@ unplugged.
 
 ### Simulated
 
+![a simulated gps node](images/gps.png)
+
 | Field                   | Description                                                 |
 | ----------------------- | ----------------------------------------------------------- |
 | `Start latitude`        | Where the track begins, in degrees.                         |

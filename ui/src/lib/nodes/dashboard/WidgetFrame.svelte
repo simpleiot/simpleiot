@@ -67,7 +67,7 @@
 	title={dead ? "a bound node was not found" : undefined}
 >
 	{#if p.nested}
-		<NestedDashboard id={p.nested} ancestors={p.ancestors} />
+		<NestedDashboard id={p.nested} ancestors={p.ancestors} via={p.via} />
 	{:else if C}
 		<div class="content" class:sized={!bare} style:zoom={scale}>
 			<C

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log"
 	"net/http"
 )
 
@@ -11,6 +12,9 @@ type V1 struct {
 	NodesHandler  http.Handler
 	AuthHandler   http.Handler
 	MsgHandler    http.Handler
+	// Version is the running binary's version; the UI compares it on
+	// each reconnect, so an open tab reloads after a new release starts.
+	Version string
 }
 
 // Top level handler for http requests in the coap-server process
@@ -22,6 +26,8 @@ func (h *V1) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		h.NodesHandler.ServeHTTP(res, req)
 	case "auth":
 		h.AuthHandler.ServeHTTP(res, req)
+	case "version":
+		h.serveVersion(res, req)
 	default:
 		http.Error(res, "Not Found", http.StatusNotFound)
 	}
@@ -33,5 +39,20 @@ func NewV1Handler(args ServerArgs) http.Handler {
 		NodesHandler: NewNodesHandler(args.Users,
 			args.AuthToken, args.Nc, args.DeviceAuth, args.DeviceAuthRequired),
 		AuthHandler: NewAuthHandler(args.Nc),
+		Version:     args.AppVersion,
+	}
+}
+
+// serveVersion answers GET /v1/version with the binary's version. It is
+// not cached, since a new binary answers differently.
+func (h *V1) serveVersion(res http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(res, "only GET allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	res.Header().Set("Content-Type", "application/json")
+	res.Header().Set("Cache-Control", "no-cache")
+	if err := encode(res, map[string]string{"version": h.Version}); err != nil {
+		log.Println("Error encoding version:", err)
 	}
 }

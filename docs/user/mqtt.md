@@ -56,6 +56,8 @@ planned as well, so the choice stays open.
 
 ## Subscriptions
 
+![an mqtt node with a subscription](images/mqtt.png)
+
 An `mqtt` node holds the connection, and each `mqttSub` child maps one topic
 into points:
 

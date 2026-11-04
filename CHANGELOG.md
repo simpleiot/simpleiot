@@ -11,6 +11,35 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.33.1] - 2026-11-04
+
+### Added
+
+- **Open browser tabs reload after an upgrade.** When the server comes back
+  running a new version, the Svelte UI reloads itself, so a tab left open does
+  not keep running the previous build.
+- **A configuration file can mirror a node into a second place.** An entry with
+  a `mirror` key names an existing node by description and adds it under the
+  entry's parent, so a provisioning file can put a device's bus in a site group
+  or a user in several groups. `siot export` writes a node that sits in more
+  than one place as one full entry and a `mirror` entry for each other place, so
+  a mirrored tree round-trips. See
+  [mirroring a node](docs/user/configuration.md#mirroring-a-node).
+- **A widget can scale the reading it shows.** The value, gauge, and trend
+  widgets take a `multiplier` option, so an uptime in seconds reads in days and
+  a memory figure in bytes reads in megabytes. `min` and `max` are in the shown
+  unit, and a value edited as a setting is scaled back before it is sent. See
+  [dashboards](docs/user/dashboards.md#building-one).
+
+### Fixed
+
+- **A nested dashboard's relative bindings resolve.** A dashboard shown inside
+  another through the nested dashboard component drew every widget with a
+  relative binding dead. The paths now start from the parent the outer dashboard
+  was opened under, so an overview mirrored under several devices shows each
+  device's nodes in its tiles. See
+  [nested dashboards](docs/user/dashboards.md#nested-dashboards).
+
 ## [0.33.0] - 2026-11-04
 
 ### Changed

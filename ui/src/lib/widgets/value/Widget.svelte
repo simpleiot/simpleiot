@@ -2,9 +2,11 @@
 	// A value tile: one number or text, large, with its unit. With an
 	// onWrite it is a setting: a click on the value opens an edit box, and
 	// Enter sends the new value, or asks first when the confirm option is
-	// on. Until it is edited the value looks like any other.
+	// on. Until it is edited the value looks like any other. A multiplier
+	// scales the number for display, and an edit is scaled back before it
+	// is sent, so the point keeps its own units.
 	import Confirm from "../Confirm.svelte"
-	import { num, wantsConfirm, type WidgetProps, type Write } from "../registry.ts"
+	import { multiplier, num, wantsConfirm, type WidgetProps, type Write } from "../registry.ts"
 
 	let {
 		label,
@@ -23,6 +25,7 @@
 	const dead = $derived(!v || v.state === "dead")
 	const isText = $derived(v !== undefined && v.text !== "")
 	const decimals = $derived(num(options, "decimals", 1))
+	const m = $derived(multiplier(options))
 	const text = $derived.by(() => {
 		if (!v || dead) {
 			return "—"
@@ -30,7 +33,7 @@
 		if (v.text !== "") {
 			return v.text
 		}
-		return v.value.toFixed(decimals)
+		return (v.value * m).toFixed(decimals)
 	})
 
 	let editing = $state(false)
@@ -45,7 +48,7 @@
 		if (!onWrite || dead || !v) {
 			return
 		}
-		draft = isText ? v.text : String(v.value)
+		draft = isText ? v.text : String(v.value * m)
 		editing = true
 		requestAnimationFrame(() => box?.select())
 	}
@@ -64,7 +67,7 @@
 			if (t === "" || !Number.isFinite(n)) {
 				return
 			}
-			w = { value: n, text: "" }
+			w = { value: n / m, text: "" }
 		}
 		if (wantsConfirm(options)) {
 			pending = w
@@ -83,7 +86,7 @@
 	}
 
 	const pendingText = $derived(
-		pending ? (pending.text !== "" ? pending.text : pending.value.toFixed(decimals)) : ""
+		pending ? (pending.text !== "" ? pending.text : (pending.value * m).toFixed(decimals)) : ""
 	)
 </script>
 

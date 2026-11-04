@@ -146,6 +146,8 @@ type ServerArgs struct {
 	// DeviceAuthRequired limits the shared token to loopback, on the API
 	// routes and through the WebSocket proxy.
 	DeviceAuthRequired bool
+	// AppVersion is the running binary's version, served at /v1/version.
+	AppVersion string
 }
 
 // Server represents the HTTP API server

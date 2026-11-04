@@ -124,6 +124,8 @@ function env(conn: SiotConnection, overrides: Partial<Env> = {}) {
 		setTimeout: () => 1,
 		clearTimeout: () => undefined,
 		warn: () => undefined,
+		version: () => Promise.resolve("v1"),
+		reload: () => undefined,
 		...overrides,
 	}
 	return {

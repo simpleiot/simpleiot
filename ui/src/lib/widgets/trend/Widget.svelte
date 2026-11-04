@@ -1,9 +1,11 @@
 <script lang="ts">
 	// A live trend: the last values of one point as they arrive, on the
 	// nautilus sparkline. The window is a count of samples kept in the
-	// browser; history from the store comes later.
+	// browser; history from the store comes later. Samples are kept as
+	// they arrive and the multiplier is applied when they are drawn, so
+	// changing it rescales the whole line.
 	import Sparkline from "#lib/vendor/nautilus/Sparkline.svelte"
-	import { num, type WidgetProps } from "../registry.ts"
+	import { multiplier, num, type WidgetProps } from "../registry.ts"
 
 	let { label, values, options }: WidgetProps = $props()
 
@@ -29,7 +31,9 @@
 	const maxOpt = $derived(
 		options.max === "" || options.max === undefined ? undefined : num(options, "max", 0)
 	)
-	const latest = $derived(dead || !v ? "—" : v.value.toFixed(num(options, "decimals", 1)))
+	const m = $derived(multiplier(options))
+	const shown = $derived(samples.map((s) => s * m))
+	const latest = $derived(dead || !v ? "—" : (v.value * m).toFixed(num(options, "decimals", 1)))
 </script>
 
 <div class="trend" class:dead>
@@ -40,7 +44,7 @@
 		>
 	</div>
 	<div class="chart">
-		<Sparkline values={samples} height={60} yMin={minOpt} yMax={maxOpt} />
+		<Sparkline values={shown} height={60} yMin={minOpt} yMax={maxOpt} />
 	</div>
 </div>
 

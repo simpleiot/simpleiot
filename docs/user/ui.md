@@ -1,15 +1,23 @@
 # User Interface
 
-**Contents**
+After Simple IoT is started, a web application is available on port `:4223`
+(typically [http://localhost:4223](http://localhost:4223)). The default
+user/pass is `admin`/`admin`.
 
-<!-- toc -->
+The interface has two views, and the header switches between them:
+
+- **Nodes** is the tree of everything the instance knows about: devices, groups,
+  users, rules, and their settings. This is where configuration is done, and the
+  rest of this page describes it.
+- **Dashboards** show live values from any nodes on one page: gauges, status,
+  trends, and process mimics. See [Dashboards](dashboards.md).
+
+Signing in lands on the user's home dashboard when one is set, on the dashboard
+list when any dashboard is visible to the user, and on the node tree otherwise.
 
 ## Basic Navigation
 
-After Simple IoT is started, a web application is available on port `:4223`
-(typically [http://localhost:4223](http://localhost:4223)). After logging in
-(default user/pass is `admin`/`admin`), you will be presented with a tree of
-nodes.
+Opening **Nodes** presents a tree of nodes.
 
 ![nodes](images/nodes.png)
 
@@ -144,11 +152,11 @@ If a node is expanded, a raw node button is available that allows you to view
 the raw type and points for any node in the tree. It is useful at times during
 development and debugging to be able to view the raw points for a node.
 
-<img src="assets/image-20231205121809598.png" alt="image-20231205121809598" style="zoom:80%;" />
+![node toolbar with the raw button](images/node-ops.png)
 
 After the raw button is pressed, the type and points are displayed:
 
-<img src="./assets/image-20231219103344798.png" alt="image-20231219103344798" style="zoom:67%;" />
+![raw view of a node](images/node-raw.png)
 
 Unknown nodes will also be displayed as raw nodes.
 
@@ -158,7 +166,7 @@ A custom node type can also be added by specifying the node type when adding a
 node. This can be useful when developing new clients or external clients that
 run outside of the SImple IoT application.
 
-<img src="./assets/image-20231219103622737.png" alt="image-20231219103622737" style="zoom: 50%;" />
+![adding a node with a custom type](images/node-add-custom.png)
 
 ## Graphing and dashboards
 

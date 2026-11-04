@@ -78,6 +78,8 @@ function env(nodes: Node[]): Env {
 		setTimeout: () => 1,
 		clearTimeout: () => undefined,
 		warn: () => undefined,
+		version: () => Promise.resolve("v1"),
+		reload: () => undefined,
 	}
 }
 
@@ -151,4 +153,38 @@ test("resolvePath follows type and description segments from a node", async () =
 	expect(await store.resolvePath("A", "variable/pump1")).toBe("v")
 	expect(await store.resolvePath("A", "modbusIo/pump2")).toBeUndefined()
 	expect(await store.resolvePath("A", "bad")).toBeUndefined()
+})
+
+test("the page reloads when the server comes back with a new version", async () => {
+	let version = "v1"
+	let reloads = 0
+	const e: Env = {
+		...env([group("G", "root")]),
+		version: () => Promise.resolve(version),
+		reload: () => {
+			reloads++
+		},
+	}
+	const store = new TreeStore(e)
+	const ready = async () => {
+		await vi.waitFor(() => {
+			expect(store.ready).toBe(true)
+		})
+	}
+
+	store.start("t", () => undefined)
+	await ready()
+	// the same version on a later connect leaves the page alone
+	await store.stop()
+	store.start("t", () => undefined)
+	await ready()
+	expect(reloads).toBe(0)
+
+	version = "v2"
+	await store.stop()
+	store.start("t", () => undefined)
+	await vi.waitFor(() => {
+		expect(reloads).toBe(1)
+	})
+	await store.stop()
 })

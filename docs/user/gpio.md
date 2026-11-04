@@ -76,6 +76,8 @@ tree overlay or module to change.
 
 ## Configuration
 
+![a gpio node](images/gpio.png)
+
 | Field               | Values                                        | Description                                                  |
 | ------------------- | --------------------------------------------- | ------------------------------------------------------------ |
 | `Chip`              | `gpiochip0`, a label, a path, or `sim`        | Which GPIO chip the line is on                               |

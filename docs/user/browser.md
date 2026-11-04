@@ -7,6 +7,8 @@ saved to `/etc/default/yoe-kiosk-browser` for the browser and
 `/etc/default/eglfs.json` for EGLFS, and the `yoe-kiosk-browser` service is
 restarted automatically.
 
+![a browser node](images/browser.png)
+
 ## Schema
 
 Below is an export of a browser node:

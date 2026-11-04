@@ -65,6 +65,8 @@ an inactive action as described in [Set node point](#set-node-point).
 
 ### Node state
 
+![point value condition](images/rule-condition.png)
+
 A point value condition looks at the point value of a node to determine if a
 condition is met. Qualifiers that filter points the condition is interested in
 can set including:
@@ -103,7 +105,7 @@ Conversely, when a weekday is enabled, dates are disabled.
 As a time range can span two days, the start time is used to qualify weekdays
 and dates.
 
-<img src="./images/rule-schedule.png" alt="image-20230721173842815" style="zoom:67%;" />
+![schedule condition](images/rule-schedule.png)
 
 See also a video demo:
 
@@ -152,6 +154,8 @@ is not rate limited. Send times are in-process state, so they reset if the
 instance restarts.
 
 ### Set node point
+
+![set node point action](images/rule-action.png)
 
 Rules can also set points in other nodes. For simplicity, the node ID must be
 currently specified along with point parameters and a number/bool/text value.

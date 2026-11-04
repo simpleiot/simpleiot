@@ -124,10 +124,10 @@ array:
     tag: [alpha, beta] # keys "0" and "1"
 ```
 
-Three keys inside a node are reserved: `parent`, `children`, and `edgePoints`.
-Every other key is a point type, `id` included -- Modbus and OneWire nodes
-configure a point named `id`, and it is written like any other point. A node's
-own ID never appears in a file.
+Four keys inside a node are reserved: `parent`, `children`, `edgePoints`, and
+`mirror`. Every other key is a point type, `id` included -- Modbus and OneWire
+nodes configure a point named `id`, and it is written like any other point. A
+node's own ID never appears in a file.
 
 Edge points, such as a user's role, are spelled the same way under their own
 key:
@@ -184,6 +184,42 @@ nodes:
 
 Entries apply in the order they are written, so a `parent` naming a node the
 same file creates has to come after the entry that creates it.
+
+### Mirroring a node
+
+A node can sit in more than one place in the tree: a user in two groups, or a
+device's Modbus bus shown in a site group as well as under the device. An entry
+with a `mirror` key adds an existing node under the entry's parent rather than
+creating one. It names the node by description, the way `parent` does, and is
+nested or given a `parent` the way any other entry is:
+
+```yaml
+nodes:
+  - group:
+      description: Sensors
+      children:
+        - modbus:
+            description: Modbus sensors
+            port: /dev/ttyS1
+  - group:
+      description: Site B
+      children:
+        - modbus:
+            mirror: Modbus sensors
+```
+
+The node type is still the key, and it has to agree with the node being
+mirrored. A mirror entry carries no points or children of its own, since those
+belong to the entry that creates the node; `edgePoints` are allowed, which is
+how a user mirrored into a second group gets a role there. The new edge's role
+is worked out from the node, as it is in the UI, so a node with a primary
+location is displayed in the second place without running a second client there.
+See [Primary and mirror edges](../ref/data.md#primary-and-mirror-edges).
+
+A mirror is resolved after the whole file has been read, so it may name a node
+the file creates further down, or one that another file created. Applying the
+file again finds the edge already there and does nothing, and a mirror entry in
+the `delete` list removes that one edge.
 
 ### Configuring this instance
 
@@ -269,6 +305,8 @@ usable as a provisioning file:
   hand to give an instance its description and tags.
 - Node IDs are left out, since a file finds its nodes by description. A `nodeID`
   point is written as the description of the node it points at.
+- A node that sits in more than one place is written in full once, under its
+  primary edge, and as a `mirror` entry everywhere else.
 - Points that carry no value are left out, as is the origin recording which
   client last wrote each point.
 - Secret points (`authToken`, `enrollToken`, `pass`, `psk`, and `sid`) are left
@@ -396,6 +434,8 @@ A `provisioning` node under the root records what was applied. Each file on disk
 gets a `provisioningFile` child carrying its name, the checksum of what was
 applied, and the last error if it failed. An uploaded file records the same
 thing on the file node itself, so a file and its status are one node in the UI.
+
+![provisioning status in the tree](images/provisioning.png)
 
 Removing a file from the directory removes its status. The nodes it created stay
 where they are: provisioning describes what should exist, and does not own what

@@ -31,19 +31,24 @@ on a narrow one.
 3. Leave the component on **auto** to show the node the usual way for its type,
    or pick one:
 
-   | Component | Shows                       | Options                          |
-   | --------- | --------------------------- | -------------------------------- |
-   | value     | the number or text, large   | `decimals`, `unit`, `confirm`    |
-   | gauge     | a radial gauge over a range | `min`, `max`, `unit`, `decimals` |
-   | status    | on or off                   | `on`, `off`, `confirm`           |
-   | trend     | the last values as a line   | `window`, `min`, `max`, `unit`   |
+   | Component | Shows                       | Options                                        |
+   | --------- | --------------------------- | ---------------------------------------------- |
+   | value     | the number or text, large   | `decimals`, `unit`, `multiplier`, `confirm`    |
+   | gauge     | a radial gauge over a range | `min`, `max`, `unit`, `decimals`, `multiplier` |
+   | status    | on or off                   | `on`, `off`, `confirm`                         |
+   | trend     | the last values as a line   | `window`, `min`, `max`, `unit`, `multiplier`   |
 
 4. A dashboard has 12 columns unless its **Columns** setting says otherwise. The
    column, row, width, and height fields in the widget's settings set its place
    in grid units when dragging is not convenient.
 5. Add options under **Options**, keyed by the names in the table. Every widget
    also takes `scale`: `2` draws it at twice the size, for a reading that should
-   carry across a room, and `0.5` at half.
+   carry across a room, and `0.5` at half. `multiplier` scales the reading
+   itself, for a point whose unit is not the one to show: an uptime in seconds
+   reads in days with `multiplier` `0.0000115741` and `unit` `d`, and a memory
+   figure in bytes reads in megabytes with `0.000001`. `min` and `max` are in
+   the shown unit, and a value edited as a setting is scaled back before it is
+   sent.
 
 Widgets are nodes under the dashboard, so everything above can also be done in
 the node tree, by a script, or by an agent.
@@ -117,7 +122,10 @@ explicitly.
 
 The **nested dashboard** component shows another dashboard inside a widget: bind
 its `dashboard` to the dashboard node. A dashboard that contains itself, at any
-depth, stops there with a note.
+depth, stops there with a note. Relative bindings in the nested dashboard start
+from the parent the outer dashboard was opened under, so an overview mirrored
+under several devices shows each device's nodes in every tile, and the
+dashboards it shows need no mirroring of their own.
 
 ## Home dashboard
 

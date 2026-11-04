@@ -6,7 +6,7 @@ designed to download images for use by the
 The process can be executed manually, or there are options to automatically
 download and install new updates.
 
-<img src="assets/update.png" alt="updater ui" style="zoom:50%;" />
+![update node](images/update.png)
 
 There are several options:
 

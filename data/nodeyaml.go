@@ -12,18 +12,22 @@ import (
 )
 
 // Keys that have a meaning of their own inside a node body. Every other key is
-// a point type. None of these is a point type, so the rule holds without
-// exceptions -- in particular `id` is an ordinary point type, used by Modbus
+// a point type -- in particular `id` is an ordinary point type, used by Modbus
 // and OneWire nodes, and a node's own ID never appears in a file at all.
+//
+// `mirror` is also the edge point that marks a mirror edge. A file spells a
+// mirror as a mirror: entry rather than as that edge point, so the point is
+// never written and the key means one thing in a file.
 const (
 	nodeKeyParent     = "parent"
 	nodeKeyChildren   = "children"
 	nodeKeyEdgePoints = "edgePoints"
+	nodeKeyMirror     = "mirror"
 )
 
 func nodeKeyReserved(k string) bool {
 	switch k {
-	case nodeKeyParent, nodeKeyChildren, nodeKeyEdgePoints:
+	case nodeKeyParent, nodeKeyChildren, nodeKeyEdgePoints, nodeKeyMirror:
 		return true
 	}
 
@@ -117,12 +121,25 @@ const NodeFileAPIVersion = 1
 //
 // A file carries configuration and nothing else: no node IDs, no origins, and
 // no points that carry no value.
+//
+// An entry can also mirror a node that exists elsewhere in the tree, so that
+// one node is reached from two places:
+//
+//	nodes:
+//	  - modbus:
+//	      mirror: Modbus sensors
+//
+// A mirror entry names the node by its match key and carries edge points
+// only; the node's own points and children stay on the entry that creates it.
 type NodeYAML struct {
 	// Type is the node type, which is the key the rest of the body hangs from.
 	Type string
 	// Parent is the match key of the node this one attaches to, and is only
 	// meaningful on a top level entry.
-	Parent     string
+	Parent string
+	// Mirror is the match key of an existing node to mirror here. When it is
+	// set, Points and Children are empty.
+	Mirror     string
 	Points     Points
 	EdgePoints Points
 	Children   []NodeYAML
@@ -183,6 +200,10 @@ func (n NodeYAML) MarshalYAML() (any, error) {
 
 	if n.Parent != "" {
 		body = append(body, yaml.MapItem{Key: nodeKeyParent, Value: n.Parent})
+	}
+
+	if n.Mirror != "" {
+		body = append(body, yaml.MapItem{Key: nodeKeyMirror, Value: n.Mirror})
 	}
 
 	body = append(body, pointsToYAML(n.Points)...)
@@ -341,6 +362,14 @@ func (n *NodeYAML) UnmarshalYAML(b []byte) error {
 			if err := yaml.NodeToValue(f.Value, &n.Parent); err != nil {
 				return fmt.Errorf("node %v: parent: %w", n.Type, err)
 			}
+		case nodeKeyMirror:
+			if err := yaml.NodeToValue(f.Value, &n.Mirror); err != nil {
+				return fmt.Errorf("node %v: mirror: %w", n.Type, err)
+			}
+
+			if n.Mirror == "" {
+				return fmt.Errorf("node %v: mirror: names the node to mirror by its description, and is empty", n.Type)
+			}
 		case nodeKeyChildren:
 			if err := yaml.NodeToValue(f.Value, &n.Children); err != nil {
 				return fmt.Errorf("node %v: children: %w", n.Type, err)
@@ -359,6 +388,18 @@ func (n *NodeYAML) UnmarshalYAML(b []byte) error {
 			}
 
 			n.Points = append(n.Points, points...)
+		}
+	}
+
+	if n.Mirror != "" {
+		if len(n.Points) > 0 {
+			return fmt.Errorf("node %v: a mirror entry names the node it mirrors and carries no points of its own, "+
+				"since the points belong to the entry that creates the node", n.Type)
+		}
+
+		if len(n.Children) > 0 {
+			return fmt.Errorf("node %v: a mirror entry has no children, since they belong to the entry that "+
+				"creates the node", n.Type)
 		}
 	}
 

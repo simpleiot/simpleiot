@@ -103,6 +103,9 @@ export class TreeStore {
 	#onAuthFailed: () => void = () => undefined
 	#deepFetched = false
 	#saved = ""
+	// serverVersion is the server's version when the page first
+	// connected; it is kept across sign-outs, since the page is the same
+	#serverVersion = ""
 	// resolved holds nodes fetched by ID for display off the tree; it is
 	// dropped on each connect, since those nodes are not watched
 	#resolved = new Map<string, Node>()
@@ -253,6 +256,7 @@ export class TreeStore {
 	}
 
 	#connected(userId: string, anchors: string[]) {
+		void this.#checkVersion()
 		this.userId = userId
 		this.anchors = anchors
 		this.connected = true
@@ -285,6 +289,29 @@ export class TreeStore {
 				this.#remember()
 				this.onConnected?.()
 			})
+	}
+
+	// checkVersion reloads the page when the server runs a different
+	// version than it did when the page loaded. A new release restarts
+	// the server, so the connection drops and comes back; this runs on
+	// each connect, and the reload fetches the build the new binary
+	// carries.
+	async #checkVersion() {
+		let v: string
+		try {
+			v = await this.env.version()
+		} catch (err) {
+			this.env.warn("siot: version check", err)
+			return
+		}
+		if (v === "") {
+			return
+		}
+		if (this.#serverVersion === "") {
+			this.#serverVersion = v
+		} else if (v !== this.#serverVersion) {
+			this.env.reload()
+		}
 	}
 
 	// ---- remembered expansion

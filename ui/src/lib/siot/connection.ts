@@ -42,6 +42,9 @@ export interface Env {
 	setTimeout(f: () => void, ms: number): unknown
 	clearTimeout(t: unknown): void
 	warn(...args: unknown[]): void
+	// version fetches the server's version; reload reloads the page
+	version(): Promise<string>
+	reload(): void
 }
 
 export const retryDelay = 5000
