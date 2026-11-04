@@ -415,7 +415,8 @@ siot_goreleaser_build() {
 #   1. move the CHANGELOG.md "[Unreleased]" entries under a
 #      "## [X.Y.Z] - <date>" heading and commit it to master. The UI build in
 #      ui/build is committed with each UI change, so it is already current
-#   2. siot_tag
+#   2. siot_tag, which rebuilds the UI and refuses to tag if the committed
+#      ui/build is out of date
 #
 # Pushing the tag starts the Release workflow (.github/workflows/release.yml),
 # which builds the binaries and publishes the GitHub release. The release notes
@@ -454,6 +455,16 @@ _siot_release_version() {
 # restores the original branch on every exit path, success or not.
 _siot_tag_on_master() {
 	git merge --ff-only origin/master || return 1
+
+	# The release binaries embed the committed ui/build, so it has to match
+	# the UI source. The build is reproducible: a clean tree after rebuilding
+	# proves the committed assets are current.
+	siot_build_ui || return 1
+	if [ -n "$(git status --porcelain ui/build)" ]; then
+		echo "ui/build is out of date; run siot_build_ui and commit it to master first" >&2
+		git checkout -- ui/build && git clean -fdq ui/build
+		return 1
+	fi
 
 	TAG="v$(_siot_release_version)" || return 1
 
