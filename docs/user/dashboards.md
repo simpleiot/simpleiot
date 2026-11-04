@@ -6,6 +6,8 @@ nodes, so it syncs between instances, follows the same permissions as the nodes
 it shows, and can be created by a script or an agent through the same API as
 everything else.
 
+![The demo's Overview: four canvases shown as tiles](images/dashboard-overview.png)
+
 Open **Dashboards** in the header to see the dashboards you can reach, and open
 one to view it. On a phone the grid becomes a single column. Tap a widget to
 open the node behind it: a dialog on a wide screen, the node's page in the tree
