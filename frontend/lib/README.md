@@ -1,7 +1,7 @@
 # simpleiot-js
 
-A Simple IoT client for the browser, over NATS WebSockets. The web UI in
-`frontend/` is built on it.
+A Simple IoT client for the browser, over NATS WebSockets. The web UI in `ui/`
+is built on it.
 
 A connection is made as a signed-in user: the user's node ID and the JWT from
 `POST /v1/auth` are the NATS user and password, and the server limits the

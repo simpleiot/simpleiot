@@ -65,8 +65,11 @@ func (h *uiHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	if p != "/" && p != "/index.html" {
 		name := strings.TrimPrefix(p, "/")
 		if st, err := fs.Stat(h.fsys, name); err == nil && !st.IsDir() {
-			if strings.HasPrefix(p, "/_app/immutable/") {
-				// hashed file names; a new build makes new names
+			if strings.HasPrefix(p, "/_app/immutable/") || strings.HasPrefix(p, "/fonts/") {
+				// hashed file names, and font files named for their
+				// face that never change in place; embedded files
+				// carry no modification time, so without this the
+				// browser fetches them on every use
 				res.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 			}
 			req.URL.Path = p

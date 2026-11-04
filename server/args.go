@@ -67,7 +67,7 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 		"'optional' (default) accepts the shared token from anywhere; 'required' accepts it only from this host, so remote devices need a credential")
 	flagSyslog := flags.Bool("syslog", false, "log to syslog instead of stdout")
 	flagDev := flags.Bool("dev", false, "run server in development mode")
-	flagCustomUIDir := flags.String("customUIDir", "", "pass custom UI directory")
+	flagCustomUIDir := flags.String("customUIDir", "", "serve the web UI from this directory instead of the embedded build")
 	flagUIAssetsDebug := flags.Bool("UIAssetsDebug", false, "Dump asset files for debugging")
 	flagProvisioningDir := flags.String("provisioningDir", "",
 		"directory of YAML files to apply at start-up and when they change (default <SIOT_DATA>/provisioning if it exists)")

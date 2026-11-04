@@ -1,9 +1,7 @@
 # Frontend
 
-Two web UIs are served during the move from Elm to Svelte: the Svelte UI at `/`
-and the Elm UI at `/old`. They share one sign-in. The Elm UI will be removed in
-a later release. Both use the connection described below; this page documents
-the Svelte UI.
+The web UI is a Svelte app served at `/`. This page documents how it talks to
+Simple IoT, how its code is organized, and the JavaScript client it is built on.
 
 ## How the browser talks to Simple IoT
 
@@ -192,7 +190,8 @@ custom web UI optimized for your products, there are several options:
 There are ways to use a custom UI with SIOT at the app and package level:
 
 1. **Application:** pass a directory containing your public web assets to the
-   app using: `siot serve -customUIDir <your web assets>`
+   app using: `siot serve -customUIDir <your web assets>`. The directory
+   replaces the embedded Svelte UI build and is served at `/`.
 1. **Package:** populate `CustomUIFS` with a
    [`fs.FS`](https://pkg.go.dev/io/fs#FS) in the SIOT
    [server options`](https://pkg.go.dev/github.com/simpleiot/simpleiot/server#Options).

@@ -1,8 +1,7 @@
 name: Release
 
-# The UI assets embedded in the binaries come from the committed ui/build
-# (the Svelte UI at /) and frontend/public/dist/*.gz (the Elm UI at /old),
-# which are rebuilt and committed as part of the release commit, before
+# The UI assets embedded in the binaries come from the committed ui/build,
+# which is rebuilt and committed as part of the release commit, before
 # siot_tag runs. That way the released binaries match what `go install`
 # produces.
 

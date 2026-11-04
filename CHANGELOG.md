@@ -11,6 +11,13 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Removed
+
+- **The old Elm UI is gone, and with it the `/old` path.** The Svelte UI at `/`
+  is the only web UI in the binary. Bookmarks to `/old` return the Svelte UI
+  instead, and `-customUIDir` now replaces the Svelte UI build rather than the
+  Elm assets. The `simpleiot-js` client stays in `frontend/lib`.
+
 ## [0.33.4] - 2026-11-04
 
 - update UI assets

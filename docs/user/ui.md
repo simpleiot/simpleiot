@@ -50,10 +50,6 @@ The interface also:
 - **Asks before losing changes.** With unsaved edits, closing the tab, leaving
   the page, or signing out asks first.
 
-The previous interface is still available at `/old` (for example
-[http://localhost:4223/old/](http://localhost:4223/old/)) and signs in with the
-same account. It will be removed in a later release.
-
 The `Node` is the base unit of configuration. Each node contains `Points` which
 describe various attributes of a node. When you expand a node, the information
 you see is a rendering of the point data in the node.

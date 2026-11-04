@@ -5,8 +5,6 @@ if [ -f local.sh ]; then
 	. ./local.sh
 fi
 
-RECOMMENDED_ELM_VERSION=0.19.1
-
 # map tools from project go modules
 
 air() {
@@ -22,23 +20,6 @@ siot_install_frontend_deps() {
 	(cd "frontend" && npm install)
 	(cd "frontend/lib" && npm ci)
 	(cd "ui" && npm ci)
-}
-
-siot_check_elm() {
-	# this no longer works with the way we are installing elm
-	if ! npx elm --version >/dev/null 2>&1; then
-		echo "Please install elm >= 0.19"
-		echo "https://guide.elm-lang.org/install.html"
-		return 1
-	fi
-
-	version=$(npx elm --version)
-	if [ "$version" != "$RECOMMENDED_ELM_VERSION" ]; then
-		echo "found elm $version, recommend elm version $RECOMMENDED_ELM_VERSION"
-		echo "not sure what will happen otherwise"
-	fi
-
-	return 0
 }
 
 siot_check_go() {
@@ -66,61 +47,22 @@ siot_setup() {
 	return 0
 }
 
-# The old Elm UI is not rebuilt during normal work; the build uses the
-# compiled files committed in frontend/public/dist. Run siot_setup_elm once
-# before siot_build_elm, siot_watch_elm, or siot_test_elm.
-siot_setup_elm() {
-	(cd "frontend" && npx elm-tooling install) || return 1
-	# the following is to work around a race condition
-	# where the first time you run npx elm, you get an error:
-	# elm: Text file busy
-	(cd frontend && (npx elm || true))
-	# make sure elm-spa auto-generated stuff is set up
-	(cd frontend && npx elm-spa build) || return 1
-	return 0
-}
-
-# the web UI loads the NATS client as native ES modules, so the library
-# and nats.ws are copied next to the Elm output rather than bundled
-siot_frontend_js_files="siot-nats.js codec.js nats.js"
-
-siot_build_frontend_js() {
-	mkdir -p frontend/public/dist || return 1
-	cp frontend/lib/siot-nats.js frontend/lib/codec.js frontend/public/dist/ || return 1
-	cp frontend/lib/node_modules/nats.ws/esm/nats.js frontend/public/dist/nats.js || return 1
-	return 0
-}
-
-# Rebuild the old Elm UI and its JavaScript into frontend/public/dist.
-siot_build_elm() {
-	# send build output to stderr so that redirecting stdout (for example
-	# siot_run export > nodes.yaml) captures only the program output
-	(cd "frontend" && npx elm-spa build >&2) || return 1
-	siot_build_frontend_js || return 1
-	# -n leaves the file name and time out of the gzip header, so an
-	# unchanged input produces a byte-identical file and does not show up as
-	# modified in git.
-	gzip -nf frontend/public/dist/elm.js || return 1
-	for f in $siot_frontend_js_files; do
-		gzip -nf "frontend/public/dist/$f" || return 1
-	done
-	return 0
-}
-
-# The old Elm UI is served from the files committed in frontend/public/dist,
-# so only the Svelte UI is built here.
 siot_build_frontend() {
 	siot_build_ui || return 1
 	return 0
 }
 
 # The Svelte UI, served at /. npm run build runs svelte-check first, so a
-# type error fails the build. The hashed files under _app are gzipped like
-# elm.js; index.html stays as is, since the server reads it for the
-# content security policy.
+# type error fails the build. The hashed files under _app are gzipped;
+# index.html stays as is, since the server reads it for the content
+# security policy. -n leaves the file name and time out of the gzip header,
+# so an unchanged input produces a byte-identical file and does not show up
+# as modified in git.
 siot_build_ui() {
 	# npm i <package> skips the postinstall script that keeps Go out of
 	# node_modules, so it runs here as well
+	# send build output to stderr so that redirecting stdout (for example
+	# siot_run export > nodes.yaml) captures only the program output
 	(cd ui && npm run --silent postinstall && npm run --silent build >&2) || return 1
 	find ui/build/_app -type f ! -name '*.gz' -exec gzip -nf {} + || return 1
 	return 0
@@ -190,7 +132,7 @@ siot_mkcert() {
 }
 
 find_src_files() {
-	find . -not \( -path ./frontend/src/Spa/Generated -prune \) -not \( -path ./assets -prune \) -name "*.go"
+	find . -not \( -path ./assets -prune \) -name "*.go"
 }
 
 siot_watch_go() {
@@ -198,12 +140,8 @@ siot_watch_go() {
 	air serve -dev "$*"
 }
 
-siot_watch_elm() {
-	(cd frontend && npx elm-watch hot) || false
-}
-
 # The Vite dev server serves the Svelte UI at http://localhost:5173/ and
-# proxies the API, the Elm UI at /old, and the NATS WebSocket to siot's HTTP port (SIOT_HTTP_PORT,
+# proxies the API and the NATS WebSocket to siot's HTTP port (SIOT_HTTP_PORT,
 # or one above SIOT_NATS_PORT, as siot itself picks it).
 siot_watch_ui() {
 	(cd ui && npx vite dev) || false
@@ -236,11 +174,6 @@ siot_test_frontend() {
 	siot_test_ui || return 1
 }
 
-siot_test_elm() {
-	(cd frontend && npx elm-test) || return 1
-	(cd frontend && npx elm-review) || return 1
-}
-
 # Lint (prettier and eslint), type-check (svelte-check), and unit-test
 # (vitest) the Svelte UI.
 siot_test_ui() {
@@ -252,7 +185,7 @@ siot_test_ui() {
 # the codec tests check the JavaScript encoder against fixtures the Go
 # tests write (data/point_fixture_test.go)
 siot_test_frontend_js() {
-	(cd frontend && npx eslint public/main.js lib/*.js || return 1) || return 1
+	(cd frontend && npx eslint lib/*.js || return 1) || return 1
 	(cd frontend/lib && npm test || return 1) || return 1
 }
 
@@ -299,12 +232,8 @@ siot_test_ui_browser() {
 	return $_e2e_rc
 }
 
-siot_frontend_fix() {
-	(cd frontend && npx elm-review --fix-all)
-}
-
 # Enumerate markdown files via git so gitignored build output (book/,
-# node_modules/, frontend/public/dist) is never walked. Symlinks are dropped so
+# node_modules/, ui/build) is never walked. Symlinks are dropped so
 # prettier does not error on "explicitly specified pattern is a symbolic link".
 _siot_md_files() {
 	git ls-files '*.md' | while IFS= read -r f; do
