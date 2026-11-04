@@ -1,0 +1,363 @@
+# A dashboard demo: signal generators and switch variables under one group,
+# with three dashboards over them. The Overview is a tile grid with every
+# grid widget, the Pump station is a canvas with equipment and links, and
+# Switches shows the variables. Open Dashboards in the web UI after loading.
+#
+#   siot import < testdata/dashboard-demo.yaml
+#
+# Widget bindings name their node by description, and link ends name a
+# widget by its description, so the file reads as the dashboard looks. A
+# widget's own description must differ from the node it shows, since a
+# reference is resolved across the whole tree; the label a widget shows
+# follows the bound node unless the description says otherwise.
+apiVersion: 1
+nodes:
+  - group:
+      description: Dashboard demo
+      children:
+        # ---- live signals, one sample a second
+        - signalGenerator:
+            description: Tank level
+            signalType: triangle
+            units: "%"
+            minValue: 10
+            maxValue: 90
+            frequency: 0.005 # one cycle every 200 s
+            sampleRate: 1
+            roundTo: 0.1
+        - signalGenerator:
+            description: Tank temperature
+            signalType: sine
+            units: °C
+            minValue: 20
+            maxValue: 80
+            frequency: 0.002
+            sampleRate: 1
+            roundTo: 0.1
+        - signalGenerator:
+            description: Pump speed
+            signalType: sine
+            units: "%"
+            minValue: 0
+            maxValue: 100
+            frequency: 0.01
+            sampleRate: 1
+            roundTo: 1
+        - signalGenerator:
+            description: Pump running
+            signalType: square
+            minValue: 0
+            maxValue: 1
+            frequency: 0.0125 # on for 40 s, off for 40 s
+            sampleRate: 1
+        - signalGenerator:
+            description: Flow rate
+            signalType: random walk
+            units: gpm
+            minValue: 0
+            maxValue: 20
+            initialValue: 10
+            minIncrement: -0.5
+            maxIncrement: 0.5
+            sampleRate: 1
+            roundTo: 0.1
+        - signalGenerator:
+            description: Flow fraction
+            signalType: sine
+            minValue: 0.2
+            maxValue: 1
+            frequency: 0.01
+            sampleRate: 1
+            roundTo: 0.01
+        - signalGenerator:
+            description: Valve position
+            signalType: triangle
+            units: "%"
+            minValue: 0
+            maxValue: 100
+            frequency: 0.02
+            sampleRate: 1
+            roundTo: 1
+        - signalGenerator:
+            description: Line pressure
+            signalType: random walk
+            units: psi
+            minValue: 40
+            maxValue: 80
+            initialValue: 60
+            minIncrement: -1
+            maxIncrement: 1
+            sampleRate: 1
+            roundTo: 0.1
+        - signalGenerator:
+            description: Motor temperature
+            signalType: random walk
+            units: °C
+            minValue: 30
+            maxValue: 90
+            initialValue: 55
+            minIncrement: -0.4
+            maxIncrement: 0.4
+            sampleRate: 1
+            roundTo: 0.1
+
+        # ---- switches and settings, edited by hand in the tree
+        - variable:
+            description: Heater enable
+            variableType: onOff
+            value: 1
+        - variable:
+            description: Alarm acknowledged
+            variableType: onOff
+            value: 0
+        - variable:
+            description: Level setpoint
+            variableType: number
+            units: "%"
+            value: 65
+        - variable:
+            description: Shift note
+            variableType: text
+            value: Day shift
+
+        # ---- a tile grid with every grid widget
+        - dashboard:
+            description: Overview
+            layout: grid
+            cols: 12
+            children:
+              - widget:
+                  description: Level tile
+                  component: value
+                  x: 0
+                  y: 0
+                  w: 3
+                  h: 2
+                  bindNode:
+                    value: Tank level
+                  prop:
+                    unit: "%"
+                    decimals: "1"
+              - widget:
+                  description: Flow tile
+                  component: value
+                  x: 3
+                  y: 0
+                  w: 3
+                  h: 2
+                  bindNode:
+                    value: Flow rate
+                  prop:
+                    unit: gpm
+                    decimals: "1"
+              - widget:
+                  description: Pump state
+                  component: status
+                  x: 6
+                  y: 0
+                  w: 3
+                  h: 2
+                  bindNode:
+                    value: Pump running
+                  prop:
+                    on: Running
+                    off: Stopped
+              - widget:
+                  description: Heater state
+                  component: status
+                  x: 9
+                  y: 0
+                  w: 3
+                  h: 2
+                  bindNode:
+                    value: Heater enable
+                  prop:
+                    on: Enabled
+                    off: Off
+              - widget:
+                  description: Speed gauge
+                  component: gauge
+                  x: 0
+                  y: 2
+                  w: 3
+                  h: 3
+                  bindNode:
+                    value: Pump speed
+                  prop:
+                    min: "0"
+                    max: "100"
+                    unit: "%"
+                    decimals: "0"
+              - widget:
+                  description: Pressure gauge
+                  component: gauge
+                  x: 3
+                  y: 2
+                  w: 3
+                  h: 3
+                  bindNode:
+                    value: Line pressure
+                  prop:
+                    min: "40"
+                    max: "80"
+                    unit: psi
+                    decimals: "1"
+              - widget:
+                  description: Motor trend
+                  component: trend
+                  x: 6
+                  y: 2
+                  w: 6
+                  h: 3
+                  bindNode:
+                    value: Motor temperature
+                  prop:
+                    unit: °C
+                    min: "30"
+                    max: "90"
+                    window: "120"
+              - widget:
+                  description: Setpoint tile
+                  component: auto
+                  x: 0
+                  y: 5
+                  w: 3
+                  h: 2
+                  bindNode:
+                    value: Level setpoint
+                  prop:
+                    unit: "%"
+                    decimals: "0"
+              - widget:
+                  description: Note tile
+                  component: value
+                  x: 3
+                  y: 5
+                  w: 3
+                  h: 2
+                  bindNode:
+                    value: Shift note
+              - widget:
+                  description: Station view
+                  component: dashboard
+                  x: 6
+                  y: 5
+                  w: 6
+                  h: 5
+                  bindNode:
+                    dashboard: Pump station
+
+        # ---- a canvas with equipment and links
+        - dashboard:
+            description: Pump station
+            layout: canvas
+            canvasWidth: 900
+            canvasHeight: 420
+            children:
+              - widget:
+                  description: Pump
+                  component: pump
+                  x: 60
+                  y: 220
+                  w: 120
+                  bindNode:
+                    running: Pump running
+                    speed: Pump speed
+              - widget:
+                  description: Valve
+                  component: valve
+                  x: 300
+                  y: 110
+                  w: 90
+                  bindNode:
+                    open: Valve position
+              - widget:
+                  description: Tank
+                  component: tank
+                  x: 560
+                  y: 60
+                  w: 220
+                  bindNode:
+                    level: Tank level
+                    temp: Tank temperature
+              - widget:
+                  description: Pressure
+                  component: gauge
+                  x: 60
+                  y: 40
+                  w: 150
+                  bindNode:
+                    value: Line pressure
+                  prop:
+                    min: "40"
+                    max: "80"
+                    unit: psi
+              - widget:
+                  description: Flow
+                  component: value
+                  x: 320
+                  y: 300
+                  w: 180
+                  bindNode:
+                    value: Flow rate
+                  prop:
+                    unit: gpm
+              - link:
+                  description: Pump to valve
+                  from: Pump.discharge
+                  to: Valve.in
+                  routing: orthogonal
+                  bindNode:
+                    flowing: Pump running
+                    rate: Flow fraction
+              - link:
+                  description: Valve to tank
+                  from: Valve.out
+                  to: Tank.left
+                  routing: orthogonal
+                  bindNode:
+                    flowing: Pump running
+                    rate: Flow fraction
+
+        # ---- the switches, as tiles
+        - dashboard:
+            description: Switches
+            layout: grid
+            cols: 6
+            children:
+              - widget:
+                  description: Heater switch
+                  component: status
+                  x: 0
+                  y: 0
+                  w: 2
+                  h: 2
+                  bindNode:
+                    value: Heater enable
+                  prop:
+                    on: Enabled
+                    off: Off
+              - widget:
+                  description: Alarm switch
+                  component: status
+                  x: 2
+                  y: 0
+                  w: 2
+                  h: 2
+                  bindNode:
+                    value: Alarm acknowledged
+                  prop:
+                    on: Acknowledged
+                    off: Unacknowledged
+              - widget:
+                  description: Setpoint value
+                  component: value
+                  x: 4
+                  y: 0
+                  w: 2
+                  h: 2
+                  bindNode:
+                    value: Level setpoint
+                  prop:
+                    unit: "%"
+                    decimals: "0"

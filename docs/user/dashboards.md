@@ -59,12 +59,13 @@ The grid widgets work on a canvas as well. **X**, **Y**, and **Width** are in
 canvas units there.
 
 Links join two widgets at their **ports**, the named points on a widget's edge
-that show as dots in edit mode. Drag from one port to another to draw a link.
-Select a link to drag its corner points and to set its routing, direct or
-orthogonal, in the panel. A link's `flowing` and `rate` bindings animate it, and
-a link whose bound node is missing is drawn dashed and dim. Links are drawn, not
-run: a pipe from a pump to a tank describes the plant and implies nothing about
-where data goes.
+that show as dots in edit mode. Drag from one port to another to draw a link. A
+link's **From** and **To** are `widget.port`, where the widget is named by its
+ID or by its description. Select a link to drag its corner points and to set its
+routing, direct or orthogonal, in the panel. A link's `flowing` and `rate`
+bindings animate it, and a link whose bound node is missing is drawn dashed and
+dim. Links are drawn, not run: a pipe from a pump to a tank describes the plant
+and implies nothing about where data goes.
 
 A widget's ports can be changed under **Ports**: `x,y` or `x,y,dir` as fractions
 of the widget's box, where `dir` is `left`, `right`, `up`, or `down`.
@@ -112,6 +113,20 @@ it shows: decimals, units, a gauge range.
 
 Add `?kiosk` to a dashboard's address to hide the header and title for a wall
 display.
+
+## A demo
+
+`testdata/dashboard-demo.yaml` in the source tree builds a group of signal
+generators and switch variables with three dashboards over them: a tile
+overview, a canvas pump station with links, and a page of switches. Load it into
+a running instance with:
+
+```
+siot import < testdata/dashboard-demo.yaml
+```
+
+The file is also a worked example of writing dashboards by hand: widget bindings
+name nodes by description, and link ends name widgets by description.
 
 ## Coming later
 

@@ -8,12 +8,13 @@ export default defineWidget({
 	bindings: ["level", "temp"],
 	options: {},
 	width: 220,
-	// the inlet at the top, the outlet at the bottom, as nautilus places them
+	// on the shell the drawing paints, which sits inside the box: 34..186
+	// of 220 across and 20..222 of 260 down
 	ports: [
-		{ name: "in", x: 0.5, y: 0, dir: "up" },
-		{ name: "out", x: 0.5, y: 1, dir: "down" },
-		{ name: "left", x: 0, y: 0.5, dir: "left" },
-		{ name: "right", x: 1, y: 0.5, dir: "right" },
+		{ name: "in", x: 0.5, y: 0.077, dir: "up" },
+		{ name: "out", x: 0.5, y: 0.854, dir: "down" },
+		{ name: "left", x: 0.155, y: 0.47, dir: "left" },
+		{ name: "right", x: 0.845, y: 0.47, dir: "right" },
 	],
 	component: Widget,
 })

@@ -464,10 +464,20 @@ func planApply(f data.NodeFile, tree []data.NodeEdge, root string) ApplyPlan {
 	return plan
 }
 
-// resolveRefs rewrites nodeID points, which name the node they point at by its
-// description, into that node's ID. Resolution happens once the whole file has
-// been walked, so a reference may name a node the file creates further down, or
-// one that another file created.
+// refTypes are the point types that name another node: a rule's target, a
+// dashboard widget's bindings (one point per prop), and a user's home
+// dashboard. A file writes them as the description of the node they point
+// at, and an export writes them back the same way.
+var refTypes = map[string]bool{
+	data.PointTypeNodeID:        true,
+	data.PointTypeBindNode:      true,
+	data.PointTypeHomeDashboard: true,
+}
+
+// resolveRefs rewrites reference points, which name the node they point at by
+// its description, into that node's ID. Resolution happens once the whole file
+// has been walked, so a reference may name a node the file creates further
+// down, or one that another file created.
 func resolveRefs(points data.Points, w *working) (data.Points, error) {
 	if len(points) == 0 {
 		return nil, nil
@@ -477,7 +487,7 @@ func resolveRefs(points data.Points, w *working) (data.Points, error) {
 	copy(out, points)
 
 	for i, p := range out {
-		if p.Type != data.PointTypeNodeID {
+		if !refTypes[p.Type] {
 			continue
 		}
 
@@ -490,7 +500,7 @@ func resolveRefs(points data.Points, w *working) (data.Points, error) {
 
 		id, err := w.findByKey(key)
 		if err != nil {
-			return nil, fmt.Errorf("nodeID: %w", err)
+			return nil, fmt.Errorf("%v: %w", p.Type, err)
 		}
 
 		out[i].PutString(id)

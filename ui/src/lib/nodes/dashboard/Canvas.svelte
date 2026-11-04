@@ -11,6 +11,8 @@
 	import Maximize from "@lucide/svelte/icons/maximize"
 	import { SvelteMap } from "svelte/reactivity"
 	import IconButton from "#lib/components/IconButton.svelte"
+	import { getText } from "#lib/siot/point.ts"
+	import { PointType } from "#lib/siot/schema.ts"
 	import Pipe from "#lib/vendor/nautilus/Pipe.svelte"
 	import {
 		makeGetPort,
@@ -141,7 +143,18 @@
 		return { x: l.x, y: l.y, w: size?.w || l.w, h: size?.h || l.h }
 	}
 
-	const byId = $derived(new Map(placed.map((p) => [p.node.id, p])))
+	// a link end names a widget by ID, or by its description, which is how
+	// a configuration file written by hand refers to it
+	const byId = $derived.by(() => {
+		const m = new Map(placed.map((p) => [p.node.id, p]))
+		for (const p of placed) {
+			const desc = getText(p.node.points, PointType.Description)
+			if (desc !== "" && !m.has(desc)) {
+				m.set(desc, p)
+			}
+		}
+		return m
+	})
 	const getPort = makeGetPort(
 		(id) => {
 			const p = byId.get(id)

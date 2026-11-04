@@ -603,3 +603,44 @@ root:
 		t.Errorf("expected only tag 1 to be sent, got %v", plan.Root)
 	}
 }
+
+func TestApplyResolvesBindingsByDescription(t *testing.T) {
+	plan := planYAML(t, `
+nodes:
+  - signalGenerator:
+      description: Tank level
+  - dashboard:
+      description: Overview
+      children:
+        - widget:
+            description: Level
+            bindNode:
+              value: Tank level
+`)
+
+	noErrors(t, plan)
+
+	var generatorID, ref string
+
+	for _, s := range plan.Send {
+		if s.Node.Type == data.NodeTypeSignalGenerator {
+			generatorID = s.Node.ID
+		}
+
+		if s.Node.Type == data.NodeTypeWidget {
+			p, ok := s.Node.Points.Find(data.PointTypeBindNode, "value")
+			if !ok {
+				t.Fatal("widget should carry a bindNode point keyed value")
+			}
+			ref = p.Txt()
+		}
+	}
+
+	if generatorID == "" || ref == "" {
+		t.Fatalf("expected both nodes in the plan: %v", plan)
+	}
+
+	if ref != generatorID {
+		t.Fatalf("bindNode should resolve to the generator's ID %v, got %v", generatorID, ref)
+	}
+}

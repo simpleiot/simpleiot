@@ -45,8 +45,15 @@
 		childIds.map((c) => store.liveNodes.get(c)).filter((n): n is Node => n !== undefined)
 	)
 
+	// the watcher is unregistered when this component goes or its key
+	// changes, in an effect of its own, so refreshing the wanted set below
+	// never drops what was just loaded
 	$effect(() => {
 		const k = key
+		return () => void store.watchNodes([], [], k)
+	})
+
+	$effect(() => {
 		if (cycle) {
 			return
 		}
@@ -56,8 +63,7 @@
 				wanted.add(b)
 			}
 		}
-		void store.watchNodes([...wanted], [], k)
-		return () => void store.watchNodes([], [], k)
+		void store.watchNodes([...wanted], [], key)
 	})
 
 	const lookup = (nodeId: string) => store.liveNodes.get(nodeId)

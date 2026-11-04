@@ -39,7 +39,11 @@ For more details or to discuss releases, please visit the
   when it moves. A binding can be a path relative to the dashboard's parent, so
   one dashboard mirrored under several devices shows each device's nodes, and a
   nested dashboard component shows one dashboard inside another. See
-  [dashboards](docs/user/dashboards.md).
+  [dashboards](docs/user/dashboards.md). `testdata/dashboard-demo.yaml` is a
+  demo to import.
+- **Configuration files resolve dashboard references by description.** A
+  widget's `bindNode` points and a user's `homeDashboard` name their node by
+  description, as `nodeID` does, and export the same way.
 - **Searching nodes by type.** A `nodeType` point beside `search` on a node
   request limits matches to that type, and an empty search then lists every node
   of the type.

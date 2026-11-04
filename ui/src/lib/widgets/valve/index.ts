@@ -8,9 +8,10 @@ export default defineWidget({
 	bindings: ["open"],
 	options: {},
 	width: 90,
+	// at the tips of the two triangles, 12 and 78 of 90 across, 44 of 80 down
 	ports: [
-		{ name: "in", x: 0, y: 0.55, dir: "left" },
-		{ name: "out", x: 1, y: 0.55, dir: "right" },
+		{ name: "in", x: 0.13, y: 0.55, dir: "left" },
+		{ name: "out", x: 0.87, y: 0.55, dir: "right" },
 	],
 	component: Widget,
 })

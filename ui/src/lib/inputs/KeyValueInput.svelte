@@ -1,6 +1,8 @@
 <script lang="ts">
 	// KeyValueInput edits text points of one type keyed by name, such as
-	// tags. The key for a new entry is typed into the editor's scratch.
+	// tags. The key for a new entry is typed into a field of this input's
+	// own, so two of these in one editor, such as a widget's options and
+	// ports, do not share it.
 	import X from "@lucide/svelte/icons/x"
 	import IconButton from "#lib/components/IconButton.svelte"
 	import { DataType, filterDeleted, getAll, newTombstone, sorted } from "#lib/siot/point.ts"
@@ -14,11 +16,16 @@
 	const ctx = inputContext()
 	const points = $derived(sorted(filterDeleted(getAll(ctx.node.points, type))))
 
+	let newKey = $state("")
+
 	function add() {
+		if (newKey.trim() === "") {
+			return
+		}
 		ctx.onEditPoints([
 			{
 				type,
-				key: ctx.scratch,
+				key: newKey.trim(),
 				time: editTime(ctx),
 				dataType: DataType.String,
 				value: 0,
@@ -26,6 +33,7 @@
 				tombstone: 0,
 			},
 		])
+		newKey = ""
 	}
 </script>
 
@@ -56,10 +64,7 @@
 				type="text"
 				placeholder="new key"
 				aria-label="New {label} key"
-				value={ctx.scratch}
-				oninput={(e) => {
-					ctx.onEditScratch(e.currentTarget.value)
-				}}
+				bind:value={newKey}
 				onkeyup={(e) => {
 					if (e.key === "Enter") {
 						e.stopPropagation()

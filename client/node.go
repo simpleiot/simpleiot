@@ -662,8 +662,9 @@ func NodeWatcher[T any](nc *nats.Conn, id, parent string) (get func() T, stop fu
 //
 // The file describes configuration and nothing else, which is what makes an
 // export usable as a provisioning file. It carries no node IDs, since nodes are
-// matched by description when a file is applied; a nodeID point is written as
-// the description of the node it points at. Points that carry no value, points
+// matched by description when a file is applied; a nodeID point, and the other
+// reference points in refTypes, is written as the description of the node it
+// points at. Points that carry no value, points
 // carrying raw bytes, tombstoned points, and point origins are all left out.
 //
 // Exporting the root node exports what is under it rather than the node
@@ -867,7 +868,7 @@ func exportNodeYAML(nec data.NodeEdgeChildren, descriptions map[string]string) d
 			continue
 		}
 
-		if p.Type == data.PointTypeNodeID {
+		if refTypes[p.Type] {
 			if desc, ok := descriptions[p.Txt()]; ok && desc != "" {
 				p.PutString(desc)
 			}

@@ -12,7 +12,7 @@ export default defineWidget({
 	// nautilus drawing puts them
 	ports: [
 		{ name: "suction", x: 0, y: 0.53, dir: "left" },
-		{ name: "discharge", x: 0.48, y: 0.05, dir: "up" },
+		{ name: "discharge", x: 0.483, y: 0.055, dir: "up" },
 	],
 	component: Widget,
 })
