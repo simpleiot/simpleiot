@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-11-04
+
 ### Changed
 
 - **A signal generator continues where it stopped.** Disabling a generator and
