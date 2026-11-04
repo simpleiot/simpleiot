@@ -644,3 +644,156 @@ nodes:
 		t.Fatalf("bindNode should resolve to the generator's ID %v, got %v", generatorID, ref)
 	}
 }
+
+func TestApplyMirrorsExistingNode(t *testing.T) {
+	plan := planYAML(t, `
+nodes:
+  - group:
+      description: Site B
+      children:
+        - modbus:
+            mirror: Modbus sensors
+`)
+
+	noErrors(t, plan)
+
+	if len(plan.Send) != 1 {
+		t.Fatalf("expected 1 send for the group, got %v", len(plan.Send))
+	}
+
+	if len(plan.Mirror) != 1 {
+		t.Fatalf("expected 1 mirror, got %v", len(plan.Mirror))
+	}
+
+	m := plan.Mirror[0]
+
+	if !m.Created || m.ID != "modbus-id" || m.Source != "sensors-id" || m.Parent != plan.Send[0].Node.ID {
+		t.Errorf("the modbus node should be mirrored from Sensors under the new group, got %+v", m)
+	}
+
+	if m.ParentKey != "Site B" {
+		t.Errorf("the plan should name the parent, got %q", m.ParentKey)
+	}
+}
+
+func TestApplyMirrorForwardReference(t *testing.T) {
+	plan := planYAML(t, `
+nodes:
+  - group:
+      description: Site B
+      children:
+        - variable:
+            mirror: Tank level
+  - variable:
+      parent: Sensors
+      description: Tank level
+`)
+
+	noErrors(t, plan)
+
+	if len(plan.Mirror) != 1 || plan.Mirror[0].ID != plan.Send[1].Node.ID {
+		t.Errorf("a mirror may name a node the file creates further down, got %+v", plan.Mirror)
+	}
+}
+
+func TestApplyMirrorAlreadyThereIsEmpty(t *testing.T) {
+	tree := testTree()
+	tree = append(tree, data.NodeEdge{
+		ID:     "modbus-id",
+		Type:   "modbus",
+		Parent: testRoot,
+		Points: tree[2].Points,
+		EdgePoints: data.Points{
+			data.NewPointFloat(data.PointTypeMirror, "0", 1),
+		},
+	})
+
+	var f data.NodeFile
+	if err := yaml.Unmarshal([]byte(`
+nodes:
+  - modbus:
+      mirror: Modbus sensors
+`), &f); err != nil {
+		t.Fatal(err)
+	}
+
+	plan := planApply(f, tree, testRoot)
+	noErrors(t, plan)
+
+	if !plan.Empty() {
+		t.Errorf("a mirror that exists should plan nothing, got:\n%v", plan)
+	}
+
+	// and edge points that differ are sent on their own
+	if err := yaml.Unmarshal([]byte(`
+nodes:
+  - modbus:
+      mirror: Modbus sensors
+      edgePoints:
+        role: admin
+`), &f); err != nil {
+		t.Fatal(err)
+	}
+
+	plan = planApply(f, tree, testRoot)
+	noErrors(t, plan)
+
+	if len(plan.Mirror) != 1 || plan.Mirror[0].Created || len(plan.Mirror[0].EdgePoints) != 1 {
+		t.Errorf("expected an edge point update, got:\n%v", plan)
+	}
+}
+
+func TestApplyMirrorErrors(t *testing.T) {
+	for _, in := range []string{`
+nodes:
+  - modbus:
+      mirror: Nowhere
+`, `
+nodes:
+  - group:
+      mirror: Modbus sensors
+`, `
+nodes:
+  - group:
+      description: Sensors
+      children:
+        - group:
+            mirror: Sensors
+`} {
+		plan := planYAML(t, in)
+
+		if len(plan.Errors) != 1 {
+			t.Errorf("expected 1 error for:\n%v\ngot %v", in, plan.Errors)
+		}
+
+		if !plan.Empty() {
+			t.Errorf("nothing should be applied for:\n%v\ngot:\n%v", in, plan)
+		}
+	}
+}
+
+func TestApplyDeleteMirrorEntry(t *testing.T) {
+	tree := testTree()
+	tree = append(tree, data.NodeEdge{
+		ID:     "modbus-id",
+		Type:   "modbus",
+		Parent: testRoot,
+		Points: tree[2].Points,
+	})
+
+	var f data.NodeFile
+	if err := yaml.Unmarshal([]byte(`
+delete:
+  - modbus:
+      mirror: Modbus sensors
+`), &f); err != nil {
+		t.Fatal(err)
+	}
+
+	plan := planApply(f, tree, testRoot)
+	noErrors(t, plan)
+
+	if len(plan.Delete) != 1 || plan.Delete[0].ID != "modbus-id" || plan.Delete[0].Parent != testRoot {
+		t.Errorf("the mirror edge under the root should be deleted, got:\n%v", plan)
+	}
+}

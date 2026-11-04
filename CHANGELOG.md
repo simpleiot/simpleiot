@@ -13,6 +13,13 @@ For more details or to discuss releases, please visit the
 
 ### Added
 
+- **A configuration file can mirror a node into a second place.** An entry with
+  a `mirror` key names an existing node by description and adds it under the
+  entry's parent, so a provisioning file can put a device's bus in a site group
+  or a user in several groups. `siot export` writes a node that sits in more
+  than one place as one full entry and a `mirror` entry for each other place, so
+  a mirrored tree round-trips. See
+  [mirroring a node](docs/user/configuration.md#mirroring-a-node).
 - **A widget can scale the reading it shows.** The value, gauge, and trend
   widgets take a `multiplier` option, so an uptime in seconds reads in days and
   a memory figure in bytes reads in megabytes. `min` and `max` are in the shown

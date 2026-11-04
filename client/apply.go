@@ -25,6 +25,21 @@ type ApplySend struct {
 	Created bool
 }
 
+// ApplyMirror is one mirror: entry. For a new mirror, Source is the parent of
+// the edge the node is mirrored from and EdgePoints are the file's edge points
+// for the new edge; for an edge that already exists, EdgePoints carries only
+// the ones that differ.
+type ApplyMirror struct {
+	ID         string
+	Type       string
+	Key        string
+	Source     string
+	Parent     string
+	ParentKey  string
+	EdgePoints data.Points
+	Created    bool
+}
+
 // ApplyDelete is one node a delete: entry matched.
 type ApplyDelete struct {
 	ID     string
@@ -40,6 +55,7 @@ type ApplyPlan struct {
 	// what this instance's device node already holds.
 	Root   data.Points
 	Send   []ApplySend
+	Mirror []ApplyMirror
 	Delete []ApplyDelete
 	// Errors holds per entry failures. An entry that fails is skipped along
 	// with its children; the rest of the file still applies.
@@ -48,7 +64,7 @@ type ApplyPlan struct {
 
 // Empty reports whether the plan has nothing to do.
 func (p ApplyPlan) Empty() bool {
-	return len(p.Root) == 0 && len(p.Send) == 0 && len(p.Delete) == 0
+	return len(p.Root) == 0 && len(p.Send) == 0 && len(p.Mirror) == 0 && len(p.Delete) == 0
 }
 
 func (p ApplyPlan) String() string {
@@ -74,6 +90,14 @@ func (p ApplyPlan) String() string {
 		}
 
 		fmt.Fprintf(&b, "%v %v %v (%v point(s))\n", what, s.Node.Type, key, len(s.Node.Points))
+	}
+
+	for _, m := range p.Mirror {
+		if m.Created {
+			fmt.Fprintf(&b, "mirror %v %v under %v\n", m.Type, m.Key, m.ParentKey)
+		} else {
+			fmt.Fprintf(&b, "update mirror %v %v under %v (%v edge point(s))\n", m.Type, m.Key, m.ParentKey, len(m.EdgePoints))
+		}
 	}
 
 	for _, d := range p.Delete {
@@ -129,6 +153,33 @@ func Apply(nc *nats.Conn, f data.NodeFile, o ApplyOptions) (ApplyPlan, error) {
 	for _, s := range plan.Send {
 		if err := SendNode(nc, s.Node, o.Origin); err != nil {
 			return plan, fmt.Errorf("error sending node %v: %w", s.Node.ID, err)
+		}
+	}
+
+	// mirrors come after sends, so that a mirror of a node the file creates
+	// has a node to mirror
+	for _, m := range plan.Mirror {
+		if m.Created {
+			if err := MirrorNode(nc, m.ID, m.Source, m.Parent, o.Origin); err != nil {
+				return plan, fmt.Errorf("error mirroring node %v: %w", m.ID, err)
+			}
+		}
+
+		if len(m.EdgePoints) == 0 {
+			continue
+		}
+
+		points := make(data.Points, len(m.EdgePoints))
+		copy(points, m.EdgePoints)
+
+		for i := range points {
+			if points[i].Origin == "" {
+				points[i].Origin = o.Origin
+			}
+		}
+
+		if err := SendEdgePoints(nc, m.ID, m.Parent, points, true); err != nil {
+			return plan, fmt.Errorf("error sending edge points for node %v: %w", m.ID, err)
 		}
 	}
 
@@ -221,13 +272,40 @@ func (w *working) add(n data.NodeEdge) {
 	w.nodes = append(w.nodes, n)
 }
 
-// findByKey resolves a parent: reference, which names a node anywhere in the
-// tree by its match key.
-func (w *working) findByKey(key string) (string, error) {
-	var found []data.NodeEdge
+// edges returns every edge of a node: one per parent it sits under.
+func (w *working) edges(id string) []data.NodeEdge {
+	var out []data.NodeEdge
 
 	for _, n := range w.nodes {
-		if n.Points.MatchKey() == key {
+		if n.ID == id {
+			out = append(out, n)
+		}
+	}
+
+	return out
+}
+
+// edge returns the edge of a node under one parent, if there is one.
+func (w *working) edge(id, parent string) *data.NodeEdge {
+	for _, n := range w.nodes {
+		if n.ID == id && n.Parent == parent {
+			return &n
+		}
+	}
+
+	return nil
+}
+
+// findByKey resolves a parent: or mirror: reference, which names a node
+// anywhere in the tree by its match key. A mirrored node is one node reached
+// from several parents, so it counts once.
+func (w *working) findByKey(key string) (string, error) {
+	var found []data.NodeEdge
+	seen := map[string]bool{}
+
+	for _, n := range w.nodes {
+		if n.Points.MatchKey() == key && !seen[n.ID] {
+			seen[n.ID] = true
 			found = append(found, n)
 		}
 	}
@@ -305,6 +383,14 @@ type resolvedEntry struct {
 	existing *data.NodeEdge
 }
 
+// mirrorEntry is a mirror: entry with the parent it attaches under worked out.
+// The node it mirrors is resolved once the whole file has been walked, so it
+// may be one the file creates further down.
+type mirrorEntry struct {
+	entry  data.NodeYAML
+	parent string
+}
+
 // planApply works out what a file will do to a tree. It is pure, so the
 // interesting half of applying a file is testable without a server.
 func planApply(f data.NodeFile, tree []data.NodeEdge, root string) ApplyPlan {
@@ -313,6 +399,7 @@ func planApply(f data.NodeFile, tree []data.NodeEdge, root string) ApplyPlan {
 	plan := ApplyPlan{}
 
 	var resolved []resolvedEntry
+	var mirrors []mirrorEntry
 
 	var walk func(entries []data.NodeYAML, parent string, top bool)
 	walk = func(entries []data.NodeYAML, parent string, top bool) {
@@ -341,6 +428,11 @@ func planApply(f data.NodeFile, tree []data.NodeEdge, root string) ApplyPlan {
 			}
 
 			nodeParent := id
+
+			if e.Mirror != "" {
+				mirrors = append(mirrors, mirrorEntry{entry: e, parent: nodeParent})
+				continue
+			}
 
 			existing, err := w.match(e, nodeParent)
 			if err != nil {
@@ -429,8 +521,26 @@ func planApply(f data.NodeFile, tree []data.NodeEdge, root string) ApplyPlan {
 		})
 	}
 
+	for _, m := range mirrors {
+		mirror, err := planMirror(m, w)
+		if err != nil {
+			plan.Errors = append(plan.Errors, err)
+			continue
+		}
+
+		if mirror != nil {
+			plan.Mirror = append(plan.Mirror, *mirror)
+		}
+	}
+
 	for _, e := range f.Delete {
 		parent := root
+
+		// a mirror entry in a delete list names the node the way it was
+		// mirrored, and matches the edge under its parent like any other entry
+		if e.Mirror != "" {
+			e.Points = data.Points{data.NewPointString(data.PointTypeDescription, "", e.Mirror)}
+		}
 
 		if e.Parent != "" {
 			found, err := w.findByKey(e.Parent)
@@ -462,6 +572,102 @@ func planApply(f data.NodeFile, tree []data.NodeEdge, root string) ApplyPlan {
 	}
 
 	return plan
+}
+
+// planMirror works out what a mirror: entry does: nothing when the edge is
+// already there and its edge points agree, an edge point update when they
+// differ, and a new mirror edge otherwise. The source edge is the node's
+// primary edge when it has one, so that MirrorNode marks the new edge the way
+// the UI would.
+func planMirror(m mirrorEntry, w *working) (*ApplyMirror, error) {
+	e := m.entry
+
+	id, err := w.findByKey(e.Mirror)
+	if err != nil {
+		return nil, fmt.Errorf("mirror %v: %w", e.Mirror, err)
+	}
+
+	edges := w.edges(id)
+	node := edges[0]
+
+	if node.Type != e.Type {
+		return nil, fmt.Errorf("mirror %v: %q is a %v node, and the file mirrors it as a %v node",
+			e.Mirror, e.Mirror, node.Type, e.Type)
+	}
+
+	if id == m.parent {
+		return nil, fmt.Errorf("mirror %v: a node cannot be mirrored under itself", e.Mirror)
+	}
+
+	parentKey := describeID(m.parent, w)
+
+	// the role of the edge is decided by the node, as it is in the UI, so a
+	// role in the file is not carried over
+	edgePoints := clearEdgeRole(e.EdgePoints)
+
+	if existing := w.edge(id, m.parent); existing != nil {
+		edgePoints = changedPoints(edgePoints, existing.EdgePoints)
+
+		if len(edgePoints) == 0 {
+			return nil, nil
+		}
+
+		return &ApplyMirror{
+			ID:         id,
+			Type:       node.Type,
+			Key:        e.Mirror,
+			Parent:     m.parent,
+			ParentKey:  parentKey,
+			EdgePoints: edgePoints,
+		}, nil
+	}
+
+	source := edges[0]
+
+	for _, n := range edges {
+		if n.EdgeRole() == data.EdgeRolePrimary {
+			source = n
+			break
+		}
+	}
+
+	// so that a second entry mirroring the same node under the same parent
+	// finds the edge rather than making another
+	w.add(data.NodeEdge{
+		ID:         id,
+		Type:       node.Type,
+		Parent:     m.parent,
+		Points:     node.Points,
+		EdgePoints: edgePoints,
+	})
+
+	return &ApplyMirror{
+		ID:         id,
+		Type:       node.Type,
+		Key:        e.Mirror,
+		Source:     source.Parent,
+		Parent:     m.parent,
+		ParentKey:  parentKey,
+		EdgePoints: edgePoints,
+		Created:    true,
+	}, nil
+}
+
+// describeID names a node for a plan, by its match key when it has one.
+func describeID(id string, w *working) string {
+	for _, n := range w.nodes {
+		if n.ID != id {
+			continue
+		}
+
+		if key := n.Points.MatchKey(); key != "" {
+			return key
+		}
+
+		return "the " + n.Type + " node"
+	}
+
+	return id
 }
 
 // refTypes are the point types that name another node: a rule's target, a

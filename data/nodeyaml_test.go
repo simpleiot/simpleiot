@@ -490,3 +490,69 @@ root:
 		t.Errorf("expected an error naming children, got %v", err)
 	}
 }
+
+func TestNodeYAMLMirrorEntry(t *testing.T) {
+	var f data.NodeFile
+	err := yaml.Unmarshal([]byte(`
+nodes:
+  - group:
+      description: Site B
+      children:
+        - modbus:
+            mirror: Modbus sensors
+            edgePoints:
+              role: admin
+`), &f)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m := f.Nodes[0].Children[0]
+
+	if m.Type != "modbus" || m.Mirror != "Modbus sensors" {
+		t.Errorf("mirror entry: got type %q mirror %q", m.Type, m.Mirror)
+	}
+
+	if len(m.Points) != 0 {
+		t.Errorf("a mirror entry has no points, got %v", m.Points)
+	}
+
+	if role, _ := m.EdgePoints.Text("role", ""); role != "admin" {
+		t.Errorf("edge points should be read, got role %q", role)
+	}
+
+	out, err := yaml.Marshal(f)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(string(out), "mirror: Modbus sensors") {
+		t.Errorf("a mirror entry should be written back:\n%v", string(out))
+	}
+}
+
+func TestNodeYAMLMirrorEntryRejectsPointsAndChildren(t *testing.T) {
+	for _, in := range []string{`
+nodes:
+  - modbus:
+      mirror: Modbus sensors
+      baud: 9600
+`, `
+nodes:
+  - modbus:
+      mirror: Modbus sensors
+      children:
+        - variable:
+            description: Level
+`, `
+nodes:
+  - modbus:
+      mirror: ""
+`} {
+		var f data.NodeFile
+		if err := yaml.Unmarshal([]byte(in), &f); err == nil {
+			t.Errorf("expected an error for:\n%v", in)
+		}
+	}
+}

@@ -429,11 +429,13 @@ func readFixture(t *testing.T) []byte {
 	return b
 }
 
-// findByDesc returns the one node below root with the given description.
+// findByDesc returns the one node below root with the given description. A
+// mirrored node is reached more than once and counts once.
 func findByDesc(t *testing.T, nc *nats.Conn, rootID, desc string) data.NodeEdge {
 	t.Helper()
 
 	var found []data.NodeEdge
+	seen := map[string]bool{}
 
 	var walk func(id string)
 	walk = func(id string) {
@@ -443,6 +445,12 @@ func findByDesc(t *testing.T, nc *nats.Conn, rootID, desc string) data.NodeEdge 
 		}
 
 		for _, c := range children {
+			if seen[c.ID] {
+				continue
+			}
+
+			seen[c.ID] = true
+
 			if c.Points.MatchKey() == desc {
 				found = append(found, c)
 			}
@@ -701,5 +709,117 @@ root:
 
 	if !plan.Empty() {
 		t.Errorf("a second import should do nothing, got:\n%v", plan)
+	}
+}
+
+func TestExportWritesMirrorEntries(t *testing.T) {
+	nc, root, stop, err := server.TestServer()
+	if err != nil {
+		t.Fatal("Error starting test server: ", err)
+	}
+
+	defer stop()
+
+	plan, err := client.ImportNodes(nc, []byte(`
+nodes:
+  - group:
+      description: Sensors
+      children:
+        - modbus:
+            description: Modbus sensors
+            baud: 9600
+  - group:
+      description: Site B
+      children:
+        - modbus:
+            mirror: Modbus sensors
+`), "test", false)
+	if err != nil {
+		t.Fatal("Error importing: ", err)
+	}
+
+	if len(plan.Errors) > 0 {
+		t.Fatal("Import errors: ", plan.Errors)
+	}
+
+	modbus := findByDesc(t, nc, root.ID, "Modbus sensors")
+	siteB := findByDesc(t, nc, root.ID, "Site B")
+
+	edges, err := client.GetNodes(nc, "all", modbus.ID, "", false)
+	if err != nil {
+		t.Fatal("Error getting modbus edges: ", err)
+	}
+
+	if len(edges) != 2 {
+		t.Fatalf("expected the modbus node under two parents, got %v", len(edges))
+	}
+
+	for _, e := range edges {
+		switch e.Parent {
+		case siteB.ID:
+			if e.EdgeRole() != data.EdgeRoleMirror {
+				t.Errorf("the edge under Site B should be a mirror, got %v", e.EdgeRole())
+			}
+		default:
+			if e.EdgeRole() != data.EdgeRolePrimary {
+				t.Errorf("the edge under Sensors should be primary, got %v", e.EdgeRole())
+			}
+		}
+	}
+
+	// applying the file again does nothing
+	plan, err = client.ImportNodes(nc, []byte(`
+nodes:
+  - group:
+      description: Site B
+      children:
+        - modbus:
+            mirror: Modbus sensors
+`), "test", false)
+	if err != nil {
+		t.Fatal("Error importing a second time: ", err)
+	}
+
+	if !plan.Empty() {
+		t.Errorf("a second pass should do nothing, got:\n%v", plan)
+	}
+
+	first, err := client.ExportNodes(nc, root.ID, false)
+	if err != nil {
+		t.Fatal("Error exporting: ", err)
+	}
+
+	if !strings.Contains(string(first), "mirror: Modbus sensors") {
+		t.Fatalf("the export should write the second edge as a mirror entry:\n%v", string(first))
+	}
+
+	if strings.Count(string(first), "baud: 9600") != 1 {
+		t.Errorf("the node's points should be written once:\n%v", string(first))
+	}
+
+	nc2, root2, stop2, err := server.TestServer("second")
+	if err != nil {
+		t.Fatal("Error starting second test server: ", err)
+	}
+
+	defer stop2()
+
+	plan, err = client.ImportNodes(nc2, first, "test", false)
+	if err != nil {
+		t.Fatal("Error importing into the second instance: ", err)
+	}
+
+	if len(plan.Errors) > 0 {
+		t.Fatal("Import errors: ", plan.Errors)
+	}
+
+	second, err := client.ExportNodes(nc2, root2.ID, false)
+	if err != nil {
+		t.Fatal("Error exporting the second instance: ", err)
+	}
+
+	if string(first) != string(second) {
+		t.Errorf("an export with a mirror imported elsewhere should export identically:\n--- first ---\n%v\n--- second ---\n%v",
+			string(first), string(second))
 	}
 }

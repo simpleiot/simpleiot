@@ -723,6 +723,11 @@ func ExportNodes(nc *nats.Conn, id string, secrets bool) ([]byte, error) {
 		return nil, err
 	}
 
+	homes, err := exportHomes(necs)
+	if err != nil {
+		return nil, err
+	}
+
 	// a nodeID point holds the ID of the node it refers to, and a file names
 	// that node by description instead, so we need every node in the tree
 	// rather than only the ones being exported
@@ -738,7 +743,7 @@ func ExportNodes(nc *nats.Conn, id string, secrets bool) ([]byte, error) {
 
 	nodes := make([]data.NodeYAML, len(necs))
 	for i, nec := range necs {
-		nodes[i] = exportNodeYAML(nec, descriptions)
+		nodes[i] = exportNodeYAML(nec, descriptions, homes)
 	}
 
 	f := data.NodeFile{
@@ -858,9 +863,58 @@ func describeNode(n data.NodeEdge) string {
 	return "the " + n.Type + " node"
 }
 
-// exportNodeYAML converts a fetched subtree into the file format.
-func exportNodeYAML(nec data.NodeEdgeChildren, descriptions map[string]string) data.NodeYAML {
+// exportHomes picks, for every node in the subtree, the one edge its full
+// entry is written under: the primary edge when it has one, and otherwise the
+// first edge the export walk reaches. Every other edge of the node is written
+// as a mirror entry, which names the node by its match key, so a node that
+// is mirrored and has none cannot be exported.
+func exportHomes(nodes []data.NodeEdgeChildren) (map[string]string, error) {
+	homes := map[string]string{}
+	edges := map[string]int{}
+
+	var walk func(n data.NodeEdgeChildren) error
+	walk = func(n data.NodeEdgeChildren) error {
+		edges[n.ID]++
+
+		if _, ok := homes[n.ID]; !ok || n.EdgeRole() == data.EdgeRolePrimary {
+			homes[n.ID] = n.Parent
+		}
+
+		if edges[n.ID] > 1 && n.Points.MatchKey() == "" {
+			return fmt.Errorf("%v is in more than one place and has no description, so a file could not "+
+				"say which node to mirror. Give it a description to export this tree", describeNode(n.NodeEdge))
+		}
+
+		for _, c := range n.Children {
+			if err := walk(c); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	for _, n := range nodes {
+		if err := walk(n); err != nil {
+			return nil, err
+		}
+	}
+
+	return homes, nil
+}
+
+// exportNodeYAML converts a fetched subtree into the file format. A node
+// reached through an edge other than its home is written as a mirror entry.
+func exportNodeYAML(nec data.NodeEdgeChildren, descriptions map[string]string, homes map[string]string) data.NodeYAML {
 	out := data.NodeYAML{Type: nec.Type}
+
+	if home, ok := homes[nec.ID]; ok && home != nec.Parent {
+		// the role is decided when the mirror is made, so it is not written
+		out.Mirror = nec.Points.MatchKey()
+		out.EdgePoints = clearEdgeRole(nec.EdgePoints)
+
+		return out
+	}
 
 	for _, p := range nec.Points {
 		if p.DataType == data.PointDataTypeUnknown && len(p.Data) == 0 {
@@ -880,7 +934,7 @@ func exportNodeYAML(nec data.NodeEdgeChildren, descriptions map[string]string) d
 	out.EdgePoints = append(out.EdgePoints, nec.EdgePoints...)
 
 	for _, c := range nec.Children {
-		out.Children = append(out.Children, exportNodeYAML(c, descriptions))
+		out.Children = append(out.Children, exportNodeYAML(c, descriptions, homes))
 	}
 
 	return out
