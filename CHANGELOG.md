@@ -11,15 +11,18 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.33.2] - 2026-11-04
+
 ### Fixed
 
-- **A mirrored dashboard opens in the place it was reached through.** The
-  tree's open link, the dashboard list, and a nested dashboard's title link now
-  carry the parent as `?via=`, and selecting a widget keeps it, so a dashboard
-  with relative bindings placed under several devices shows each device's nodes
+- **A mirrored dashboard opens in the place it was reached through.** The tree's
+  open link, the dashboard list, and a nested dashboard's title link now carry
+  the parent as `?via=`, and selecting a widget keeps it, so a dashboard with
+  relative bindings placed under several devices shows each device's nodes
   rather than the first place it was found in. A user's home dashboard records
   the place it was picked from as **Home dashboard under**, which can be changed
-  to open it elsewhere. See [dashboards](docs/user/dashboards.md#relative-bindings).
+  to open it elsewhere. See
+  [dashboards](docs/user/dashboards.md#relative-bindings).
 
 ## [0.33.1] - 2026-11-04
 
