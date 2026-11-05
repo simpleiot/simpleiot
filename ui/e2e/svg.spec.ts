@@ -53,6 +53,14 @@ test("a drawing on a dashboard follows and flips a variable", async ({ page }) =
 	const code = file.getByRole("textbox", { name: "Contents" })
 	await expect(code).toContainText('data-siot-bind="lit"')
 	await expect(code.locator(".cm-line span[class]").first()).toBeVisible()
+	// Enter in the editor is a new line, not the node's save
+	await code.locator(".cm-content").click()
+	await page.keyboard.press("End")
+	await page.keyboard.press("Enter")
+	await page.keyboard.type("<!-- lamp -->")
+	await expect(file.getByRole("button", { name: "save" })).toBeVisible()
+	await file.getByRole("button", { name: "save" }).click()
+	await expect(file.getByRole("button", { name: "save" })).toBeHidden()
 	await file.getByRole("button", { name: "Close contents" }).click()
 	await file.getByRole("button", { name: "Close details" }).click()
 

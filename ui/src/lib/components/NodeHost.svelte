@@ -97,8 +97,10 @@
 	}
 
 	function onkeyup(e: KeyboardEvent) {
+		// a key typed into a multi-line input, the code editor included,
+		// is the input's
 		const target = e.target as HTMLElement
-		if (target.tagName === "TEXTAREA" || target.tagName === "BUTTON") {
+		if (target.tagName === "TEXTAREA" || target.tagName === "BUTTON" || target.isContentEditable) {
 			return
 		}
 		if (e.key === "Enter" && pending.length > 0) {
