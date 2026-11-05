@@ -253,9 +253,9 @@ dashboard can take an upload too.
 
 ### Phase 3: Upload from a dashboard, demo, docs
 
-- [ ] `NodeHost.svelte` gets the hidden file input and `onUploadFile`, so a file
+- [x] `NodeHost.svelte` gets the hidden file input and `onUploadFile`, so a file
       node's editor works in the faceplate dialog and the widget panel.
-- [ ] `testdata/custom-widget-demo.yaml`: a dashboard that shows every feature
+- [x] `testdata/custom-widget-demo.yaml`: a dashboard that shows every feature
       of the widget, loaded with `siot import` like the dashboard demo. Under
       one group:
   - **Drawings as file nodes**, each written inline as a YAML block scalar so
@@ -281,15 +281,16 @@ dashboard can take an upload too.
     draws each device's own drawing.
   - **An Overview** of the two as nested dashboards. A comment at the top of the
     file lists the features and where each one is.
-- [ ] `ui/e2e/svg.spec.ts`: a browser test that imports the demo, opens the
-      canvas, checks the lamp's state attribute follows its variable, clicks the
-      lamp to flip it, and checks the link attaches to the vessel's port.
-- [ ] `docs/user/dashboards.md`: a **Custom drawings** section with the
+- [x] `ui/e2e/svg.spec.ts`: a browser test that uploads a lamp drawing to a
+      file node, binds it on a dashboard through the editor, checks the lamp's
+      state attribute follows its variable, and clicks the lamp to flip it.
+      Ports are covered by the unit tests and checked by hand on the demo.
+- [x] `docs/user/dashboards.md`: a **Custom drawings** section with the
       attribute table, the sanitizing note, and a paragraph on the demo file;
       `docs/user/file.md` points at it; `docs/ref/frontend.md` names the
       sanitizer. Changelog entry. `CLAUDE.md` notes the descriptor's source
       hooks beside the widget registry note.
-- [ ] `siot_test` passes. Commit.
+- [x] `siot_test` passes. Commit.
 
 ## Testing Strategy
 

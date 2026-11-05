@@ -156,8 +156,12 @@ by `ui/embed.go`, and served at `/` by `api/ui.go`:
   takes resolved values as props. The widget an `auto` component shows for a
   node type is the `widget` field on that type's descriptor, so no file outside
   `src/lib/nodes` names a type. The dashboard pages live in
-  `ui/src/lib/nodes/dashboard/` for the same reason. Code copied from the
-  nautilus HMI kit sits in `ui/src/lib/vendor/nautilus/` with its license.
+  `ui/src/lib/nodes/dashboard/` for the same reason. A widget that draws a
+  document names the binding holding it as `source` and reads further bindings
+  and ports from it through `bindingsIn` and `portsIn`; the `svg` widget
+  sanitizes the document with DOMPurify first, and every uploaded markup must.
+  Code copied from the nautilus HMI kit sits in `ui/src/lib/vendor/nautilus/`
+  with its license.
 - **Constants**: `ui/src/lib/siot/schema.ts` mirrors `data/schema.go`, and
   `data/schema_ts_test.go` checks it, so renaming a point or node type means
   changing both.

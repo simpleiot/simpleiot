@@ -11,6 +11,15 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Added
+
+- **Dashboards can draw your own SVG.** Upload a drawing to a file node and
+  show it with the new `svg` widget; `data-siot-*` attributes on its elements
+  follow live points, turn a needle, fill a vessel, and make a click a switch.
+  Drawings are sanitized before they are shown. See
+  [custom drawings](docs/user/dashboards.md#custom-drawings) and
+  `testdata/custom-widget-demo.yaml`.
+
 ### Fixed
 
 - **Panning a dashboard canvas no longer selects text.** Dragging the background

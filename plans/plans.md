@@ -32,4 +32,4 @@
 | 2026-10-29-crockford-base32-ids.md               | **COMPLETE**                                                                            | ee8f9054      |
 | 2026-11-03-sync-snapshot-pass.md                 | **COMPLETE** (close #836 once pushed)                                                   | e8d0390b      |
 | 2026-11-03-dashboards.md                         | **COMPLETE**                                                                            | a28a2902      |
-| 2026-11-05-svg-widget.md                         | **NOT STARTED**                                                                         | ccbaf16b      |
+| 2026-11-05-svg-widget.md                         | **COMPLETE**                                                                            | ccbaf16b      |

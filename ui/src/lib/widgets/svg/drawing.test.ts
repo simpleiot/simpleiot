@@ -8,7 +8,7 @@ const lamp = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160">
   <circle class="glass" cx="50" cy="55" r="40" data-siot-bind="lit" data-siot-toggle />
   <circle class="glow" cx="50" cy="55" r="46" data-siot-bind="lit" />
   <text x="50" y="150" data-siot-bind="temp" data-siot-text data-siot-decimals="1" data-siot-unit="°C">?</text>
-  <rect class="needle" x="48" y="10" width="4" height="40" data-siot-bind="pressure" data-siot-rotate="-90,90" data-siot-range="0,10" />
+  <rect class="needle" x="48" y="10" width="4" height="40" data-siot-bind="pressure" data-siot-rotate="-90,90" data-siot-range="0,10" data-siot-origin="50% 100%" />
   <rect class="liquid" x="10" y="100" width="80" height="50" data-siot-bind="level" data-siot-level />
   <g data-siot-bind="mode"><rect x="0" y="0" width="10" height="10" data-siot-set="1" /><rect x="20" y="0" width="10" height="10" data-siot-set="stop" /></g>
   <circle data-siot-port="inlet,left" cx="0" cy="80" r="2" />
@@ -98,7 +98,7 @@ describe("applyBindings", () => {
 		const n = host.querySelector<SVGElement>(".needle")
 		applyBindings(host, { pressure: live(5) }, writes)
 		expect(n?.style.transform).toBe("rotate(0deg)")
-		expect(n?.style.transformOrigin).toBe("center")
+		expect(n?.style.transformOrigin).toBe("50% 100%")
 		applyBindings(host, { pressure: live(10) }, writes)
 		expect(n?.style.transform).toBe("rotate(90deg)")
 		applyBindings(host, { pressure: live(-3) }, writes)

@@ -214,14 +214,18 @@ export function applyBindings(
 		const live = b?.state === "live"
 		const v = live ? b.value : NaN
 		const f = live ? fraction(v, range(el)) : 0
+		// a transform turns or scales the element about its own box: its
+		// center for a rotation and its bottom for a level unless the
+		// element names another origin, as a needle pivoting at one end does
+		const origin = el.getAttribute("data-siot-origin")
 		if (el.hasAttribute("data-siot-rotate")) {
 			const [a, z] = pair(el, "data-siot-rotate") ?? [0, 360]
 			el.style.transformBox = "fill-box"
-			el.style.transformOrigin = "center"
+			el.style.transformOrigin = origin ?? "center"
 			el.style.transform = `rotate(${a + (z - a) * f}deg)`
 		} else if (el.hasAttribute("data-siot-level")) {
 			el.style.transformBox = "fill-box"
-			el.style.transformOrigin = "bottom"
+			el.style.transformOrigin = origin ?? "bottom"
 			el.style.transform = `scaleY(${f})`
 		}
 	}
