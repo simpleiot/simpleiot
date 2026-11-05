@@ -11,25 +11,26 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.33.6] - 2026-11-05
+
 ### Added
 
 - **File contents open in a code editor.** A text file node has an **Edit
   contents** button that opens the file with line numbers and highlighting
   picked from its name, and a **File name** field, so a drawing or a
-  configuration file can be changed or written in place and saved with the
-  node.
-- **Dashboards can draw your own SVG.** Upload a drawing to a file node and
-  show it with the new `svg` widget; `data-siot-*` attributes on its elements
-  follow live points, turn a needle, fill a vessel, and make a click a switch.
-  Drawings are sanitized before they are shown. See
+  configuration file can be changed or written in place and saved with the node.
+- **Dashboards can draw your own SVG.** Upload a drawing to a file node and show
+  it with the new `svg` widget; `data-siot-*` attributes on its elements follow
+  live points, turn a needle, fill a vessel, and make a click a switch. Drawings
+  are sanitized before they are shown. See
   [custom drawings](docs/user/dashboards.md#custom-drawings) and
   `testdata/custom-widget-demo.yaml`.
 
 ### Fixed
 
-- **A canvas widget resizes from any corner.** Each corner of a selected
-  widget is a handle, a drag in any direction along the diagonal changes the
-  size, and the opposite corner stays where it was.
+- **A canvas widget resizes from any corner.** Each corner of a selected widget
+  is a handle, a drag in any direction along the diagonal changes the size, and
+  the opposite corner stays where it was.
 - **Panning a dashboard canvas no longer selects text.** Dragging the background
   used to start a text selection that followed the pointer across the widgets.
 - **A page of canvas tiles scrolls on a phone.** A canvas pans only once it is
