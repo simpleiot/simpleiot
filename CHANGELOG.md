@@ -27,6 +27,9 @@ For more details or to discuss releases, please visit the
 
 ### Fixed
 
+- **A canvas widget resizes from any corner.** Each corner of a selected
+  widget is a handle, a drag in any direction along the diagonal changes the
+  size, and the opposite corner stays where it was.
 - **Panning a dashboard canvas no longer selects text.** Dragging the background
   used to start a text selection that followed the pointer across the widgets.
 - **A page of canvas tiles scrolls on a phone.** A canvas pans only once it is

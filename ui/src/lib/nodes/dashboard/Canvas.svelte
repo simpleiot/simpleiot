@@ -25,7 +25,15 @@
 	} from "#lib/vendor/nautilus/mimic.ts"
 	import type { Point as SiotPoint } from "#lib/siot/point.ts"
 	import type { Layout, Placed, PlacedLink } from "./bindings.ts"
-	import { canvasDelta, fitScale, toCanvas, zoomAt, type View } from "./canvasMath.ts"
+	import {
+		canvasDelta,
+		fitScale,
+		resized,
+		toCanvas,
+		zoomAt,
+		type Corner,
+		type View,
+	} from "./canvasMath.ts"
 	import WidgetFrame from "./WidgetFrame.svelte"
 
 	let {
@@ -206,8 +214,10 @@
 	type Drag =
 		| {
 				kind: "move"
-				// resize is a drag of the corner, which sets the width
-				mode: "move" | "resize"
+				// a drag of any corner resizes; the height follows the width,
+				// so box is the rendered size the corner scales along
+				mode: "move" | Corner
+				box: { w: number; h: number }
 				id: string
 				sx: number
 				sy: number
@@ -232,7 +242,7 @@
 		;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
 	}
 
-	function downWidget(e: PointerEvent, p: Placed, mode: "move" | "resize" = "move") {
+	function downWidget(e: PointerEvent, p: Placed, mode: "move" | Corner = "move") {
 		if (e.button !== 0) {
 			return
 		}
@@ -247,6 +257,7 @@
 		drag = {
 			kind: "move",
 			mode,
+			box: sizes.get(p.node.id) ?? { w: p.layout.w, h: p.layout.h },
 			id: p.node.id,
 			sx: e.clientX,
 			sy: e.clientY,
@@ -308,9 +319,9 @@
 			case "move": {
 				const [dx, dy] = canvasDelta(e.clientX - d.sx, e.clientY - d.sy, view)
 				const cur =
-					d.mode === "resize"
-						? { ...d.start, w: Math.max(40, d.start.w + dx) }
-						: { ...d.start, x: Math.max(0, d.start.x + dx), y: Math.max(0, d.start.y + dy) }
+					d.mode === "move"
+						? { ...d.start, x: Math.max(0, d.start.x + dx), y: Math.max(0, d.start.y + dy) }
+						: resized(d.start, d.box, d.mode, dx, dy)
 				if (cur.x !== d.cur.x || cur.y !== d.cur.y || cur.w !== d.cur.w) {
 					drag = { ...d, cur, moved: true }
 				}
@@ -368,6 +379,7 @@
 	}
 
 	const layers = ["wall", "bore", "flow"] as const
+	const corners: readonly Corner[] = ["nw", "ne", "sw", "se"]
 </script>
 
 <div class="canvas-host">
@@ -445,17 +457,26 @@
 					onpointerup={up}
 					onpointercancel={up}
 				>
-					<WidgetFrame {p} bare editing={edit} onWrite={edit ? undefined : onWrite} />
+					<!-- the widget follows the drag, so it is drawn at its new size
+					     while the corner is held, and not only once it is let go -->
+					<WidgetFrame
+						p={l === p.layout ? p : { ...p, layout: l }}
+						bare
+						editing={edit}
+						onWrite={edit ? undefined : onWrite}
+					/>
 					{#if edit}
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div
-							class="resize"
-							title="Resize"
-							onpointerdown={(e) => downWidget(e, p, "resize")}
-							onpointermove={move}
-							onpointerup={up}
-							onpointercancel={up}
-						></div>
+						{#each corners as corner (corner)}
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div
+								class="resize {corner}"
+								title="Resize"
+								onpointerdown={(e) => downWidget(e, p, corner)}
+								onpointermove={move}
+								onpointerup={up}
+								onpointercancel={up}
+							></div>
+						{/each}
 						{#each p.ports as port (port.name)}
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div
@@ -565,14 +586,41 @@
 
 	.resize {
 		position: absolute;
-		right: -8px;
-		bottom: -8px;
 		width: 16px;
 		height: 16px;
-		cursor: nwse-resize;
 		touch-action: none;
-		border-right: 3px solid var(--blue);
-		border-bottom: 3px solid var(--blue);
+		border: 0 solid var(--blue);
+	}
+
+	.resize.nw {
+		left: -8px;
+		top: -8px;
+		cursor: nwse-resize;
+		border-width: 3px 0 0 3px;
+		border-radius: 4px 0 0 0;
+	}
+
+	.resize.ne {
+		right: -8px;
+		top: -8px;
+		cursor: nesw-resize;
+		border-width: 3px 3px 0 0;
+		border-radius: 0 4px 0 0;
+	}
+
+	.resize.sw {
+		left: -8px;
+		bottom: -8px;
+		cursor: nesw-resize;
+		border-width: 0 0 3px 3px;
+		border-radius: 0 0 0 4px;
+	}
+
+	.resize.se {
+		right: -8px;
+		bottom: -8px;
+		cursor: nwse-resize;
+		border-width: 0 3px 3px 0;
 		border-radius: 0 0 4px 0;
 	}
 

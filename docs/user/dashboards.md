@@ -21,7 +21,7 @@ on a narrow one.
    below the others and opens its settings beside the grid. Pick the node it
    reads by typing its description in the node field, then the point type and
    key if the default `value` is not what you want. Drag a widget by its body to
-   move it and by its corner to resize it; the place is saved when you let go.
+   move it and by any corner to resize it; the place is saved when you let go.
    Press **done** to leave edit mode. The address follows the selected widget,
    `/dash/<dashboard>/<widget>`, so a link opens that widget's settings. A
    widget's settings also offer **duplicate**, which adds a copy with the same
