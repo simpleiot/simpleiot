@@ -242,14 +242,14 @@ dashboard can take an upload too.
 
 ### Phase 2: Editor
 
-- [ ] `BindingInputs.svelte` filters the picker by `bindingTypes`; the nested
+- [x] `BindingInputs.svelte` filters the picker by `bindingTypes`; the nested
       dashboard widget declares its type there.
-- [ ] `nodes/widget/Editor.svelte` lists the drawing's bindings after the
+- [x] `nodes/widget/Editor.svelte` lists the drawing's bindings after the
       declared ones when the descriptor has a source, resolving the bound file
       through `resolveNode`, and keeps bindings that still have points.
-- [ ] A hint under the bindings naming the attribute set, with a link to the
+- [x] A hint under the bindings naming the attribute set, with a link to the
       docs.
-- [ ] `siot_test` passes. Commit.
+- [x] `siot_test` passes. Commit.
 
 ### Phase 3: Upload from a dashboard, demo, docs
 

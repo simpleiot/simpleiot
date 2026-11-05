@@ -19,26 +19,36 @@
 		name,
 		props,
 		via,
+		source = false,
+		pointType = PointType.Value,
 	}: {
 		name: string
 		props: EditorProps
 		// via is the dashboard's parent, which a relative path starts from
 		via?: { id: string; description: string }
+		// source says the binding holds a document the widget draws, which
+		// a file node carries
+		source?: boolean
+		// pointType is the point the binding reads when none is chosen
+		pointType?: string
 	} = $props()
 
 	const ctx = inputContext()
 
 	// a binding reads a node's points, which a dashboard, widget, or link
-	// has none of; the nested dashboard's binding wants dashboards alone
+	// has none of; the nested dashboard's binding wants dashboards alone,
+	// and a source binding file nodes alone
 	const layoutTypes: readonly string[] = [NodeType.Dashboard, NodeType.Widget, NodeType.Link]
 	const search = (query: string) =>
 		name === "dashboard"
 			? props.searchNodes(query, NodeType.Dashboard)
-			: props.searchNodes(query).then((m) => m.filter((x) => !layoutTypes.includes(x.type)))
+			: source
+				? props.searchNodes(query, NodeType.File)
+				: props.searchNodes(query).then((m) => m.filter((x) => !layoutTypes.includes(x.type)))
 	const points = $derived(props.node.points)
 	const nodeId = $derived(getText(points, PointType.BindNode, name))
 	const path = $derived(getText(points, PointType.BindPath, name))
-	const type = $derived(getText(points, PointType.BindType, name) || PointType.Value)
+	const type = $derived(getText(points, PointType.BindType, name) || pointType)
 
 	let resolved = $state<{ id: string; node: Node | undefined } | null>(null)
 	const onPage = $derived(nodeId === "" ? undefined : props.findNode(nodeId))
@@ -98,7 +108,7 @@
 		type={PointType.BindType}
 		key={name}
 		label="{name} point"
-		options={[[PointType.Value, "value"]]}
+		options={[[pointType, pointType]]}
 		extra={target ? pointTypes(target) : []}
 	/>
 	<TextInput

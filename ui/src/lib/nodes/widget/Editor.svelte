@@ -7,7 +7,8 @@
 	import NumberInput from "#lib/inputs/NumberInput.svelte"
 	import SelectInput from "#lib/inputs/SelectInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
-	import { getBestDesc, getText } from "#lib/siot/point.ts"
+	import type { Node } from "#lib/siot/node.ts"
+	import { getAll, getBestDesc, getText, newText } from "#lib/siot/point.ts"
 	import { PointType } from "#lib/siot/schema.ts"
 	import { widgets } from "#lib/widgets/index.ts"
 	import { autoWidget } from "#lib/widgets/registry.ts"
@@ -18,9 +19,61 @@
 	let props: EditorProps = $props()
 
 	const component = $derived(getText(props.node.points, PointType.Component) || autoWidget)
-	// an auto widget binds one value; a named one binds what it declares
-	const bindings = $derived(widgets.get(component)?.bindings ?? [PointType.Value])
-	const optionNames = $derived(Object.keys(widgets.get(component)?.options ?? {}))
+	const descriptor = $derived(widgets.get(component))
+	const optionNames = $derived(Object.keys(descriptor?.options ?? {}))
+
+	// a widget that draws a document declares further bindings in it; the
+	// document is read from the bound file node, fetched when it is not on
+	// the page
+	const source = $derived(descriptor?.source)
+	const sourceId = $derived(source ? getText(props.node.points, PointType.BindNode, source) : "")
+	let fetched = $state<{ id: string; node: Node | undefined } | null>(null)
+	$effect(() => {
+		const id = sourceId
+		if (id === "" || props.findNode(id) || fetched?.id === id) {
+			return
+		}
+		void props.resolveNode(id).then((node) => {
+			fetched = { id, node }
+		})
+	})
+	const sourceNode = $derived(
+		sourceId === ""
+			? undefined
+			: (props.findNode(sourceId) ?? (fetched?.id === sourceId ? fetched.node : undefined))
+	)
+	const declared = $derived(
+		sourceNode && descriptor?.bindingsIn
+			? descriptor.bindingsIn(getText(sourceNode.points, PointType.Data))
+			: []
+	)
+
+	// an auto widget binds one value; a named one binds what it declares,
+	// what its document declares, and what the node already carries, so a
+	// binding the document no longer names is still there to change
+	const bindings = $derived.by(() => {
+		if (!descriptor) {
+			return [PointType.Value]
+		}
+		const carried = getAll(props.node.points, PointType.BindNode)
+			.concat(getAll(props.node.points, PointType.BindPath))
+			.filter((p) => p.tombstone === 0 && p.text !== "")
+			.map((p) => p.key)
+		return [...new Set([...descriptor.bindings, ...declared, ...carried])]
+	})
+
+	// a binding added by name, for a drawing bound by a relative path,
+	// whose document the editor cannot read
+	let added = $state("")
+	function addBinding() {
+		const name = added.trim()
+		added = ""
+		if (name !== "" && !bindings.includes(name)) {
+			props.onEditPoints([
+				newText(PointType.BindType, name, PointType.Value, new Date(props.now).toISOString()),
+			])
+		}
+	}
 
 	// the dashboard's parent, which a relative binding starts from
 	const via = $derived.by(() => {
@@ -51,8 +104,34 @@
 		]}
 	/>
 	{#each bindings as name (name)}
-		<BindingInputs {name} {props} {via} />
+		<BindingInputs
+			{name}
+			{props}
+			{via}
+			source={name === source}
+			pointType={descriptor?.bindingPoints?.[name] ?? PointType.Value}
+		/>
 	{/each}
+	{#if source}
+		<div class="hint">
+			Elements in the drawing with <code>data-siot-bind</code> are listed above once the drawing is bound
+			by node; add one by name when it is bound by path.
+		</div>
+		<div class="add">
+			<input
+				type="text"
+				placeholder="binding name"
+				bind:value={added}
+				onkeydown={(e) => {
+					if (e.key === "Enter") {
+						e.preventDefault()
+						addBinding()
+					}
+				}}
+			/>
+			<button class="btn gray" type="button" onclick={addBinding}>Add binding</button>
+		</div>
+	{/if}
 	<div class="row">
 		<NumberInput type={PointType.X} label="X" />
 		<NumberInput type={PointType.Y} label="Y" />
@@ -85,5 +164,10 @@
 
 	.hint {
 		color: var(--muted);
+	}
+
+	.add {
+		display: flex;
+		gap: 10px;
 	}
 </style>
