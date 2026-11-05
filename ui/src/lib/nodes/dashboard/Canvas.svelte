@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Canvas is the widget host for mimics: a plane in canvas units, scaled
-	// to the frame, panned by dragging the background and zoomed with the
-	// buttons or ctrl and the wheel. Links are drawn under the equipment,
+	// to the frame, zoomed with the buttons or ctrl and the wheel, and once
+	// zoomed panned by dragging the background. Links are drawn under the equipment,
 	// anchored to ports so they follow a moved widget. In edit mode
 	// equipment is dragged, a link is drawn from port to port, and the
 	// selected link's vertices are dragged. A canvas is a drawing, so it
@@ -25,7 +25,15 @@
 	} from "#lib/vendor/nautilus/mimic.ts"
 	import type { Point as SiotPoint } from "#lib/siot/point.ts"
 	import type { Layout, Placed, PlacedLink } from "./bindings.ts"
-	import { canvasDelta, fitScale, toCanvas, zoomAt, type View } from "./canvasMath.ts"
+	import {
+		canvasDelta,
+		fitScale,
+		resized,
+		toCanvas,
+		zoomAt,
+		type Corner,
+		type View,
+	} from "./canvasMath.ts"
 	import WidgetFrame from "./WidgetFrame.svelte"
 
 	let {
@@ -77,12 +85,29 @@
 	let pan = $state({ x: 0, y: 0 })
 	const view = $derived<View>({ scale: fit * zoom, panX: pan.x, panY: pan.y })
 
+	// zoomed is a view other than the fit, where the drawing may be off
+	// the frame and a drag pans it. At the fit the whole drawing is in the
+	// frame, so a drag has nothing to show, and on a phone the touch
+	// scrolls the page instead.
+	const zoomed = $derived(zoom !== 1)
+
+	// setView applies a zoom result, snapping back to the fit when the
+	// scale lands on it, so zooming out again gives the fitted view back
+	function setView(next: View) {
+		const z = next.scale / fit
+		if (Math.abs(z - 1) < 1e-6) {
+			zoom = 1
+			pan = { x: 0, y: 0 }
+			return
+		}
+		zoom = z
+		pan = { x: next.panX, y: next.panY }
+	}
+
 	function zoomBy(factor: number) {
 		const fx = frameWidth / 2
 		const fy = (height * fit) / 2
-		const next = zoomAt(view, factor, fx, fy, fit)
-		zoom = next.scale / fit
-		pan = { x: next.panX, y: next.panY }
+		setView(zoomAt(view, factor, fx, fy, fit))
 	}
 
 	function onwheel(e: WheelEvent) {
@@ -91,15 +116,9 @@
 		}
 		e.preventDefault()
 		const r = frame.getBoundingClientRect()
-		const next = zoomAt(
-			view,
-			e.deltaY < 0 ? 1.15 : 1 / 1.15,
-			e.clientX - r.left,
-			e.clientY - r.top,
-			fit
+		setView(
+			zoomAt(view, e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - r.left, e.clientY - r.top, fit)
 		)
-		zoom = next.scale / fit
-		pan = { x: next.panX, y: next.panY }
 	}
 
 	function framePoint(e: PointerEvent): [number, number] {
@@ -195,8 +214,10 @@
 	type Drag =
 		| {
 				kind: "move"
-				// resize is a drag of the corner, which sets the width
-				mode: "move" | "resize"
+				// a drag of any corner resizes; the height follows the width,
+				// so box is the rendered size the corner scales along
+				mode: "move" | Corner
+				box: { w: number; h: number }
 				id: string
 				sx: number
 				sy: number
@@ -221,7 +242,7 @@
 		;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
 	}
 
-	function downWidget(e: PointerEvent, p: Placed, mode: "move" | "resize" = "move") {
+	function downWidget(e: PointerEvent, p: Placed, mode: "move" | Corner = "move") {
 		if (e.button !== 0) {
 			return
 		}
@@ -236,6 +257,7 @@
 		drag = {
 			kind: "move",
 			mode,
+			box: sizes.get(p.node.id) ?? { w: p.layout.w, h: p.layout.h },
 			id: p.node.id,
 			sx: e.clientX,
 			sy: e.clientY,
@@ -278,9 +300,12 @@
 	}
 
 	function downBackground(e: PointerEvent) {
-		if (e.button !== 0) {
+		if (e.button !== 0 || !zoomed) {
 			return
 		}
+		// the press would otherwise start a text selection that follows
+		// the pan across the widgets
+		e.preventDefault()
 		capture(e)
 		drag = { kind: "pan", sx: e.clientX, sy: e.clientY, start: pan }
 	}
@@ -294,9 +319,9 @@
 			case "move": {
 				const [dx, dy] = canvasDelta(e.clientX - d.sx, e.clientY - d.sy, view)
 				const cur =
-					d.mode === "resize"
-						? { ...d.start, w: Math.max(40, d.start.w + dx) }
-						: { ...d.start, x: Math.max(0, d.start.x + dx), y: Math.max(0, d.start.y + dy) }
+					d.mode === "move"
+						? { ...d.start, x: Math.max(0, d.start.x + dx), y: Math.max(0, d.start.y + dy) }
+						: resized(d.start, d.box, d.mode, dx, dy)
 				if (cur.x !== d.cur.x || cur.y !== d.cur.y || cur.w !== d.cur.w) {
 					drag = { ...d, cur, moved: true }
 				}
@@ -354,6 +379,7 @@
 	}
 
 	const layers = ["wall", "bore", "flow"] as const
+	const corners: readonly Corner[] = ["nw", "ne", "sw", "se"]
 </script>
 
 <div class="canvas-host">
@@ -361,8 +387,10 @@
 	<div
 		class="frame"
 		class:edit
+		class:zoomed
 		bind:this={frame}
 		style:height="{height * fit}px"
+		style:touch-action={zoomed ? "none" : "pan-y"}
 		{onwheel}
 		onpointerdown={downBackground}
 		onpointermove={move}
@@ -429,17 +457,26 @@
 					onpointerup={up}
 					onpointercancel={up}
 				>
-					<WidgetFrame {p} bare editing={edit} onWrite={edit ? undefined : onWrite} />
+					<!-- the widget follows the drag, so it is drawn at its new size
+					     while the corner is held, and not only once it is let go -->
+					<WidgetFrame
+						p={l === p.layout ? p : { ...p, layout: l }}
+						bare
+						editing={edit}
+						onWrite={edit ? undefined : onWrite}
+					/>
 					{#if edit}
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div
-							class="resize"
-							title="Resize"
-							onpointerdown={(e) => downWidget(e, p, "resize")}
-							onpointermove={move}
-							onpointerup={up}
-							onpointercancel={up}
-						></div>
+						{#each corners as corner (corner)}
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div
+								class="resize {corner}"
+								title="Resize"
+								onpointerdown={(e) => downWidget(e, p, corner)}
+								onpointermove={move}
+								onpointerup={up}
+								onpointercancel={up}
+							></div>
+						{/each}
 						{#each p.ports as port (port.name)}
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<div
@@ -485,7 +522,9 @@
 		border: 1px solid var(--border);
 		border-radius: 8px;
 		background: var(--detail-bg);
-		touch-action: none;
+	}
+
+	.frame.zoomed {
 		cursor: grab;
 	}
 
@@ -520,6 +559,7 @@
 		stroke: var(--blue);
 		stroke-width: 2;
 		cursor: move;
+		touch-action: none;
 	}
 
 	.drawing {
@@ -535,6 +575,7 @@
 
 	.edit .equipment {
 		cursor: grab;
+		touch-action: none;
 	}
 
 	.equipment.selected {
@@ -545,19 +586,47 @@
 
 	.resize {
 		position: absolute;
-		right: -8px;
-		bottom: -8px;
 		width: 16px;
 		height: 16px;
-		cursor: nwse-resize;
 		touch-action: none;
-		border-right: 3px solid var(--blue);
-		border-bottom: 3px solid var(--blue);
+		border: 0 solid var(--blue);
+	}
+
+	.resize.nw {
+		left: -8px;
+		top: -8px;
+		cursor: nwse-resize;
+		border-width: 3px 0 0 3px;
+		border-radius: 4px 0 0 0;
+	}
+
+	.resize.ne {
+		right: -8px;
+		top: -8px;
+		cursor: nesw-resize;
+		border-width: 3px 3px 0 0;
+		border-radius: 0 4px 0 0;
+	}
+
+	.resize.sw {
+		left: -8px;
+		bottom: -8px;
+		cursor: nesw-resize;
+		border-width: 0 0 3px 3px;
+		border-radius: 0 0 0 4px;
+	}
+
+	.resize.se {
+		right: -8px;
+		bottom: -8px;
+		cursor: nwse-resize;
+		border-width: 0 3px 3px 0;
 		border-radius: 0 0 4px 0;
 	}
 
 	.port {
 		position: absolute;
+		touch-action: none;
 		width: 12px;
 		height: 12px;
 		margin: -6px 0 0 -6px;

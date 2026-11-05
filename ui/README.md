@@ -12,8 +12,8 @@ From the repository root, after `. envsetup.sh`:
 - `siot_test_ui` runs prettier and eslint, `svelte-check`, and the vitest unit
   tests.
 - `siot_watch_ui` starts the Vite dev server at `http://localhost:5173/`. It
-  proxies `/v1`, `/fonts`, the Elm UI at `/old`, and the NATS WebSocket to a
-  running `siot`, on `SIOT_HTTP_PORT` or one above `SIOT_NATS_PORT`.
+  proxies `/v1` and the NATS WebSocket to a running `siot`, on
+  `SIOT_HTTP_PORT` or one above `SIOT_NATS_PORT`.
   `siot_watch` starts it along with the Go watcher and `siot_watch_ui_check`,
   which runs `svelte-check --watch` (the dev server does not type-check).
 

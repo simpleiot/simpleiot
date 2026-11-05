@@ -94,6 +94,7 @@
 			class="cell"
 			class:selected={edit && selected === p.node.id}
 			class:dragging={drag?.id === p.node.id}
+			class:nested={p.nested !== undefined}
 			style:--x={Math.min(l.x, cols - 1)}
 			style:--w={Math.min(l.w, cols - Math.min(l.x, cols - 1))}
 			style:--y={l.y}
@@ -194,6 +195,13 @@
 			grid-column: auto;
 			grid-row: auto;
 			min-height: calc(var(--h) * 72px);
+		}
+
+		/* a nested dashboard draws at its own height, a canvas fit to the
+		   width, so the rows it spans on the desktop would leave a blank
+		   below it */
+		.cell.nested {
+			min-height: 0;
 		}
 	}
 </style>

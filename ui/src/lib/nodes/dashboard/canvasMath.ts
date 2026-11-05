@@ -47,3 +47,30 @@ export function parsePair(text: string): [number, number] | undefined {
 		? [x, y]
 		: undefined
 }
+
+export type Corner = "nw" | "ne" | "sw" | "se"
+
+// resized applies a drag of one corner to a widget's place. A canvas
+// widget's height follows its width, so the drag scales the box along
+// its diagonal, and the corner opposite the one held stays where it was.
+// box is the widget's rendered size in canvas units, which decides the
+// diagonal and how far a top corner moves the widget down.
+export function resized<L extends { x: number; y: number; w: number }>(
+	start: L,
+	box: { w: number; h: number },
+	corner: Corner,
+	dx: number,
+	dy: number
+): L {
+	const W = box.w > 0 ? box.w : start.w
+	const H = box.h > 0 ? box.h : W
+	const sx = corner === "ne" || corner === "se" ? 1 : -1
+	const sy = corner === "sw" || corner === "se" ? 1 : -1
+	// the pointer movement projected onto the diagonal, as a fraction of it
+	const t = (sx * dx * W + sy * dy * H) / (W * W + H * H)
+	const w = Math.max(40, Math.round(W * (1 + t)))
+	const h = (H * w) / W
+	const x = sx < 0 ? Math.max(0, Math.round(start.x + W - w)) : start.x
+	const y = sy < 0 ? Math.max(0, Math.round(start.y + H - h)) : start.y
+	return { ...start, x, y, w }
+}

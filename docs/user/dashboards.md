@@ -21,7 +21,7 @@ on a narrow one.
    below the others and opens its settings beside the grid. Pick the node it
    reads by typing its description in the node field, then the point type and
    key if the default `value` is not what you want. Drag a widget by its body to
-   move it and by its corner to resize it; the place is saved when you let go.
+   move it and by any corner to resize it; the place is saved when you let go.
    Press **done** to leave edit mode. The address follows the selected widget,
    `/dash/<dashboard>/<widget>`, so a link opens that widget's settings. A
    widget's settings also offer **duplicate**, which adds a copy with the same
@@ -57,9 +57,10 @@ the node tree, by a script, or by an agent.
 
 Set a dashboard's **Layout** to **canvas** for a process mimic: a plane of
 **Canvas width** by **Canvas height** units (900 by 500 unless set), scaled to
-fit the page. Drag the background to pan, and zoom with the buttons in the
-corner or with ctrl and the mouse wheel. A canvas stays a canvas on a phone,
-scaled to fit the width; zoom in for a closer look.
+fit the page. Zoom with the buttons in the corner or with ctrl and the mouse
+wheel, then drag the background to pan; the **Fit** button returns to the whole
+drawing. A canvas stays a canvas on a phone, scaled to fit the width, and the
+page scrolls past it until it is zoomed in.
 
 Equipment components draw on the canvas:
 
@@ -102,6 +103,63 @@ variable takes the value itself, and an output such as a Modbus IO or a GPIO
 takes a set request. Set the `control` option to `off` on a widget that should
 only show, and `confirm` to `on` for one whose change must be confirmed before
 it is sent.
+
+## Custom drawings
+
+The **svg** component draws an SVG you upload, with elements inside it
+following live points: a lamp, a dial, a vessel, a panel face, or a whole site
+plan from Inkscape or draw.io.
+
+1. In **Nodes**, add a **File** node under the group and upload the SVG with
+   the **Binary** option off. **Edit contents** opens it in a code editor, so
+   the attributes below can be added there, or a small drawing written in
+   place.
+2. On the dashboard, add a widget, pick the **svg** component, and pick the
+   file node as the **svg node**. The editor then lists every binding the
+   drawing declares, named as the drawing names it and with what the drawing
+   does with it, and each one is bound to a node like any other.
+
+A drawing declares what follows a point with `data-siot-*` attributes on its
+elements. Add them in a text editor or in the drawing tool's XML editor; nothing
+else in the file changes.
+
+| Attribute                   | On an element                                                         |
+| --------------------------- | --------------------------------------------------------------------- |
+| `data-siot-bind="name"`     | names the binding the element follows                                 |
+| `data-siot-text`            | replaces the element's text with the value                            |
+| `data-siot-decimals="1"`    | decimals for the text; `data-siot-unit` is appended as given          |
+| `data-siot-range="0,100"`   | the value range `rotate` and `level` map from; 0 to 100 when absent   |
+| `data-siot-rotate="-90,90"` | turns from the first angle at the range's low end to the second at its high end |
+| `data-siot-level`           | scales the element's height by the value over the range, from the bottom |
+| `data-siot-origin="50% 100%"` | where the element turns or scales about; the center, or the bottom for a level, when absent |
+| `data-siot-port="name,dir"` | makes the element's center a port for links; `dir` is `left`, `right`, `up`, or `down` |
+| `data-siot-toggle`          | a click sends the opposite of the bound value                         |
+| `data-siot-set="1"`         | a click sends that value, as text when it is not a number             |
+
+Every bound element also gets a `data-siot-state` attribute of `on`, `off`,
+`stale`, or `dead`: `on` when the value is not zero, `stale` while the point
+has not arrived, and `dead` when the node cannot be found. The drawing's own
+`<style>` does the rest, so a lamp lights with
+`.glass[data-siot-state="on"] { fill: #ffd54a }` and a dead element can hide
+itself. An element without a `data-siot-bind` follows the nearest ancestor's,
+so a group bound once can hold a start and a stop button with `data-siot-set`
+of `1` and `0`. A text element shows the point's text when it has one and the
+number otherwise; attribute values are trimmed, so draw a space before a unit
+as a separate `tspan` rather than in `data-siot-unit`.
+
+A click on an element with `toggle` or `set` sends a value when the binding it
+follows accepts writes, as the [controls](#controls) above do, and `confirm`
+and `control` apply. Ports declared in the drawing are where links attach on a
+canvas, computed from the element's `cx`/`cy` or `x`/`y`/`width`/`height`
+attributes; a `port.*` point on the widget overrides one of the same name.
+
+Every drawing is sanitized before it reaches the page: scripts, event handlers,
+links, embedded documents, and references outside the file are removed, and
+local styles, gradients, and inline images are kept. A file that is not an SVG,
+or has neither a `viewBox` nor a size, draws as a placeholder saying so.
+
+`testdata/custom-widget-demo.yaml` shows every feature on two dashboards, with
+the drawings written inline; see [A demo](#a-demo).
 
 ## Relative bindings
 
@@ -170,6 +228,11 @@ siot import < testdata/dashboard-demo.yaml
 
 The file is also a worked example of writing dashboards by hand: widget bindings
 name nodes by description, and link ends name widgets by description.
+
+`testdata/custom-widget-demo.yaml` does the same for
+[custom drawings](#custom-drawings): five SVGs as file nodes, a canvas and a
+grid that place them, a stale and a dead binding on purpose, and a panel bound
+by path under two stations. The comment at the top says where each feature is.
 
 ## Coming later
 

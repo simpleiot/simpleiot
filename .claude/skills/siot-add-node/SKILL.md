@@ -37,6 +37,7 @@ as a point nothing reads.
 | ----------------------------------------------- | ------------------------------- |
 | `browser`                                       | `docs/user/browser.md`          |
 | `canBus`                                        | `docs/user/can.md`              |
+| `dashboard`, `widget`, `link`                   | `docs/user/dashboards.md`       |
 | `db`                                            | `docs/user/database.md`         |
 | `file`                                          | `docs/user/file.md`             |
 | `gps`                                           | `docs/user/gps.md`              |
@@ -54,6 +55,9 @@ as a point nothing reads.
 | `update`                                        | `docs/user/update.md`           |
 
 `docs/user/configuration.md` is the reference for the format itself.
+
+Building a whole demo or site out of several of these, round by round with
+the user, is the `siot-build` skill, which also holds the dashboard schema.
 
 Node types with no user doc — `variable`, `ntp`, `networkManager`,
 `networkManagerConn`, `networkManagerDevice` — take their point types from the

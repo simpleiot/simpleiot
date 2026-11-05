@@ -46,7 +46,7 @@ test("a dashboard shows a widget bound to a variable", async ({ page }) => {
 	await expect(dashboard.getByRole("button", { name: "save" })).toBeHidden()
 	const open = dashboard.getByRole("link", { name: "open" })
 	const href = (await open.getAttribute("href")) ?? ""
-	expect(href).toMatch(/\/dash\/[\w-]+$/)
+	expect(href).toMatch(/\/dash\/[\w-]+(\?via=[\w-]+)?$/)
 
 	await dashboard.getByRole("button", { name: "Add", exact: true }).click()
 	await page.getByRole("radio", { name: "Widget" }).check()
@@ -90,7 +90,7 @@ test("a dashboard shows a widget bound to a variable", async ({ page }) => {
 	await expect(page.locator("main").getByText("Second", { exact: true }).first()).toBeVisible()
 
 	// the address names the selected widget, and opens its panel again
-	await expect(page).toHaveURL(/\/dash\/[\w-]+\/[\w-]+$/)
+	await expect(page).toHaveURL(/\/dash\/[\w-]+\/[\w-]+(\?via=[\w-]+)?$/)
 	const widgetUrl = page.url()
 
 	// duplicate adds a copy and opens it; copy and paste add another
@@ -106,7 +106,7 @@ test("a dashboard shows a widget bound to a variable", async ({ page }) => {
 		page.getByRole("complementary", { name: "Widget settings" }).getByLabel("Label")
 	).toHaveValue("Second")
 	await page.getByRole("button", { name: "done" }).click()
-	await expect(page).toHaveURL(/\/dash\/[\w-]+$/)
+	await expect(page).toHaveURL(/\/dash\/[\w-]+(\?via=[\w-]+)?$/)
 
 	// going to the tree and back lands on the widget link with its panel
 	await page.goto(widgetUrl)
@@ -139,11 +139,12 @@ test("a dashboard shows a widget bound to a variable", async ({ page }) => {
 	await page.getByRole("link", { name: "Nodes" }).click()
 	const user = tree.getByRole("treeitem", { name: /^User:/ }).first()
 	await user.getByRole("button", { name: "Open details" }).click()
-	// a home dashboard set earlier, such as by the demo file, is cleared first
+	// a home dashboard set earlier, such as by the demo file, is cleared
+	// first; the first Clear is the dashboard's, the second its place
 	if ((await user.getByRole("button", { name: "Clear" }).count()) > 0) {
-		await user.getByRole("button", { name: "Clear" }).click()
+		await user.getByRole("button", { name: "Clear" }).first().click()
 	}
-	const home = user.getByRole("combobox", { name: "Home dashboard" })
+	const home = user.getByRole("combobox", { name: /^Home dashboard:?$/ })
 	await home.fill("lift")
 	await expect(page.getByRole("option", { name: /Lift station/ }).first()).toBeVisible()
 	await home.press("ArrowDown")
@@ -151,7 +152,7 @@ test("a dashboard shows a widget bound to a variable", async ({ page }) => {
 	await user.getByRole("button", { name: "save" }).click()
 	await expect(user.getByRole("button", { name: "save" })).toBeHidden()
 	await page.goto("/")
-	await expect(page).toHaveURL(/\/dash\/[\w-]+$/)
+	await expect(page).toHaveURL(/\/dash\/[\w-]+(\?via=[\w-]+)?$/)
 	await expect(page.getByRole("heading", { name: "Lift station" })).toBeVisible()
 
 	// clear it again, so other tests land where they expect
@@ -162,7 +163,7 @@ test("a dashboard shows a widget bound to a variable", async ({ page }) => {
 	if ((await user2.getByRole("button", { name: "Clear" }).count()) === 0) {
 		await user2.getByRole("button", { name: "Open details" }).click()
 	}
-	await user2.getByRole("button", { name: "Clear" }).click()
+	await user2.getByRole("button", { name: "Clear" }).first().click()
 	await user2.getByRole("button", { name: "save" }).click()
 	await expect(user2.getByRole("button", { name: "save" })).toBeHidden()
 })

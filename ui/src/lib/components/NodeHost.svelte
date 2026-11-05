@@ -28,6 +28,17 @@
 	let pending = $state<Point[]>([])
 	let scratch = $state("")
 
+	// a file node's editor uploads through a hidden input, as in the tree
+	let fileInput: HTMLInputElement | undefined = $state()
+	let uploadBinary = false
+	function onFile(e: Event & { currentTarget: HTMLInputElement }) {
+		const file = e.currentTarget.files?.[0]
+		e.currentTarget.value = ""
+		if (file) {
+			void store.uploadFile(id, uploadBinary, file)
+		}
+	}
+
 	const live = $derived(store.liveNodes.get(id))
 	const node = $derived(
 		live && pending.length > 0 ? { ...live, points: updatePoints(live.points, pending) } : live
@@ -68,7 +79,10 @@
 					},
 					onSendPoints: (points: Point[]) => void store.sendPoints(id, points),
 					onEditScratch: (text: string) => (scratch = text),
-					onUploadFile: () => undefined,
+					onUploadFile: (binary: boolean) => {
+						uploadBinary = binary
+						fileInput?.click()
+					},
 					onGenerateKey: () => undefined,
 				}
 			: null
@@ -83,8 +97,10 @@
 	}
 
 	function onkeyup(e: KeyboardEvent) {
+		// a key typed into a multi-line input, the code editor included,
+		// is the input's
 		const target = e.target as HTMLElement
-		if (target.tagName === "TEXTAREA" || target.tagName === "BUTTON") {
+		if (target.tagName === "TEXTAREA" || target.tagName === "BUTTON" || target.isContentEditable) {
 			return
 		}
 		if (e.key === "Enter" && pending.length > 0) {
@@ -118,6 +134,13 @@
 	{:else}
 		<p class="muted">Node {id} is not loaded.</p>
 	{/if}
+	<input
+		type="file"
+		class="visually-hidden"
+		tabindex="-1"
+		bind:this={fileInput}
+		onchange={onFile}
+	/>
 </div>
 
 <style>

@@ -2,6 +2,7 @@
 	import NodeEditor from "#lib/components/NodeEditor.svelte"
 	import Button from "#lib/inputs/Button.svelte"
 	import CheckboxInput from "#lib/inputs/CheckboxInput.svelte"
+	import CodeInput from "#lib/inputs/CodeInput.svelte"
 	import KeyValueInput from "#lib/inputs/KeyValueInput.svelte"
 	import TextInput from "#lib/inputs/TextInput.svelte"
 	import { get, getBool, getText, getValue } from "#lib/siot/point.ts"
@@ -27,6 +28,10 @@
 		return p ? toDateTimeString(p.time) : "never"
 	})
 
+	// the contents are opened in the editor on request, since a file may
+	// be long and most visits only check it is there
+	let open = $state(false)
+
 	// formatCreated reads the point provisioning orders uploads by. A file
 	// node that predates the point has none, which is worth saying rather
 	// than showing an epoch date.
@@ -37,6 +42,7 @@
 
 <NodeEditor {props} icon={FileIcon} description={desc + " (" + name + ")"}>
 	<TextInput type={PointType.Description} label="Description" />
+	<TextInput type={PointType.Name} label="File name" placeholder="name.ext" />
 	<CheckboxInput type={PointType.Binary} label="Binary" />
 	<div class="status">&nbsp;</div>
 	<div class="status">{"     File name: " + name}</div>
@@ -46,7 +52,15 @@
 	<div class="status">{"     Stored data len: " + String(data.length) + " bytes"}</div>
 	<div class="button-row">
 		<Button color="blue" onclick={() => props.onUploadFile(binary)}>Upload new file</Button>
+		{#if !binary}
+			<Button color="gray" onclick={() => (open = !open)}
+				>{open ? "Close contents" : "Edit contents"}</Button
+			>
+		{/if}
 	</div>
+	{#if open && !binary}
+		<CodeInput type={PointType.Data} label="Contents" {name} />
+	{/if}
 	<KeyValueInput type={PointType.Tag} label="Tags" buttonLabel="Add Tag" />
 	<!-- what provisioning did with this file, shown only when provisioning
 	has used it, so a file node holding a CAN database or a serial

@@ -156,6 +156,14 @@ write. With the binary option set, the contents are base64 encoded first. A
 point travels in one NATS message, so the server's maximum payload (1 MB by
 default) limits the file size.
 
+A file node holding an SVG can be drawn by the dashboard `svg` widget
+(`ui/src/lib/widgets/svg/`). The markup goes through DOMPurify's SVG profile,
+with hooks that remove links, embedded documents, and any reference outside the
+file (`sanitize.ts`), before it is injected; `sanitize.test.ts` holds the cases
+that must be removed and kept. The content security policy is a second layer,
+not the control: a file node is writable by anyone with write access to its
+group, and the dashboard is viewed by every member with their own sign-in.
+
 ## SIOT JavaScript library using NATS over WebSockets
 
 [`js/simpleiot-js`](https://github.com/simpleiot/simpleiot/tree/master/js/simpleiot-js)

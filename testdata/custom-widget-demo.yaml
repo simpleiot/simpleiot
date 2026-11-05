@@ -1,0 +1,441 @@
+# A custom widget demo: every feature of the svg dashboard widget, under
+# one group. Load it into a running instance with:
+#
+#   siot import < testdata/custom-widget-demo.yaml
+#
+# Then open Dashboards in the web UI. Where each feature is:
+#
+#   Drawings as file nodes   five file nodes, each an SVG written inline,
+#                            with data-siot-* attributes on the elements
+#                            that follow points
+#   state and toggle         Lamp drawing: a click on the glass flips the
+#                            Lamp variable; CSS on data-siot-state lights it
+#   rotate, text, decimals   Dial drawing: a needle pivoting at its base
+#                            over -90..90 degrees for 0..10 psi, and the
+#                            reading in the face with a unit in a tspan
+#   level                    Vessel drawing: the liquid scales from the
+#                            bottom with the level signal; ports on each side
+#   set                      Start stop drawing: two buttons in one bound
+#                            group send 1 and 0 to the Pump command variable
+#   ports in the drawing     Pump drawing: suction on the left and discharge
+#                            on top, drawn as a link on the canvas
+#   port override            the Vessel widget moves its outlet port with a
+#                            port.* point, which wins over the drawing
+#   both hosts               Custom canvas places every drawing; Custom tiles
+#                            shows the lamp and the dial on a grid
+#   control off              the display-only lamp tile ignores clicks
+#   stale and dead           a lamp bound to a point its node never writes,
+#                            and one bound by a path that reaches nothing
+#   relative bindings        Lamp panel under Station A binds by path, and
+#                            is mirrored under Station B, so each station
+#                            shows its own drawing and switch; open them
+#                            from the dashboard list
+#   nested dashboards        Overview shows the canvas and the tiles
+#
+# Widget bindings name their node by description, and link ends name a
+# widget by its description, so the file reads as the dashboard looks.
+apiVersion: 1
+nodes:
+  - group:
+      description: Custom widget demo
+      children:
+        # ---- switches and signals the drawings follow
+        - variable:
+            description: Lamp
+            variableType: onOff
+            value: 1
+        - variable:
+            description: Pump command
+            variableType: onOff
+            value: 1
+        - signalGenerator:
+            description: Dial pressure
+            signalType: random walk
+            units: psi
+            minValue: 0
+            maxValue: 10
+            initialValue: 5
+            minIncrement: -0.3
+            maxIncrement: 0.3
+            sampleRate: 1
+            roundTo: 0.1
+        - signalGenerator:
+            description: Vessel level
+            signalType: triangle
+            units: "%"
+            minValue: 5
+            maxValue: 95
+            frequency: 0.01
+            sampleRate: 1
+            roundTo: 0.1
+        - signalGenerator:
+            description: Pump speed
+            signalType: random walk
+            units: "%"
+            minValue: 60
+            maxValue: 95
+            initialValue: 80
+            minIncrement: -1
+            maxIncrement: 1
+            sampleRate: 1
+            roundTo: 1
+        - rule:
+            description: Pump commanded
+            children:
+              - condition:
+                  description: Command is start
+                  conditionType: pointValue
+                  nodeID: Pump command
+                  pointType: value
+                  valueType: onOff
+                  value: 1
+              - action:
+                  description: Run the pump speed signal
+                  action: setValue
+                  nodeID: Pump speed
+                  pointType: disabled
+                  valueType: onOff
+                  value: 0
+              - actionInactive:
+                  description: Stop the pump speed signal
+                  action: setValue
+                  nodeID: Pump speed
+                  pointType: disabled
+                  valueType: onOff
+                  value: 1
+              - actionInactive:
+                  description: Pump speed to zero
+                  action: setValue
+                  nodeID: Pump speed
+                  pointType: value
+                  valueType: number
+                  value: 0
+
+        # ---- the drawings
+        - file:
+            description: Lamp drawing
+            name: lamp.svg
+            data: |
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 130">
+                <title>Lamp</title>
+                <style>
+                  .glow { fill: #ffd54a; opacity: 0; }
+                  .glow[data-siot-state="on"] { opacity: 0.35; }
+                  .glass { fill: #d9d9d9; stroke: #888; stroke-width: 2; }
+                  .glass[data-siot-state="on"] { fill: #ffd54a; stroke: #c99a00; }
+                  .glass[data-siot-state="stale"] { fill: none; stroke-dasharray: 4 3; }
+                  .glass[data-siot-state="dead"] { fill: none; stroke: #dc2626; stroke-dasharray: 4 3; }
+                  .base { fill: #777; }
+                </style>
+                <circle class="glow" cx="50" cy="48" r="46" data-siot-bind="lit" />
+                <circle class="glass" cx="50" cy="48" r="34" data-siot-bind="lit" data-siot-toggle />
+                <rect class="base" x="36" y="84" width="28" height="22" rx="3" />
+                <rect class="base" x="40" y="108" width="20" height="8" rx="2" />
+              </svg>
+        - file:
+            description: Dial drawing
+            name: dial.svg
+            data: |
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 135">
+                <title>Dial</title>
+                <style>
+                  .face { fill: none; stroke: currentColor; stroke-width: 3; opacity: 0.4; }
+                  .tick { stroke: currentColor; stroke-width: 2; opacity: 0.6; }
+                  .needle { fill: #dc2626; }
+                  .hub { fill: currentColor; }
+                  .reading { font: 600 18px sans-serif; fill: currentColor; text-anchor: middle; }
+                </style>
+                <path class="face" d="M20 100 A80 80 0 0 1 180 100" />
+                <path class="tick" d="M20 100 h10 M100 20 v10 M180 100 h-10" />
+                <rect class="needle" x="97" y="34" width="6" height="66" rx="3"
+                  data-siot-bind="pressure" data-siot-rotate="-90,90" data-siot-range="0,10"
+                  data-siot-origin="50% 100%" />
+                <circle class="hub" cx="100" cy="100" r="7" />
+                <text class="reading" x="100" y="128">
+                  <tspan data-siot-bind="pressure" data-siot-text data-siot-decimals="1">--</tspan>
+                  <tspan dx="4">psi</tspan>
+                </text>
+              </svg>
+        - file:
+            description: Vessel drawing
+            name: vessel.svg
+            data: |
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200">
+                <title>Vessel</title>
+                <style>
+                  .shell { fill: none; stroke: currentColor; stroke-width: 3; }
+                  .liquid { fill: #3b82f6; opacity: 0.8; }
+                  .liquid[data-siot-state="dead"] { fill: none; }
+                  .reading { font: 600 16px sans-serif; fill: currentColor; text-anchor: middle; }
+                </style>
+                <rect class="liquid" x="22" y="22" width="116" height="156" rx="10"
+                  data-siot-bind="level" data-siot-level />
+                <rect class="shell" x="20" y="20" width="120" height="160" rx="12" />
+                <text class="reading" x="80" y="196"
+                  data-siot-bind="level" data-siot-text data-siot-decimals="0" data-siot-unit="%">--</text>
+                <circle data-siot-port="inlet,left" cx="20" cy="60" r="0" />
+                <circle data-siot-port="outlet,right" cx="140" cy="150" r="0" />
+              </svg>
+        - file:
+            description: Start stop drawing
+            name: start-stop.svg
+            data: |
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+                <title>Start and stop</title>
+                <style>
+                  .button { fill: #9ca3af; stroke: currentColor; stroke-width: 2; }
+                  .label { font: 600 16px sans-serif; fill: #fff; text-anchor: middle; pointer-events: none; }
+                  [data-siot-state="on"] .start { fill: #16a34a; }
+                  [data-siot-state="off"] .stop { fill: #dc2626; }
+                </style>
+                <g data-siot-bind="command">
+                  <rect class="button start" x="10" y="20" width="80" height="60" rx="10" data-siot-set="1" />
+                  <text class="label" x="50" y="56">START</text>
+                  <rect class="button stop" x="110" y="20" width="80" height="60" rx="10" data-siot-set="0" />
+                  <text class="label" x="150" y="56">STOP</text>
+                </g>
+              </svg>
+        - file:
+            description: Pump drawing
+            name: pump.svg
+            data: |
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 135">
+                <title>Pump</title>
+                <style>
+                  .pipe { fill: none; stroke: currentColor; stroke-width: 10; opacity: 0.5; }
+                  .housing { fill: #cbd5e1; stroke: currentColor; stroke-width: 3; }
+                  .impeller { fill: none; stroke: #334155; stroke-width: 6; stroke-linecap: round;
+                    transform-box: fill-box; transform-origin: center; }
+                  .impeller[data-siot-state="on"] { animation: spin 1.2s linear infinite; }
+                  @keyframes spin { to { transform: rotate(360deg); } }
+                  .reading { font: 600 14px sans-serif; fill: currentColor; text-anchor: middle; }
+                </style>
+                <path class="pipe" d="M0 70 H34" />
+                <path class="pipe" d="M80 0 V24" />
+                <circle class="housing" cx="80" cy="70" r="46" />
+                <g class="impeller" data-siot-bind="running">
+                  <path d="M80 36 V104 M46 70 H114 M56 46 L104 94 M104 46 L56 94" />
+                </g>
+                <text class="reading" x="80" y="132">
+                  <tspan data-siot-bind="speed" data-siot-text data-siot-decimals="0" data-siot-unit="%">--</tspan>
+                </text>
+                <circle data-siot-port="suction,left" cx="0" cy="70" r="0" />
+                <circle data-siot-port="discharge,up" cx="80" cy="0" r="0" />
+              </svg>
+
+        # ---- the canvas: every drawing, a link between two of them
+        - dashboard:
+            description: Custom canvas
+            layout: canvas
+            canvasWidth: 900
+            canvasHeight: 500
+            children:
+              - widget:
+                  description: Lamp switch
+                  component: svg
+                  x: 40
+                  y: 30
+                  w: 100
+                  bindNode:
+                    svg: Lamp drawing
+                    lit: Lamp
+              - widget:
+                  description: Pump buttons
+                  component: svg
+                  x: 20
+                  y: 230
+                  w: 200
+                  bindNode:
+                    svg: Start stop drawing
+                    command: Pump command
+                  prop:
+                    confirm: "on"
+              - widget:
+                  description: Pressure dial
+                  component: svg
+                  x: 300
+                  y: 30
+                  w: 200
+                  bindNode:
+                    svg: Dial drawing
+                    pressure: Dial pressure
+              - widget:
+                  description: Pump
+                  component: svg
+                  x: 320
+                  y: 300
+                  w: 160
+                  bindNode:
+                    svg: Pump drawing
+                    running: Pump command
+                    speed: Pump speed
+              - widget:
+                  description: Vessel
+                  component: svg
+                  x: 640
+                  y: 120
+                  w: 160
+                  bindNode:
+                    svg: Vessel drawing
+                    level: Vessel level
+                  # the outlet port moves to the bottom right corner, over
+                  # the one the drawing declares at 140,150
+                  port:
+                    outlet: "1,0.9,right"
+              - link:
+                  description: Pump to vessel
+                  from: Pump.discharge
+                  to: Vessel.inlet
+                  routing: orthogonal
+                  bindNode:
+                    flowing: Pump command
+
+        # ---- the grid: tiles, a display-only lamp, and the two faults
+        - dashboard:
+            description: Custom tiles
+            layout: grid
+            cols: 12
+            children:
+              - widget:
+                  description: Lamp switch
+                  component: svg
+                  x: 0
+                  y: 0
+                  w: 2
+                  h: 3
+                  bindNode:
+                    svg: Lamp drawing
+                    lit: Lamp
+              - widget:
+                  description: Lamp display only
+                  component: svg
+                  x: 2
+                  y: 0
+                  w: 2
+                  h: 3
+                  bindNode:
+                    svg: Lamp drawing
+                    lit: Lamp
+                  prop:
+                    control: "off"
+              - widget:
+                  description: Pressure dial
+                  component: svg
+                  x: 4
+                  y: 0
+                  w: 4
+                  h: 3
+                  bindNode:
+                    svg: Dial drawing
+                    pressure: Dial pressure
+              - widget:
+                  description: Stale lamp
+                  component: svg
+                  x: 8
+                  y: 0
+                  w: 2
+                  h: 3
+                  bindNode:
+                    svg: Lamp drawing
+                    lit: Lamp
+                  # the variable never writes a brightness point
+                  bindType:
+                    lit: brightness
+              - widget:
+                  description: Dead lamp
+                  component: svg
+                  x: 10
+                  y: 0
+                  w: 2
+                  h: 3
+                  bindNode:
+                    svg: Lamp drawing
+                  # a path that reaches nothing
+                  bindPath:
+                    lit: variable/Nothing here
+
+        # ---- stations: the same panel under two devices, bound by path
+        - device:
+            description: Station A
+            children:
+              - file:
+                  description: Station lamp
+                  name: lamp-a.svg
+                  data: |
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                      <title>Station A</title>
+                      <style>
+                        .glass { fill: #d9d9d9; stroke: #888; stroke-width: 2; }
+                        .glass[data-siot-state="on"] { fill: #22c55e; stroke: #15803d; }
+                        .name { font: 600 14px sans-serif; fill: currentColor; text-anchor: middle; }
+                      </style>
+                      <circle class="glass" cx="50" cy="42" r="32" data-siot-bind="lit" data-siot-toggle />
+                      <text class="name" x="50" y="92">Station A</text>
+                    </svg>
+              - variable:
+                  description: Station light
+                  variableType: onOff
+                  value: 1
+              - dashboard:
+                  description: Lamp panel
+                  layout: grid
+                  cols: 6
+                  children:
+                    - widget:
+                        description: Station lamp switch
+                        component: svg
+                        x: 0
+                        y: 0
+                        w: 2
+                        h: 3
+                        bindPath:
+                          svg: file/Station lamp
+                          lit: variable/Station light
+        - device:
+            description: Station B
+            children:
+              - file:
+                  description: Station lamp
+                  name: lamp-b.svg
+                  data: |
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                      <title>Station B</title>
+                      <style>
+                        .glass { fill: #d9d9d9; stroke: #888; stroke-width: 2; }
+                        .glass[data-siot-state="on"] { fill: #f59e0b; stroke: #b45309; }
+                        .name { font: 600 14px sans-serif; fill: currentColor; text-anchor: middle; }
+                      </style>
+                      <circle class="glass" cx="50" cy="42" r="32" data-siot-bind="lit" data-siot-toggle />
+                      <text class="name" x="50" y="92">Station B</text>
+                    </svg>
+              - variable:
+                  description: Station light
+                  variableType: onOff
+                  value: 0
+              - dashboard:
+                  mirror: Lamp panel
+
+        # ---- the overview: the canvas and the tiles
+        - dashboard:
+            description: Custom overview
+            layout: grid
+            cols: 12
+            children:
+              - widget:
+                  description: Canvas view
+                  component: dashboard
+                  x: 0
+                  y: 0
+                  w: 12
+                  h: 6
+                  bindNode:
+                    dashboard: Custom canvas
+              - widget:
+                  description: Tiles view
+                  component: dashboard
+                  x: 0
+                  y: 6
+                  w: 12
+                  h: 3
+                  bindNode:
+                    dashboard: Custom tiles

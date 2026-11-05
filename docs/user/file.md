@@ -2,7 +2,7 @@
 
 The file node can be used to store files that are then used by other
 nodes/clients. Some examples include the [CAN](can.md) and [Serial](mcu.md)
-clients.
+clients, and an SVG a [dashboard](dashboards.md#custom-drawings) draws.
 
 The default max payload of NATS is 1MB, so that is currently the file size
 limit, but NATS
@@ -14,6 +14,12 @@ the file UI is implemented.
 
 If the `Binary` option is selected, the data is base64 encoded before it is
 transmitted and stored.
+
+**Edit contents** opens a text file in a code editor with line numbers and
+highlighting picked from the file name, so a drawing, a YAML configuration, or
+a JSON file can be changed in place. The changes are saved with the node, and
+the size and hash follow. A file can also be written from scratch: add a file
+node, give it a name with the right extension, and type the contents.
 
 ![a file node](images/file.png)
 

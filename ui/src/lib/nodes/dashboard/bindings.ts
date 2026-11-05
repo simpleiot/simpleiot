@@ -21,14 +21,17 @@ const live = (points: readonly Point[], type: string) =>
 
 // parseBindings reads a widget node's bindings, keyed by prop. A relative
 // binding (bindPath) is resolved through resolvePath when given, and takes
-// precedence over the node ID; one that does not resolve is dead.
+// precedence over the node ID; one that does not resolve is dead. A
+// binding without a point type reads the type the widget's descriptor
+// gives it in pointTypes, else value.
 export function parseBindings(
 	widget: Node,
-	resolvePath: (path: string) => string | undefined = () => undefined
+	resolvePath: (path: string) => string | undefined = () => undefined,
+	pointTypes: Readonly<Record<string, string>> = {}
 ): Record<string, Binding> {
 	const out: Record<string, Binding> = {}
 	const rest = (prop: string) => ({
-		type: getText(widget.points, PointType.BindType, prop) || PointType.Value,
+		type: getText(widget.points, PointType.BindType, prop) || pointTypes[prop] || PointType.Value,
 		key: getText(widget.points, PointType.BindKey, prop) || "0",
 	})
 	for (const p of live(widget.points, PointType.BindNode)) {

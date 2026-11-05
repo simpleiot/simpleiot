@@ -40,6 +40,9 @@ export interface WidgetProps {
 	// onWrite is set when the bound node accepts writes, and makes the
 	// widget a control: it sends a value for one of its bindings
 	onWrite?: (prop: string, write: Write) => void
+	// writable names the bindings onWrite accepts, for a widget with more
+	// than one
+	writable?: readonly string[]
 	// control says the widget would have an onWrite outside edit mode,
 	// and editing that the dashboard is being edited, so a control can
 	// show itself as one while it is inactive
@@ -64,7 +67,24 @@ export interface WidgetDescriptor {
 	// width as a prop and draws at that size; anything else is zoomed by
 	// the ratio of its width to the default
 	fit?: "width" | "zoom"
+	// bindingPoints names the point type a binding reads when the widget
+	// node does not say: a drawing reads a file node's data, for instance.
+	// Any binding not listed reads value.
+	bindingPoints?: Readonly<Record<string, string>>
+	// source is the binding that holds a document the widget draws, and
+	// bindingsIn and portsIn read the further bindings and the ports that
+	// document declares, for the editor and the dashboard
+	source?: string
+	bindingsIn?: (text: string) => readonly DeclaredBinding[]
+	portsIn?: (text: string) => readonly MimicPort[]
 	component: Component<WidgetProps>
+}
+
+// DeclaredBinding is a binding a document names, with what the document
+// does with it, in words the editor can show: "toggle", "text, rotate"
+export interface DeclaredBinding {
+	name: string
+	use: string
 }
 
 export function defineWidget(d: WidgetDescriptor): WidgetDescriptor {
