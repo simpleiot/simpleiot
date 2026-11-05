@@ -13,6 +13,11 @@ For more details or to discuss releases, please visit the
 
 ### Added
 
+- **File contents open in a code editor.** A text file node has an **Edit
+  contents** button that opens the file with line numbers and highlighting
+  picked from its name, and a **File name** field, so a drawing or a
+  configuration file can be changed or written in place and saved with the
+  node.
 - **Dashboards can draw your own SVG.** Upload a drawing to a file node and
   show it with the new `svg` widget; `data-siot-*` attributes on its elements
   follow live points, turn a needle, fill a vessel, and make a click a switch.

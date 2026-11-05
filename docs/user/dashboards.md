@@ -111,7 +111,9 @@ following live points: a lamp, a dial, a vessel, a panel face, or a whole site
 plan from Inkscape or draw.io.
 
 1. In **Nodes**, add a **File** node under the group and upload the SVG with
-   the **Binary** option off.
+   the **Binary** option off. **Edit contents** opens it in a code editor, so
+   the attributes below can be added there, or a small drawing written in
+   place.
 2. On the dashboard, add a widget, pick the **svg** component, and pick the
    file node as the **svg node**. The editor then lists every binding the
    drawing declares, named as the drawing names it and with what the drawing

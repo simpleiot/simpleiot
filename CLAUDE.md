@@ -150,7 +150,9 @@ by `ui/embed.go`, and served at `/` by `api/ui.go`:
   editor, or if a file outside `src/lib/nodes` steers behavior by a type name.
 - **Editors are props-only** and built from the input kit in
   `ui/src/lib/inputs/`; only the page and the store
-  (`ui/src/lib/siot/tree.svelte.ts`) talk to the server.
+  (`ui/src/lib/siot/tree.svelte.ts`) talk to the server. The kit's code editor
+  (`CodeInput`) loads CodeMirror on demand from `ui/src/lib/inputs/code/`, so
+  no page carries it until a file is opened.
 - **Dashboard widgets register themselves** the same way, one directory per
   widget in `ui/src/lib/widgets/<name>/` with a descriptor and a component that
   takes resolved values as props. The widget an `auto` component shows for a

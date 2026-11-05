@@ -48,6 +48,12 @@ test("a drawing on a dashboard follows and flips a variable", async ({ page }) =
 		buffer: Buffer.from(lamp),
 	})
 	await expect(file.getByText("File name: lamp.svg")).toBeVisible()
+	// the contents open in the code editor, highlighted as XML
+	await file.getByRole("button", { name: "Edit contents" }).click()
+	const code = file.getByRole("textbox", { name: "Contents" })
+	await expect(code).toContainText('data-siot-bind="lit"')
+	await expect(code.locator(".cm-line span[class]").first()).toBeVisible()
+	await file.getByRole("button", { name: "Close contents" }).click()
 	await file.getByRole("button", { name: "Close details" }).click()
 
 	// the switch the lamp follows
