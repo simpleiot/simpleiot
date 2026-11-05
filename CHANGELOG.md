@@ -11,6 +11,15 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Fixed
+
+- **Panning a dashboard canvas no longer selects text.** Dragging the background
+  used to start a text selection that followed the pointer across the widgets.
+- **A page of canvas tiles scrolls on a phone.** A canvas pans only once it is
+  zoomed in, so a touch at the fitted view scrolls the page, and a nested
+  dashboard tile is no taller than its canvas, so the tiles stack without a
+  blank below each one.
+
 ### Removed
 
 ## [0.33.5] - 2026-11-04

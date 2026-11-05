@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Canvas is the widget host for mimics: a plane in canvas units, scaled
-	// to the frame, panned by dragging the background and zoomed with the
-	// buttons or ctrl and the wheel. Links are drawn under the equipment,
+	// to the frame, zoomed with the buttons or ctrl and the wheel, and once
+	// zoomed panned by dragging the background. Links are drawn under the equipment,
 	// anchored to ports so they follow a moved widget. In edit mode
 	// equipment is dragged, a link is drawn from port to port, and the
 	// selected link's vertices are dragged. A canvas is a drawing, so it
@@ -77,12 +77,29 @@
 	let pan = $state({ x: 0, y: 0 })
 	const view = $derived<View>({ scale: fit * zoom, panX: pan.x, panY: pan.y })
 
+	// zoomed is a view other than the fit, where the drawing may be off
+	// the frame and a drag pans it. At the fit the whole drawing is in the
+	// frame, so a drag has nothing to show, and on a phone the touch
+	// scrolls the page instead.
+	const zoomed = $derived(zoom !== 1)
+
+	// setView applies a zoom result, snapping back to the fit when the
+	// scale lands on it, so zooming out again gives the fitted view back
+	function setView(next: View) {
+		const z = next.scale / fit
+		if (Math.abs(z - 1) < 1e-6) {
+			zoom = 1
+			pan = { x: 0, y: 0 }
+			return
+		}
+		zoom = z
+		pan = { x: next.panX, y: next.panY }
+	}
+
 	function zoomBy(factor: number) {
 		const fx = frameWidth / 2
 		const fy = (height * fit) / 2
-		const next = zoomAt(view, factor, fx, fy, fit)
-		zoom = next.scale / fit
-		pan = { x: next.panX, y: next.panY }
+		setView(zoomAt(view, factor, fx, fy, fit))
 	}
 
 	function onwheel(e: WheelEvent) {
@@ -91,15 +108,9 @@
 		}
 		e.preventDefault()
 		const r = frame.getBoundingClientRect()
-		const next = zoomAt(
-			view,
-			e.deltaY < 0 ? 1.15 : 1 / 1.15,
-			e.clientX - r.left,
-			e.clientY - r.top,
-			fit
+		setView(
+			zoomAt(view, e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - r.left, e.clientY - r.top, fit)
 		)
-		zoom = next.scale / fit
-		pan = { x: next.panX, y: next.panY }
 	}
 
 	function framePoint(e: PointerEvent): [number, number] {
@@ -278,9 +289,12 @@
 	}
 
 	function downBackground(e: PointerEvent) {
-		if (e.button !== 0) {
+		if (e.button !== 0 || !zoomed) {
 			return
 		}
+		// the press would otherwise start a text selection that follows
+		// the pan across the widgets
+		e.preventDefault()
 		capture(e)
 		drag = { kind: "pan", sx: e.clientX, sy: e.clientY, start: pan }
 	}
@@ -361,8 +375,10 @@
 	<div
 		class="frame"
 		class:edit
+		class:zoomed
 		bind:this={frame}
 		style:height="{height * fit}px"
+		style:touch-action={zoomed ? "none" : "pan-y"}
 		{onwheel}
 		onpointerdown={downBackground}
 		onpointermove={move}
@@ -485,7 +501,9 @@
 		border: 1px solid var(--border);
 		border-radius: 8px;
 		background: var(--detail-bg);
-		touch-action: none;
+	}
+
+	.frame.zoomed {
 		cursor: grab;
 	}
 
@@ -520,6 +538,7 @@
 		stroke: var(--blue);
 		stroke-width: 2;
 		cursor: move;
+		touch-action: none;
 	}
 
 	.drawing {
@@ -535,6 +554,7 @@
 
 	.edit .equipment {
 		cursor: grab;
+		touch-action: none;
 	}
 
 	.equipment.selected {
@@ -558,6 +578,7 @@
 
 	.port {
 		position: absolute;
+		touch-action: none;
 		width: 12px;
 		height: 12px;
 		margin: -6px 0 0 -6px;

@@ -57,9 +57,10 @@ the node tree, by a script, or by an agent.
 
 Set a dashboard's **Layout** to **canvas** for a process mimic: a plane of
 **Canvas width** by **Canvas height** units (900 by 500 unless set), scaled to
-fit the page. Drag the background to pan, and zoom with the buttons in the
-corner or with ctrl and the mouse wheel. A canvas stays a canvas on a phone,
-scaled to fit the width; zoom in for a closer look.
+fit the page. Zoom with the buttons in the corner or with ctrl and the mouse
+wheel, then drag the background to pan; the **Fit** button returns to the whole
+drawing. A canvas stays a canvas on a phone, scaled to fit the width, and the
+page scrolls past it until it is zoomed in.
 
 Equipment components draw on the canvas:
 
