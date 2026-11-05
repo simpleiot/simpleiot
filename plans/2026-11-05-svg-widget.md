@@ -74,16 +74,17 @@ An author marks elements in the drawing with data attributes. Everything else in
 the SVG is left as drawn, so a file from Inkscape or draw.io works once the
 attributes are added in a text editor or the tool's XML editor.
 
-| Attribute                   | On an element                                                            |
-| --------------------------- | ------------------------------------------------------------------------ |
-| `data-siot-bind="name"`     | names the binding the element follows                                    |
-| `data-siot-text`            | replaces the element's text with the value                               |
-| `data-siot-decimals="1"`    | decimals for `data-siot-text`; `data-siot-unit` appends                  |
-| `data-siot-rotate="0,270"`  | rotates by the value mapped from `min,max` to degrees                    |
-| `data-siot-level="0,100"`   | scales the element's height by the value over `min,max`, from the bottom |
-| `data-siot-port="name,dir"` | makes the element's center a port (see below)                            |
-| `data-siot-toggle`          | a click sends the opposite of the bound value (see Controls)             |
-| `data-siot-set="1"`         | a click sends that value                                                 |
+| Attribute                   | On an element                                                                     |
+| --------------------------- | --------------------------------------------------------------------------------- |
+| `data-siot-bind="name"`     | names the binding the element follows                                             |
+| `data-siot-text`            | replaces the element's text with the value                                        |
+| `data-siot-decimals="1"`    | decimals for `data-siot-text`; `data-siot-unit` appends                           |
+| `data-siot-range="0,100"`   | the value range `rotate` and `level` map from; 0 to 100 when absent               |
+| `data-siot-rotate="-90,90"` | rotates from the first angle at the range's low end to the second at its high end |
+| `data-siot-level`           | scales the element's height by the value over the range, from the bottom          |
+| `data-siot-port="name,dir"` | makes the element's center a port (see below)                                     |
+| `data-siot-toggle`          | a click sends the opposite of the bound value (see Controls)                      |
+| `data-siot-set="1"`         | a click sends that value                                                          |
 
 Every bound element also gets a `data-siot-state` attribute of `on`, `off`,
 `stale`, or `dead` (`on` when the value is not zero), and the widget sets
@@ -92,15 +93,17 @@ nothing else. The drawing's own `<style>` does the rest: a lamp turns green with
 This keeps the attribute set small and leaves styling where an SVG author
 expects it.
 
-A binding name may appear on several elements. The widget's bindings, for the
-editor, are the distinct `data-siot-bind` values in the drawing, in document
-order, after the `svg` binding itself.
+A binding name may appear on several elements, and an element without one
+follows the nearest ancestor's, so a group bound once can hold several buttons.
+The widget's bindings, for the editor, are the distinct `data-siot-bind` values
+in the drawing, in document order, after the `svg` binding itself.
 
 `rotate` and `level` are set as a `transform` on the element with
 `transform-box: fill-box` and the origin at the element's center or bottom
 center, so the author draws the needle or the liquid at its full extent and the
 widget scales it. A text value shows `text` when the point has one and the
-formatted number otherwise.
+formatted number otherwise, with the unit appended as given: the sanitizer trims
+attribute values, so a space before the unit is drawn in the SVG itself.
 
 ### Rendering
 
@@ -127,15 +130,19 @@ bindings and ports out of it, so the editor and the dashboard page stay generic:
 
 ```ts
 // in WidgetDescriptor
-source?: string                               // the binding that holds a drawing
+source?: string                                  // the binding that holds a drawing
 bindingsIn?: (text: string) => readonly string[]
 portsIn?: (text: string) => readonly MimicPort[]
-bindingTypes?: Readonly<Record<string, string>> // node type the picker filters to, per binding
+bindingPoints?: Readonly<Record<string, string>> // point type a binding reads by default
 ```
 
-`bindingTypes` replaces the `name === "dashboard"` check in
-`BindingInputs.svelte`: the nested dashboard widget declares
-`{ dashboard: NodeType.Dashboard }` and the svg widget `{ svg: NodeType.File }`.
+`bindingPoints` is `{ svg: "data" }`, so the binding reads the file node's
+contents without the user choosing the point. A descriptor cannot name a node
+type (the nodes coverage test forbids `NodeType` outside `src/lib/nodes`), so
+the picker's filter to file nodes for a `source` binding lives in
+`BindingInputs.svelte` beside the nested dashboard's filter. `WidgetProps` gains
+`writable`, the bindings `onWrite` accepts, since a drawing has several and only
+some may be written.
 
 ### Sanitizing is the control
 
@@ -211,10 +218,10 @@ dashboard can take an upload too.
 
 ### Phase 1: The widget, sanitizing, and bindings
 
-- [ ] `dompurify` added to `ui/package.json`;
+- [x] `dompurify` added to `ui/package.json`;
       `ui/src/lib/widgets/svg/sanitize.ts` with the profile and hooks, and
       `sanitize.test.ts` as above.
-- [ ] `ui/src/lib/widgets/svg/drawing.ts`: `parseDrawing(text)` returning the
+- [x] `ui/src/lib/widgets/svg/drawing.ts`: `parseDrawing(text)` returning the
       root `viewBox`, the binding names, the ports, and an error for text that
       is not an SVG; `applyBindings(root, values)` for the four effects and the
       state attribute; `clickTarget(root, el, writes)` returning the binding and
@@ -223,15 +230,15 @@ dashboard can take an upload too.
       case, toggle from on and from off, set with a number and with text, a
       click outside any attribute, and a click on a binding that is not
       writable.
-- [ ] `WidgetDescriptor` gains `source`, `bindingsIn`, `portsIn`, and
+- [x] `WidgetDescriptor` gains `source`, `bindingsIn`, `portsIn`, and
       `bindingTypes`; `registry.test.ts` lists the new widget.
-- [ ] `ui/src/lib/widgets/svg/index.ts` and `Widget.svelte`: injection once per
+- [x] `ui/src/lib/widgets/svg/index.ts` and `Widget.svelte`: injection once per
       drawing, the effect over values, the dead and placeholder states, the
       click listener calling `onWrite`, the pointer cursor on writable elements,
       and nothing sent while editing.
-- [ ] `Dashboard.svelte` passes `portsIn` ports as the defaults to `parsePorts`
+- [x] `Dashboard.svelte` passes `portsIn` ports as the defaults to `parsePorts`
       when the descriptor has a source binding.
-- [ ] `siot_test` passes. Commit.
+- [x] `siot_test` passes. Commit.
 
 ### Phase 2: Editor
 

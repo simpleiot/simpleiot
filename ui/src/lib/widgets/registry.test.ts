@@ -9,6 +9,7 @@ describe("widgets", () => {
 			"gauge",
 			"pump",
 			"status",
+			"svg",
 			"tank",
 			"trend",
 			"value",

@@ -88,9 +88,9 @@
 		children
 			.filter((c) => c.type === NodeType.Widget)
 			.map((w) => {
-				const bindings = parseBindings(w, resolvePath)
-				const component = componentOf(w, bindings)
+				const component = componentOf(w, parseBindings(w, resolvePath))
 				const descriptor = widgets.get(component)
+				const bindings = parseBindings(w, resolvePath, descriptor?.bindingPoints)
 				const first = Object.values(bindings)[0]
 				const bound = first ? lookup(first.nodeId) : undefined
 				const own = getText(w.points, PointType.Description)
@@ -99,16 +99,23 @@
 					? { x: 20, y: 20, w: descriptor?.width ?? 160, h: 80 }
 					: { x: 0, y: 0, w: 3, h: 2 }
 				const options = descriptor ? withDefaults(descriptor, widgetOptions(w)) : widgetOptions(w)
+				const values = resolveBindings(bindings, lookup)
+				// a widget that draws a document takes its ports from it
+				const source = descriptor?.source ? values[descriptor.source] : undefined
+				const ports =
+					descriptor?.portsIn && source?.state === "live"
+						? descriptor.portsIn(source.text)
+						: descriptor?.ports
 				return {
 					node: w,
 					label: own !== "" ? own : bound ? getBestDesc(bound.points) : "",
 					component,
 					descriptor,
-					values: resolveBindings(bindings, lookup),
+					values,
 					options,
 					writes: writeTargets(bindings, lookup, (t) => registry.get(t)?.writeType, options),
 					layout: widgetLayout(w, defaults),
-					ports: parsePorts(w, descriptor?.ports),
+					ports: parsePorts(w, ports),
 					...(component === nestedWidget && first ? { nested: first.nodeId } : {}),
 					ancestors,
 					via,

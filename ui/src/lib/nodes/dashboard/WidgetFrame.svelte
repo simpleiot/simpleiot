@@ -76,6 +76,7 @@
 				options={p.options}
 				width={bare && byWidth ? p.layout.w / scale : undefined}
 				onWrite={write}
+				writable={Object.keys(p.writes)}
 				control={Object.keys(p.writes).length > 0}
 				{editing}
 			/>
