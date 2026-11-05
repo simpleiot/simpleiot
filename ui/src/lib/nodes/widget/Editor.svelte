@@ -27,6 +27,7 @@
 	// the page
 	const source = $derived(descriptor?.source)
 	const sourceId = $derived(source ? getText(props.node.points, PointType.BindNode, source) : "")
+	const sourcePath = $derived(source ? getText(props.node.points, PointType.BindPath, source) : "")
 	let fetched = $state<{ id: string; node: Node | undefined } | null>(null)
 	$effect(() => {
 		const id = sourceId
@@ -47,6 +48,24 @@
 			? descriptor.bindingsIn(getText(sourceNode.points, PointType.Data))
 			: []
 	)
+	const useOf = (name: string) => declared.find((b) => b.name === name)?.use
+
+	// what the editor can say about the document's bindings
+	const sourceHint = $derived.by(() => {
+		if (!source) {
+			return ""
+		}
+		if (sourcePath !== "") {
+			return "Bound by path, so the drawing cannot be read here; add its bindings by name below."
+		}
+		if (sourceId === "") {
+			return "Pick the file holding the drawing; the bindings its elements declare with data-siot-bind are then listed here."
+		}
+		if (sourceNode && declared.length === 0) {
+			return "The drawing declares no bindings; mark the elements that follow a point with data-siot-bind."
+		}
+		return ""
+	})
 
 	// an auto widget binds one value; a named one binds what it declares,
 	// what its document declares, and what the node already carries, so a
@@ -59,7 +78,7 @@
 			.concat(getAll(props.node.points, PointType.BindPath))
 			.filter((p) => p.tombstone === 0 && p.text !== "")
 			.map((p) => p.key)
-		return [...new Set([...descriptor.bindings, ...declared, ...carried])]
+		return [...new Set([...descriptor.bindings, ...declared.map((b) => b.name), ...carried])]
 	})
 
 	// a binding added by name, for a drawing bound by a relative path,
@@ -104,6 +123,13 @@
 		]}
 	/>
 	{#each bindings as name (name)}
+		{@const use = useOf(name)}
+		{#if use !== undefined}
+			<div class="declared">
+				<code>data-siot-bind="{name}"</code>
+				<span class="use">{use}</span>
+			</div>
+		{/if}
 		<BindingInputs
 			{name}
 			{props}
@@ -111,12 +137,11 @@
 			source={name === source}
 			pointType={descriptor?.bindingPoints?.[name] ?? PointType.Value}
 		/>
+		{#if name === source && sourceHint !== ""}
+			<div class="hint">{sourceHint}</div>
+		{/if}
 	{/each}
 	{#if source}
-		<div class="hint">
-			Elements in the drawing with <code>data-siot-bind</code> are listed above once the drawing is bound
-			by node; add one by name when it is bound by path.
-		</div>
 		<div class="add">
 			<input
 				type="text"
@@ -169,5 +194,19 @@
 	.add {
 		display: flex;
 		gap: 10px;
+	}
+
+	/* a binding the drawing declares, named as the drawing names it */
+	.declared {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 10px;
+		margin-top: 8px;
+	}
+
+	.use {
+		color: var(--muted);
+		font-size: 13px;
 	}
 </style>

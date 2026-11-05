@@ -17,28 +17,39 @@ function local(value: string): boolean {
 // externalUrl finds a url() that is not a fragment reference
 const externalUrl = /url\(\s*(['"]?)(?!\s*#)[^)'"]/i
 
-DOMPurify.addHook("uponSanitizeAttribute", (_node, data) => {
-	const name = data.attrName.toLowerCase()
-	if ((name === "href" || name === "xlink:href") && !local(data.attrValue)) {
-		data.keepAttr = false
-		return
-	}
-	if (externalUrl.test(data.attrValue)) {
-		data.keepAttr = false
-	}
-})
+// the purifier is made on first use, since DOMPurify needs a window and
+// the module is imported wherever the widget registry is, tests under
+// node included
+let purifier: typeof DOMPurify | undefined
 
-DOMPurify.addHook("uponSanitizeElement", (node, data) => {
-	if (data.tagName !== "style") {
-		return
+function purify(): typeof DOMPurify {
+	if (purifier) {
+		return purifier
 	}
-	// a stylesheet may neither import nor reference anything outside the
-	// drawing; a rule that does is rewritten rather than dropped so the
-	// rest of the sheet still applies
-	node.textContent = (node.textContent ?? "")
-		.replace(/@import[^;]*;?/gi, "")
-		.replace(/url\(\s*(['"]?)(?!\s*#)[^)]*\)/gi, "none")
-})
+	purifier = DOMPurify(window)
+	purifier.addHook("uponSanitizeAttribute", (_node, data) => {
+		const name = data.attrName.toLowerCase()
+		if ((name === "href" || name === "xlink:href") && !local(data.attrValue)) {
+			data.keepAttr = false
+			return
+		}
+		if (externalUrl.test(data.attrValue)) {
+			data.keepAttr = false
+		}
+	})
+	purifier.addHook("uponSanitizeElement", (node, data) => {
+		if (data.tagName !== "style") {
+			return
+		}
+		// a stylesheet may neither import nor reference anything outside
+		// the drawing; a rule that does is rewritten rather than dropped so
+		// the rest of the sheet still applies
+		node.textContent = (node.textContent ?? "")
+			.replace(/@import[^;]*;?/gi, "")
+			.replace(/url\(\s*(['"]?)(?!\s*#)[^)]*\)/gi, "none")
+	})
+	return purifier
+}
 
 const config = {
 	USE_PROFILES: { svg: true, svgFilters: true },
@@ -50,5 +61,5 @@ const config = {
 
 // sanitizeSvg returns markup safe to inject, or "" when nothing is left.
 export function sanitizeSvg(text: string): string {
-	return DOMPurify.sanitize(text, config)
+	return purify().sanitize(text, config)
 }

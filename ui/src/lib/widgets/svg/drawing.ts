@@ -4,14 +4,16 @@
 // says what a click inside it sends. It never talks to the server, so the
 // widget, the editor, and a test see the same drawing.
 import type { MimicPort, PortDir } from "#lib/vendor/nautilus/mimic.ts"
+import type { DeclaredBinding } from "../registry.ts"
 import type { Bound, Write } from "../registry.ts"
 import { sanitizeSvg } from "./sanitize.ts"
 
 export interface Drawing {
 	// svg is the sanitized markup to inject, "" when there is none
 	svg: string
-	// bindings are the distinct data-siot-bind names, in document order
-	bindings: string[]
+	// bindings are the distinct data-siot-bind names, in document order,
+	// each with what the drawing does with it
+	bindings: DeclaredBinding[]
 	// ports are the elements marked data-siot-port, as fractions of the box
 	ports: MimicPort[]
 	// error says why there is nothing to draw
@@ -116,17 +118,42 @@ function parse(text: string): Drawing {
 	}
 	svg.removeAttribute("width")
 	svg.removeAttribute("height")
-	const bindings = [
-		...new Set(
-			[...svg.querySelectorAll("[data-siot-bind]")]
-				.map((el) => (el.getAttribute("data-siot-bind") ?? "").trim())
-				.filter((n) => n !== "")
-		),
-	]
+	const bindings = declaredBindings(svg)
 	const ports = [...svg.querySelectorAll("[data-siot-port]")]
 		.map((el) => portOf(el, box))
 		.filter((p): p is MimicPort => p !== undefined)
 	return { svg: svg.outerHTML, bindings, ports, error: "" }
+}
+
+// the attributes that make an element do something with its binding; an
+// element with none follows the value through its state alone
+const effects = ["text", "rotate", "level", "toggle", "set"]
+
+// declaredBindings lists the bindings the drawing names, in document
+// order, each with the effects of the elements that follow it
+function declaredBindings(svg: Element): DeclaredBinding[] {
+	const uses = new Map<string, Set<string>>()
+	for (const el of svg.querySelectorAll("[data-siot-bind]")) {
+		const name = bindNameOf(el)
+		if (name !== "" && !uses.has(name)) {
+			uses.set(name, new Set())
+		}
+	}
+	for (const el of svg.querySelectorAll(effects.map((e) => `[data-siot-${e}]`).join(", "))) {
+		const name = bindNameOf(el)
+		const set = uses.get(name)
+		if (set) {
+			for (const e of effects) {
+				if (el.hasAttribute(`data-siot-${e}`)) {
+					set.add(e)
+				}
+			}
+		}
+	}
+	return [...uses].map(([name, set]) => ({
+		name,
+		use: set.size > 0 ? [...set].join(", ") : "state",
+	}))
 }
 
 // pair reads "a,b" from an attribute as two numbers

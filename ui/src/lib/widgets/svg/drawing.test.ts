@@ -29,9 +29,22 @@ function mount(svg: string): HTMLElement {
 describe("parseDrawing", () => {
 	const d = parseDrawing(lamp)
 
-	test("lists the bindings once each, in document order", () => {
+	test("lists the bindings once each, in document order, with what the drawing does with them", () => {
 		expect(d.error).toBe("")
-		expect(d.bindings).toEqual(["lit", "temp", "pressure", "level", "mode"])
+		expect(d.bindings).toEqual([
+			{ name: "lit", use: "toggle" },
+			{ name: "temp", use: "text" },
+			{ name: "pressure", use: "rotate" },
+			{ name: "level", use: "level" },
+			{ name: "mode", use: "set" },
+		])
+	})
+
+	test("a binding with no effect is state alone", () => {
+		const d = parseDrawing(
+			'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect data-siot-bind="run" /></svg>'
+		)
+		expect(d.bindings).toEqual([{ name: "run", use: "state" }])
 	})
 
 	test("reads ports from a circle and a box as fractions, skipping one without a position", () => {

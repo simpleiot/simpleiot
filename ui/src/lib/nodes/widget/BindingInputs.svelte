@@ -103,7 +103,8 @@
 		<span class="path">{relative}</span>
 	</div>
 {/if}
-{#if nodeId !== "" || path !== ""}
+<!-- a source binding reads the document and nothing else -->
+{#if !source && (nodeId !== "" || path !== "")}
 	<SelectInput
 		type={PointType.BindType}
 		key={name}

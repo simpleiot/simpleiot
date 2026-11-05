@@ -75,9 +75,16 @@ export interface WidgetDescriptor {
 	// bindingsIn and portsIn read the further bindings and the ports that
 	// document declares, for the editor and the dashboard
 	source?: string
-	bindingsIn?: (text: string) => readonly string[]
+	bindingsIn?: (text: string) => readonly DeclaredBinding[]
 	portsIn?: (text: string) => readonly MimicPort[]
 	component: Component<WidgetProps>
+}
+
+// DeclaredBinding is a binding a document names, with what the document
+// does with it, in words the editor can show: "toggle", "text, rotate"
+export interface DeclaredBinding {
+	name: string
+	use: string
 }
 
 export function defineWidget(d: WidgetDescriptor): WidgetDescriptor {

@@ -112,9 +112,10 @@ plan from Inkscape or draw.io.
 
 1. In **Nodes**, add a **File** node under the group and upload the SVG with
    the **Binary** option off.
-2. On the dashboard, add a widget, pick the **svg** component, and bind `svg`
-   to the file node. The editor then lists every binding the drawing declares,
-   and each one is bound like any other.
+2. On the dashboard, add a widget, pick the **svg** component, and pick the
+   file node as the **svg node**. The editor then lists every binding the
+   drawing declares, named as the drawing names it and with what the drawing
+   does with it, and each one is bound to a node like any other.
 
 A drawing declares what follows a point with `data-siot-*` attributes on its
 elements. Add them in a text editor or in the drawing tool's XML editor; nothing
