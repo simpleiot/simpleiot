@@ -11,6 +11,15 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Changed
+
+- **Exporting a tree with duplicate sibling descriptions now succeeds.** Two
+  nodes under one parent with the same description, such as Shelly devices
+  that were discovered with identical names, are written as `Name_1` and
+  `Name_2`, and a comment at the top of the file lists the changed
+  descriptions. Before, `siot export` stopped with an error. See
+  [configuration export](docs/user/configuration.md#configuration-export).
+
 ## [0.33.6] - 2026-11-05
 
 ### Added

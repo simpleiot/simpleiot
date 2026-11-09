@@ -315,9 +315,15 @@ usable as a provisioning file:
   themselves.
 
 Two nodes that share a parent and a description cannot be told apart by a file,
-so `siot export` reports that rather than writing a file that would do the wrong
-thing when applied. Give those nodes distinct descriptions, which is worth doing
-anyway.
+so `siot export` writes them with a suffix, as `Sensors_1` and `Sensors_2`,
+skipping any suffix a sibling already uses, and a comment at the top of the file
+says which descriptions were changed. Mirror entries and `nodeID` points that
+refer to a renamed node use the new description, so the file is consistent with
+itself. Applying it creates nodes under the new descriptions rather than
+matching the originals, so give those nodes distinct descriptions in the tree
+when the file is meant to describe it, which is worth doing anyway. Two nodes of
+one type with no description at all still stop the export, since there is
+nothing to add a suffix to.
 
 ## Instance dump
 
