@@ -118,7 +118,31 @@ operating system on an embedded device, see the [update client](update.md).
 When on the public Internet, Simple IoT should be proxied by a web server like
 Caddy to provide TLS/HTTPS security. Caddy by default obtains free TLS
 certificates from Let's Encrypt and ZeroSSL with automatic fallback if one
-provider fails.
+provider fails. A Caddyfile for an instance on the default ports is:
+
+```
+siot.example.com {
+    reverse_proxy localhost:4223
+}
+```
+
+Devices and MQTT clients that connect to the NATS port (4222) or the MQTT port
+directly do not go through Caddy, so those listeners need a certificate of their
+own. Set `SIOT_NATS_TLS_DOMAIN` to the instance's name and Simple IoT obtains
+one from Let's Encrypt and renews it, keeping it under `SIOT_DATA/certs`. The
+CA validates the name by fetching a path under `/.well-known/acme-challenge/`,
+which Caddy proxies to Simple IoT like any other request, so the Caddyfile above
+needs no change. Caddy and Simple IoT each hold their own certificate for the
+name. See the [configuration page](configuration.md) for the settings,
+including a staging CA to try first, and the
+[security reference](../ref/security.md#server) for what the challenge route
+exposes.
+
+A certificate managed elsewhere can be used instead with `SIOT_NATS_TLS_DIR` or
+the `SIOT_NATS_TLS_CERT` and `SIOT_NATS_TLS_KEY` paths. Pointing the directory
+setting at Caddy's own store works, but Caddy's files are readable only by its
+user, so that needs Simple IoT to run as root or a copy step; the domain setting
+avoids that.
 
 There are Ansible recipes available to deploy Simple IoT, Caddy, InfluxDB, and
 Grafana that work on most Linux servers.

@@ -2,15 +2,14 @@ package api
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/simpleiot/simpleiot/client"
 )
 
 // websocketProxy forwards a WebSocket opened on the HTTP port to the NATS
@@ -28,9 +27,10 @@ type websocketProxy struct {
 
 // newWebsocketProxy makes a proxy to the NATS WebSocket listener on this
 // machine. When the server has a certificate the listener serves TLS, and
-// the proxy dials it over TLS expecting exactly that certificate, since
-// its name is the public one and not localhost.
-func newWebsocketProxy(wsPort int, certFile string, deviceAuthRequired bool) (*websocketProxy, error) {
+// the proxy dials it with tlsConfig, which accepts the certificate the
+// listener serves rather than checking its name, since the name is the
+// public one and not localhost.
+func newWebsocketProxy(wsPort int, tlsConfig *tls.Config, deviceAuthRequired bool) *websocketProxy {
 	p := &websocketProxy{
 		backend:            fmt.Sprintf("ws://127.0.0.1:%v", wsPort),
 		deviceAuthRequired: deviceAuthRequired,
@@ -44,19 +44,12 @@ func newWebsocketProxy(wsPort int, certFile string, deviceAuthRequired bool) (*w
 		dialer: *websocket.DefaultDialer,
 	}
 
-	if certFile != "" {
-		pem, err := os.ReadFile(certFile)
-		if err != nil {
-			return nil, fmt.Errorf("error reading certificate: %w", err)
-		}
+	if tlsConfig != nil {
 		p.backend = fmt.Sprintf("wss://127.0.0.1:%v", wsPort)
-		p.dialer.TLSClientConfig, err = client.PinnedTLSConfig(pem)
-		if err != nil {
-			return nil, err
-		}
+		p.dialer.TLSClientConfig = tlsConfig
 	}
 
-	return p, nil
+	return p
 }
 
 func (p *websocketProxy) ServeHTTP(res http.ResponseWriter, req *http.Request) {

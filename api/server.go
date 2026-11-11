@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/fs"
 	"log"
@@ -19,6 +20,9 @@ const maxBodyBytes = 4 << 20
 type App struct {
 	V1ApiHandler   http.Handler
 	WebsocketProxy http.Handler
+	// ACMEHandler answers the ACME HTTP-01 challenge under /.well-known/
+	// when the server obtains its own certificate; nil otherwise.
+	ACMEHandler http.Handler
 	// UIHandler serves the Svelte UI at every path the others do not take
 	UIHandler http.Handler
 }
@@ -33,6 +37,12 @@ func (h *App) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		req.URL.Path = path
 		req.Body = http.MaxBytesReader(res, req.Body, maxBodyBytes)
 		h.V1ApiHandler.ServeHTTP(res, req)
+	case ".well-known":
+		if h.ACMEHandler == nil {
+			http.NotFound(res, req)
+			return
+		}
+		h.ACMEHandler.ServeHTTP(res, req)
 	default:
 		headerUpgrade := req.Header["Upgrade"]
 		if req.URL.Path == "/" && h.WebsocketProxy != nil &&
@@ -84,17 +94,14 @@ func NewAppHandler(args ServerArgs) http.Handler {
 	var wsProxy http.Handler
 
 	if args.NatsWSPort > 0 {
-		var err error
-		wsProxy, err = newWebsocketProxy(args.NatsWSPort, args.NatsTLSCert,
+		wsProxy = newWebsocketProxy(args.NatsWSPort, args.NatsTLSConfig,
 			args.DeviceAuthRequired)
-		if err != nil {
-			log.Println("Error setting up WebSocket proxy:", err)
-		}
 	}
 
 	app := &App{
 		V1ApiHandler:   v1,
 		WebsocketProxy: wsProxy,
+		ACMEHandler:    args.ACMEHandler,
 	}
 	if args.UIFilesystem != nil {
 		app.UIHandler = newUIHandler(args.UIFilesystem, args.UIDev)
@@ -114,9 +121,11 @@ type ServerArgs struct {
 	Users      UserAuthority
 	AuthToken  string
 	NatsWSPort int
-	// NatsTLSCert is the NATS server's certificate file when it serves
-	// TLS; the WebSocket proxy pins it.
-	NatsTLSCert string
+	// NatsTLSConfig is the client configuration for the NATS WebSocket
+	// listener when it serves TLS; the proxy dials with it.
+	NatsTLSConfig *tls.Config
+	// ACMEHandler answers the ACME HTTP-01 challenge; see App.
+	ACMEHandler http.Handler
 	Nc          *nats.Conn
 	// DeviceAuth resolves device tokens on the node API; nil accepts none.
 	DeviceAuth DeviceAuthorizer

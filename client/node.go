@@ -719,7 +719,8 @@ func ExportNodes(nc *nats.Conn, id string, secrets bool) ([]byte, error) {
 		necs = append(necs, nec)
 	}
 
-	if err := checkExportKeys(necs); err != nil {
+	renamed, err := exportKeys(necs)
+	if err != nil {
 		return nil, err
 	}
 
@@ -739,6 +740,10 @@ func ExportNodes(nc *nats.Conn, id string, secrets bool) ([]byte, error) {
 	descriptions := map[string]string{}
 	for _, n := range tree {
 		descriptions[n.ID] = n.Points.MatchKey()
+	}
+
+	for id, key := range renamed {
+		descriptions[id] = key
 	}
 
 	nodes := make([]data.NodeYAML, len(necs))
@@ -763,6 +768,8 @@ func ExportNodes(nc *nats.Conn, id string, secrets bool) ([]byte, error) {
 		header = "# secret points (" + strings.Join(secretTypes, ", ") +
 			") are left out; export with -secrets to include them\n"
 	}
+
+	header += renameHeader(necs, renamed)
 
 	// indent sequences so that the nesting a person reads matches the nesting
 	// of the tree
@@ -789,23 +796,29 @@ func dropSecretPoints(n *data.NodeYAML) {
 	}
 }
 
-// checkExportKeys makes sure the tree can be described by a file. A file finds
-// each node by description among its siblings, so two siblings sharing one is a
-// tree no file can express. Rather than write a file that does the wrong thing
-// when it is applied, say so here.
-func checkExportKeys(nodes []data.NodeEdgeChildren) error {
-	if err := checkSiblingKeys("the top of the tree", nodes); err != nil {
-		return err
+// exportKeys decides the description each node is written under. A file finds
+// a node by description among its siblings, so two siblings sharing one would
+// be a tree no file could express. Rather than refuse to write the file, the
+// colliding nodes are written as "Sensors_1", "Sensors_2", and so on, picking
+// suffixes no sibling already uses. The result maps the ID of each renamed
+// node to the description it is given in the file, and is empty when nothing
+// collides. Siblings of one type with no description at all stay an error,
+// since there is nothing to add a suffix to.
+func exportKeys(nodes []data.NodeEdgeChildren) (map[string]string, error) {
+	renamed := map[string]string{}
+
+	if err := renameSiblingKeys("the top of the tree", nodes, renamed); err != nil {
+		return nil, err
 	}
 
-	var check func(data.NodeEdgeChildren) error
-	check = func(n data.NodeEdgeChildren) error {
-		if err := checkSiblingKeys(describeNode(n.NodeEdge), n.Children); err != nil {
+	var walk func(data.NodeEdgeChildren) error
+	walk = func(n data.NodeEdgeChildren) error {
+		if err := renameSiblingKeys(describeNode(n.NodeEdge), n.Children, renamed); err != nil {
 			return err
 		}
 
 		for _, c := range n.Children {
-			if err := check(c); err != nil {
+			if err := walk(c); err != nil {
 				return err
 			}
 		}
@@ -814,23 +827,42 @@ func checkExportKeys(nodes []data.NodeEdgeChildren) error {
 	}
 
 	for _, n := range nodes {
-		if err := check(n); err != nil {
-			return err
+		if err := walk(n); err != nil {
+			return nil, err
 		}
 	}
 
-	return nil
+	return renamed, nil
 }
 
-// checkSiblingKeys reports nodes that an applied file could not tell apart.
-func checkSiblingKeys(where string, nodes []data.NodeEdgeChildren) error {
-	keys := map[string]bool{}
+// renameSiblingKeys gives the siblings an applied file could not tell apart a
+// description of their own, recording each in renamed. A node already renamed
+// where it was first met keeps that name here, so a mirrored node is written
+// under one description everywhere.
+func renameSiblingKeys(where string, nodes []data.NodeEdgeChildren, renamed map[string]string) error {
+	key := func(n data.NodeEdgeChildren) string {
+		if k, ok := renamed[n.ID]; ok {
+			return k
+		}
+
+		return n.Points.MatchKey()
+	}
+
+	// a node mirrored twice under one parent is one node, not two
+	count := map[string]int{}
+	seen := map[string]bool{}
 	types := map[string]bool{}
 
 	for _, n := range nodes {
-		key := n.Points.MatchKey()
+		if seen[n.ID] {
+			continue
+		}
 
-		if key == "" {
+		seen[n.ID] = true
+
+		k := key(n)
+
+		if k == "" {
 			// no description: this node is found by its type instead, so there
 			// can only be one of that type here
 			if types[n.Type] {
@@ -843,15 +875,97 @@ func checkSiblingKeys(where string, nodes []data.NodeEdgeChildren) error {
 			continue
 		}
 
-		if keys[key] {
-			return fmt.Errorf("%v has more than one node described %q, so a file could not tell them "+
-				"apart. Give them unique descriptions to export this tree", where, key)
+		count[k]++
+	}
+
+	taken := map[string]bool{}
+	for k := range count {
+		taken[k] = true
+	}
+
+	next := map[string]int{}
+	seen = map[string]bool{}
+
+	for _, n := range nodes {
+		if seen[n.ID] {
+			continue
 		}
 
-		keys[key] = true
+		seen[n.ID] = true
+
+		k := key(n)
+
+		if k == "" || count[k] < 2 {
+			continue
+		}
+
+		if _, ok := renamed[n.ID]; ok {
+			// renamed under another parent, and still colliding here; the
+			// name it has is the one the rest of the file uses
+			continue
+		}
+
+		for {
+			next[k]++
+			candidate := fmt.Sprintf("%v_%v", k, next[k])
+
+			if !taken[candidate] {
+				taken[candidate] = true
+				renamed[n.ID] = candidate
+
+				break
+			}
+		}
 	}
 
 	return nil
+}
+
+// renameHeader says, at the top of the file, which descriptions were changed
+// to tell siblings apart, so a reader knows the names came from the export
+// rather than the tree.
+func renameHeader(nodes []data.NodeEdgeChildren, renamed map[string]string) string {
+	if len(renamed) == 0 {
+		return ""
+	}
+
+	// group the new descriptions under the one they replaced
+	groups := map[string][]string{}
+	seen := map[string]bool{}
+
+	var walk func(data.NodeEdgeChildren)
+	walk = func(n data.NodeEdgeChildren) {
+		if key, ok := renamed[n.ID]; ok && !seen[n.ID] {
+			seen[n.ID] = true
+			from := n.Points.MatchKey()
+			groups[from] = append(groups[from], key)
+		}
+
+		for _, c := range n.Children {
+			walk(c)
+		}
+	}
+
+	for _, n := range nodes {
+		walk(n)
+	}
+
+	froms := make([]string, 0, len(groups))
+	for from := range groups {
+		froms = append(froms, from)
+	}
+
+	sort.Strings(froms)
+
+	var b strings.Builder
+
+	b.WriteString("# siblings sharing a description are written with a suffix so a file can tell them apart:\n")
+
+	for _, from := range froms {
+		fmt.Fprintf(&b, "#   %q -> %v\n", from, strings.Join(groups[from], ", "))
+	}
+
+	return b.String()
 }
 
 // describeNode names a node for an error message.
@@ -908,13 +1022,20 @@ func exportHomes(nodes []data.NodeEdgeChildren) (map[string]string, error) {
 func exportNodeYAML(nec data.NodeEdgeChildren, descriptions map[string]string, homes map[string]string) data.NodeYAML {
 	out := data.NodeYAML{Type: nec.Type}
 
+	// descriptions carries the name the file uses for every node, which is
+	// the description it has unless it was renamed to tell siblings apart
+	key := descriptions[nec.ID]
+	renamed := key != nec.Points.MatchKey()
+
 	if home, ok := homes[nec.ID]; ok && home != nec.Parent {
 		// the role is decided when the mirror is made, so it is not written
-		out.Mirror = nec.Points.MatchKey()
+		out.Mirror = key
 		out.EdgePoints = clearEdgeRole(nec.EdgePoints)
 
 		return out
 	}
+
+	described := false
 
 	for _, p := range nec.Points {
 		if p.DataType == data.PointDataTypeUnknown && len(p.Data) == 0 {
@@ -928,7 +1049,18 @@ func exportNodeYAML(nec data.NodeEdgeChildren, descriptions map[string]string, h
 			}
 		}
 
+		if renamed && p.Type == data.PointTypeDescription && (p.Key == "" || p.Key == "0") {
+			p.PutString(key)
+			described = true
+		}
+
 		out.Points = append(out.Points, p)
+	}
+
+	if renamed && !described {
+		// the node was found by something other than a description, such as
+		// an email, so the file gives it one
+		out.Points = append(out.Points, data.NewPointString(data.PointTypeDescription, "", key))
 	}
 
 	out.EdgePoints = append(out.EdgePoints, nec.EdgePoints...)

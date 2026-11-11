@@ -157,6 +157,10 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 
 	natsTLSCert := os.Getenv("SIOT_NATS_TLS_CERT")
 	natsTLSKey := os.Getenv("SIOT_NATS_TLS_KEY")
+	natsTLSDir := os.Getenv("SIOT_NATS_TLS_DIR")
+	natsTLSDomain := os.Getenv("SIOT_NATS_TLS_DOMAIN")
+	natsTLSEmail := os.Getenv("SIOT_NATS_TLS_EMAIL")
+	natsTLSCA := os.Getenv("SIOT_NATS_TLS_CA")
 	natsTLSTimeoutS := os.Getenv("SIOT_NATS_TLS_TIMEOUT")
 
 	natsTLSTimeout := 0.5
@@ -309,6 +313,10 @@ func Args(args []string, flags *flag.FlagSet) (Options, error) {
 		NatsMQTTPort:      natsMQTTPort,
 		NatsTLSCert:       natsTLSCert,
 		NatsTLSKey:        natsTLSKey,
+		NatsTLSDir:        natsTLSDir,
+		NatsTLSDomain:     natsTLSDomain,
+		NatsTLSEmail:      natsTLSEmail,
+		NatsTLSCA:         natsTLSCA,
 		NatsTLSTimeout:    natsTLSTimeout,
 		AuthToken:         authToken,
 		DeviceAuth:        deviceAuth,

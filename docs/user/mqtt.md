@@ -37,8 +37,9 @@ The port is disabled by default. Points worth knowing:
 - When an auth token is configured (`SIOT_AUTH_TOKEN`), MQTT clients supply it
   in the password field of the connect packet, with any non-empty user name
   alongside it, which MQTT 3.1.1 requires whenever a password is present. Use
-  TLS (`SIOT_NATS_TLS_CERT`/`SIOT_NATS_TLS_KEY`, which also serve the MQTT
-  listener) whenever a connection leaves a trusted network.
+  TLS whenever a connection leaves a trusted network: `SIOT_NATS_TLS_DOMAIN`,
+  or the certificate file settings, serve the MQTT listener too; see the
+  [configuration page](configuration.md).
 - Published messages become NATS subjects, so anything connected to Simple IoT
   over NATS sees them. Topic levels convert as `/` to `.`, and a literal `.` in
   a topic converts to `//`. A Sparkplug topic of
