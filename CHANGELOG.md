@@ -40,6 +40,11 @@ For more details or to discuss releases, please visit the
   `siot export` stopped with an error. See
   [configuration export](docs/user/configuration.md#configuration-export).
 
+### Security
+
+- **Built with Go 1.27.4.** This fixes a crash an HTTP/1 client could trigger in
+  the web server (GO-2026-6859).
+
 ## [0.33.6] - 2026-11-05
 
 ### Added
