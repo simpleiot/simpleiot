@@ -11,11 +11,13 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-11-11
+
 ### Added
 
-- **Simple IoT can obtain its own TLS certificate for the NATS listeners.**
-  Set `SIOT_NATS_TLS_DOMAIN` to the instance's public name and a certificate
-  from Let's Encrypt is obtained, served on the NATS, MQTT, and NATS WebSocket
+- **Simple IoT can obtain its own TLS certificate for the NATS listeners.** Set
+  `SIOT_NATS_TLS_DOMAIN` to the instance's public name and a certificate from
+  Let's Encrypt is obtained, served on the NATS, MQTT, and NATS WebSocket
   listeners, and renewed, with the challenge passing through the web proxy in
   front of the HTTP port. `SIOT_NATS_TLS_EMAIL` and `SIOT_NATS_TLS_CA` are
   optional. See the [installation page](docs/user/installation.md).
@@ -28,14 +30,14 @@ For more details or to discuss releases, please visit the
 
 - **A renewed TLS certificate is served without a restart.** The NATS, MQTT, and
   NATS WebSocket listeners read the certificate files again when they change,
-  checked at most once a minute. Before, the process had to be restarted after
-  a renewal.
+  checked at most once a minute. Before, the process had to be restarted after a
+  renewal.
 
 - **Exporting a tree with duplicate sibling descriptions now succeeds.** Two
-  nodes under one parent with the same description, such as Shelly devices
-  that were discovered with identical names, are written as `Name_1` and
-  `Name_2`, and a comment at the top of the file lists the changed
-  descriptions. Before, `siot export` stopped with an error. See
+  nodes under one parent with the same description, such as Shelly devices that
+  were discovered with identical names, are written as `Name_1` and `Name_2`,
+  and a comment at the top of the file lists the changed descriptions. Before,
+  `siot export` stopped with an error. See
   [configuration export](docs/user/configuration.md#configuration-export).
 
 ## [0.33.6] - 2026-11-05
