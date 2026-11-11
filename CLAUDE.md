@@ -248,7 +248,9 @@ Stage the files you edited rather than using `git add -A` or `git commit -a`.
   the user before a release, not with code changes (see Committing above)
 - NATS JetStream stores all application data (one stream per boundary/origin
   pair; see ADR-7)
-- System supports TLS with certificates via `siot_mkcert` and `siot_run_tls`
+- System supports TLS with certificates via `siot_mkcert` and `siot_run_tls`;
+  in production the NATS listeners' certificate comes from one source in
+  `server/certs.go` (files, a directory, or ACME through `server/acme.go`)
 - Points and node replies use the binary encoding in `data/point.go` and
   `data/node.go`; protocol buffers (`siot_protobuf`) remain only for Sparkplug B
   and file transfer

@@ -139,8 +139,8 @@ and the `TLSCert`/`TLSKey` option fields go away.
 the presented leaf against `src.Leaf()` at handshake time rather than against a
 copy read at start-up, so a renewal is accepted on the next connection and the
 server does not have to trust a CA or the name `localhost`.
-`client.PinnedTLSConfig` stays for the `siot` CLI and tests that pin a
-certificate they were handed; `client.LeafCert` is reused by `fileCerts`.
+`client.PinnedTLSConfig` had no other caller and is removed;
+`client.LeafCert` is reused by `fileCerts`.
 
 ### Settings
 
@@ -208,18 +208,18 @@ with a public name behind Caddy.
 
 ### Phase 1: One certificate source, reloaded on change
 
-- [ ] `server/certs.go`: `certSource`, `fileCerts` with reload on change and
+- [x] `server/certs.go`: `certSource`, `fileCerts` with reload on change and
       the directory scan, `serverTLSConfig`, `clientTLSConfig`.
-- [ ] `server/args.go`: `SIOT_NATS_TLS_DIR`; the error when it is set with the
+- [x] `server/args.go`: `SIOT_NATS_TLS_DIR`; the error when it is set with the
       file pair.
-- [ ] `server/nats-server.go`: `natsServerOptions` takes `TLSConfig *tls.Config`
+- [x] `server/nats-server.go`: `natsServerOptions` takes `TLSConfig *tls.Config`
       in place of `TLSCert`/`TLSKey`; `GenTLSConfig` is no longer called.
-- [ ] `server/server.go`: build the source from the options once, pass the
+- [x] `server/server.go`: build the source from the options once, pass the
       server config to the NATS server and the client config to the loopback
       connection; drop the `os.ReadFile` of the certificate.
-- [ ] `api/ws-proxy.go` and `api.ServerArgs`: take the client `*tls.Config`
+- [x] `api/ws-proxy.go` and `api.ServerArgs`: take the client `*tls.Config`
       rather than a certificate path.
-- [ ] Tests in `server/certs_test.go`: `fileCerts` serves the new pair after the
+- [x] Tests in `server/certs_test.go`: `fileCerts` serves the new pair after the
       files are rewritten, including a rewrite that keeps the modification
       time; the directory search finds a Caddy layout and a certbot layout,
       picks the newest of two issuers' pairs, refuses a directory with none,
@@ -227,25 +227,25 @@ with a public name behind Caddy.
       refuses a different one. In `server/tls_test.go`, the existing cases pass with the new
       options, plus one that rewrites the certificate while the server runs and
       reconnects the loopback client and the WebSocket proxy.
-- [ ] `docs/user/configuration.md` documents `SIOT_NATS_TLS_DIR` and notes
+- [x] `docs/user/configuration.md` documents `SIOT_NATS_TLS_DIR` and notes
       that a changed certificate file is picked up without a restart; changelog
       entry. Close #812.
-- [ ] `siot_test` passes. Commit.
+- [x] `siot_test` passes. Commit.
 
 ### Phase 2: ACME
 
-- [ ] `server/certs.go`: `acmeCerts` around `autocert.Manager` with the
+- [x] `server/acme.go`: `acmeCerts` around `autocert.Manager` with the
       `DirCache` under `SIOT_DATA`, host whitelist, email, CA URL, the SNI
       fill-in, and the start-up request for the domain's certificate.
-- [ ] `server/args.go`: the three settings; the error for domain plus files.
-- [ ] `api/server.go`: the challenge route in `NewAppHandler`, passed the
+- [x] `server/args.go`: the three settings; the error for domain plus files.
+- [x] `api/server.go`: the challenge route in `NewAppHandler`, passed the
       manager's handler through `ServerArgs`.
-- [ ] Start-up log line naming the domain, the CA, and the cache directory. A
+- [x] Start-up log line naming the domain, the CA, and the cache directory. A
       failed order is logged with the CA's reason, since the common failures
       (DNS not pointing here, the proxy not passing the path through, rate
       limited) are all diagnosed from that message. The log also notes that the
       CA will record one failed TLS-ALPN-01 attempt per order.
-- [ ] Tests: the SNI fill-in returns the domain's certificate for an empty and
+- [x] Tests: the SNI fill-in returns the domain's certificate for an empty and
       for a foreign server name, against a `Manager` whose cache is pre-seeded
       with a self-signed certificate so no CA is contacted; the challenge route
       returns a token the manager placed and 404 otherwise; the settings parse;
@@ -260,21 +260,21 @@ with a public name behind Caddy.
       upstream, a `wss` upstream (which sees Caddy's certificate), and an MQTT
       client all connect; the cache directory survives a restart without a new
       order.
-- [ ] `siot_test` passes. Commit.
+- [x] `siot_test` passes. Commit.
 
 ### Phase 3: Docs and changelog
 
-- [ ] `docs/user/installation.md`: the cloud section keeps Caddy for HTTPS and
+- [x] `docs/user/installation.md`: the cloud section keeps Caddy for HTTPS and
       adds the one setting for the NATS certificate, with the note that the
       proxy must pass the challenge path through, which the default Caddyfile
       does.
-- [ ] `docs/user/configuration.md`: the three settings in the NATS block.
-- [ ] `docs/ref/security.md`: the deployment checklist's NATS port item names
+- [x] `docs/user/configuration.md`: the three settings in the NATS block.
+- [x] `docs/ref/security.md`: the deployment checklist's NATS port item names
       `SIOT_NATS_TLS_DOMAIN` as the way to get a certificate; the HTTP section
       mentions the unauthenticated challenge route and what it serves.
-- [ ] `docs/user/sync.md` and `docs/user/mqtt.md`: point at the setting.
-- [ ] `CHANGELOG.md`; `plans/plans.md`. Close #877 and #72.
-- [ ] `siot_test` passes. Commit.
+- [x] `docs/user/sync.md` and `docs/user/mqtt.md`: point at the setting.
+- [x] `CHANGELOG.md`; `plans/plans.md`. Close #877 and #72.
+- [x] `siot_test` passes. Commit.
 
 ## Testing Strategy
 

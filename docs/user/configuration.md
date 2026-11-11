@@ -48,8 +48,32 @@ The following are currently defined:
     HTTP port is served without TLS, so put a reverse proxy in front of it. The
     server's own connections over loopback, and the HTTP port's WebSocket proxy,
     accept exactly this certificate, so it does not have to be issued for
-    `localhost`.
+    `localhost`. The files are read again when they change, so a renewed
+    certificate is served without a restart.
   - `SIOT_NATS_TLS_KEY`: points to TLS certificate key
+  - `SIOT_NATS_TLS_DIR`: a directory to find the certificate and key in, as an
+    alternative to the two paths above. The directory and its subdirectories
+    are searched for a certificate named `*.crt` or `fullchain.pem` with its key
+    beside it as `*.key` or `privkey.pem`, and the certificate issued most
+    recently is used. That matches the directories Caddy and certbot write, so
+    the setting can point at either tool's store for a domain, such as Caddy's
+    `certificates/` directory. The search runs again when the files are
+    checked for a change, so a renewal under another issuer is picked up too.
+  - `SIOT_NATS_TLS_DOMAIN`: the instance's public name. When set, Simple IoT
+    obtains a certificate for it from an ACME CA (Let's Encrypt by default),
+    serves it on the NATS, MQTT, and NATS WebSocket listeners, keeps it under
+    `SIOT_DATA/certs`, and renews it a month before it expires. The CA checks
+    the name over HTTP on port 80, and the web proxy in front of the HTTP port
+    passes that request through; see the
+    [installation page](installation.md#cloudserver-deployments). Set this or
+    the file settings above, not both.
+  - `SIOT_NATS_TLS_EMAIL`: a contact address registered with the CA (optional).
+  - `SIOT_NATS_TLS_CA`: the ACME directory URL. The default is Let's Encrypt
+    (`https://acme-v02.api.letsencrypt.org/directory`); its staging CA
+    (`https://acme-staging-v02.api.letsencrypt.org/directory`) issues
+    certificates browsers do not trust and has generous limits, so use it while
+    setting a host up. Switch the URL, delete `SIOT_DATA/certs`, and restart to
+    move to the production CA.
   - `SIOT_NATS_TLS_TIMEOUT`: Configure the TLS upgrade timeout. NATS defaults to
     a 0.5 second timeout for TLS upgrade, but that is too short for some
     embedded systems that run on low end CPUs connected over cellular modems
