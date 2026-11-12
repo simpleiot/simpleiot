@@ -2,11 +2,13 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io/fs"
 	"log"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -50,9 +52,23 @@ type Options struct {
 	NatsWSOrigins []string
 	// NatsMQTTPort enables the built-in MQTT broker on this port. Zero, the
 	// default, leaves it off.
-	NatsMQTTPort   int
-	NatsTLSCert    string
-	NatsTLSKey     string
+	NatsMQTTPort int
+	// NatsTLSCert and NatsTLSKey are a certificate chain and key the NATS,
+	// MQTT, and WebSocket listeners serve; NatsTLSDir is a directory to
+	// find the pair in instead (see findPair). Either way the files are
+	// reloaded when they change. Nothing set leaves the listeners in the
+	// clear.
+	NatsTLSCert string
+	NatsTLSKey  string
+	NatsTLSDir  string
+	// NatsTLSDomain, when set, has the certificate for that name obtained
+	// from an ACME CA and renewed, with the HTTP-01 challenge answered on
+	// the HTTP port; see acmeCerts. NatsTLSEmail is the contact registered
+	// with the CA, and NatsTLSCA its directory URL, Let's Encrypt when
+	// empty.
+	NatsTLSDomain  string
+	NatsTLSEmail   string
+	NatsTLSCA      string
 	NatsTLSTimeout float64
 	AuthToken      string
 	// DeviceAuth is DeviceAuthOptional (the default) or DeviceAuthRequired;
@@ -99,6 +115,8 @@ type Server struct {
 	nc                 *nats.Conn
 	options            Options
 	natsServer         *server.Server
+	clientTLS          *tls.Config
+	acmeHandler        http.Handler
 	auth               *authorizer
 	clients            *client.RunGroup
 	chNatsClientClosed chan struct{}
@@ -121,14 +139,32 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 	auth := newAuthorizer(o.AuthToken, o.DeviceAuth)
 
 	var natsServer *server.Server
+	// the loopback client's and WebSocket proxy's configuration for the
+	// listeners, nil when they are in the clear
+	var clientTLS *tls.Config
+	// the ACME challenge route on the HTTP port, nil without ACME
+	var acmeHandler http.Handler
 
 	if !o.NatsDisableServer {
+		certs, err := newCertSource(o)
+		if err != nil {
+			return nil, nil, err
+		}
+		var serverTLS *tls.Config
+		if certs != nil {
+			serverTLS = serverTLSConfig(certs)
+			clientTLS = clientTLSConfig(certs)
+		}
+		if a, ok := certs.(*acmeCerts); ok {
+			acmeHandler = a.Handler()
+			a.warm()
+		}
+
 		jsDir := o.DataDir
 		if jsDir == "" {
 			jsDir = "jetstream"
 		}
 
-		var err error
 		natsServer, err = newNatsServer(natsServerOptions{
 			Port:         o.NatsPort,
 			HTTPPort:     o.NatsMonitorPort,
@@ -137,8 +173,7 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 			MQTTPort:     o.NatsMQTTPort,
 			Auth:         auth,
 			AuthEnabled:  o.AuthToken != "",
-			TLSCert:      o.NatsTLSCert,
-			TLSKey:       o.NatsTLSKey,
+			TLSConfig:    serverTLS,
 			TLSTimeout:   o.NatsTLSTimeout,
 			StoreDir:     jsDir,
 			ID:           o.ID,
@@ -169,19 +204,12 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 	}
 
 	// the server's own connection to its embedded server verifies the
-	// certificate it was given rather than a name, since the certificate
-	// is for the public name and the connection is over loopback
+	// certificate the listeners serve rather than a name, since the
+	// certificate is for the public name and the connection is over
+	// loopback
 	var tlsOpt nats.Option = func(*nats.Options) error { return nil }
-	if !o.NatsDisableServer && o.NatsTLSCert != "" {
-		certPEM, err := os.ReadFile(o.NatsTLSCert)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error reading TLS certificate: %v", err)
-		}
-		cfg, err := client.PinnedTLSConfig(certPEM)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error in TLS certificate: %v", err)
-		}
-		tlsOpt = nats.Secure(cfg)
+	if clientTLS != nil {
+		tlsOpt = nats.Secure(clientTLS)
 	}
 
 	// start the server side nats client
@@ -225,6 +253,8 @@ func NewServer(o Options) (*Server, *nats.Conn, error) {
 		nc:                 nc,
 		options:            o,
 		natsServer:         natsServer,
+		clientTLS:          clientTLS,
+		acmeHandler:        acmeHandler,
 		auth:               auth,
 		chNatsClientClosed: chNatsClientClosed,
 		chStop:             make(chan struct{}),
@@ -573,9 +603,10 @@ func (s *Server) Run() error {
 	// HTTP API
 	// ====================================
 	httpAPI := api.NewServer(api.ServerArgs{
-		Port:        o.HTTPPort,
-		NatsWSPort:  o.NatsWSPort,
-		NatsTLSCert: o.NatsTLSCert,
+		Port:          o.HTTPPort,
+		NatsWSPort:    o.NatsWSPort,
+		NatsTLSConfig: s.clientTLS,
+		ACMEHandler:   s.acmeHandler,
 		// wrap with fs that will automatically look for and decompress gz
 		// versions of files.
 		UIFilesystem:       newFsDecomp(uiFS, "index.html"),

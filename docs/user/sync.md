@@ -27,8 +27,10 @@ internal network, then you may not need either and you can connect without any
 authentication.
 
 Typically, `wss` are simplest for servers that are fronted by a web server like
-Caddy that has TLS certs. For internal connections, `nats` or `ws` connections
-are typically used.
+Caddy that has TLS certs. A `tls` connection to the NATS port needs the upstream
+to have a certificate of its own, which `SIOT_NATS_TLS_DOMAIN` obtains; see the
+[configuration page](configuration.md). For internal connections, `nats` or
+`ws` connections are typically used.
 
 Occasionally, you might also have edge devices on networks where NATS outgoing
 connections on port 4222 are blocked. In this case, it's handy to be able to use

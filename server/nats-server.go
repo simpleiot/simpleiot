@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -27,10 +28,11 @@ type natsServerOptions struct {
 	// authorizer. AuthEnabled is only reported at start-up.
 	Auth        server.Authentication
 	AuthEnabled bool
-	TLSCert     string
-	TLSKey      string
-	TLSTimeout  float64
-	StoreDir    string
+	// TLSConfig, when set, is served by the client, MQTT, and WebSocket
+	// listeners; see serverTLSConfig.
+	TLSConfig  *tls.Config
+	TLSTimeout float64
+	StoreDir   string
 	// ID is the optional instance ID; when set it makes the NATS server name
 	// stable across restarts, which MQTT sessions depend on.
 	ID string
@@ -60,20 +62,11 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 		opts.SyncInterval = o.SyncInterval
 	}
 
-	if o.TLSCert != "" && o.TLSKey != "" {
+	if o.TLSConfig != nil {
 		log.Println("Setting up NATS TLS ...")
 		opts.TLS = true
-		opts.TLSCert = o.TLSCert
-		opts.TLSKey = o.TLSKey
+		opts.TLSConfig = o.TLSConfig
 		opts.TLSTimeout = o.TLSTimeout
-		tc := server.TLSConfigOpts{CertFile: o.TLSCert, KeyFile: o.TLSKey}
-
-		var err error
-		opts.TLSConfig, err = server.GenTLSConfig(&tc)
-
-		if err != nil {
-			return nil, fmt.Errorf("error setting up TLS: %v", err)
-		}
 	}
 
 	if o.MQTTPort != 0 {
@@ -97,7 +90,7 @@ func newNatsServer(o natsServerOptions) (*server.Server, error) {
 	opts.Websocket.Host = "127.0.0.1"
 	opts.Websocket.AuthTimeout = o.TLSTimeout
 	// the listener serves TLS whenever the server has a certificate; the
-	// HTTP port's proxy pins that certificate
+	// HTTP port's proxy verifies against that certificate
 	opts.Websocket.NoTLS = opts.TLSConfig == nil
 	if opts.TLSConfig != nil {
 		opts.Websocket.TLSConfig = opts.TLSConfig

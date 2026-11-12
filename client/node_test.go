@@ -70,12 +70,14 @@ func TestExportDuplicateDescriptions(t *testing.T) {
 
 	defer stop()
 
-	for range 2 {
+	// two groups described the same, and a third that already uses the first
+	// suffix the export would pick
+	for _, desc := range []string{"Sensors", "Sensors", "Sensors_1"} {
 		err = client.SendNode(nc, data.NodeEdge{
 			ID:     data.NewID(),
 			Type:   data.NodeTypeGroup,
 			Parent: root.ID,
-			Points: data.Points{data.NewPointString(data.PointTypeDescription, "", "Sensors")},
+			Points: data.Points{data.NewPointString(data.PointTypeDescription, "", desc)},
 		}, "test")
 
 		if err != nil {
@@ -83,15 +85,70 @@ func TestExportDuplicateDescriptions(t *testing.T) {
 		}
 	}
 
-	_, err = client.ExportNodes(nc, root.ID, false)
-	if err == nil {
-		t.Fatal("Two nodes described the same, so an export without IDs should have failed")
+	y, err := client.ExportNodes(nc, root.ID, false)
+	if err != nil {
+		t.Fatal("Two nodes described the same should export with suffixes, got: ", err)
 	}
 
-	if !strings.Contains(err.Error(), "Sensors") {
-		t.Error("the error should name the description: ", err)
+	var exp data.NodeFile
+
+	if err := yaml.Unmarshal(y, &exp); err != nil {
+		t.Fatal("Unmarshal error: ", err)
 	}
 
+	got := map[string]int{}
+	for _, n := range exp.Nodes {
+		if n.Type == data.NodeTypeGroup {
+			got[n.Points.MatchKey()]++
+		}
+	}
+
+	for _, want := range []string{"Sensors_1", "Sensors_2", "Sensors_3"} {
+		if got[want] != 1 {
+			t.Errorf("expected one group described %q, got %v in:\n%v", want, got[want], string(y))
+		}
+	}
+
+	if got["Sensors"] != 0 {
+		t.Errorf("the colliding description should not be written as is:\n%v", string(y))
+	}
+
+	if !strings.Contains(string(y), `"Sensors" -> Sensors_2, Sensors_3`) {
+		t.Errorf("the header should say what was renamed:\n%v", string(y))
+	}
+
+	// the file applies to a fresh instance without complaint
+	nc2, root2, stop2, err := server.TestServer("second")
+	if err != nil {
+		t.Fatal("Error starting second test server: ", err)
+	}
+
+	defer stop2()
+
+	plan, err := client.ImportNodes(nc2, y, "test", false)
+	if err != nil {
+		t.Fatal("Error importing nodes: ", err)
+	}
+
+	if len(plan.Errors) > 0 {
+		t.Fatal("Import errors: ", plan.Errors)
+	}
+
+	children, err := client.GetNodes(nc2, root2.ID, "all", "", false)
+	if err != nil {
+		t.Fatal("Error getting nodes: ", err)
+	}
+
+	groups := 0
+	for _, c := range children {
+		if c.Type == data.NodeTypeGroup {
+			groups++
+		}
+	}
+
+	if groups != 3 {
+		t.Errorf("expected 3 groups after import, got %v", groups)
+	}
 }
 
 func TestExportImportNodes(t *testing.T) {

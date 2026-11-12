@@ -30,8 +30,9 @@ For any instance that other people or devices can reach, cloud or edge:
   you control.
 - Expose only the HTTP port (4223), behind a reverse proxy that terminates TLS.
   Firewall the NATS port (4222) unless devices connect to it directly, in which
-  case configure `SIOT_NATS_TLS_CERT` and `SIOT_NATS_TLS_KEY`. The NATS
-  WebSocket and monitoring listeners bind to loopback only.
+  case set `SIOT_NATS_TLS_DOMAIN` so the listener has a certificate, or point
+  `SIOT_NATS_TLS_DIR` or `SIOT_NATS_TLS_CERT` and `SIOT_NATS_TLS_KEY` at one.
+  The NATS WebSocket and monitoring listeners bind to loopback only.
 - Behind a reverse proxy, every connection reaches Simple IoT from loopback, and
   Simple IoT does not read `X-Forwarded-For`. Treat the shared token as a secret
   and keep it off that path, and rate limit `POST /v1/auth` per address in the
@@ -67,6 +68,13 @@ For cloud/server deployments, we recommend installing a web server like Caddy in
 front of Simple IoT. See the [Installation page](../user/installation.md) for
 more information, and the reverse proxy note in the
 [deployment checklist](#deployment-checklist).
+
+With `SIOT_NATS_TLS_DOMAIN` set, the HTTP port answers requests under
+`/.well-known/acme-challenge/` without authentication. The route serves only
+the token for a challenge Simple IoT has open, for the configured name, and
+404 otherwise, so it exposes nothing about the instance. The CA's account key
+and the certificate's private key are kept under `SIOT_DATA/certs`, readable by
+the service user only, like the rest of the data directory.
 
 ## Edge
 
@@ -123,7 +131,8 @@ no complete request within thirty, limits a request body to 4 MB, and sends
 `Referrer-Policy` on every response. The policy allows the UI's own scripts,
 styles, and fonts (served from the binary) and a WebSocket back to the server,
 and refuses framing. The HTTP port has no TLS of its own; a reverse proxy in
-front of it supplies that. With `-debugHttp`, the bodies of sign-in requests and
+front of it supplies that, and the NATS listeners have their own certificate
+(see [Server](#server)). With `-debugHttp`, the bodies of sign-in requests and
 replies are not logged.
 
 ## NATS

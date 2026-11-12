@@ -31,3 +31,4 @@
 | 2026-11-03-sync-snapshot-pass.md                 | **COMPLETE** (close #836 once pushed)                                                   | e8d0390b      |
 | 2026-11-03-dashboards.md                         | **COMPLETE**                                                                            | a28a2902      |
 | 2026-11-05-svg-widget.md                         | **COMPLETE**                                                                            | ccbaf16b      |
+| 2026-11-10-builtin-tls-certificates.md           | **COMPLETE** (staging CA check on a public host pending; close #877, #812, #72 on push) | d8ef593b      |

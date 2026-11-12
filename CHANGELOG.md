@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.34.1] - 2026-11-12
+
 ### Changed
 
 - **The server and the UI say when the default password or an empty auth token
@@ -26,6 +28,40 @@ For more details or to discuss releases, please visit the
   verified and repaired the hash tree of the former store, and have done nothing
   since the move to JetStream. The `admin.storeVerify` and `admin.storeMaint`
   NATS subjects are removed with it.
+
+## [0.34.0] - 2026-11-11
+
+### Added
+
+- **Simple IoT can obtain its own TLS certificate for the NATS listeners.** Set
+  `SIOT_NATS_TLS_DOMAIN` to the instance's public name and a certificate from
+  Let's Encrypt is obtained, served on the NATS, MQTT, and NATS WebSocket
+  listeners, and renewed, with the challenge passing through the web proxy in
+  front of the HTTP port. `SIOT_NATS_TLS_EMAIL` and `SIOT_NATS_TLS_CA` are
+  optional. See the [installation page](docs/user/installation.md).
+- **A directory setting for the NATS TLS certificate.** `SIOT_NATS_TLS_DIR`
+  names a directory that holds the certificate and key, in the layout Caddy or
+  certbot writes, as an alternative to `SIOT_NATS_TLS_CERT` and
+  `SIOT_NATS_TLS_KEY`. See the [configuration page](docs/user/configuration.md).
+
+### Changed
+
+- **A renewed TLS certificate is served without a restart.** The NATS, MQTT, and
+  NATS WebSocket listeners read the certificate files again when they change,
+  checked at most once a minute. Before, the process had to be restarted after a
+  renewal.
+
+- **Exporting a tree with duplicate sibling descriptions now succeeds.** Two
+  nodes under one parent with the same description, such as Shelly devices that
+  were discovered with identical names, are written as `Name_1` and `Name_2`,
+  and a comment at the top of the file lists the changed descriptions. Before,
+  `siot export` stopped with an error. See
+  [configuration export](docs/user/configuration.md#configuration-export).
+
+### Security
+
+- **Built with Go 1.27.4.** This fixes a crash an HTTP/1 client could trigger in
+  the web server (GO-2026-6859).
 
 ## [0.33.6] - 2026-11-05
 
