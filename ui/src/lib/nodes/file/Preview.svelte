@@ -73,7 +73,7 @@
 
 <style>
 	.preview {
-		max-width: 480px;
+		max-width: 336px;
 		padding: 8px;
 		border: 1px solid var(--border);
 		border-radius: 6px;
@@ -83,7 +83,7 @@
 	img {
 		display: block;
 		max-width: 100%;
-		max-height: 480px;
+		max-height: 336px;
 	}
 
 	.use {
