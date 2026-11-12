@@ -117,6 +117,19 @@ Run them against a local instance:
 SIOT_AUTH_TOKEN=... python examples/tree/tree.py
 ```
 
+With [uv](https://docs.astral.sh/uv/), run them from the `python` directory, and
+uv installs the package and its dependencies:
+
+```
+SIOT_AUTH_TOKEN=... uv run examples/tree/tree.py
+```
+
+To run an example against the published package instead of the source tree:
+
+```
+SIOT_AUTH_TOKEN=... uv run --isolated --no-project --with simpleiot examples/tree/tree.py
+```
+
 ## Development
 
 The client lives in the

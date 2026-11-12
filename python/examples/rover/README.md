@@ -13,6 +13,16 @@ steer it from the web UI, on site or from the cloud.
 SIOT_AUTH_TOKEN=... python examples/rover/rover.py
 ```
 
+With [uv](https://docs.astral.sh/uv/), run it from the `python` directory, and
+uv installs the package and its dependencies:
+
+```
+SIOT_AUTH_TOKEN=... uv run examples/rover/rover.py
+```
+
+Add `--isolated --no-project --with simpleiot` after `uv run` to use the
+published package instead of the source tree.
+
 The rover sets up its own nodes and dashboard the first time it runs (see
 [Setting up the nodes](#setting-up-the-nodes)). Open **Dashboards → Rover
 operations** and press **AUTO**. The rover leaves home, follows the numbered
