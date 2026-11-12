@@ -87,6 +87,8 @@ All methods are coroutines on `Client`.
 - `send_edge_points(id, parent, points)`
 - `create_node(parent, type, points, id=..., description=..., primary=...)`
 - `delete_node(id, parent)`, `move_node(id, old_parent, new_parent)`
+- `provision(name, yaml)` uploads a node file for the server to apply, as
+  `siot import` would, and waits until it has
 - `subscribe_node(id)`, `subscribe_tree(id)`, `subscribe(subject)`: async
   iterators of `PointsMessage`
 - `close()`
@@ -103,6 +105,8 @@ Each example is a short script in its own directory with a README:
 - [watch](examples/watch/) prints every point change below a node
 - [mirror_temperature](examples/mirror_temperature/) reacts to one point by
   writing another
+- [rover](examples/rover/) drives a simulated autonomous rover from a dashboard,
+  with a live map, status, and commands
 
 Run them against a local instance:
 

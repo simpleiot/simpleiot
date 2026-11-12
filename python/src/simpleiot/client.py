@@ -7,8 +7,11 @@ https://docs.simpleiot.org/docs/ref/api.html
 
 from __future__ import annotations
 
+import asyncio
+import hashlib
 import logging
 import os
+import time
 from collections.abc import AsyncIterator, Iterable
 from dataclasses import dataclass
 
@@ -363,6 +366,66 @@ class Client:
                 edge.append(Point(role, 1))
         await self.send_edge_points(id, new_parent, edge)
         await self.send_edge_points(id, old_parent, [Point("tombstone", 1)])
+
+    # --- provisioning ---
+
+    async def provision(self, name: str, contents: str, *, timeout: float = 30.0) -> str:
+        """Uploads a YAML node file for the server to apply, and waits until it has.
+
+        The file is a ``file`` node called ``name`` under the instance's
+        ``provisioning`` node, which is created if there is none. The server
+        applies it the way ``siot import`` does: nodes are matched by
+        description, missing ones are created, and changed points are
+        updated. It applies the file again only when its contents change.
+
+        Returns the file node's ID. Raises :class:`SiotError` with the
+        server's message if the file fails to apply, and ``TimeoutError`` if
+        it is not applied within ``timeout`` seconds. See "Configuration
+        provisioning" in the configuration guide.
+        """
+        want = hashlib.sha256(contents.encode()).hexdigest()
+        root = await self.get_root()
+        provs = await self.get_children(root.id, type="provisioning")
+        if provs:
+            prov = provs[0].id
+        else:
+            prov = await self.create_node(
+                root.id, "provisioning", description="Provisioning", primary=True
+            )
+
+        file = next(
+            (
+                f
+                for f in await self.get_children(prov, type="file")
+                if name in (f.value("name"), f.description)
+            ),
+            None,
+        )
+        if file is None:
+            id = await self.create_node(
+                prov,
+                "file",
+                [Point("name", name), Point("created", int(time.time())), Point("data", contents)],
+                description=name,
+            )
+        else:
+            id = file.id
+            if file.value("data") != contents:
+                await self.send_point(id, "data", contents)
+
+        # the server records the hash of what it tried, with the error, after
+        # each attempt
+        deadline = time.monotonic() + timeout
+        while True:
+            n = await self.get_node(id, prov)
+            if n.value("provisionHash") == want:
+                err = n.value("error", default="")
+                if err:
+                    raise SiotError(f"provisioning {name}: {err}")
+                return id
+            if time.monotonic() > deadline:
+                raise TimeoutError(f"provisioning {name} was not applied within {timeout} s")
+            await asyncio.sleep(0.2)
 
     # --- subscriptions ---
 

@@ -148,3 +148,28 @@ async def test_subscribe(client):
                 break
 
     await client.delete_node(id, root.id)
+
+
+async def test_provision(client):
+    root = await client.get_root()
+
+    def names():
+        return client.get_children(root.id, type="group")
+
+    yaml = "nodes:\n  - group:\n      description: Provisioned\n"
+    id = await client.provision("test.yaml", yaml)
+    assert "Provisioned" in [g.description for g in await names()]
+
+    # unchanged contents are already applied, so this returns at once
+    assert await client.provision("test.yaml", yaml) == id
+
+    # changed contents are applied again, to the same file node
+    yaml2 = yaml + (
+        "      children:\n        - variable:\n            description: Provisioned value\n"
+    )
+    assert await client.provision("test.yaml", yaml2) == id
+    g = [g for g in await names() if g.description == "Provisioned"][0]
+    assert "Provisioned value" in [n.description for n in await client.get_children(g.id)]
+
+    with pytest.raises(SiotError, match="bad.yaml"):
+        await client.provision("bad.yaml", "nodes: [not, a, node", timeout=10)

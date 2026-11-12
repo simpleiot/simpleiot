@@ -21,6 +21,11 @@ async def main():
 asyncio.run(main())
 ```
 
+`provision(name, yaml)` sets up nodes from a YAML file through
+[configuration provisioning](../user/configuration.md#configuration-provisioning):
+the server applies the file as `siot import` does, and the call waits for the
+result.
+
 `connect()` reads `SIOT_NATS_SERVER` and `SIOT_AUTH_TOKEN` from the environment
 when they are not passed. The shared token reaches the whole tree, so the client
 suits scripts and services that run alongside an instance you operate.
