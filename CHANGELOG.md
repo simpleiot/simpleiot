@@ -11,6 +11,9 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+- **Negative integer points show the right value in the web UI.** A small
+  negative integer such as `-1` was read as a large positive number (`255`).
+
 ## [0.34.1] - 2026-11-12
 
 ### Changed
