@@ -4,7 +4,7 @@ A JavaScript client for [Simple IoT](https://simpleiot.org) that runs in the
 browser and talks to the server over NATS WebSockets. The Simple IoT web UI is
 built on it.
 
-![a JavaScript app in the browser signs in, then connects to the SIOT HTTP port over WebSocket as that user, and reaches only the subtree of the groups the user belongs to](https://raw.githubusercontent.com/simpleiot/simpleiot/master/js/simpleiot-js/images/connection.svg)
+![a JavaScript app in the browser signs in, then connects to the SIOT HTTP port over WebSocket as that user, and reaches only the subtree of the groups the user belongs to](https://docs.simpleiot.org/js/simpleiot-js/images/connection.svg)
 
 A connection is made as a signed-in user. The app signs in with `POST /v1/auth`,
 then opens a WebSocket on the server's HTTP port with the user's node ID and the

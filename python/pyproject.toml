@@ -22,7 +22,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://simpleiot.org"
-Documentation = "https://docs.simpleiot.org/docs/ref/python.html"
+Documentation = "https://docs.simpleiot.org/python/"
 Repository = "https://github.com/simpleiot/simpleiot"
 Changelog = "https://github.com/simpleiot/simpleiot/blob/master/python/CHANGELOG.md"
 

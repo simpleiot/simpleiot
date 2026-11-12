@@ -502,9 +502,10 @@ siot_mdbook_image_ensure() {
 # run mdbook in the documentation image. book.toml sets src = ".", so mdbook
 # treats the whole repo as book source and copies every file it walks into the
 # output. Mounting only the files the book is built from keeps the output to
-# documentation alone. book.toml puts the output in ../siot-docs, outside the
-# source tree so mdbook serve does not watch its own output; it is mounted from
-# ./book on the host. Arguments are appended to the docker command line, so
+# documentation alone; the client READMEs and their images are mounted one by
+# one so the client sources stay out. book.toml puts the output in
+# ../siot-docs, outside the source tree so mdbook serve does not watch its own
+# output; it is mounted from ./book on the host. Arguments are appended to the docker command line, so
 # they start with any further docker options and end with the mdbook command.
 siot_mdbook_run() {
 	siot_mdbook_image_ensure || return 1
@@ -514,6 +515,10 @@ siot_mdbook_run() {
 		-v "$(pwd)/SUMMARY.md":/book/SUMMARY.md:ro \
 		-v "$(pwd)/README.md":/book/README.md:ro \
 		-v "$(pwd)/docs":/book/docs:ro \
+		-v "$(pwd)/python/README.md":/book/python/README.md:ro \
+		-v "$(pwd)/python/images":/book/python/images:ro \
+		-v "$(pwd)/js/simpleiot-js/README.md":/book/js/simpleiot-js/README.md:ro \
+		-v "$(pwd)/js/simpleiot-js/images":/book/js/simpleiot-js/images:ro \
 		-v "$(pwd)/book":/siot-docs \
 		"$@"
 }

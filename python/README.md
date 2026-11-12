@@ -7,7 +7,7 @@ The client connects with the instance's shared token (`SIOT_AUTH_TOKEN`), which
 reaches the whole tree. It suits scripts and services running alongside an
 instance you operate.
 
-![a Python process on an edge device talks to the local SIOT over NATS; the local SIOT syncs with the cloud, and people use the web UI on either instance](https://raw.githubusercontent.com/simpleiot/simpleiot/master/python/images/deployment.svg)
+![a Python process on an edge device talks to the local SIOT over NATS; the local SIOT syncs with the cloud, and people use the web UI on either instance](https://docs.simpleiot.org/python/images/deployment.svg)
 
 A typical setup runs the Python process next to SIOT on an edge device. What it
 writes reaches the cloud through sync, and a person sees it in the web UI on
