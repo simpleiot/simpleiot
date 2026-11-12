@@ -1,6 +1,6 @@
 """Prints the node tree of a Simple IoT instance.
 
-SIOT_AUTH_TOKEN=... python examples/tree.py
+SIOT_AUTH_TOKEN=... python examples/tree/tree.py
 """
 
 import asyncio

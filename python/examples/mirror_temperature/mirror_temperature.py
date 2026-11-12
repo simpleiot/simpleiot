@@ -3,7 +3,7 @@
 This is the shape of a small control script: subscribe to one point, compute,
 and write another.
 
-    SIOT_AUTH_TOKEN=... python examples/mirror_temperature.py <celsius-node-id>
+    SIOT_AUTH_TOKEN=... python examples/mirror_temperature/mirror_temperature.py <node-id>
 """
 
 import asyncio

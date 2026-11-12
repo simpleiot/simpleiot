@@ -7,6 +7,12 @@ The client connects with the instance's shared token (`SIOT_AUTH_TOKEN`), which
 reaches the whole tree. It suits scripts and services running alongside an
 instance you operate.
 
+![a Python process on an edge device talks to the local SIOT over NATS; the local SIOT syncs with the cloud, and people use the web UI on either instance](images/deployment.svg)
+
+A typical setup runs the Python process next to SIOT on an edge device. What it
+writes reaches the cloud through sync, and a person sees it in the web UI on
+site or remotely.
+
 ## Install
 
 ```
@@ -89,17 +95,19 @@ A server error raises `SiotError`; a missing node raises `NotFoundError`.
 
 ## Examples
 
-The [examples](examples/) directory has short scripts:
+Each example is a short script in its own directory with a README:
 
-- `tree.py` prints the node tree
-- `send_points.py` creates a node and writes a value to it once a second
-- `watch.py` prints every point change below a node
-- `mirror_temperature.py` reacts to one point by writing another
+- [tree](examples/tree/) prints the node tree
+- [send_points](examples/send_points/) creates a node and writes a value to it
+  once a second
+- [watch](examples/watch/) prints every point change below a node
+- [mirror_temperature](examples/mirror_temperature/) reacts to one point by
+  writing another
 
 Run them against a local instance:
 
 ```
-SIOT_AUTH_TOKEN=... python examples/tree.py
+SIOT_AUTH_TOKEN=... python examples/tree/tree.py
 ```
 
 ## Development

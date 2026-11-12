@@ -1,7 +1,7 @@
 """Creates a variable node under the root and writes a value to it once a
 second, the way a script reading a sensor would.
 
-    SIOT_AUTH_TOKEN=... python examples/send_points.py
+    SIOT_AUTH_TOKEN=... python examples/send_points/send_points.py
 """
 
 import asyncio

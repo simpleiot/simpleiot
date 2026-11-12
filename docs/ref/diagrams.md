@@ -186,6 +186,12 @@ Used in [Use Cases](../user/use-cases.md), [Integration](integration.md), and
 
 Used in [MCU Devices](../user/mcu.md) and [Serial Devices](serial.md).
 
+### Python client deployment
+
+![a Python process on an edge device talks to the local SIOT over NATS; the local SIOT syncs with the cloud, and people use the web UI on either instance](../../python/images/deployment.svg)
+
+Used in the [Python client README](../../python/README.md).
+
 ### ADR-7: JetStream store
 
 ![node points in a stream](../adr/assets/node-stream.svg)

@@ -1,6 +1,6 @@
 """Prints every point change at or below a node, the root by default.
 
-SIOT_AUTH_TOKEN=... python examples/watch.py [node-id]
+SIOT_AUTH_TOKEN=... python examples/watch/watch.py [node-id]
 """
 
 import asyncio
