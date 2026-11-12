@@ -11,6 +11,11 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Fixed
+
+- **Negative whole numbers show correctly in the web UI.** A value such as -1
+  written by `siot import`, a rule, or a client no longer reads as 255.
+
 ## [0.34.0] - 2026-11-11
 
 ### Added

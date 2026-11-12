@@ -251,13 +251,15 @@ function decodeValue(dataType, data) {
 		return 0
 	}
 	if (dataType === DataType.Int) {
+		// an int is stored in the fewest bytes that hold it, so each width
+		// is read back as signed
 		switch (data.length) {
 			case 1:
-				return data[0]
+				return dv.getInt8(0)
 			case 2:
-				return dv.getUint16(0, true)
+				return dv.getInt16(0, true)
 			case 4:
-				return dv.getUint32(0, true)
+				return dv.getInt32(0, true)
 			case 8:
 				return Number(dv.getBigInt64(0, true))
 			default:
