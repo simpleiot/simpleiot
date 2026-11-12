@@ -19,6 +19,9 @@ For more details or to discuss releases, please visit the
   moves an element across the drawing as its value crosses the range, so a map
   can show where something is: nest a group following x inside one following y.
   See [custom drawings](docs/user/dashboards.md#custom-drawings).
+- **Custom drawings can change color at thresholds.** `data-siot-bands="25,50"`
+  marks an element with the band its value falls in, so a drawing's CSS can turn
+  a battery yellow below half and red below a quarter.
 - **Negative integer points show the right value in the web UI.** A small
   negative integer such as `-1` was read as a large positive number (`255`).
 

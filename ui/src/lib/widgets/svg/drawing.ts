@@ -127,7 +127,7 @@ function parse(text: string): Drawing {
 
 // the attributes that make an element do something with its binding; an
 // element with none follows the value through its state alone
-const effects = ["text", "translate", "rotate", "level", "toggle", "set"]
+const effects = ["text", "translate", "rotate", "level", "bands", "toggle", "set"]
 
 // declaredBindings lists the bindings the drawing names, in document
 // order, each with the effects of the elements that follow it
@@ -177,6 +177,17 @@ function range(el: Element): [number, number] {
 // fraction places a value in a range, clamped
 function fraction(v: number, [min, max]: [number, number]): number {
 	return Math.max(0, Math.min(1, (v - min) / (max - min)))
+}
+
+// bandOf counts the thresholds in "a,b,..." that the value is at or above,
+// so "25,50" puts 10 in band 0, 30 in band 1, and 60 in band 2. Thresholds
+// that are not numbers are ignored, and the order they are written in does
+// not matter.
+export function bandOf(value: number, thresholds: string): number {
+	return thresholds
+		.split(",")
+		.map((s) => parseFloat(s))
+		.filter((t) => Number.isFinite(t) && value >= t).length
 }
 
 export type DrawState = "on" | "off" | "stale" | "dead"
@@ -240,6 +251,17 @@ export function applyBindings(
 		}
 		const live = b?.state === "live"
 		const v = live ? b.value : NaN
+		// the band says which side of each threshold the value is on, for the
+		// drawing's CSS to color by; with no live value there is no band, and
+		// the state says why
+		const bands = el.getAttribute("data-siot-bands")
+		if (bands !== null) {
+			if (live) {
+				el.setAttribute("data-siot-band", String(bandOf(v, bands)))
+			} else {
+				el.removeAttribute("data-siot-band")
+			}
+		}
 		const f = live ? fraction(v, range(el)) : 0
 		// a translation moves the element from where it is drawn by up to
 		// dx,dy drawing units across the range. It comes first, so a

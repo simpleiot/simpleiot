@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, test } from "vitest"
 import type { Bound } from "../registry.ts"
-import { applyBindings, clickTarget, parseDrawing } from "./drawing.ts"
+import { applyBindings, bandOf, clickTarget, parseDrawing } from "./drawing.ts"
 
 const lamp = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160">
   <style>[data-siot-state="on"] { fill: #0a0; }</style>
@@ -9,7 +9,7 @@ const lamp = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160">
   <circle class="glow" cx="50" cy="55" r="46" data-siot-bind="lit" />
   <text x="50" y="150" data-siot-bind="temp" data-siot-text data-siot-decimals="1" data-siot-unit="°C">?</text>
   <rect class="needle" x="48" y="10" width="4" height="40" data-siot-bind="pressure" data-siot-rotate="-90,90" data-siot-range="0,10" data-siot-origin="50% 100%" />
-  <rect class="liquid" x="10" y="100" width="80" height="50" data-siot-bind="level" data-siot-level />
+  <rect class="liquid" x="10" y="100" width="80" height="50" data-siot-bind="level" data-siot-level data-siot-bands="25,50" />
   <g class="east" data-siot-bind="x" data-siot-translate="600,0" data-siot-range="0,60"><g class="north" data-siot-bind="y" data-siot-translate="0,-300"><path class="rover" d="M0 0 L10 5 L0 10 z" data-siot-bind="heading" data-siot-rotate="0,360" data-siot-range="0,360" data-siot-translate="5,0" /></g></g>
   <g data-siot-bind="mode"><rect x="0" y="0" width="10" height="10" data-siot-set="1" /><rect x="20" y="0" width="10" height="10" data-siot-set="stop" /></g>
   <circle data-siot-port="inlet,left" cx="0" cy="80" r="2" />
@@ -36,7 +36,7 @@ describe("parseDrawing", () => {
 			{ name: "lit", use: "toggle" },
 			{ name: "temp", use: "text" },
 			{ name: "pressure", use: "rotate" },
-			{ name: "level", use: "level" },
+			{ name: "level", use: "level, bands" },
 			{ name: "x", use: "translate" },
 			{ name: "y", use: "translate" },
 			{ name: "heading", use: "translate, rotate" },
@@ -158,6 +158,21 @@ describe("applyBindings", () => {
 		expect(r?.style.transformBox).toBe("fill-box")
 	})
 
+	test("sets the band from the thresholds the value is at or above, and none without a value", () => {
+		const host = mount(parseDrawing(lamp).svg)
+		const l = host.querySelector(".liquid")
+		applyBindings(host, { level: live(10) }, writes)
+		expect(l?.getAttribute("data-siot-band")).toBe("0")
+		applyBindings(host, { level: live(25) }, writes)
+		expect(l?.getAttribute("data-siot-band")).toBe("1")
+		applyBindings(host, { level: live(80) }, writes)
+		expect(l?.getAttribute("data-siot-band")).toBe("2")
+		applyBindings(host, { level: stale }, writes)
+		expect(l?.hasAttribute("data-siot-band")).toBe(false)
+		// an element without thresholds gets no band
+		expect(host.querySelector(".glass")?.hasAttribute("data-siot-band")).toBe(false)
+	})
+
 	test("marks only writable click targets with a pointer", () => {
 		const host = mount(parseDrawing(lamp).svg)
 		applyBindings(host, { lit: live(1), mode: live(0) }, new Set(["lit"]))
@@ -201,5 +216,15 @@ describe("clickTarget", () => {
 		expect(clickTarget(host, host.querySelector("text"), {}, writes)).toBeUndefined()
 		expect(clickTarget(host, glass, { lit: live(1) }, new Set())).toBeUndefined()
 		expect(clickTarget(host, null, {}, writes)).toBeUndefined()
+	})
+})
+
+describe("bandOf", () => {
+	test("counts the thresholds at or below the value, in any order, ignoring junk", () => {
+		expect(bandOf(-5, "0,10")).toBe(0)
+		expect(bandOf(0, "0,10")).toBe(1)
+		expect(bandOf(10, "10,0")).toBe(2)
+		expect(bandOf(5, " 0 , x, 10")).toBe(1)
+		expect(bandOf(5, "")).toBe(0)
 	})
 })
