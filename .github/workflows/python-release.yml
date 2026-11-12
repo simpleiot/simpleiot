@@ -1,0 +1,51 @@
+name: Python release
+
+# Publishes the simpleiot package in python/ to PyPI when a py-v<version>
+# tag is pushed. PyPI trusts this workflow through trusted publishing, so no
+# token is stored: configure the project on PyPI with this repository, the
+# workflow file python-release.yml, and the environment pypi.
+
+on:
+  push:
+    tags:
+      - "py-v*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    defaults:
+      run:
+        working-directory: python
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Install uv
+        run: pipx install uv
+
+      - name: Check the tag matches the package version
+        run: |
+          version=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' src/simpleiot/__init__.py)
+          test "py-v$version" = "$GITHUB_REF_NAME" || {
+            echo "tag $GITHUB_REF_NAME does not match version $version"
+            exit 1
+          }
+
+      - name: Test
+        run: |
+          uv run ruff check .
+          uv run pytest
+
+      - name: Build
+        run: uv build
+
+      - name: Publish
+        run: uv publish --trusted-publishing always

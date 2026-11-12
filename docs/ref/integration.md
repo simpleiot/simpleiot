@@ -19,8 +19,8 @@ language that has a [NATS client](https://nats.io/download/). Additionally, the
 is fairly simple so could be implemented from scratch if needed. If your most of
 your system is written in C++, but you needed a distributed config/state store,
 then run SIOT along side your existing processes and add a NATS connection to
-SIOT. If you want easy scripting in your system, consider writing a Python
-application that can read/modify the SIOT store over NATS.
+SIOT. If you want easy scripting in your system, the [Python client](python.md)
+reads and modifies the SIOT store over NATS.
 
 ## SIOT Data Structures
 

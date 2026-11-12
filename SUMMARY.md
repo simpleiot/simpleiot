@@ -54,6 +54,7 @@
 - [Reliability](docs/ref/reliability.md)
   - [High Availability](docs/ref/high-availability.md)
 - [API](docs/ref/api.md)
+  - [Python Client](docs/ref/python.md)
 - [Frontend](docs/ref/frontend.md)
 - [Rules](docs/ref/rules.md)
 - [Notifications](docs/ref/notifications.md)

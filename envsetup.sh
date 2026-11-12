@@ -188,6 +188,22 @@ siot_test_frontend_js() {
 	(cd js/simpleiot-js && npm test || return 1) || return 1
 }
 
+# Test the Python client (python/): lint, the codec tests against the Go
+# fixtures, and the integration tests against a scratch siot built here.
+# Needs uv.
+siot_test_python() {
+	_py_dir=$(mktemp -d) || return 1
+	go build -o "$_py_dir/siot" ./cmd/siot || {
+		rm -rf "$_py_dir"
+		return 1
+	}
+	(cd python && uv run ruff check . && uv run ruff format --check . &&
+		SIOT_BIN="$_py_dir/siot" uv run pytest)
+	_py_rc=$?
+	rm -rf "$_py_dir"
+	return $_py_rc
+}
+
 # The browser smoke test (ui/e2e) is opt-in: it is not part of siot_test or
 # CI. It builds siot with the UI, starts it with a fresh data directory on
 # scratch ports (SIOT_E2E_NATS_PORT, 15222 by default, and the HTTP port one
