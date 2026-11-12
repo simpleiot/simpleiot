@@ -189,14 +189,6 @@ func (st *Store) Run() error {
 		return fmt.Errorf("subscribe user namespace error: %w", err)
 	}
 
-	if st.subscriptions["admin.storeVerify"], err = nc.Subscribe("admin.storeVerify", st.handleStoreVerify); err != nil {
-		return fmt.Errorf("subscribe dbVerify error: %w", err)
-	}
-
-	if st.subscriptions["admin.storeMaint"], err = nc.Subscribe("admin.storeMaint", st.handleStoreMaint); err != nil {
-		return fmt.Errorf("subscribe dbMaint error: %w", err)
-	}
-
 	// current values a sync pump sends ahead of its history during
 	// catch-up (see handleSnapshot)
 	if st.subscriptions["snapshot"], err = nc.Subscribe(client.SnapshotPrefix+".>", st.db.handleSnapshot); err != nil {
@@ -915,22 +907,6 @@ func stampOrigin(payload []byte, userID string) ([]byte, error) {
 		}
 	}
 	return pts.Encode(), nil
-}
-
-func (st *Store) handleStoreVerify(msg *nats.Msg) {
-	// Hash verification is no longer needed with JetStream store
-	err := st.nc.Publish(msg.Reply, []byte(""))
-	if err != nil {
-		log.Println("NATS: Error publishing response to store verify:", err)
-	}
-}
-
-func (st *Store) handleStoreMaint(msg *nats.Msg) {
-	// Hash maintenance is no longer needed with JetStream store
-	err := st.nc.Publish(msg.Reply, []byte(""))
-	if err != nil {
-		log.Println("NATS: Error publishing response to store maint:", err)
-	}
 }
 
 // used for messages that want an ACK

@@ -153,11 +153,6 @@ To see how these subjects compare with typical NATS usage, see
 - Admin
   - `admin.error` (not implemented yet)
     - Any errors that occur are sent to this subject
-  - `admin.storeVerify`
-    - Used to initiate a database verification process. This currently verifies
-      hash values are correct and responds with an error string.
-  - `admin.storeMaint`
-    - Corrects errors in the store (current incorrect hash values)
 
 ## HTTP
 

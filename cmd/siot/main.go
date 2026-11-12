@@ -51,7 +51,6 @@ func main() {
 		fmt.Println("Available commands:")
 		fmt.Println("  - serve (start the SIOT server)")
 		fmt.Println("  - log (log SIOT messages)")
-		fmt.Println("  - store (store maint, requires server to be running)")
 		fmt.Println("  - install (install SIOT and register service)")
 		fmt.Println("  - import (import nodes from YAML file)")
 		fmt.Println("  - export (export nodes to YAML file)")
@@ -93,8 +92,6 @@ func main() {
 		}
 	case "log":
 		runLog(args[1:])
-	case "store":
-		runStore(args[1:])
 	case "install":
 		runInstall(args[1:])
 	case "import":
@@ -112,7 +109,7 @@ func main() {
 	case "update":
 		runUpdate(args[1:], version)
 	default:
-		log.Fatal("Unknown command; options: serve, log, store")
+		log.Fatal("Unknown command; run siot -help for the list")
 	}
 }
 
@@ -209,84 +206,6 @@ func runLog(args []string) {
 	client.Log(natsServer, authToken)
 
 	select {}
-}
-
-func runStore(args []string) {
-	flags := flag.NewFlagSet("store", flag.ExitOnError)
-	flagNatsServer := flags.String("natsServer", defaultNatsServer, "NATS Server")
-	flagAuthToken := flags.String("token", "", "Auth token")
-	flagCheck := flags.Bool("check", false, "Check store")
-	flagFix := flags.Bool("fix", false, "Fix store")
-
-	if err := flags.Parse(args); err != nil {
-		log.Fatal("error: ", err)
-	}
-
-	// only consider env if command line option is something different
-	// that default
-	natsServer := *flagNatsServer
-	if natsServer == defaultNatsServer {
-		natsServerE := os.Getenv("SIOT_NATS_SERVER")
-		if natsServerE != "" {
-			natsServer = natsServerE
-		}
-	}
-
-	authToken := *flagAuthToken
-	if authToken == "" {
-		authTokenE := os.Getenv("SIOT_AUTH_TOKEN")
-		if authTokenE != "" {
-			authToken = authTokenE
-		}
-	}
-
-	opts := client.EdgeOptions{
-		URI:       natsServer,
-		AuthToken: authToken,
-		NoEcho:    true,
-		Disconnected: func() {
-			log.Println("NATS Disconnected")
-		},
-		Reconnected: func() {
-			log.Println("NATS Reconnected")
-		},
-		Closed: func() {
-			log.Println("NATS Closed")
-			os.Exit(0)
-		},
-		Connected: func() {
-			log.Println("NATS Connected")
-		},
-	}
-
-	nc, err := client.EdgeConnect(opts)
-
-	if err != nil {
-		log.Println("Error connecting to NATS server:", err)
-		os.Exit(-1)
-	}
-
-	switch {
-	case *flagCheck:
-		err := client.AdminStoreVerify(nc)
-		if err != nil {
-			log.Println("DB verify failed:", err)
-		} else {
-			log.Println("DB verified :-)")
-		}
-
-	case *flagFix:
-		err := client.AdminStoreMaint(nc)
-		if err != nil {
-			log.Println("DB maint failed:", err)
-		} else {
-			log.Println("DB maint success :-)")
-		}
-
-	default:
-		fmt.Println("Error, no operation given.")
-		flags.Usage()
-	}
 }
 
 func runCommand(cmd string) (string, error) {

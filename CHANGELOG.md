@@ -20,6 +20,13 @@ For more details or to discuss releases, please visit the
   default password is refused, so change the password before setting a token.
   See [installation](docs/user/installation.md).
 
+### Removed
+
+- **The `siot store` command is removed.** Its `-check` and `-fix` options
+  verified and repaired the hash tree of the former store, and have done nothing
+  since the move to JetStream. The `admin.storeVerify` and `admin.storeMaint`
+  NATS subjects are removed with it.
+
 ## [0.33.6] - 2026-11-05
 
 ### Added
