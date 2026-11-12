@@ -96,6 +96,8 @@ siot_test_ui
 - `store/` - JetStream storage layer (boundary-origin streams, see ADR-7)
 - `ui/` - Svelte web UI, served at `/`
 - `js/simpleiot-js/` - the browser client the Svelte UI bundles
+- `python/` - the `simpleiot` Python client, published to PyPI (see
+  [Python client](python/README.md))
 - `modbus/` - Modbus protocol implementation
 - `network/` - Network management utilities
 

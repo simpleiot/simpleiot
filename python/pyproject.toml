@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "simpleiot"
+dynamic = ["version"]
+description = "Python client for Simple IoT, over NATS"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+dependencies = ["nats-py>=2.6"]
+keywords = ["iot", "nats", "simpleiot"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Framework :: AsyncIO",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Topic :: System :: Networking",
+]
+
+[project.urls]
+Homepage = "https://simpleiot.org"
+Documentation = "https://docs.simpleiot.org/python/"
+Repository = "https://github.com/simpleiot/simpleiot"
+Changelog = "https://github.com/simpleiot/simpleiot/blob/master/python/CHANGELOG.md"
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6"]
+
+[tool.hatch.version]
+path = "src/simpleiot/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "examples", "tests", "README.md", "CHANGELOG.md", "LICENSE"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

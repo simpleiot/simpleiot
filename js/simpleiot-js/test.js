@@ -28,6 +28,30 @@ test("round-trips points", async () => {
 	assert.deepEqual(decodePoints(encodePoints(points)), points)
 })
 
+test("round-trips signed ints at every width", () => {
+	const values = [
+		0,
+		1,
+		-1,
+		127,
+		-128,
+		128,
+		-129,
+		32767,
+		-32768,
+		40000,
+		-40000,
+		2 ** 31,
+		-(2 ** 31) - 1,
+	]
+	for (const value of values) {
+		const [p] = decodePoints(
+			encodePoints([{ type: "count", key: "0", dataType: 2, value }])
+		)
+		assert.equal(p.value, value)
+	}
+})
+
 test("reads an empty key as 0, the way the store keeps it", () => {
 	const [p] = decodePoints(encodePoints([{ type: "tombstone", key: "", value: 1 }]))
 	assert.equal(p.key, "0")

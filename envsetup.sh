@@ -188,6 +188,22 @@ siot_test_frontend_js() {
 	(cd js/simpleiot-js && npm test || return 1) || return 1
 }
 
+# Test the Python client (python/): lint, the codec tests against the Go
+# fixtures, and the integration tests against a scratch siot built here.
+# Needs uv.
+siot_test_python() {
+	_py_dir=$(mktemp -d) || return 1
+	go build -o "$_py_dir/siot" ./cmd/siot || {
+		rm -rf "$_py_dir"
+		return 1
+	}
+	(cd python && uv run ruff check . && uv run ruff format --check . &&
+		SIOT_BIN="$_py_dir/siot" uv run pytest)
+	_py_rc=$?
+	rm -rf "$_py_dir"
+	return $_py_rc
+}
+
 # The browser smoke test (ui/e2e) is opt-in: it is not part of siot_test or
 # CI. It builds siot with the UI, starts it with a fresh data directory on
 # scratch ports (SIOT_E2E_NATS_PORT, 15222 by default, and the HTTP port one
@@ -486,9 +502,10 @@ siot_mdbook_image_ensure() {
 # run mdbook in the documentation image. book.toml sets src = ".", so mdbook
 # treats the whole repo as book source and copies every file it walks into the
 # output. Mounting only the files the book is built from keeps the output to
-# documentation alone. book.toml puts the output in ../siot-docs, outside the
-# source tree so mdbook serve does not watch its own output; it is mounted from
-# ./book on the host. Arguments are appended to the docker command line, so
+# documentation alone; the client READMEs and their images are mounted one by
+# one so the client sources stay out. book.toml puts the output in
+# ../siot-docs, outside the source tree so mdbook serve does not watch its own
+# output; it is mounted from ./book on the host. Arguments are appended to the docker command line, so
 # they start with any further docker options and end with the mdbook command.
 siot_mdbook_run() {
 	siot_mdbook_image_ensure || return 1
@@ -498,6 +515,10 @@ siot_mdbook_run() {
 		-v "$(pwd)/SUMMARY.md":/book/SUMMARY.md:ro \
 		-v "$(pwd)/README.md":/book/README.md:ro \
 		-v "$(pwd)/docs":/book/docs:ro \
+		-v "$(pwd)/python/README.md":/book/python/README.md:ro \
+		-v "$(pwd)/python/images":/book/python/images:ro \
+		-v "$(pwd)/js/simpleiot-js/README.md":/book/js/simpleiot-js/README.md:ro \
+		-v "$(pwd)/js/simpleiot-js/images":/book/js/simpleiot-js/images:ro \
 		-v "$(pwd)/book":/siot-docs \
 		"$@"
 }

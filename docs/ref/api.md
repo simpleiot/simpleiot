@@ -9,6 +9,13 @@ to keep the two APIs a similar as possible so it is easy to switch from one to
 the other. The Http API currently accepts JSON, and the NATS API uses a binary
 encoding for points and nodes.
 
+The [Python client](../../python/) and the
+[JavaScript client](../../js/simpleiot-js/) wrap the NATS API.
+
+To animate your own SVG drawings from point values, see
+[Custom drawings](../user/dashboards.md#custom-drawings). Drawings use
+`data-siot-*` attributes in the SVG markup, not this API.
+
 **NOTE, the Simple IoT API is not final and will continue to be refined in the
 coming months.**
 

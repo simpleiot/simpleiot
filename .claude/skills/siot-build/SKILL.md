@@ -340,8 +340,8 @@ Other points worth knowing, all in `docs/user/dashboards.md`:
   key under the second parent naming the dashboard by description.
 - **Drawings**: an `svg` widget binds `svg` to a `file` node whose `data` is
   the SVG, written inline in the file as a block scalar. The drawing declares
-  its bindings with `data-siot-bind`; `data-siot-text`, `rotate`, `level`,
-  `toggle`, `set`, and `port` do the rest, and the drawing's own CSS styles
+  its bindings with `data-siot-bind`; `data-siot-text`, `translate`, `rotate`,
+  `level`, `bands`, `toggle`, `set`, and `port` do the rest, and the drawing's own CSS styles
   `data-siot-state`, which is `on` for any value that is not zero, so a numeric
   binding can show an element while a signal runs. A CSS animation on
   `[data-siot-state="on"]` is how a wheel or an impeller spins.

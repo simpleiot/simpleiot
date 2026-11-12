@@ -106,50 +106,68 @@ it is sent.
 
 ## Custom drawings
 
-The **svg** component draws an SVG you upload, with elements inside it
-following live points: a lamp, a dial, a vessel, a panel face, or a whole site
-plan from Inkscape or draw.io.
+The **svg** component draws an SVG you upload, with elements inside it following
+live points: a lamp, a dial, a vessel, a panel face, or a whole site plan from
+Inkscape or draw.io.
 
-1. In **Nodes**, add a **File** node under the group and upload the SVG with
-   the **Binary** option off. **Edit contents** opens it in a code editor, so
-   the attributes below can be added there, or a small drawing written in
-   place.
-2. On the dashboard, add a widget, pick the **svg** component, and pick the
-   file node as the **svg node**. The editor then lists every binding the
-   drawing declares, named as the drawing names it and with what the drawing
-   does with it, and each one is bound to a node like any other.
+1. In **Nodes**, add a **File** node under the group and upload the SVG with the
+   **Binary** option off. **Edit contents** opens it in a code editor, so the
+   attributes below can be added there, or a small drawing written in place.
+2. On the dashboard, add a widget, pick the **svg** component, and pick the file
+   node as the **svg node**. The editor then lists every binding the drawing
+   declares, named as the drawing names it and with what the drawing does with
+   it, and each one is bound to a node like any other.
 
 A drawing declares what follows a point with `data-siot-*` attributes on its
 elements. Add them in a text editor or in the drawing tool's XML editor; nothing
 else in the file changes.
 
-| Attribute                   | On an element                                                         |
-| --------------------------- | --------------------------------------------------------------------- |
-| `data-siot-bind="name"`     | names the binding the element follows                                 |
-| `data-siot-text`            | replaces the element's text with the value                            |
-| `data-siot-decimals="1"`    | decimals for the text; `data-siot-unit` is appended as given          |
-| `data-siot-range="0,100"`   | the value range `rotate` and `level` map from; 0 to 100 when absent   |
-| `data-siot-rotate="-90,90"` | turns from the first angle at the range's low end to the second at its high end |
-| `data-siot-level`           | scales the element's height by the value over the range, from the bottom |
-| `data-siot-origin="50% 100%"` | where the element turns or scales about; the center, or the bottom for a level, when absent |
-| `data-siot-port="name,dir"` | makes the element's center a port for links; `dir` is `left`, `right`, `up`, or `down` |
-| `data-siot-toggle`          | a click sends the opposite of the bound value                         |
-| `data-siot-set="1"`         | a click sends that value, as text when it is not a number             |
+| Attribute                     | On an element                                                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `data-siot-bind="name"`       | names the binding the element follows                                                                                     |
+| `data-siot-text`              | replaces the element's text with the value                                                                                |
+| `data-siot-decimals="1"`      | decimals for the text; `data-siot-unit` is appended as given                                                              |
+| `data-siot-range="0,100"`     | the value range `rotate` and `level` map from; 0 to 100 when absent                                                       |
+| `data-siot-rotate="-90,90"`   | turns from the first angle at the range's low end to the second at its high end                                           |
+| `data-siot-level`             | scales the element's height by the value over the range, from the bottom                                                  |
+| `data-siot-translate="600,0"` | moves the element from where it is drawn by up to that many drawing units, x then y, across the range                     |
+| `data-siot-bands="25,50"`     | sets `data-siot-band` to how many of the thresholds the value is at or above (`0`, `1`, or `2` here), for CSS to color by |
+| `data-siot-origin="50% 100%"` | where the element turns or scales about; the center, or the bottom for a level, when absent                               |
+| `data-siot-port="name,dir"`   | makes the element's center a port for links; `dir` is `left`, `right`, `up`, or `down`                                    |
+| `data-siot-toggle`            | a click sends the opposite of the bound value                                                                             |
+| `data-siot-set="1"`           | a click sends that value, as text when it is not a number                                                                 |
 
 Every bound element also gets a `data-siot-state` attribute of `on`, `off`,
-`stale`, or `dead`: `on` when the value is not zero, `stale` while the point
-has not arrived, and `dead` when the node cannot be found. The drawing's own
+`stale`, or `dead`: `on` when the value is not zero, `stale` while the point has
+not arrived, and `dead` when the node cannot be found. The drawing's own
 `<style>` does the rest, so a lamp lights with
 `.glass[data-siot-state="on"] { fill: #ffd54a }` and a dead element can hide
-itself. An element without a `data-siot-bind` follows the nearest ancestor's,
-so a group bound once can hold a start and a stop button with `data-siot-set`
-of `1` and `0`. A text element shows the point's text when it has one and the
-number otherwise; attribute values are trimmed, so draw a space before a unit
-as a separate `tspan` rather than in `data-siot-unit`.
+itself. Thresholds work the same way: a battery bar with
+`data-siot-bands="25,50"` turns red below 25 with
+`.charge[data-siot-band="0"] { fill: #dc2626 }`, and has no band while its value
+is stale or missing. An element without a `data-siot-bind` follows the nearest
+ancestor's, so a group bound once can hold a start and a stop button with
+`data-siot-set` of `1` and `0`. A text element shows the point's text when it
+has one and the number otherwise; attribute values are trimmed, so draw a space
+before a unit as a separate `tspan` rather than in `data-siot-unit`.
+
+An element follows one binding, so a marker that moves both ways on a map is two
+nested groups, one for each axis. Here the rover is drawn at the map's origin,
+moves 600 units right as `x` goes from 0 to 60 m and 300 units up as `y` does,
+and turns with its heading:
+
+```xml
+<g data-siot-bind="x" data-siot-translate="600,0" data-siot-range="0,60">
+  <g data-siot-bind="y" data-siot-translate="0,-300" data-siot-range="0,60">
+    <path d="M-8,-6 L10,0 L-8,6 z" data-siot-bind="heading"
+      data-siot-rotate="0,360" data-siot-range="0,360" />
+  </g>
+</g>
+```
 
 A click on an element with `toggle` or `set` sends a value when the binding it
-follows accepts writes, as the [controls](#controls) above do, and `confirm`
-and `control` apply. Ports declared in the drawing are where links attach on a
+follows accepts writes, as the [controls](#controls) above do, and `confirm` and
+`control` apply. Ports declared in the drawing are where links attach on a
 canvas, computed from the element's `cx`/`cy` or `x`/`y`/`width`/`height`
 attributes; a `port.*` point on the widget overrides one of the same name.
 

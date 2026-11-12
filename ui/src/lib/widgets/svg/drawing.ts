@@ -127,7 +127,7 @@ function parse(text: string): Drawing {
 
 // the attributes that make an element do something with its binding; an
 // element with none follows the value through its state alone
-const effects = ["text", "rotate", "level", "toggle", "set"]
+const effects = ["text", "translate", "rotate", "level", "bands", "toggle", "set"]
 
 // declaredBindings lists the bindings the drawing names, in document
 // order, each with the effects of the elements that follow it
@@ -177,6 +177,17 @@ function range(el: Element): [number, number] {
 // fraction places a value in a range, clamped
 function fraction(v: number, [min, max]: [number, number]): number {
 	return Math.max(0, Math.min(1, (v - min) / (max - min)))
+}
+
+// bandOf counts the thresholds in "a,b,..." that the value is at or above,
+// so "25,50" puts 10 in band 0, 30 in band 1, and 60 in band 2. Thresholds
+// that are not numbers are ignored, and the order they are written in does
+// not matter.
+export function bandOf(value: number, thresholds: string): number {
+	return thresholds
+		.split(",")
+		.map((s) => parseFloat(s))
+		.filter((t) => Number.isFinite(t) && value >= t).length
 }
 
 export type DrawState = "on" | "off" | "stale" | "dead"
@@ -240,20 +251,42 @@ export function applyBindings(
 		}
 		const live = b?.state === "live"
 		const v = live ? b.value : NaN
+		// the band says which side of each threshold the value is on, for the
+		// drawing's CSS to color by; with no live value there is no band, and
+		// the state says why
+		const bands = el.getAttribute("data-siot-bands")
+		if (bands !== null) {
+			if (live) {
+				el.setAttribute("data-siot-band", String(bandOf(v, bands)))
+			} else {
+				el.removeAttribute("data-siot-band")
+			}
+		}
 		const f = live ? fraction(v, range(el)) : 0
+		// a translation moves the element from where it is drawn by up to
+		// dx,dy drawing units across the range. It comes first, so a
+		// rotation or level on the same element happens about the element's
+		// own box wherever it has moved to.
+		const parts: string[] = []
+		if (el.hasAttribute("data-siot-translate")) {
+			const [dx, dy] = pair(el, "data-siot-translate") ?? [0, 0]
+			parts.push(`translate(${dx * f}px, ${dy * f}px)`)
+		}
 		// a transform turns or scales the element about its own box: its
 		// center for a rotation and its bottom for a level unless the
 		// element names another origin, as a needle pivoting at one end does
 		const origin = el.getAttribute("data-siot-origin")
 		if (el.hasAttribute("data-siot-rotate")) {
 			const [a, z] = pair(el, "data-siot-rotate") ?? [0, 360]
-			el.style.transformBox = "fill-box"
 			el.style.transformOrigin = origin ?? "center"
-			el.style.transform = `rotate(${a + (z - a) * f}deg)`
+			parts.push(`rotate(${a + (z - a) * f}deg)`)
 		} else if (el.hasAttribute("data-siot-level")) {
-			el.style.transformBox = "fill-box"
 			el.style.transformOrigin = origin ?? "bottom"
-			el.style.transform = `scaleY(${f})`
+			parts.push(`scaleY(${f})`)
+		}
+		if (parts.length > 0) {
+			el.style.transformBox = "fill-box"
+			el.style.transform = parts.join(" ")
 		}
 	}
 }

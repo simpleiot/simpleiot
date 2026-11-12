@@ -11,6 +11,22 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-11-12
+
+- **A Python client, `simpleiot`, for scripts and services.** It reads and
+  writes nodes and points and subscribes to changes over NATS, using the shared
+  token. See the [Python client](python/README.md) page and the examples in
+  `python/examples`.
+- **Custom drawings can move an element with a value.** `data-siot-translate`
+  moves an element across the drawing as its value crosses the range, so a map
+  can show where something is: nest a group following x inside one following y.
+  See [custom drawings](docs/user/dashboards.md#custom-drawings).
+- **Custom drawings can change color at thresholds.** `data-siot-bands="25,50"`
+  marks an element with the band its value falls in, so a drawing's CSS can turn
+  a battery yellow below half and red below a quarter.
+- **Negative integer points show the right value in the web UI.** A small
+  negative integer such as `-1` was read as a large positive number (`255`).
+
 ## [0.34.1] - 2026-11-12
 
 ### Changed
