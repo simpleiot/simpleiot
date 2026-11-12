@@ -74,10 +74,10 @@ What is missing is a credential a browser can present to NATS that grants only
 what that user may see, and a wire protocol the store can scope to that user.
 Today the WebSocket listener accepts the shared `SIOT_AUTH_TOKEN`, which grants
 everything, and `auth.getNatsURI` hands that token to any connected client. The
-[security cleanup plan](2026-08-24-security-cleanup.md) removes that handout
-(item 5); this plan supplies the replacement. It is step 4 of the security
-sequencing referenced in that plan, and it shares the in-process authorizer with
-the [per-device credentials plan](2026-08-20-per-device-credentials.md).
+security cleanup plan (kept outside this repository) removes that handout (item
+5); this plan supplies the replacement. It is step 4 of the security sequencing
+referenced in that plan, and it shares the in-process authorizer with the
+[per-device credentials plan](2026-08-20-per-device-credentials.md).
 
 ## Goals
 

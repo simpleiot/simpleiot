@@ -296,8 +296,8 @@ func TestAuthSpike(t *testing.T) {
 	if _, err := dev.Request("nodes.all.Y", nil, 300*time.Millisecond); err == nil {
 		t.Fatal("expected node request on another device to fail")
 	}
-	if _, err := dev.Request("admin.storeMaint", nil, 300*time.Millisecond); err == nil {
-		t.Fatal("expected admin request to fail")
+	if _, err := dev.Request("auth.deviceSign", nil, 300*time.Millisecond); err == nil {
+		t.Fatal("expected device sign request to fail")
 	}
 	for _, subj := range []string{"snap.Y.Y.n1.p.value.0", "snap.X.R.n1.p.value.0"} {
 		if err := dev.Publish(subj, []byte("x")); err != nil {

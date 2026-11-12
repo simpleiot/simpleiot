@@ -25,6 +25,13 @@ deployment model.
 The `siot` binary embeds the NATS server, so there is no need to deploy and run
 a separate NATS server.
 
+The store persists the points published on the subjects below in
+[JetStream](https://docs.nats.io/nats-concepts/jetstream) streams, one per
+boundary and origin. The streams and their `inst.<boundary>.<origin>.…` storage
+subjects are internal and may change; clients write on `p` and `ep` subjects and
+read with `nodes` requests. See the [store reference](./store.md) for the stream
+layout, retention, and history.
+
 Point data uses a compact binary encoding (see `data/point.go`), and a node
 reply is a frame built from it (see `EncodeNodes` in `data/node.go`): a version
 byte, an error string, a node count, then each node as id, type, parent, points,
@@ -153,11 +160,6 @@ To see how these subjects compare with typical NATS usage, see
 - Admin
   - `admin.error` (not implemented yet)
     - Any errors that occur are sent to this subject
-  - `admin.storeVerify`
-    - Used to initiate a database verification process. This currently verifies
-      hash values are correct and responds with an error string.
-  - `admin.storeMaint`
-    - Corrects errors in the store (current incorrect hash values)
 
 ## HTTP
 

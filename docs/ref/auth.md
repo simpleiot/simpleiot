@@ -25,11 +25,11 @@ summary:
 | Roles on memberships (`viewer`, `operator`, `technician`, `admin`) | Planned                                                                                                                                                                 |
 | Point levels from the client schema                                | Planned                                                                                                                                                                 |
 | Hidden node types for roles below `admin`                          | Planned                                                                                                                                                                 |
-| Root-only node types                                               | Planned; [security follow-ups](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-09-19-security-followups.md) item 1                                        |
+| Root-only node types                                               | Planned                                                                                                                                                                 |
 | Role-aware UI                                                      | Planned                                                                                                                                                                 |
 
-Until the planned parts land, every member of a group can read and write
-everything under it; see
+Group membership is the unit of access today: every member of a group can read
+and write everything under it; see
 [What an account can do](security.md#what-an-account-can-do).
 
 ## Who connects

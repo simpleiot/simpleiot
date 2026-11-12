@@ -12,11 +12,14 @@ import (
 // Auth handles user authentication requests.
 type Auth struct {
 	nc *nats.Conn
+	// authTokenSet says whether the instance has an auth token; the reply
+	// tells the UI when it has none.
+	authTokenSet bool
 }
 
-// NewAuthHandler returns a new authentication handler using the given key.
-func NewAuthHandler(nc *nats.Conn) Auth {
-	return Auth{nc: nc}
+// NewAuthHandler returns a new authentication handler.
+func NewAuthHandler(nc *nats.Conn, authTokenSet bool) Auth {
+	return Auth{nc: nc, authTokenSet: authTokenSet}
 }
 
 // ServeHTTP serves requests to authenticate.
@@ -30,6 +33,13 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	password := req.FormValue("password")
 
 	nodes, err := client.UserCheck(auth.nc, email, password)
+	if err != nil && err.Error() == data.ErrDefaultPassword.Error() {
+		// the reason is safe to give: the password was right, and it is
+		// refused all the same
+		log.Printf("HTTP auth: default password refused for %q from %v", email, req.RemoteAddr)
+		http.Error(res, err.Error(), http.StatusForbidden)
+		return
+	}
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
@@ -55,6 +65,9 @@ func (auth Auth) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	err = encode(res, data.Auth{
 		Token: token,
 		Email: email,
+		DefaultPassword: email == data.DefaultUserEmail &&
+			password == data.DefaultUserPass,
+		NoAuthToken: !auth.authTokenSet,
 	})
 
 	if err != nil {

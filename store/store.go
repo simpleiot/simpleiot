@@ -131,6 +131,13 @@ func (st *Store) IsUnder(id, anchor string) bool {
 	return st.db.isUnder(id, anchor)
 }
 
+// DefaultPasswordSet reports whether the account a new instance starts with
+// still has its default password.
+func (st *Store) DefaultPasswordSet() bool {
+	nodes, err := st.db.userCheck(data.DefaultUserEmail, data.DefaultUserPass)
+	return err == nil && len(nodes) > 0
+}
+
 // AuthAllowed reports whether a sign-in attempt for an account may be
 // checked now, or is refused because of earlier failures. The NATS
 // authorizer asks before checking a browser's token.
@@ -180,14 +187,6 @@ func (st *Store) Run() error {
 	// that user sits under
 	if st.subscriptions["user"], err = nc.Subscribe("u.*.*.>", st.handleUserRequest); err != nil {
 		return fmt.Errorf("subscribe user namespace error: %w", err)
-	}
-
-	if st.subscriptions["admin.storeVerify"], err = nc.Subscribe("admin.storeVerify", st.handleStoreVerify); err != nil {
-		return fmt.Errorf("subscribe dbVerify error: %w", err)
-	}
-
-	if st.subscriptions["admin.storeMaint"], err = nc.Subscribe("admin.storeMaint", st.handleStoreMaint); err != nil {
-		return fmt.Errorf("subscribe dbMaint error: %w", err)
 	}
 
 	// current values a sync pump sends ahead of its history during
@@ -679,6 +678,17 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 
 	st.limiter.succeeded(email)
 
+	if st.params.AuthToken != "" && email == data.DefaultUserEmail &&
+		passP.Txt() == data.DefaultUserPass {
+		log.Printf("Auth: refusing sign-in for %q with the default password, an auth token is set; set a new password for this account",
+			email)
+		err = st.nc.Publish(msg.Reply, data.EncodeNodes(nil, data.ErrDefaultPassword))
+		if err != nil {
+			log.Println("NATS: Error publishing response to auth.user request:", err)
+		}
+		return
+	}
+
 	user, err := data.NodeToUser(nodes[0].ToNode())
 
 	if user.Pass != "" && !data.PasswordIsHashed(user.Pass) {
@@ -897,22 +907,6 @@ func stampOrigin(payload []byte, userID string) ([]byte, error) {
 		}
 	}
 	return pts.Encode(), nil
-}
-
-func (st *Store) handleStoreVerify(msg *nats.Msg) {
-	// Hash verification is no longer needed with JetStream store
-	err := st.nc.Publish(msg.Reply, []byte(""))
-	if err != nil {
-		log.Println("NATS: Error publishing response to store verify:", err)
-	}
-}
-
-func (st *Store) handleStoreMaint(msg *nats.Msg) {
-	// Hash maintenance is no longer needed with JetStream store
-	err := st.nc.Publish(msg.Reply, []byte(""))
-	if err != nil {
-		log.Println("NATS: Error publishing response to store maint:", err)
-	}
 }
 
 // used for messages that want an ACK

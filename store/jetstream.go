@@ -1365,8 +1365,8 @@ func (db *DbJetStream) initRoot(rootID string) (string, error) {
 		ID:        data.NewID(),
 		FirstName: "admin",
 		LastName:  "user",
-		Email:     "admin",
-		Pass:      "admin",
+		Email:     data.DefaultUserEmail,
+		Pass:      data.DefaultUserPass,
 	}
 
 	points := admin.ToPoints()

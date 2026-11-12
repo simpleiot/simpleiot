@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { asset } from "$app/paths"
 	import { auth } from "#lib/auth.svelte.ts"
-	import { signIn } from "#lib/siot/http.ts"
+	import { HttpError, signIn } from "#lib/siot/http.ts"
 
 	let email = $state("")
 	let password = $state("")
@@ -22,8 +22,9 @@
 			} else {
 				error = "Invalid login"
 			}
-		} catch {
-			error = "Login Failure"
+		} catch (e) {
+			// a refusal comes with the server's reason
+			error = e instanceof HttpError && e.status === 403 ? e.message : "Login Failure"
 		} finally {
 			busy = false
 		}
