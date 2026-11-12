@@ -1,0 +1,335 @@
+# A layers demo: images, stacking order, and widget backgrounds, under one
+# group. Load it into a running instance with:
+#
+#   siot import < testdata/layers-demo.yaml
+#
+# Then open Dashboards in the web UI. Where each feature is:
+#
+#   image widget             Site layers: a site plan uploaded as a binary
+#                            PNG fills the canvas; Image tiles shows it in
+#                            grid tiles
+#   image as background      the site plan has z -1, so the link, the
+#                            equipment, and the readings draw over it
+#   z-order                  the readings over the tank have a higher z than
+#                            the tank; Back card and Front card overlap so
+#                            the stacking buttons in edit mode can be tried
+#   background option        the tank readings and the pump switch draw on
+#                            a card (on, and a color with alpha); Front card
+#                            and Back card use named colors
+#   SVG as an image          Site logo is an SVG file drawn by the image
+#                            widget, at opacity 0.8 on the road
+#   fit and opacity          Image tiles: the site plan with fit contain,
+#                            cover, and stretch, and one faded to 0.4
+#   file previews            open Site plan or Site logo in Nodes to see the
+#                            image in the node's settings; open Level
+#                            drawing to try its bindings with test values
+#
+# Widget bindings name their node by description, and link ends name a
+# widget by its description, so the file reads as the dashboard looks.
+apiVersion: 1
+nodes:
+  - group:
+      description: Layers demo
+      children:
+        # ---- what the widgets show
+        - variable:
+            description: Pump run
+            variableType: onOff
+            value: 1
+        - variable:
+            description: Site note
+            variableType: text
+            value: Tue 9:00
+        - signalGenerator:
+            description: Site tank level
+            signalType: random walk
+            units: "%"
+            minValue: 20
+            maxValue: 90
+            initialValue: 60
+            minIncrement: -1
+            maxIncrement: 1
+            sampleRate: 1
+            roundTo: 0.1
+        - signalGenerator:
+            description: Site tank temperature
+            signalType: random walk
+            units: °C
+            minValue: 15
+            maxValue: 30
+            initialValue: 21
+            minIncrement: -0.2
+            maxIncrement: 0.2
+            sampleRate: 1
+            roundTo: 0.1
+
+        # ---- images and a drawing, as file nodes
+        - file:
+            description: Site plan
+            name: site-plan.png
+            binary: 1
+            data: |
+              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
+        - file:
+            description: Site logo
+            name: logo.svg
+            data: |
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">
+                <rect width="200" height="60" rx="10" fill="#1d3557" />
+                <circle cx="32" cy="30" r="16" fill="none" stroke="#a8dadc" stroke-width="5" />
+                <circle cx="32" cy="30" r="5" fill="#a8dadc" />
+                <text x="62" y="39" font-family="sans-serif" font-size="24"
+                  font-weight="600" fill="#f1faee">Creek Site</text>
+              </svg>
+        # a drawing with bindings, for the test values in its node's settings;
+        # no dashboard uses it
+        - file:
+            description: Level drawing
+            name: level.svg
+            data: |
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 170">
+                <style>
+                  .lamp { fill: #ccc; }
+                  .lamp[data-siot-state="on"] { fill: #e63946; }
+                  .lamp[data-siot-state="stale"] { fill: #eee; }
+                </style>
+                <rect x="20" y="10" width="50" height="130" fill="none" stroke="#555" stroke-width="3" />
+                <rect x="22" y="12" width="46" height="126" fill="#4a90d9"
+                  data-siot-bind="level" data-siot-level />
+                <text x="45" y="162" text-anchor="middle" font-family="sans-serif" font-size="16"
+                  data-siot-bind="level" data-siot-text data-siot-decimals="0">0</text>
+                <circle class="lamp" cx="95" cy="25" r="12"
+                  data-siot-bind="alarm" data-siot-toggle />
+              </svg>
+
+        # ---- the canvas: the site plan behind the equipment
+        - dashboard:
+            description: Site layers
+            layout: canvas
+            canvasWidth: 800
+            canvasHeight: 400
+            children:
+              - widget:
+                  description: Site
+                  component: image
+                  x: 0
+                  y: 0
+                  w: 800
+                  z: -1
+                  bindNode:
+                    image: Site plan
+              - widget:
+                  description: Site pump
+                  component: pump
+                  x: 120
+                  y: 190
+                  w: 110
+                  z: 1
+                  bindNode:
+                    running: Pump run
+              - widget:
+                  description: Site tank
+                  component: tank
+                  x: 430
+                  y: 60
+                  w: 230
+                  z: 1
+                  bindNode:
+                    level: Site tank level
+                    temp: Site tank temperature
+              - link:
+                  description: Site pump to tank
+                  from: Site pump.discharge
+                  to: Site tank.left
+                  routing: orthogonal
+                  bindNode:
+                    flowing: Pump run
+              # readings drawn over the tank, each on a card
+              - widget:
+                  description: Site level
+                  component: value
+                  x: 485
+                  y: 150
+                  w: 120
+                  z: 2
+                  bindNode:
+                    value: Site tank level
+                  prop:
+                    unit: "%"
+                    decimals: "1"
+                    background: "on"
+              - widget:
+                  description: Site temperature
+                  component: value
+                  x: 485
+                  y: 240
+                  w: 120
+                  z: 2
+                  bindNode:
+                    value: Site tank temperature
+                  prop:
+                    unit: °C
+                    decimals: "1"
+                    background: "#ffffffcc"
+              - widget:
+                  description: Site pump switch
+                  component: status
+                  x: 85
+                  y: 300
+                  w: 160
+                  z: 2
+                  bindNode:
+                    value: Pump run
+                  prop:
+                    on: Running
+                    off: Stopped
+                    background: "on"
+              # two overlapping cards to try the stacking buttons on
+              - widget:
+                  description: Back card
+                  component: value
+                  x: 40
+                  y: 30
+                  w: 200
+                  z: 3
+                  bindNode:
+                    value: Site note
+                  prop:
+                    background: lightyellow
+              - widget:
+                  description: Front card
+                  component: value
+                  x: 110
+                  y: 75
+                  w: 160
+                  z: 4
+                  bindNode:
+                    value: Site tank level
+                  prop:
+                    unit: "%"
+                    decimals: "0"
+                    background: lightblue
+              - widget:
+                  description: Logo
+                  component: image
+                  x: 300
+                  y: 348
+                  w: 160
+                  z: 5
+                  bindNode:
+                    image: Site logo
+                  prop:
+                    opacity: "0.8"
+
+        # ---- the grid: how an image fills a tile
+        - dashboard:
+            description: Image tiles
+            layout: grid
+            cols: 12
+            children:
+              - widget:
+                  description: Fit contain
+                  component: image
+                  x: 0
+                  y: 0
+                  w: 4
+                  h: 3
+                  bindNode:
+                    image: Site plan
+                  prop:
+                    fit: contain
+              - widget:
+                  description: Fit cover
+                  component: image
+                  x: 4
+                  y: 0
+                  w: 4
+                  h: 3
+                  bindNode:
+                    image: Site plan
+                  prop:
+                    fit: cover
+              - widget:
+                  description: Fit stretch
+                  component: image
+                  x: 8
+                  y: 0
+                  w: 4
+                  h: 3
+                  bindNode:
+                    image: Site plan
+                  prop:
+                    fit: stretch
+              - widget:
+                  description: Faded
+                  component: image
+                  x: 0
+                  y: 3
+                  w: 4
+                  h: 3
+                  bindNode:
+                    image: Site plan
+                  prop:
+                    opacity: "0.4"
+              - widget:
+                  description: Logo tile
+                  component: image
+                  x: 4
+                  y: 3
+                  w: 4
+                  h: 2
+                  bindNode:
+                    image: Site logo

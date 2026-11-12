@@ -9,6 +9,7 @@
 	import { PointType } from "#lib/siot/schema.ts"
 	import { toDateTimeString } from "#lib/util/iso8601.ts"
 	import type { EditorProps } from "../types.ts"
+	import Preview from "./Preview.svelte"
 	import FileIcon from "@lucide/svelte/icons/file"
 
 	let props: EditorProps = $props()
@@ -50,6 +51,8 @@
 	<div class="status">{"     File md5: " + hash}</div>
 	<div class="status">{"     Added: " + formatCreated(created)}</div>
 	<div class="status">{"     Stored data len: " + String(data.length) + " bytes"}</div>
+	<!-- an image or a drawing shows here; any other file shows nothing -->
+	<Preview {data} label={desc} />
 	<div class="button-row">
 		<Button color="blue" onclick={() => props.onUploadFile(binary)}>Upload new file</Button>
 		{#if !binary}

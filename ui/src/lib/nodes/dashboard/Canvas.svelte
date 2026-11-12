@@ -1,8 +1,9 @@
 <script lang="ts">
 	// Canvas is the widget host for mimics: a plane in canvas units, scaled
 	// to the frame, zoomed with the buttons or ctrl and the wheel, and once
-	// zoomed panned by dragging the background. Links are drawn under the equipment,
-	// anchored to ports so they follow a moved widget. In edit mode
+	// zoomed panned by dragging the background. Links are drawn over the
+	// widgets with a negative z, such as a background image, and under the
+	// rest, anchored to ports so they follow a moved widget. In edit mode
 	// equipment is dragged, a link is drawn from port to port, and the
 	// selected link's vertices are dragged. A canvas is a drawing, so it
 	// stays one at every width, scaled to fit, with the zoom for a closer
@@ -35,6 +36,7 @@
 		type View,
 	} from "./canvasMath.ts"
 	import WidgetFrame from "./WidgetFrame.svelte"
+	import { byStack } from "./zorder.ts"
 
 	let {
 		width,
@@ -144,6 +146,16 @@
 			},
 		}
 	}
+
+	// the widgets in drawing order, bottom first: the page stacks them in
+	// that order, and a pointer lands on the topmost one under it. Links
+	// draw between the widgets with a negative z, such as a background
+	// image, and the rest.
+	const stacked = $derived(
+		placed.slice().sort((a, b) => byStack({ id: a.node.id, z: a.z }, { id: b.node.id, z: b.z }))
+	)
+	const below = $derived(stacked.filter((p) => p.z < 0))
+	const above = $derived(stacked.filter((p) => p.z >= 0))
 
 	function layoutOf(p: Placed): Layout {
 		return drag?.kind === "move" && drag.id === p.node.id ? drag.cur : p.layout
@@ -403,46 +415,7 @@
 			style:height="{height}px"
 			style:transform="translate({pan.x}px, {pan.y}px) scale({view.scale})"
 		>
-			<svg class="links" viewBox="0 0 {width} {height}" {width} {height}>
-				{#each layers as layer (layer)}
-					{#each paths as { link, d } (link.node.id + layer)}
-						<Pipe {d} flowing={link.flowing} rate={link.rate} dead={link.dead} {layer} />
-					{/each}
-				{/each}
-				{#if edit}
-					{#each paths as { link, d } (link.node.id)}
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<path
-							class="hit"
-							class:selected={selected === link.node.id}
-							{d}
-							onpointerdown={(e) => {
-								e.stopPropagation()
-								onSelect?.(link.node.id)
-							}}
-						/>
-						{#if selected === link.node.id}
-							{#each drag?.kind === "vertex" && drag.id === link.node.id ? drag.points : link.points as v, i (i)}
-								<!-- svelte-ignore a11y_no_static_element_interactions -->
-								<circle
-									class="vertex"
-									cx={v[0]}
-									cy={v[1]}
-									r="6"
-									onpointerdown={(e) => downVertex(e, link, i)}
-									onpointermove={move}
-									onpointerup={up}
-									onpointercancel={up}
-								/>
-							{/each}
-						{/if}
-					{/each}
-					{#if drag?.kind === "link"}
-						<path class="drawing" d={pointsToPath([drag.at, drag.to])} />
-					{/if}
-				{/if}
-			</svg>
-			{#each placed as p (p.node.id)}
+			{#snippet equipment(p: Placed)}
 				{@const l = layoutOf(p)}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
@@ -492,6 +465,52 @@
 						{/each}
 					{/if}
 				</div>
+			{/snippet}
+			<!-- widgets with a negative z are the background, under the links -->
+			{#each below as p (p.node.id)}
+				{@render equipment(p)}
+			{/each}
+			<svg class="links" viewBox="0 0 {width} {height}" {width} {height}>
+				{#each layers as layer (layer)}
+					{#each paths as { link, d } (link.node.id + layer)}
+						<Pipe {d} flowing={link.flowing} rate={link.rate} dead={link.dead} {layer} />
+					{/each}
+				{/each}
+				{#if edit}
+					{#each paths as { link, d } (link.node.id)}
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<path
+							class="hit"
+							class:selected={selected === link.node.id}
+							{d}
+							onpointerdown={(e) => {
+								e.stopPropagation()
+								onSelect?.(link.node.id)
+							}}
+						/>
+						{#if selected === link.node.id}
+							{#each drag?.kind === "vertex" && drag.id === link.node.id ? drag.points : link.points as v, i (i)}
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
+								<circle
+									class="vertex"
+									cx={v[0]}
+									cy={v[1]}
+									r="6"
+									onpointerdown={(e) => downVertex(e, link, i)}
+									onpointermove={move}
+									onpointerup={up}
+									onpointercancel={up}
+								/>
+							{/each}
+						{/if}
+					{/each}
+					{#if drag?.kind === "link"}
+						<path class="drawing" d={pointsToPath([drag.at, drag.to])} />
+					{/if}
+				{/if}
+			</svg>
+			{#each above as p (p.node.id)}
+				{@render equipment(p)}
 			{/each}
 		</div>
 		{#if placed.length === 0}

@@ -48,7 +48,9 @@ on a narrow one.
    reads in days with `multiplier` `0.0000115741` and `unit` `d`, and a memory
    figure in bytes reads in megabytes with `0.000001`. `min` and `max` are in
    the shown unit, and a value edited as a setting is scaled back before it is
-   sent.
+   sent. `background` draws a card behind the widget: `on` for the page's card
+   color, or a CSS color such as `#ffffffcc`. A value placed over a tank or a
+   drawing then reads cleanly.
 
 Widgets are nodes under the dashboard, so everything above can also be done in
 the node tree, by a script, or by an agent.
@@ -73,6 +75,14 @@ Equipment components draw on the canvas:
 The grid widgets work on a canvas as well. **X**, **Y**, and **Width** are in
 canvas units there. In edit mode, drag the corner of a widget to set its width,
 which is the size the equipment draws at.
+
+Widgets on a canvas can overlap. **Z** sets which one is on top: a higher Z
+draws over a lower one, and widgets with the same Z draw in ID order. A new
+widget goes on top. In edit mode, **bring to front**, **forward**,
+**backward**, and **send to back** above the selected widget's settings change
+its place in the stack, and a click selects the topmost widget under the
+pointer. Links draw over widgets with a negative Z, such as a background image,
+and under the rest.
 
 Links join two widgets at their **ports**, the named points on a widget's edge
 that show as dots in edit mode. Drag from one port to another to draw a link. A
@@ -114,7 +124,10 @@ plan from Inkscape or draw.io.
    the **Binary** option off. **Edit contents** opens it in a code editor, so
    the attributes below can be added there, or a small drawing written in
    place.
-2. On the dashboard, add a widget, pick the **svg** component, and pick the
+2. The file node's settings show the drawing, with a test value for each
+   binding it declares. Type a value, or click an element marked `toggle` or
+   `set`, to see the drawing respond; nothing is sent.
+3. On the dashboard, add a widget, pick the **svg** component, and pick the
    file node as the **svg node**. The editor then lists every binding the
    drawing declares, named as the drawing names it and with what the drawing
    does with it, and each one is bound to a node like any other.
@@ -160,6 +173,17 @@ or has neither a `viewBox` nor a size, draws as a placeholder saying so.
 
 `testdata/custom-widget-demo.yaml` shows every feature on two dashboards, with
 the drawings written inline; see [A demo](#a-demo).
+
+## Images
+
+The **image** component shows a picture from a file node: a site photo, a panel,
+a logo. Upload a PNG, JPEG, GIF, or WebP to a **File** node with the **Binary**
+option on, or an SVG either way, then bind the widget's `image` to the file
+node. On a canvas the image takes the widget's width at its own proportions; give
+it a negative Z to use it as a background under the links and the equipment. In a grid tile `fit` says
+how it fills the tile: `contain` (the default), `cover`, or `stretch`. `opacity`
+from `0` to `1` fades it. An SVG is sanitized as a [drawing](#custom-drawings)
+is, and its bindings are not followed; use the **svg** component for that.
 
 ## Relative bindings
 
@@ -233,6 +257,11 @@ name nodes by description, and link ends name widgets by description.
 [custom drawings](#custom-drawings): five SVGs as file nodes, a canvas and a
 grid that place them, a stale and a dead binding on purpose, and a panel bound
 by path under two stations. The comment at the top says where each feature is.
+
+`testdata/layers-demo.yaml` shows [images](#images), stacking, and widget
+backgrounds: a site plan behind a pump and a tank, readings on cards over the
+tank, two overlapping cards to try the stacking buttons on, and a grid of image
+tiles with each `fit`. The comment at the top says where each feature is.
 
 ## Coming later
 

@@ -35,6 +35,7 @@
 	} from "./bindings.ts"
 	import Dashboard from "./Dashboard.svelte"
 	import { nextRow } from "./gridMath.ts"
+	import { restack, topZ, widgetZ, type StackMove } from "./zorder.ts"
 
 	let {
 		id,
@@ -176,6 +177,20 @@
 		dashboard !== undefined && getText(dashboard.points, PointType.Layout) === PointValue.Canvas
 	)
 
+	// the widgets' places in the stack on a canvas
+	const stack = $derived(
+		children.filter((c) => c.type === NodeType.Widget).map((c) => ({ id: c.id, z: widgetZ(c) }))
+	)
+
+	// moveInStack brings a widget to the front, sends it to the back, or
+	// moves it one step, writing z to each widget whose place changes
+	function moveInStack(widgetId: string, move: StackMove) {
+		const t = new Date().toISOString()
+		for (const [w, z] of restack(stack, widgetId, move)) {
+			void store.sendPoints(w, [newValue(PointType.Z, "0", z, t)])
+		}
+	}
+
 	async function addWidget() {
 		const t = new Date().toISOString()
 		const place = canvas
@@ -184,6 +199,7 @@
 					newValue(PointType.Y, "0", 20, t),
 					newValue(PointType.W, "0", 160, t),
 					newValue(PointType.H, "0", 80, t),
+					newValue(PointType.Z, "0", topZ(stack), t),
 				]
 			: [
 					newValue(PointType.Y, "0", nextRow(children.map((c) => widgetLayout(c))), t),
@@ -207,12 +223,16 @@
 		const t = new Date().toISOString()
 		const l = widgetLayout(source, { x: 20, y: 20, w: 160, h: 80 })
 		const place = canvas
-			? [newValue(PointType.X, "0", l.x + 20, t), newValue(PointType.Y, "0", l.y + 20, t)]
+			? [
+					newValue(PointType.X, "0", l.x + 20, t),
+					newValue(PointType.Y, "0", l.y + 20, t),
+					newValue(PointType.Z, "0", topZ(stack), t),
+				]
 			: [
 					newValue(PointType.X, "0", 0, t),
 					newValue(PointType.Y, "0", nextRow(children.map((c) => widgetLayout(c))), t),
 				]
-		const skip = new Set<string>([PointType.X, PointType.Y])
+		const skip = new Set<string>([PointType.X, PointType.Y, PointType.Z])
 		const points = [
 			newText(PointType.Description, "0", getText(source.points, PointType.Description), t),
 			...source.points
@@ -350,6 +370,22 @@
 				{#if edit}
 					<aside class="panel" aria-label="Widget settings">
 						{#if selectedNode && dashboard}
+							{#if canvas && selectedNode.type === NodeType.Widget}
+								{@const w = selectedNode.id}
+								<div class="stack" role="group" aria-label="Stacking order">
+									<button class="btn gray" onclick={() => moveInStack(w, "front")}
+										>bring to front</button
+									>
+									<button class="btn gray" onclick={() => moveInStack(w, "forward")}>forward</button
+									>
+									<button class="btn gray" onclick={() => moveInStack(w, "backward")}
+										>backward</button
+									>
+									<button class="btn gray" onclick={() => moveInStack(w, "back")}
+										>send to back</button
+									>
+								</div>
+							{/if}
 							<NodeHost
 								id={selected}
 								parent={{ ...dashboard, parent: via }}
@@ -421,6 +457,13 @@
 		align-self: start;
 		max-height: calc(100vh - 24px);
 		overflow-y: auto;
+	}
+
+	.stack {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin-bottom: 12px;
 	}
 
 	.error {

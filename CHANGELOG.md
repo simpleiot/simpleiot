@@ -11,6 +11,25 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Added
+
+- **Widgets on a canvas can be stacked.** A widget's **Z** sets which one draws
+  on top, and **bring to front**, **forward**, **backward**, and **send to
+  back** in edit mode change it. A widget with a negative Z, such as a
+  background image, draws under the links. Overlapping widgets on an existing
+  canvas draw in ID order until a Z is set, so some may change places. See
+  [canvas layouts](docs/user/dashboards.md#canvas-layouts).
+- **A background behind any widget.** The `background` option draws a card in
+  the page's color or a color you choose, so a value placed over a tank or a
+  drawing reads cleanly.
+- **An image widget.** The **image** component shows a PNG, JPEG, GIF, WebP, or
+  SVG from a file node, for a site photo behind the equipment or a logo. See
+  [images](docs/user/dashboards.md#images).
+- **File nodes show the image they hold.** An SVG with bindings gets a test
+  value for each one, so a drawing can be tried before it goes on a dashboard.
+- **A layers demo.** `testdata/layers-demo.yaml` shows images, stacking, and
+  widget backgrounds on a canvas and a grid.
+
 ### Fixed
 
 - **Negative whole numbers show correctly in the web UI.** A value such as -1

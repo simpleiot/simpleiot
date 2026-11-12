@@ -144,6 +144,8 @@ export interface Placed {
 	values: Record<string, Bound>
 	options: Record<string, string>
 	layout: Layout
+	// z is the widget's place in the stack on a canvas, higher on top
+	z: number
 	ports: MimicPort[]
 	// writes are the bindings the widget may write through, as controls
 	writes: Record<string, Binding>

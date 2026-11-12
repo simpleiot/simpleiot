@@ -723,12 +723,14 @@ const (
 	PointTypeCanvasHeight = "canvasHeight"
 
 	// A widget names its component and its place: columns and rows on a
-	// grid, canvas units on a canvas.
+	// grid, canvas units on a canvas. Z orders overlapping widgets on a
+	// canvas, higher drawn on top.
 	PointTypeComponent = "component"
 	PointTypeX         = "x"
 	PointTypeY         = "y"
 	PointTypeW         = "w"
 	PointTypeH         = "h"
+	PointTypeZ         = "z"
 
 	// Prop is a static display option, keyed by the option name. A binding
 	// is three points keyed by the widget prop it feeds: the node, the
