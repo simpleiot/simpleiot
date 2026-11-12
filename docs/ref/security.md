@@ -7,41 +7,35 @@ Simple IoT is pre-1.0 and its defaults favor getting started quickly: an
 instance starts with no auth token and an `admin`/`admin` account. The
 [deployment checklist](#deployment-checklist) lists what to change before an
 instance is reachable by anyone else, and
-[known limitations](#known-limitations) records what the September 2026 audit
-found and where each item is tracked.
+[how security is maintained](#how-security-is-maintained) describes how the
+project reviews and tracks security.
 
 ## Deployment checklist
 
 For any instance that other people or devices can reach, cloud or edge:
 
-- Set `SIOT_AUTH_TOKEN`. With no token, every listener accepts anonymous
-  connections with full access, and the HTTP API accepts requests with no
-  `Authorization` header.
+- Set `SIOT_AUTH_TOKEN`. With no token, the NATS, MQTT, and WebSocket listeners
+  accept anonymous connections with full access.
 - Change the `admin` password, on every instance, before the sign-in page is
-  reachable. Nothing forces a change, and the limiter on sign-in attempts only
-  slows a guess against a known password.
+  reachable. The server logs a warning at start-up and the UI shows a notice
+  after sign-in while the default password or an empty token remains. Once a
+  token is set, sign-in with the default password is refused.
 - Give accounts only to people you would trust with the host. Any account can
   add nodes that change the machine the instance runs on; see
   [What an account can do](#what-an-account-can-do).
 - Give each device a [credential](../user/sync.md#device-credentials) and set
   `SIOT_DEVICE_AUTH=required` on the upstream. Prefer enrollment tokens that
   leave credentials pending over ones that approve automatically. A device
-  credential reaches only its own subtree, though a device that knows the ID of
-  a node in another device's subtree can attach it under its own; see
-  [What the store checks](#what-the-store-checks). Until item 10 of the
-  [security follow-ups plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-09-19-security-followups.md)
-  lands, any account can create a credential or an auto-approve token in its own
-  group, so approve credentials only for devices you control, and do not use
-  auto-approve tokens on an instance that holds other people's accounts.
+  credential reaches only its own subtree. Approve credentials only for devices
+  you control.
 - Expose only the HTTP port (4223), behind a reverse proxy that terminates TLS.
   Firewall the NATS port (4222) unless devices connect to it directly, in which
   case configure `SIOT_NATS_TLS_CERT` and `SIOT_NATS_TLS_KEY`. The NATS
   WebSocket and monitoring listeners bind to loopback only.
 - Behind a reverse proxy, every connection reaches Simple IoT from loopback, and
-  Simple IoT does not read `X-Forwarded-For`. `SIOT_DEVICE_AUTH=required`
-  therefore does not limit the shared token on the HTTP port; keep the token off
-  that path and treat it as a secret. Rate limit `POST /v1/auth` per address in
-  the proxy, since the built-in limiter keys on the account.
+  Simple IoT does not read `X-Forwarded-For`. Treat the shared token as a secret
+  and keep it off that path, and rate limit `POST /v1/auth` per address in the
+  proxy.
 - On an edge device, firewall all incoming ports unless the local UI is needed.
   An edge instance usually runs with no token, and write access to an instance
   is control of the host; see [What an account can do](#what-an-account-can-do).
@@ -56,37 +50,16 @@ For any instance that other people or devices can reach, cloud or edge:
 
 The scope checks keep a signed-in user inside the groups the user belongs to:
 reads, point writes, edge writes, the HTTP node routes, and the clients' own
-writes all stop at the group. What they do not do is limit _which kinds of node_
-a user may create there. Every client in `client.DefaultClients` runs on its
-node type wherever that node sits in the tree, on the server's own full-access
-connection, so a user in any group can add:
-
-- an `update` node with an `https` URL of their choosing, which downloads an
-  image, replaces the instance's binary, and with `autoReboot` runs `reboot`.
-  This is code execution on the host as the service user;
-- an `ntp` or `networkManager` node, which rewrite the host's time and network
-  configuration;
-- a `browser` node, which rewrites the kiosk browser's configuration;
-- a `deviceCred` under a `device` node, or an `enrollToken` that approves
-  automatically, which gives the user a device credential (see
-  [What a device credential allows](#what-a-device-credential-allows));
-- a `sync` node pointing at a server the user runs, which replicates the
-  instance's whole tree there, unredacted, and accepts writes back from it;
-- a `modbus` server node, which opens a listener on every interface, or an
-  `mqtt`, `metrics`, `shelly`, or `db` node, which dials out from the host
-  (`SIOT_OUTBOUND_DENY_PRIVATE` keeps those off private addresses).
+writes all stop at the group. Within a group, every member can read and write
+every node, and can add nodes of any type. Some node types act on the machine
+the instance runs on: they update the software, set the time source and network
+configuration, open listeners, and connect to other servers.
 
 The trust boundary is therefore the instance, not the group: **an account is
 authority over the machine the instance runs on.** For an operator and their own
-team that is the intended model. For a deployment that gives accounts to people
-who should not administer the host, the host-changing node types need to be
-honored only directly under the root, which is tracked as item 1 of the
-[security follow-ups plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-09-19-security-followups.md);
-until then, do not give such people accounts.
-
-Inside a group, every member can write every node, including another member's
-`pass` and `email` points. A user with an account can also add user nodes to the
-group, and a message service delivers to the users in its scope.
+team that is the intended model. Give accounts only to people you would trust to
+administer the host. Roles that narrow what a member may do are planned; see
+[authentication and authorization](auth.md).
 
 ## Server
 
@@ -186,14 +159,10 @@ NATS accounts file to manage. Three kinds of credential are accepted:
   a fleet on the public internet once every device has a credential. The HTTP
   port's WebSocket proxy applies the same rule itself, since the NATS server
   sees every proxied connection arrive from `127.0.0.1`: a `CONNECT` carrying a
-  token from a remote address is meant to be refused before it is forwarded. The
-  check reads only the first frame and can be passed by splitting or
-  reformatting the `CONNECT`, so today `required` does not limit the token on
-  the HTTP port (follow-ups item 11). A connection arriving through a reverse
-  proxy on the same host still looks local, on the HTTP routes and the WebSocket
-  alike, so a reverse proxy has to pass the client's address through or the
-  token has to stay off that path. Treat the shared token as a secret under
-  either setting.
+  token from a remote address is refused before it is forwarded. A connection
+  arriving through a reverse proxy on the same host looks local, on the HTTP
+  routes and the WebSocket alike, so keep the token off that path. Treat the
+  shared token as a secret under either setting.
 
 An **enrollment token** is a third, narrower credential: a connection presenting
 one may publish to `enroll.request` and subscribe to its reply inbox, and
@@ -216,11 +185,8 @@ holder cannot take over a known device, move one, or undo a credential that was
 disabled to revoke it. At most 100 devices may wait for approval at once,
 counted when a device is created.
 
-A token holder can still name an existing device in another group and queue a
-pending credential there, and learns from the reply whether an ID exists
-(`approved` for a new device, `pending` for an existing one). Each credential
-records the token that made it as `enrolledBy`, which is how an operator tells a
-credential from another group's token before approving it.
+Each credential records the token that made it as `enrolledBy`, which is how an
+operator tells where a pending credential came from before approving it.
 
 ### How the authorizer works
 
@@ -346,10 +312,10 @@ The permission set keeps a device's writes in its own stream, `inst_X_X`. The
 store then decides what in that stream reaches the tree:
 
 - a point is merged when its node is `X` or under `X`;
-- an edge is merged when its parent is `X` or under `X`, and its child is new,
-  already under `X`, or in another device's subtree. A node of the upstream's
-  own tree, one reached from its root without passing through a device, cannot
-  be moved under `X` this way, and neither can an edge close a loop.
+- an edge is merged when its parent is `X` or under `X`. A node of the
+  upstream's own tree, one reached from its root without passing through a
+  device, cannot be moved under `X` this way, and neither can an edge close a
+  loop.
 
 A message that does not qualify is held and logged, and merged if a later edge
 places it inside the boundary, since a stream delivers messages in the order
@@ -460,38 +426,25 @@ decentralized auth) is the escalation path:
 - [NATS authentication](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_intro)
 - [NATS authorization](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization)
 
-## Known limitations
+## How security is maintained
 
-An audit at `v0.28.0` (September 2026) reviewed the HTTP API, the NATS
-authorizer, the store, the clients, the frontend, dependencies, and packaging.
-Everything it found that was a bug or a missing check was closed in the release
-that followed. A second audit at `1b37e2ab` found items 8 to 12, listed below;
-see the
-[security cleanup plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-08-24-security-cleanup.md)
-for what shipped. The items below are still open. The numbers refer to the
-[security follow-ups plan](https://github.com/simpleiot/simpleiot/blob/master/plans/2026-09-19-security-followups.md),
-which has the detail and the proposed change for each.
-
-| Area     | Limitation                                                                                                                                                                                                         | Plan item |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
-| Users    | Any account can add an `update`, `ntp`, `networkManager`, or `browser` node in its own group, and the server acts on it: an account is control of the host. See [What an account can do](#what-an-account-can-do). | 1         |
-| Users    | Any account can create a device credential, an auto-approve enrollment token, or a `sync` node in its own group; a `sync` node replicates the whole tree to a server the user runs and accepts writes back.        | 10        |
-| Devices  | `SIOT_DEVICE_AUTH=required` does not limit the shared token through the HTTP port's WebSocket proxy, since the check reads only the first frame.                                                                   | 11        |
-| Users    | Any member of a group can write any node under it, including another member's password.                                                                                                                            | 2         |
-| Users    | The sign-in limiter keys on the account, so a known email can be locked out for up to five minutes at a time by anyone who can reach the sign-in page.                                                             | 4         |
-| Devices  | Behind a reverse proxy every connection arrives from loopback, so `SIOT_DEVICE_AUTH=required` does not limit the shared token on the HTTP port.                                                                    | 4         |
-| Users    | The sign-in token lasts seven days; it is refused once the user is gone, but not on a password change until the NATS connection is closed.                                                                         | 3         |
-| Defaults | The first account is `admin`/`admin` and nothing forces a change. It is left to the deployment checklist.                                                                                                          | 6         |
-| Releases | Releases carry checksums and no signature, so `siot update` trusts the release host.                                                                                                                               | 5         |
-| Clients  | Update payloads are not signed; a point can still start a download and restart, from the release host, over HTTPS.                                                                                                 | excluded  |
-
-What the audit found sound: the binary point and node decoders bound every
-length and count; no client runs a command through a shell, disables TLS
-verification, or builds a database query from strings; the metrics scraper
-bounds its reads; a credentialed device cannot publish to NATS subjects outside
-its own boundary, and the store merges only what stays inside it; point types
-and keys cannot carry NATS wildcards; the JWT check rejects other signing
-algorithms; the web UI renders node values as text, keeps its token out of URLs
-and logs, and loads no third-party script; no secrets are committed to the
-repository; and `govulncheck` reports no called vulnerability in the current
-source.
+- **Audits.** The project is audited periodically: the HTTP API, the NATS
+  authorizer, the store, the clients, the frontend, dependencies, and packaging
+  are reviewed for what each kind of principal (an anonymous client, a token
+  holder, a device, a signed-in user, a network peer) can reach. A finding is
+  reproduced with a test against a scratch instance where that is practical.
+- **Tracking.** Findings and the plans to close them are kept outside this
+  repository until the fix ships. A fix that changes what an operator should do
+  is called out in the [changelog](../../CHANGELOG.md) and in this page.
+- **Regression tests.** Each fix lands with a test, and
+  `server/auth_spike_test.go` checks the assumptions the authorizer makes about
+  the embedded NATS server, so an upgrade that changes them fails the build.
+- **Dependencies.** CI runs `govulncheck` on every push, and releases are built
+  with the Go version in `go.mod`.
+- **Design rules.** The binary point and node decoders bound every length and
+  count; no client runs a command through a shell, disables TLS verification, or
+  builds a database query from strings; a credentialed device cannot publish to
+  NATS subjects outside its own boundary; point types and keys cannot carry NATS
+  wildcards; the JWT check rejects other signing algorithms; the web UI renders
+  node values as text, keeps its token out of URLs and logs, and loads no
+  third-party script; and no secrets are committed to the repository.

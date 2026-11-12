@@ -84,18 +84,17 @@ What the code already gives us:
 
 ### Relation to security follow-up item 10
 
-[Item 10](2026-09-19-security-followups.md#10-limit-which-node-types-an-account-may-create)
-proves that any account can create an auto-approve `enrollToken` in its own
-group. This plan makes such a token more useful, since devices it enrolls now
-land in that group. Item 10's proposed fix (only the shared token or a
-root-anchored principal may create `enrollToken` nodes) closes that, and still
-lets an admin place tokens in any group. Its note that "the authorizer can also
-ignore enrollment tokens that are not under the root" becomes "not under the
-root or a group". This plan does not wait on item 10: today such a token enrolls
-devices to the root, and after Phase 2 they land in the user's own group, which
-is less exposure, not more. Update item 10's text in Phase 1 and add the
-unbounded pending credentials on existing devices (item 5 above) to the
-follow-ups.
+Item 10 of the security follow-ups plan (kept outside this repository) proves
+that any account can create an auto-approve `enrollToken` in its own group. This
+plan makes such a token more useful, since devices it enrolls now land in that
+group. Item 10's proposed fix (only the shared token or a root-anchored
+principal may create `enrollToken` nodes) closes that, and still lets an admin
+place tokens in any group. Its note that "the authorizer can also ignore
+enrollment tokens that are not under the root" becomes "not under the root or a
+group". This plan does not wait on item 10: today such a token enrolls devices
+to the root, and after Phase 2 they land in the user's own group, which is less
+exposure, not more. Update item 10's text in Phase 1 and add the unbounded
+pending credentials on existing devices (item 5 above) to the follow-ups.
 
 ## Phases
 
@@ -107,9 +106,8 @@ follow-ups.
 - [x] Replace `EnrollToken(token) (autoApprove, ok bool)` with a method that
       returns the token's node ID, parents, and `autoApprove` together, so the
       enroller reads one consistent entry.
-- [x] Update item 10 in `plans/2026-09-19-security-followups.md` as described
-      above, and add a follow-up for the unbounded pending credentials on
-      existing devices.
+- [x] Update item 10 in the security follow-ups plan as described above, and add
+      a follow-up for the unbounded pending credentials on existing devices.
 - [x] Tests in `server/auth_test.go`: a token under a group reports that group;
       a mirrored token reports both parents; moving a token from the root to a
       group changes its parent.

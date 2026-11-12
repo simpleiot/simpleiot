@@ -460,8 +460,8 @@ For more details or to discuss releases, please visit the
   any account can create a device credential, an auto-approve enrollment token,
   or a `sync` node. Until the fix lands, give accounts only to people you trust
   with the whole instance. `SIOT_DEVICE_AUTH=required` also does not limit the
-  shared token through the WebSocket proxy. See
-  [Known limitations](docs/ref/security.md#known-limitations).
+  shared token through the WebSocket proxy. See the
+  [security reference](docs/ref/security.md).
 - **The upstream creates each device's replica stream, and a device can no
   longer configure it.** A device could create its stream with extra subjects
   and a republish, and so read sign-in requests and every point write. An
