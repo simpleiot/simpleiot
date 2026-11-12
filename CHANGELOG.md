@@ -32,6 +32,8 @@ For more details or to discuss releases, please visit the
 
 ### Fixed
 
+- **A status pill with a long word stays inside its widget on a canvas.** The
+  edit outline, a background card, and the ports now go around all of it.
 - **Negative whole numbers show correctly in the web UI.** A value such as -1
   written by `siot import`, a rule, or a client no longer reads as 255.
 

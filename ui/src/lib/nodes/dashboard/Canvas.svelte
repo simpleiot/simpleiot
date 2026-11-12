@@ -554,11 +554,15 @@
 		transform-origin: 0 0;
 	}
 
+	/* the layer covers the plane, and a widget under it, such as one sent
+	   to the back, must still be clickable, so only a link's hit path and
+	   its vertices take the pointer */
 	.links {
 		position: absolute;
 		top: 0;
 		left: 0;
 		overflow: visible;
+		pointer-events: none;
 	}
 
 	.hit {
@@ -579,6 +583,7 @@
 		stroke-width: 2;
 		cursor: move;
 		touch-action: none;
+		pointer-events: visiblePainted;
 	}
 
 	.drawing {
@@ -588,8 +593,12 @@
 		stroke-dasharray: 6 6;
 	}
 
+	/* a widget's box is its width, widened to enclose content that cannot
+	   wrap to fit, such as a status pill with a long word, so the edit
+	   outline, a background card, and the ports go around all of it */
 	.equipment {
 		position: absolute;
+		min-width: min-content;
 	}
 
 	.edit .equipment {

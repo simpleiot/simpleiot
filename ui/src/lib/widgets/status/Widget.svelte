@@ -86,8 +86,8 @@
 	/* an outlined pill with no fill: the outline is the status, the dot
 	   its color; a switch answers the pointer with a blue outline, and in
 	   edit mode a control is filled so it can be told from a display. The
-	   pill is as wide as its longer word, past its box on a canvas when
-	   the box is narrower */
+	   pill is as wide as its longer word, and a canvas widens a narrower
+	   box to hold it */
 	.pill {
 		display: inline-flex;
 		align-items: center;

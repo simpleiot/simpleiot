@@ -149,4 +149,9 @@ test("an image widget on a canvas moves through the stack", async ({ page }) => 
 	await expect(equipment.last().getByRole("img", { name: "Site" })).toBeVisible()
 	await page.getByRole("button", { name: "send to back" }).click()
 	await expect(equipment.first().getByRole("img", { name: "Site" })).toBeVisible()
+	// at the back it is under the links layer, and can still be selected
+	await page.locator(".equipment", { hasText: "Reading" }).click()
+	await expect(page.locator(".equipment.selected", { hasText: "Reading" })).toHaveCount(1)
+	await page.locator(".equipment", { has: img }).click()
+	await expect(page.locator(".equipment.selected", { has: img })).toHaveCount(1)
 })
