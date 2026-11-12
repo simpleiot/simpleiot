@@ -31,9 +31,17 @@ is:
 - user: `admin`
 - pass: `admin`
 
-Change this password before the instance is reachable by anyone else, and set
-`SIOT_AUTH_TOKEN`; until a token is set, the NATS and HTTP interfaces accept
-connections without credentials. The
+These defaults let an instance start with no configuration on a bench or a
+closed network. While the `admin` password is unchanged, or no `SIOT_AUTH_TOKEN`
+is set, the server says so in its log at start-up and the UI shows a notice
+after sign-in.
+
+Before the instance is reachable by anyone else, change the password and then
+set `SIOT_AUTH_TOKEN`; without a token, NATS and MQTT accept connections without
+credentials. Once a token is set, sign-in with the default password is refused,
+so change the password first. If the token is already set, write the `admin`
+user's `pass` point with [`siot import`](configuration.md) and sign in with the
+new password. The
 [deployment checklist](../ref/security.md#deployment-checklist) has the full
 list.
 

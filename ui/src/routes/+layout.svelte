@@ -5,6 +5,7 @@
 	import { resolve } from "$app/paths"
 	import { page } from "$app/state"
 	import { auth } from "#lib/auth.svelte.ts"
+	import SecurityNotice from "#lib/components/SecurityNotice.svelte"
 	import { store } from "#lib/siot/store.ts"
 	import { applyTheme } from "#lib/theme.svelte.ts"
 	import type { Snippet } from "svelte"
@@ -45,5 +46,8 @@
 </script>
 
 {#if onSignIn ? !auth.user : auth.user}
+	{#if auth.user}
+		<SecurityNotice user={auth.user} />
+	{/if}
 	{@render children()}
 {/if}

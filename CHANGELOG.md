@@ -11,6 +11,15 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Changed
+
+- **The server and the UI say when the default password or an empty auth token
+  remains, and a token turns the default password off.** A warning is logged at
+  start-up and a notice is shown after sign-in while `admin`/`admin` is
+  unchanged or `SIOT_AUTH_TOKEN` is not set. With a token set, sign-in with the
+  default password is refused, so change the password before setting a token.
+  See [installation](docs/user/installation.md).
+
 ## [0.33.6] - 2026-11-05
 
 ### Added

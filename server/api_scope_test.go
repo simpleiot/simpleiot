@@ -283,7 +283,7 @@ func TestAPIRequiredThroughProxy(t *testing.T) {
 	opts := TestServerOptions
 	opts.AuthToken = "tok"
 	opts.DeviceAuth = DeviceAuthRequired
-	_, _, stop, err := TestServerOpts(opts)
+	nc, _, stop, err := TestServerOpts(opts)
 	if err != nil {
 		t.Fatal("Error starting test server:", err)
 	}
@@ -328,7 +328,7 @@ func TestAPIRequiredThroughProxy(t *testing.T) {
 	// a signed-in user through the proxy from the LAN still works
 	base := "http://localhost:" + opts.HTTPPort
 	http.DefaultClient.CloseIdleConnections()
-	jwt := apiLogin(t, base)
+	jwt := apiLogin(t, base, nc)
 	nodes, err := client.UserCheck(nil, "", "")
 	_ = nodes
 	_ = err

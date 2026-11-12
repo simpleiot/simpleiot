@@ -417,6 +417,8 @@ func (s *Server) Run() error {
 				return fmt.Errorf("error starting device auth: %v", err)
 			}
 
+			logSecurityWarnings(o.AuthToken != "", siotStore.DefaultPasswordSet())
+
 			enr := &enroller{}
 			if err := enr.start(s.nc, auth); err != nil {
 				logLS("LS: Exited: device auth")
@@ -682,4 +684,22 @@ func natsWSPort(ns *server.Server) (int, error) {
 		return 0, fmt.Errorf("error parsing NATS WebSocket address: %w", err)
 	}
 	return strconv.Atoi(u.Port())
+}
+
+// logSecurityWarnings says at start-up what an operator should change before
+// the instance is reachable from other networks. Neither stops the instance:
+// it is meant to start with no configuration on a bench or a closed network.
+func logSecurityWarnings(authTokenSet, defaultPassword bool) {
+	if !authTokenSet {
+		log.Println("WARNING: no auth token is set (SIOT_AUTH_TOKEN), so NATS, MQTT, and WebSocket connections are accepted without credentials. Set one before this instance is reachable from other networks.")
+	}
+
+	switch {
+	case defaultPassword && authTokenSet:
+		log.Printf("WARNING: the %q account still has the default password. Sign-in with it is refused while an auth token is set; set a new password for this account.",
+			data.DefaultUserEmail)
+	case defaultPassword:
+		log.Printf("WARNING: the %q account still has the default password. Change it before this instance is reachable from other networks.",
+			data.DefaultUserEmail)
+	}
 }

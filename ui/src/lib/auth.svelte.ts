@@ -4,6 +4,10 @@
 export interface User {
 	token: string
 	email: string
+	// what the server said at sign-in about the instance's defaults; see
+	// SecurityNotice
+	defaultPassword?: boolean
+	noAuthToken?: boolean
 }
 
 const storageKey = "storage"
@@ -28,7 +32,12 @@ function load(): User | null {
 			typeof user.email === "string" &&
 			user.token !== ""
 		) {
-			return { token: user.token, email: user.email }
+			return {
+				token: user.token,
+				email: user.email,
+				defaultPassword: "defaultPassword" in user && user.defaultPassword === true,
+				noAuthToken: "noAuthToken" in user && user.noAuthToken === true,
+			}
 		}
 	} catch {
 		// unreadable storage is no user

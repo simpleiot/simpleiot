@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nats-io/nats.go"
 	"github.com/simpleiot/simpleiot/api"
 	"github.com/simpleiot/simpleiot/client"
 	"github.com/simpleiot/simpleiot/data"
@@ -18,16 +19,31 @@ import (
 
 // apiLogin logs the default admin user in and returns the JWT. The admin
 // user is created shortly after the store starts, so a login right after
-// start-up is retried.
-func apiLogin(t *testing.T, base string) string {
+// start-up is retried. An instance with an auth token refuses the default
+// password, so a test of one passes its connection and the password is
+// changed first.
+func apiLogin(t *testing.T, base string, nc ...*nats.Conn) string {
 	t.Helper()
+
+	pass := data.DefaultUserPass
+	if len(nc) > 0 {
+		pass = "admin-test-pw"
+		users, err := client.GetNodesType[client.User](nc[0], "all", "all")
+		if err != nil || len(users) == 0 {
+			t.Fatal("finding the admin user:", err)
+		}
+		p := data.NewPointString(data.PointTypePass, "", pass)
+		if err := client.SendNodePoint(nc[0], users[0].ID, p, true); err != nil {
+			t.Fatal("setting the admin password:", err)
+		}
+	}
 
 	deadline := time.Now().Add(10 * time.Second)
 	var last string
 
 	for time.Now().Before(deadline) {
 		resp, err := http.PostForm(base+"/v1/auth",
-			url.Values{"email": {"admin"}, "password": {"admin"}})
+			url.Values{"email": {"admin"}, "password": {pass}})
 		if err != nil {
 			t.Fatal("login:", err)
 		}
@@ -92,7 +108,7 @@ func TestAPIEnrollTokenKey(t *testing.T) {
 	// a keep-alive connection to a previous test's server would reach a
 	// server whose NATS client is closed
 	http.DefaultClient.CloseIdleConnections()
-	token := apiLogin(t, base)
+	token := apiLogin(t, base, nc)
 
 	et := client.EnrollToken{ID: "et-1", Parent: root.ID, Description: "fleet"}
 	if err := client.SendNodeType(nc, et, "test"); err != nil {

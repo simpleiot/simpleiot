@@ -131,6 +131,13 @@ func (st *Store) IsUnder(id, anchor string) bool {
 	return st.db.isUnder(id, anchor)
 }
 
+// DefaultPasswordSet reports whether the account a new instance starts with
+// still has its default password.
+func (st *Store) DefaultPasswordSet() bool {
+	nodes, err := st.db.userCheck(data.DefaultUserEmail, data.DefaultUserPass)
+	return err == nil && len(nodes) > 0
+}
+
 // AuthAllowed reports whether a sign-in attempt for an account may be
 // checked now, or is refused because of earlier failures. The NATS
 // authorizer asks before checking a browser's token.
@@ -678,6 +685,17 @@ func (st *Store) handleAuthUser(msg *nats.Msg) {
 	}
 
 	st.limiter.succeeded(email)
+
+	if st.params.AuthToken != "" && email == data.DefaultUserEmail &&
+		passP.Txt() == data.DefaultUserPass {
+		log.Printf("Auth: refusing sign-in for %q with the default password, an auth token is set; set a new password for this account",
+			email)
+		err = st.nc.Publish(msg.Reply, data.EncodeNodes(nil, data.ErrDefaultPassword))
+		if err != nil {
+			log.Println("NATS: Error publishing response to auth.user request:", err)
+		}
+		return
+	}
 
 	user, err := data.NodeToUser(nodes[0].ToNode())
 
