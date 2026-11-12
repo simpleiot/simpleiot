@@ -15,6 +15,10 @@ For more details or to discuss releases, please visit the
   writes nodes and points and subscribes to changes over NATS, using the shared
   token. See the [Python client](docs/ref/python.md) page and the examples in
   `python/examples`.
+- **Custom drawings can move an element with a value.** `data-siot-translate`
+  moves an element across the drawing as its value crosses the range, so a map
+  can show where something is: nest a group following x inside one following y.
+  See [custom drawings](docs/user/dashboards.md#custom-drawings).
 - **Negative integer points show the right value in the web UI.** A small
   negative integer such as `-1` was read as a large positive number (`255`).
 

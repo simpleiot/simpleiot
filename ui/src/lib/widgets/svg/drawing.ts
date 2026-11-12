@@ -127,7 +127,7 @@ function parse(text: string): Drawing {
 
 // the attributes that make an element do something with its binding; an
 // element with none follows the value through its state alone
-const effects = ["text", "rotate", "level", "toggle", "set"]
+const effects = ["text", "translate", "rotate", "level", "toggle", "set"]
 
 // declaredBindings lists the bindings the drawing names, in document
 // order, each with the effects of the elements that follow it
@@ -241,19 +241,30 @@ export function applyBindings(
 		const live = b?.state === "live"
 		const v = live ? b.value : NaN
 		const f = live ? fraction(v, range(el)) : 0
+		// a translation moves the element from where it is drawn by up to
+		// dx,dy drawing units across the range. It comes first, so a
+		// rotation or level on the same element happens about the element's
+		// own box wherever it has moved to.
+		const parts: string[] = []
+		if (el.hasAttribute("data-siot-translate")) {
+			const [dx, dy] = pair(el, "data-siot-translate") ?? [0, 0]
+			parts.push(`translate(${dx * f}px, ${dy * f}px)`)
+		}
 		// a transform turns or scales the element about its own box: its
 		// center for a rotation and its bottom for a level unless the
 		// element names another origin, as a needle pivoting at one end does
 		const origin = el.getAttribute("data-siot-origin")
 		if (el.hasAttribute("data-siot-rotate")) {
 			const [a, z] = pair(el, "data-siot-rotate") ?? [0, 360]
-			el.style.transformBox = "fill-box"
 			el.style.transformOrigin = origin ?? "center"
-			el.style.transform = `rotate(${a + (z - a) * f}deg)`
+			parts.push(`rotate(${a + (z - a) * f}deg)`)
 		} else if (el.hasAttribute("data-siot-level")) {
-			el.style.transformBox = "fill-box"
 			el.style.transformOrigin = origin ?? "bottom"
-			el.style.transform = `scaleY(${f})`
+			parts.push(`scaleY(${f})`)
+		}
+		if (parts.length > 0) {
+			el.style.transformBox = "fill-box"
+			el.style.transform = parts.join(" ")
 		}
 	}
 }

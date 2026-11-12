@@ -10,6 +10,7 @@ const lamp = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160">
   <text x="50" y="150" data-siot-bind="temp" data-siot-text data-siot-decimals="1" data-siot-unit="°C">?</text>
   <rect class="needle" x="48" y="10" width="4" height="40" data-siot-bind="pressure" data-siot-rotate="-90,90" data-siot-range="0,10" data-siot-origin="50% 100%" />
   <rect class="liquid" x="10" y="100" width="80" height="50" data-siot-bind="level" data-siot-level />
+  <g class="east" data-siot-bind="x" data-siot-translate="600,0" data-siot-range="0,60"><g class="north" data-siot-bind="y" data-siot-translate="0,-300"><path class="rover" d="M0 0 L10 5 L0 10 z" data-siot-bind="heading" data-siot-rotate="0,360" data-siot-range="0,360" data-siot-translate="5,0" /></g></g>
   <g data-siot-bind="mode"><rect x="0" y="0" width="10" height="10" data-siot-set="1" /><rect x="20" y="0" width="10" height="10" data-siot-set="stop" /></g>
   <circle data-siot-port="inlet,left" cx="0" cy="80" r="2" />
   <rect data-siot-port="outlet,right" x="90" y="70" width="10" height="20" />
@@ -36,6 +37,9 @@ describe("parseDrawing", () => {
 			{ name: "temp", use: "text" },
 			{ name: "pressure", use: "rotate" },
 			{ name: "level", use: "level" },
+			{ name: "x", use: "translate" },
+			{ name: "y", use: "translate" },
+			{ name: "heading", use: "translate, rotate" },
 			{ name: "mode", use: "set" },
 		])
 	})
@@ -128,6 +132,30 @@ describe("applyBindings", () => {
 		expect(l?.style.transformOrigin).toBe("bottom")
 		applyBindings(host, { level: live(250) }, writes)
 		expect(l?.style.transform).toBe("scaleY(1)")
+	})
+
+	test("moves by the distance over the value's range, clamped, with nested groups for x and y", () => {
+		const host = mount(parseDrawing(lamp).svg)
+		const east = host.querySelector<SVGElement>(".east")
+		const north = host.querySelector<SVGElement>(".north")
+		applyBindings(host, { x: live(30), y: live(25) }, writes)
+		expect(east?.style.transform).toBe("translate(300px)")
+		expect(north?.style.transform).toBe("translate(0px, -75px)")
+		applyBindings(host, { x: live(90), y: live(-5) }, writes)
+		expect(east?.style.transform).toBe("translate(600px)")
+		expect(north?.style.transform).toBe("translate(0px)")
+		// a binding that is not live leaves the element where it is drawn
+		applyBindings(host, { x: stale }, writes)
+		expect(east?.style.transform).toBe("translate(0px)")
+	})
+
+	test("translates before it rotates, so the element turns about where it moved to", () => {
+		const host = mount(parseDrawing(lamp).svg)
+		const r = host.querySelector<SVGElement>(".rover")
+		applyBindings(host, { heading: live(90) }, writes)
+		expect(r?.style.transform).toBe("translate(1.25px) rotate(90deg)")
+		expect(r?.style.transformOrigin).toBe("center")
+		expect(r?.style.transformBox).toBe("fill-box")
 	})
 
 	test("marks only writable click targets with a pointer", () => {
