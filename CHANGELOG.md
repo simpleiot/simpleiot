@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-11-12
+
 - **A Python client, `simpleiot`, for scripts and services.** It reads and
   writes nodes and points and subscribes to changes over NATS, using the shared
   token. See the [Python client](python/README.md) page and the examples in
