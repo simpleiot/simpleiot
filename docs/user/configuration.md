@@ -436,8 +436,8 @@ There are two places files come from:
 - **Files uploaded through the UI**, which are `file` nodes under the
   `provisioning` node. This is how a unit whose filesystem you cannot reach gets
   configured. A program can upload one the same way; the
-  [Python client](../ref/python.md)'s `provision()` writes the file node and
-  waits for the result.
+  [Python client](../../python/)'s `provision()` writes the file node and waits
+  for the result.
 
 Files on disk are applied first and uploads layer on top, so an uploaded file
 can attach to a group a shipped file created. Uploads are applied oldest first,

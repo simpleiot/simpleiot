@@ -190,7 +190,13 @@ Used in [MCU Devices](../user/mcu.md) and [Serial Devices](serial.md).
 
 ![a Python process on an edge device talks to the local SIOT over NATS; the local SIOT syncs with the cloud, and people use the web UI on either instance](../../python/images/deployment.svg)
 
-Used in the [Python client README](../../python/README.md).
+Used in the [Python client README](../../python/).
+
+### JavaScript client connection
+
+![a JavaScript app in the browser signs in, then connects to the SIOT HTTP port over WebSocket as that user, and reaches only the subtree of the groups the user belongs to](../../js/simpleiot-js/images/connection.svg)
+
+Used in the [JavaScript client README](../../js/simpleiot-js/).
 
 ### ADR-7: JetStream store
 

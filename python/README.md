@@ -7,7 +7,7 @@ The client connects with the instance's shared token (`SIOT_AUTH_TOKEN`), which
 reaches the whole tree. It suits scripts and services running alongside an
 instance you operate.
 
-![a Python process on an edge device talks to the local SIOT over NATS; the local SIOT syncs with the cloud, and people use the web UI on either instance](images/deployment.svg)
+![a Python process on an edge device talks to the local SIOT over NATS; the local SIOT syncs with the cloud, and people use the web UI on either instance](https://raw.githubusercontent.com/simpleiot/simpleiot/master/python/images/deployment.svg)
 
 A typical setup runs the Python process next to SIOT on an edge device. What it
 writes reaches the cloud through sync, and a person sees it in the web UI on
@@ -99,14 +99,17 @@ A server error raises `SiotError`; a missing node raises `NotFoundError`.
 
 Each example is a short script in its own directory with a README:
 
-- [tree](examples/tree/) prints the node tree
-- [send_points](examples/send_points/) creates a node and writes a value to it
-  once a second
-- [watch](examples/watch/) prints every point change below a node
-- [mirror_temperature](examples/mirror_temperature/) reacts to one point by
-  writing another
-- [rover](examples/rover/) drives a simulated autonomous rover from a dashboard,
-  with a live map, status, and commands
+- [tree](https://github.com/simpleiot/simpleiot/tree/master/python/examples/tree)
+  prints the node tree
+- [send_points](https://github.com/simpleiot/simpleiot/tree/master/python/examples/send_points)
+  creates a node and writes a value to it once a second
+- [watch](https://github.com/simpleiot/simpleiot/tree/master/python/examples/watch)
+  prints every point change below a node
+- [mirror_temperature](https://github.com/simpleiot/simpleiot/tree/master/python/examples/mirror_temperature)
+  reacts to one point by writing another
+- [rover](https://github.com/simpleiot/simpleiot/tree/master/python/examples/rover)
+  drives a simulated autonomous rover from a dashboard, with a live map, status,
+  and commands
 
 Run them against a local instance:
 
@@ -126,6 +129,12 @@ uv sync
 uv run pytest
 ```
 
-The codec tests check the encoder against fixtures the Go tests write. The
-integration tests start a scratch `siot` when `SIOT_BIN` names one;
-`siot_test_python` in `envsetup.sh` builds it and runs them.
+The tests need [uv](https://docs.astral.sh/uv/). The codec tests check the
+encoder against the fixtures `data/point_fixture_test.go` writes, the same ones
+the JavaScript client is checked against. The integration tests start a scratch
+`siot` when `SIOT_BIN` names one; `siot_test_python` in `envsetup.sh` builds it
+and runs them.
+
+To publish a release, set the version in `python/src/simpleiot/__init__.py`, add
+a `python/CHANGELOG.md` entry, and push a `py-v<version>` tag. The
+`Python release` workflow builds the package and publishes it to PyPI.

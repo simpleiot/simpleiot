@@ -97,7 +97,7 @@ siot_test_ui
 - `ui/` - Svelte web UI, served at `/`
 - `js/simpleiot-js/` - the browser client the Svelte UI bundles
 - `python/` - the `simpleiot` Python client, published to PyPI (see
-  [Python client](docs/ref/python.md))
+  [Python client](python/README.md))
 - `modbus/` - Modbus protocol implementation
 - `network/` - Network management utilities
 

@@ -13,7 +13,7 @@ For more details or to discuss releases, please visit the
 
 - **A Python client, `simpleiot`, for scripts and services.** It reads and
   writes nodes and points and subscribes to changes over NATS, using the shared
-  token. See the [Python client](docs/ref/python.md) page and the examples in
+  token. See the [Python client](python/README.md) page and the examples in
   `python/examples`.
 - **Custom drawings can move an element with a value.** `data-siot-translate`
   moves an element across the drawing as its value crosses the range, so a map
