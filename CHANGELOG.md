@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-11-12
+
 ### Added
 
 - **Widgets on a canvas can be stacked.** A widget's **Z** sets which one draws
