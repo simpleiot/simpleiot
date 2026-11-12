@@ -87,8 +87,9 @@ nodes:
                   .rv-body { fill: #cbd5e1; stroke: currentColor; stroke-width: 3; }
                   .rv-tire { fill: #334155; }
                   .rv-tread { stroke: #94a3b8; stroke-width: 16; stroke-dasharray: 3 5; fill: none; }
-                  .rv-wheel[data-siot-state="on"] .rv-tread { animation: rv-roll 0.4s linear infinite; }
-                  @keyframes rv-roll { to { stroke-dashoffset: -8; } }
+                  .rv-wheel[data-siot-state="off"] .rv-tire { fill: #94a3b8; }
+                  .rv-rolling[data-siot-state="on"] .rv-tread { animation: rv-roll 0.4s linear infinite; }
+                  @keyframes rv-roll { to { stroke-dashoffset: 8; } }
                   .rv-steer { transition: transform 0.5s linear; }
                   .rv-btn rect { fill: #9ca3af; stroke: currentColor; stroke-width: 2; }
                   .rv-btn[data-siot-state="on"] rect { fill: #16a34a; }
@@ -104,22 +105,22 @@ nodes:
                 <g class="rv-steer" data-siot-bind="steering" data-siot-rotate="30,-30" data-siot-range="-30,30">
                   <g class="rv-wheel" data-siot-bind="front">
                     <rect class="rv-tire" x="22" y="62" width="24" height="50" rx="5" />
-                    <line class="rv-tread" x1="34" y1="64" x2="34" y2="110" />
+                    <g class="rv-rolling" data-siot-bind="speed"><line class="rv-tread" x1="34" y1="64" x2="34" y2="110" /></g>
                   </g>
                 </g>
                 <g class="rv-steer" data-siot-bind="steering" data-siot-rotate="30,-30" data-siot-range="-30,30">
                   <g class="rv-wheel" data-siot-bind="front">
                     <rect class="rv-tire" x="154" y="62" width="24" height="50" rx="5" />
-                    <line class="rv-tread" x1="166" y1="64" x2="166" y2="110" />
+                    <g class="rv-rolling" data-siot-bind="speed"><line class="rv-tread" x1="166" y1="64" x2="166" y2="110" /></g>
                   </g>
                 </g>
                 <g class="rv-wheel" data-siot-bind="rear">
                   <rect class="rv-tire" x="22" y="176" width="24" height="50" rx="5" />
-                  <line class="rv-tread" x1="34" y1="178" x2="34" y2="224" />
+                  <g class="rv-rolling" data-siot-bind="speed"><line class="rv-tread" x1="34" y1="178" x2="34" y2="224" /></g>
                 </g>
                 <g class="rv-wheel" data-siot-bind="rear">
                   <rect class="rv-tire" x="154" y="176" width="24" height="50" rx="5" />
-                  <line class="rv-tread" x1="166" y1="178" x2="166" y2="224" />
+                  <g class="rv-rolling" data-siot-bind="speed"><line class="rv-tread" x1="166" y1="178" x2="166" y2="224" /></g>
                 </g>
                 <text class="rv-speed" x="100" y="146" data-siot-bind="speed" data-siot-text data-siot-decimals="1">--</text>
                 <text class="rv-unit" x="100" y="166">m/s</text>
@@ -159,13 +160,72 @@ nodes:
                 <style>
                   .rv-shell { fill: none; stroke: currentColor; stroke-width: 3; }
                   .rv-cap { fill: currentColor; }
-                  .rv-charge { fill: #16a34a; transition: transform 0.5s linear; }
+                  .rv-charge { fill: #16a34a; transition: transform 0.5s linear, fill 0.5s; }
+                  .rv-charge[data-siot-band="1"] { fill: #eab308; }
+                  .rv-charge[data-siot-band="0"] { fill: #dc2626; }
                   .rv-pct { font: 600 15px sans-serif; fill: currentColor; text-anchor: middle; }
+                  .rv-pct[data-siot-band="1"] { fill: #ca8a04; }
+                  .rv-pct[data-siot-band="0"] { fill: #dc2626; }
                 </style>
                 <rect class="rv-cap" x="28" y="4" width="24" height="10" rx="2" />
-                <rect class="rv-charge" x="14" y="18" width="52" height="118" rx="4" data-siot-bind="battery" data-siot-level />
+                <rect class="rv-charge" x="14" y="18" width="52" height="118" rx="4" data-siot-bind="battery" data-siot-level data-siot-bands="25,50" />
                 <rect class="rv-shell" x="10" y="14" width="60" height="126" rx="6" />
-                <text class="rv-pct" x="40" y="160" data-siot-bind="battery" data-siot-text data-siot-unit="%">--</text>
+                <text class="rv-pct" x="40" y="160" data-siot-bind="battery" data-siot-text data-siot-unit="%" data-siot-bands="25,50">--</text>
+              </svg>
+
+        - file:
+            description: Steering drawing
+            name: rover-steering.svg
+            data: |
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96">
+                <style>
+                  .rv-track { stroke: currentColor; stroke-width: 4; stroke-linecap: round; opacity: 0.5; }
+                  .rv-tick { stroke: currentColor; stroke-width: 1.5; opacity: 0.5; }
+                  .rv-major { stroke-width: 2.5; opacity: 0.8; }
+                  .rv-hit { fill: #000; fill-opacity: 0; }
+                  .rv-knob { fill: #2563eb; stroke: #fff; stroke-width: 3; pointer-events: none; transition: transform 0.3s ease-out; }
+                  .rv-knob[data-siot-state="stale"], .rv-knob[data-siot-state="dead"] { opacity: 0.3; }
+                  .rv-key { font: 600 13px sans-serif; fill: currentColor; }
+                  .rv-angle { font: 600 15px sans-serif; fill: currentColor; text-anchor: end; }
+                  .rv-end { font: 11px sans-serif; fill: currentColor; text-anchor: middle; opacity: 0.7; }
+                </style>
+                <text class="rv-key" x="6" y="16">Steering</text>
+                <text class="rv-angle" x="354" y="16" data-siot-bind="steer" data-siot-text data-siot-unit="°">--</text>
+                <line class="rv-track" x1="30" y1="50" x2="330" y2="50" />
+                <line class="rv-tick rv-major" x1="30" y1="40" x2="30" y2="60" />
+                <line class="rv-tick" x1="55" y1="44" x2="55" y2="56" />
+                <line class="rv-tick" x1="80" y1="44" x2="80" y2="56" />
+                <line class="rv-tick rv-major" x1="105" y1="40" x2="105" y2="60" />
+                <line class="rv-tick" x1="130" y1="44" x2="130" y2="56" />
+                <line class="rv-tick" x1="155" y1="44" x2="155" y2="56" />
+                <line class="rv-tick rv-major" x1="180" y1="40" x2="180" y2="60" />
+                <line class="rv-tick" x1="205" y1="44" x2="205" y2="56" />
+                <line class="rv-tick" x1="230" y1="44" x2="230" y2="56" />
+                <line class="rv-tick rv-major" x1="255" y1="40" x2="255" y2="60" />
+                <line class="rv-tick" x1="280" y1="44" x2="280" y2="56" />
+                <line class="rv-tick" x1="305" y1="44" x2="305" y2="56" />
+                <line class="rv-tick rv-major" x1="330" y1="40" x2="330" y2="60" />
+                <g data-siot-bind="steer">
+                  <rect class="rv-hit" x="17.5" y="26" width="25" height="44" data-siot-set="30" />
+                  <rect class="rv-hit" x="42.5" y="26" width="25" height="44" data-siot-set="25" />
+                  <rect class="rv-hit" x="67.5" y="26" width="25" height="44" data-siot-set="20" />
+                  <rect class="rv-hit" x="92.5" y="26" width="25" height="44" data-siot-set="15" />
+                  <rect class="rv-hit" x="117.5" y="26" width="25" height="44" data-siot-set="10" />
+                  <rect class="rv-hit" x="142.5" y="26" width="25" height="44" data-siot-set="5" />
+                  <rect class="rv-hit" x="167.5" y="26" width="25" height="44" data-siot-set="0" />
+                  <rect class="rv-hit" x="192.5" y="26" width="25" height="44" data-siot-set="-5" />
+                  <rect class="rv-hit" x="217.5" y="26" width="25" height="44" data-siot-set="-10" />
+                  <rect class="rv-hit" x="242.5" y="26" width="25" height="44" data-siot-set="-15" />
+                  <rect class="rv-hit" x="267.5" y="26" width="25" height="44" data-siot-set="-20" />
+                  <rect class="rv-hit" x="292.5" y="26" width="25" height="44" data-siot-set="-25" />
+                  <rect class="rv-hit" x="317.5" y="26" width="25" height="44" data-siot-set="-30" />
+                </g>
+                <!-- drawn at full right (-30°) and moved left as the angle rises -->
+                <circle class="rv-knob" cx="330" cy="50" r="12" data-siot-bind="steer"
+                  data-siot-translate="-300,0" data-siot-range="-30,30" />
+                <text class="rv-end" x="30" y="86">30° left</text>
+                <text class="rv-end" x="180" y="86">0</text>
+                <text class="rv-end" x="330" y="86">30° right</text>
               </svg>
 
         # ---- the operations dashboard
@@ -254,21 +314,19 @@ nodes:
                     unit: m/s
                     decimals: "1"
               - widget:
-                  description: Steering setting
-                  component: value
-                  x: 840
-                  y: 320
-                  w: 140
+                  description: Steering slider
+                  component: svg
+                  x: 660
+                  y: 490
+                  w: 320
                   bindNode:
-                    value: Steering command
-                  prop:
-                    unit: °
-                    decimals: "0"
+                    svg: Steering drawing
+                    steer: Steering command
               - widget:
                   description: Odometer reading
                   component: value
                   x: 840
-                  y: 410
+                  y: 320
                   w: 140
                   bindNode:
                     value: Odometer
@@ -301,3 +359,10 @@ nodes:
                     min: "0"
                     max: "100"
                     unit: "%"
+
+# the steering slider replaced a value tile; remove it where an earlier
+# version of this file created it
+delete:
+  - widget:
+      parent: Rover operations
+      description: Steering setting

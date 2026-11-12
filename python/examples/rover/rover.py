@@ -94,8 +94,13 @@ async def simulate(rover: Rover, cmd: Commands) -> None:
         await asyncio.sleep(SIM_PERIOD)
 
 
-async def report(c: simpleiot.Client, ids: dict[str, str], rover: Rover) -> None:
-    """Writes the rover's status, sending only values that changed."""
+async def report(c: simpleiot.Client, ids: dict[str, str], rover: Rover, cmd: Commands) -> None:
+    """Writes the rover's status, sending only values that changed.
+
+    Outside manual mode the steering command follows the wheels, so the
+    steering slider shows where the autonomy is steering, and switching to
+    manual starts from the current angle rather than jumping to an old one.
+    """
     last: dict[str, object] = {}
     while True:
         for desc, read in STATUS.items():
@@ -103,6 +108,10 @@ async def report(c: simpleiot.Client, ids: dict[str, str], rover: Rover) -> None
             if last.get(desc) != v:
                 await c.send_point(ids[desc], "value", v)
                 last[desc] = v
+        angle = round(rover.steering)
+        if cmd.mode != "manual" and angle != cmd.steering:
+            cmd.steering = angle
+            await c.send_point(ids["Steering command"], "value", angle)
         await asyncio.sleep(REPORT_PERIOD)
 
 
@@ -183,7 +192,7 @@ async def main() -> None:
         await asyncio.gather(
             read_commands(c, ids, cmd),
             simulate(rover, cmd),
-            report(c, ids, rover),
+            report(c, ids, rover, cmd),
         )
 
 

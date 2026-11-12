@@ -25,14 +25,17 @@ describes.
 
 ## Things to try
 
-- **MANUAL**, then type a steering angle in **Steering setting**: the rover
-  drives in an arc at the speed limit.
+- **MANUAL**, then click the **Steering** slider: the rover drives in an arc at
+  the speed limit, turning left of center and right of it, in 5° steps. In the
+  other modes the slider follows the wheels, so manual starts from where the
+  rover is already steering.
 - **FRONT** or **REAR** on the rover drawing turns off that axle. With one axle
   the rover drives at 60% of the limit; with none it stops.
 - **E-stop** stops the rover at once, in any mode, until it is cleared.
 - **Speed limit setting** changes how fast the rover drives.
 - Leave it in **AUTO**: below 20% battery it drives home, charges to 95%, and
-  resumes the mission.
+  resumes the mission. The battery turns yellow below half and red below a
+  quarter, set by `data-siot-bands` in its drawing.
 
 With an [upstream sync](https://docs.simpleiot.org/docs/user/sync.html), the
 Rover group and its dashboard reach the cloud instance too. Commands from the
@@ -82,16 +85,23 @@ To set up the nodes without running the rover, apply the file by hand:
 
 ## How it works
 
-| File         | What it holds                                                   |
-| ------------ | --------------------------------------------------------------- |
-| `rover.yaml` | the Rover group, its variables, three drawings, and a dashboard |
-| `rover.py`   | the Simple IoT side: setup, commands in, status out, the map    |
-| `sim.py`     | the rover's motion, battery, and autonomy, with no SIOT code    |
+| File         | What it holds                                                  |
+| ------------ | -------------------------------------------------------------- |
+| `rover.yaml` | the Rover group, its variables, four drawings, and a dashboard |
+| `rover.py`   | the Simple IoT side: setup, commands in, status out, the map   |
+| `sim.py`     | the rover's motion, battery, and autonomy, with no SIOT code   |
 
 - **Commands and status are separate variables.** People write `Mode`,
   `Front drive`, `E-stop`, and the settings; only `rover.py` writes `X`,
   `Speed`, `Battery`, `State`, and the rest. The rover never reacts to its own
-  writes, and the dashboard shows both what was asked and what is happening.
+  writes, and the dashboard shows both what was asked and what is happening. The
+  one exception is `Steering command`: outside manual mode `rover.py` sets it to
+  the wheel angle, so the slider shows where the autonomy is steering and
+  switching to manual does not jerk the wheels.
+- **The steering slider is a drawing.** Its knob follows the command with
+  `data-siot-translate`, and the track holds a click target every 5° with
+  `data-siot-set`. `rover.yaml` also carries a `delete` entry for the value tile
+  the slider replaced, so applying it to an older setup removes the tile.
 - **Commands arrive through one subscription.** `subscribe_tree()` on the group
   delivers every change, and `rover.py` keeps those for the command nodes,
   loading their current values at start.
