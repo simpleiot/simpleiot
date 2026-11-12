@@ -1,0 +1,368 @@
+# The nodes and dashboard for the rover example. rover.py uploads this file
+# as a provisioning file when it starts, and the server applies it. To apply
+# it by hand instead:
+#
+#   siot import < examples/rover/rover.yaml
+#
+# Commands are variables that people write from the dashboard; status
+# variables are written by rover.py. The commands carry no value here, so
+# applying it again never resets what an operator set; rover.py writes a
+# default for any command that has none. rover.py also draws the map into the
+# "Map drawing" file node from its mission, so the map has no data here.
+# Applying it again is safe: nodes are matched by description.
+apiVersion: 1
+nodes:
+  - group:
+      description: Rover
+      children:
+        # ---- commands, written by people
+        - variable:
+            description: Mode
+            variableType: text
+        - variable:
+            description: Front drive
+            variableType: onOff
+        - variable:
+            description: Rear drive
+            variableType: onOff
+        - variable:
+            description: Speed limit
+            variableType: number
+            units: m/s
+        - variable:
+            description: Steering command
+            variableType: number
+            units: °
+        - variable:
+            description: E-stop
+            variableType: onOff
+
+        # ---- status, written by rover.py
+        - variable:
+            description: X
+            variableType: number
+            units: m
+        - variable:
+            description: Y
+            variableType: number
+            units: m
+        - variable:
+            description: Heading
+            variableType: number
+            units: °
+        - variable:
+            description: Speed
+            variableType: number
+            units: m/s
+        - variable:
+            description: Steering
+            variableType: number
+            units: °
+        - variable:
+            description: Battery
+            variableType: number
+            units: "%"
+        - variable:
+            description: Odometer
+            variableType: number
+            units: m
+        - variable:
+            description: Waypoint
+            variableType: number
+        - variable:
+            description: State
+            variableType: text
+
+        # ---- drawings; every class is prefixed with rv- because a
+        # drawing's styles apply to the whole page
+        - file:
+            description: Map drawing
+            name: rover-map.svg
+        - file:
+            description: Rover drawing
+            name: rover.svg
+            data: |
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 290">
+                <style>
+                  .rv-body { fill: #cbd5e1; stroke: currentColor; stroke-width: 3; }
+                  .rv-tire { fill: #334155; }
+                  .rv-tread { stroke: #94a3b8; stroke-width: 16; stroke-dasharray: 3 5; fill: none; }
+                  .rv-wheel[data-siot-state="off"] .rv-tire { fill: #94a3b8; }
+                  .rv-rolling[data-siot-state="on"] .rv-tread { animation: rv-roll 0.4s linear infinite; }
+                  @keyframes rv-roll { to { stroke-dashoffset: 8; } }
+                  .rv-steer { transition: transform 0.5s linear; }
+                  .rv-btn rect { fill: #9ca3af; stroke: currentColor; stroke-width: 2; }
+                  .rv-btn[data-siot-state="on"] rect { fill: #16a34a; }
+                  .rv-btn text { font: 600 13px sans-serif; fill: #fff; text-anchor: middle; pointer-events: none; }
+                  .rv-speed { font: 700 26px sans-serif; fill: #1f2937; text-anchor: middle; }
+                  .rv-unit { font: 12px sans-serif; fill: #1f2937; text-anchor: middle; }
+                </style>
+                <g class="rv-btn" data-siot-bind="front" data-siot-toggle>
+                  <rect x="55" y="4" width="90" height="28" rx="6" />
+                  <text x="100" y="23">FRONT</text>
+                </g>
+                <rect class="rv-body" x="52" y="48" width="96" height="190" rx="16" />
+                <g class="rv-steer" data-siot-bind="steering" data-siot-rotate="30,-30" data-siot-range="-30,30">
+                  <g class="rv-wheel" data-siot-bind="front">
+                    <rect class="rv-tire" x="22" y="62" width="24" height="50" rx="5" />
+                    <g class="rv-rolling" data-siot-bind="speed"><line class="rv-tread" x1="34" y1="64" x2="34" y2="110" /></g>
+                  </g>
+                </g>
+                <g class="rv-steer" data-siot-bind="steering" data-siot-rotate="30,-30" data-siot-range="-30,30">
+                  <g class="rv-wheel" data-siot-bind="front">
+                    <rect class="rv-tire" x="154" y="62" width="24" height="50" rx="5" />
+                    <g class="rv-rolling" data-siot-bind="speed"><line class="rv-tread" x1="166" y1="64" x2="166" y2="110" /></g>
+                  </g>
+                </g>
+                <g class="rv-wheel" data-siot-bind="rear">
+                  <rect class="rv-tire" x="22" y="176" width="24" height="50" rx="5" />
+                  <g class="rv-rolling" data-siot-bind="speed"><line class="rv-tread" x1="34" y1="178" x2="34" y2="224" /></g>
+                </g>
+                <g class="rv-wheel" data-siot-bind="rear">
+                  <rect class="rv-tire" x="154" y="176" width="24" height="50" rx="5" />
+                  <g class="rv-rolling" data-siot-bind="speed"><line class="rv-tread" x1="166" y1="178" x2="166" y2="224" /></g>
+                </g>
+                <text class="rv-speed" x="100" y="146" data-siot-bind="speed" data-siot-text data-siot-decimals="1">--</text>
+                <text class="rv-unit" x="100" y="166">m/s</text>
+                <g class="rv-btn" data-siot-bind="rear" data-siot-toggle>
+                  <rect x="55" y="256" width="90" height="28" rx="6" />
+                  <text x="100" y="275">REAR</text>
+                </g>
+              </svg>
+        - file:
+            description: Mode drawing
+            name: rover-mode.svg
+            data: |
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 104">
+                <style>
+                  .rv-mode rect { fill: #475569; stroke: currentColor; stroke-width: 2; }
+                  .rv-mode .rv-stop rect { fill: #dc2626; }
+                  .rv-mode text { font: 600 14px sans-serif; fill: #fff; text-anchor: middle; pointer-events: none; }
+                  .rv-key { font: 12px sans-serif; fill: currentColor; opacity: 0.7; }
+                  .rv-val { font: 600 15px sans-serif; fill: currentColor; }
+                </style>
+                <g class="rv-mode" data-siot-bind="mode">
+                  <g class="rv-stop" data-siot-set="stop"><rect x="4" y="4" width="100" height="40" rx="6" /><text x="54" y="29">STOP</text></g>
+                  <g data-siot-set="manual"><rect x="116" y="4" width="100" height="40" rx="6" /><text x="166" y="29">MANUAL</text></g>
+                  <g data-siot-set="auto"><rect x="228" y="4" width="100" height="40" rx="6" /><text x="278" y="29">AUTO</text></g>
+                  <g data-siot-set="home"><rect x="340" y="4" width="96" height="40" rx="6" /><text x="388" y="29">HOME</text></g>
+                </g>
+                <text class="rv-key" x="6" y="70">Mode</text>
+                <text class="rv-val" x="56" y="70" data-siot-bind="mode" data-siot-text>--</text>
+                <text class="rv-key" x="6" y="94">State</text>
+                <text class="rv-val" x="56" y="94" data-siot-bind="state" data-siot-text>--</text>
+              </svg>
+        - file:
+            description: Battery drawing
+            name: rover-battery.svg
+            data: |
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 170">
+                <style>
+                  .rv-shell { fill: none; stroke: currentColor; stroke-width: 3; }
+                  .rv-cap { fill: currentColor; }
+                  .rv-charge { fill: #16a34a; transition: transform 0.5s linear, fill 0.5s; }
+                  .rv-charge[data-siot-band="1"] { fill: #eab308; }
+                  .rv-charge[data-siot-band="0"] { fill: #dc2626; }
+                  .rv-pct { font: 600 15px sans-serif; fill: currentColor; text-anchor: middle; }
+                  .rv-pct[data-siot-band="1"] { fill: #ca8a04; }
+                  .rv-pct[data-siot-band="0"] { fill: #dc2626; }
+                </style>
+                <rect class="rv-cap" x="28" y="4" width="24" height="10" rx="2" />
+                <rect class="rv-charge" x="14" y="18" width="52" height="118" rx="4" data-siot-bind="battery" data-siot-level data-siot-bands="25,50" />
+                <rect class="rv-shell" x="10" y="14" width="60" height="126" rx="6" />
+                <text class="rv-pct" x="40" y="160" data-siot-bind="battery" data-siot-text data-siot-unit="%" data-siot-bands="25,50">--</text>
+              </svg>
+
+        - file:
+            description: Steering drawing
+            name: rover-steering.svg
+            data: |
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96">
+                <style>
+                  .rv-track { stroke: currentColor; stroke-width: 4; stroke-linecap: round; opacity: 0.5; }
+                  .rv-tick { stroke: currentColor; stroke-width: 1.5; opacity: 0.5; }
+                  .rv-major { stroke-width: 2.5; opacity: 0.8; }
+                  .rv-hit { fill: #000; fill-opacity: 0; }
+                  .rv-knob { fill: #2563eb; stroke: #fff; stroke-width: 3; pointer-events: none; transition: transform 0.3s ease-out; }
+                  .rv-knob[data-siot-state="stale"], .rv-knob[data-siot-state="dead"] { opacity: 0.3; }
+                  .rv-key { font: 600 13px sans-serif; fill: currentColor; }
+                  .rv-angle { font: 600 15px sans-serif; fill: currentColor; text-anchor: end; }
+                  .rv-end { font: 11px sans-serif; fill: currentColor; text-anchor: middle; opacity: 0.7; }
+                </style>
+                <text class="rv-key" x="6" y="16">Steering</text>
+                <text class="rv-angle" x="354" y="16" data-siot-bind="steer" data-siot-text data-siot-unit="°">--</text>
+                <line class="rv-track" x1="30" y1="50" x2="330" y2="50" />
+                <line class="rv-tick rv-major" x1="30" y1="40" x2="30" y2="60" />
+                <line class="rv-tick" x1="55" y1="44" x2="55" y2="56" />
+                <line class="rv-tick" x1="80" y1="44" x2="80" y2="56" />
+                <line class="rv-tick rv-major" x1="105" y1="40" x2="105" y2="60" />
+                <line class="rv-tick" x1="130" y1="44" x2="130" y2="56" />
+                <line class="rv-tick" x1="155" y1="44" x2="155" y2="56" />
+                <line class="rv-tick rv-major" x1="180" y1="40" x2="180" y2="60" />
+                <line class="rv-tick" x1="205" y1="44" x2="205" y2="56" />
+                <line class="rv-tick" x1="230" y1="44" x2="230" y2="56" />
+                <line class="rv-tick rv-major" x1="255" y1="40" x2="255" y2="60" />
+                <line class="rv-tick" x1="280" y1="44" x2="280" y2="56" />
+                <line class="rv-tick" x1="305" y1="44" x2="305" y2="56" />
+                <line class="rv-tick rv-major" x1="330" y1="40" x2="330" y2="60" />
+                <g data-siot-bind="steer">
+                  <rect class="rv-hit" x="17.5" y="26" width="25" height="44" data-siot-set="30" />
+                  <rect class="rv-hit" x="42.5" y="26" width="25" height="44" data-siot-set="25" />
+                  <rect class="rv-hit" x="67.5" y="26" width="25" height="44" data-siot-set="20" />
+                  <rect class="rv-hit" x="92.5" y="26" width="25" height="44" data-siot-set="15" />
+                  <rect class="rv-hit" x="117.5" y="26" width="25" height="44" data-siot-set="10" />
+                  <rect class="rv-hit" x="142.5" y="26" width="25" height="44" data-siot-set="5" />
+                  <rect class="rv-hit" x="167.5" y="26" width="25" height="44" data-siot-set="0" />
+                  <rect class="rv-hit" x="192.5" y="26" width="25" height="44" data-siot-set="-5" />
+                  <rect class="rv-hit" x="217.5" y="26" width="25" height="44" data-siot-set="-10" />
+                  <rect class="rv-hit" x="242.5" y="26" width="25" height="44" data-siot-set="-15" />
+                  <rect class="rv-hit" x="267.5" y="26" width="25" height="44" data-siot-set="-20" />
+                  <rect class="rv-hit" x="292.5" y="26" width="25" height="44" data-siot-set="-25" />
+                  <rect class="rv-hit" x="317.5" y="26" width="25" height="44" data-siot-set="-30" />
+                </g>
+                <!-- drawn at full right (-30°) and moved left as the angle rises -->
+                <circle class="rv-knob" cx="330" cy="50" r="12" data-siot-bind="steer"
+                  data-siot-translate="-300,0" data-siot-range="-30,30" />
+                <text class="rv-end" x="30" y="86">30° left</text>
+                <text class="rv-end" x="180" y="86">0</text>
+                <text class="rv-end" x="330" y="86">30° right</text>
+              </svg>
+
+        # ---- the operations dashboard
+        - dashboard:
+            description: Rover operations
+            layout: canvas
+            canvasWidth: 1000
+            canvasHeight: 640
+            children:
+              - widget:
+                  description: Rover map
+                  component: svg
+                  x: 20
+                  y: 20
+                  w: 620
+                  bindNode:
+                    svg: Map drawing
+                    x: X
+                    y: Y
+                    heading: Heading
+              - widget:
+                  description: Rover top view
+                  component: svg
+                  x: 670
+                  y: 20
+                  w: 170
+                  bindNode:
+                    svg: Rover drawing
+                    front: Front drive
+                    rear: Rear drive
+                    steering: Steering
+                    speed: Speed
+              - widget:
+                  description: Battery level
+                  component: svg
+                  x: 880
+                  y: 40
+                  w: 90
+                  bindNode:
+                    svg: Battery drawing
+                    battery: Battery
+              - widget:
+                  description: Mode panel
+                  component: svg
+                  x: 20
+                  y: 380
+                  w: 440
+                  bindNode:
+                    svg: Mode drawing
+                    mode: Mode
+                    state: State
+              - widget:
+                  description: E-stop switch
+                  component: status
+                  x: 490
+                  y: 380
+                  w: 150
+                  bindNode:
+                    value: E-stop
+                  prop:
+                    on: E-STOP
+                    off: Clear
+                    confirm: "on"
+              - widget:
+                  description: Speed gauge
+                  component: gauge
+                  x: 670
+                  y: 320
+                  w: 150
+                  bindNode:
+                    value: Speed
+                  prop:
+                    min: "0"
+                    max: "3"
+                    unit: m/s
+                    decimals: "1"
+              - widget:
+                  description: Speed limit setting
+                  component: value
+                  x: 840
+                  y: 230
+                  w: 140
+                  bindNode:
+                    value: Speed limit
+                  prop:
+                    unit: m/s
+                    decimals: "1"
+              - widget:
+                  description: Steering slider
+                  component: svg
+                  x: 660
+                  y: 490
+                  w: 320
+                  bindNode:
+                    svg: Steering drawing
+                    steer: Steering command
+              - widget:
+                  description: Odometer reading
+                  component: value
+                  x: 840
+                  y: 320
+                  w: 140
+                  bindNode:
+                    value: Odometer
+                  prop:
+                    unit: m
+                    decimals: "0"
+              - widget:
+                  description: Speed trend
+                  component: trend
+                  x: 20
+                  y: 480
+                  w: 300
+                  bindNode:
+                    value: Speed
+                  prop:
+                    window: "240"
+                    min: "0"
+                    max: "3"
+                    unit: m/s
+              - widget:
+                  description: Battery trend
+                  component: trend
+                  x: 340
+                  y: 480
+                  w: 300
+                  bindNode:
+                    value: Battery
+                  prop:
+                    window: "600"
+                    min: "0"
+                    max: "100"
+                    unit: "%"
+
+# the steering slider replaced a value tile; remove it where an earlier
+# version of this file created it
+delete:
+  - widget:
+      parent: Rover operations
+      description: Steering setting

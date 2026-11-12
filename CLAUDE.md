@@ -96,6 +96,8 @@ siot_test_ui
 - `store/` - JetStream storage layer (boundary-origin streams, see ADR-7)
 - `ui/` - Svelte web UI, served at `/`
 - `js/simpleiot-js/` - the browser client the Svelte UI bundles
+- `python/` - the `simpleiot` Python client, published to PyPI (see
+  [Python client](python/README.md))
 - `modbus/` - Modbus protocol implementation
 - `network/` - Network management utilities
 
@@ -151,8 +153,8 @@ by `ui/embed.go`, and served at `/` by `api/ui.go`:
 - **Editors are props-only** and built from the input kit in
   `ui/src/lib/inputs/`; only the page and the store
   (`ui/src/lib/siot/tree.svelte.ts`) talk to the server. The kit's code editor
-  (`CodeInput`) loads CodeMirror on demand from `ui/src/lib/inputs/code/`, so
-  no page carries it until a file is opened.
+  (`CodeInput`) loads CodeMirror on demand from `ui/src/lib/inputs/code/`, so no
+  page carries it until a file is opened.
 - **Dashboard widgets register themselves** the same way, one directory per
   widget in `ui/src/lib/widgets/<name>/` with a descriptor and a component that
   takes resolved values as props. The widget an `auto` component shows for a
@@ -198,6 +200,13 @@ for an index of all plans and their status.
 When working through a plan, commit after each phase completes. Update the
 changelog (`CHANGELOG.md`), `CLAUDE.md`, and any relevant documentation as part
 of each phase.
+
+Security plans and open security issues are not kept in this repository. They
+live in the parent repository, which is not public, under `../security-plans/`
+(the design review is `../security.md`, and the audit skill is
+`../.claude/skills/siot-security-audit/`). Record audit findings and unfixed
+issues there, and keep them out of `plans/`, the docs, and the changelog until
+the fix ships.
 
 ## Diagrams
 

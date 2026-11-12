@@ -251,8 +251,8 @@ function decodeValue(dataType, data) {
 		return 0
 	}
 	if (dataType === DataType.Int) {
-		// an int is stored in the fewest bytes that hold it, so each width
-		// is read back as signed
+		// PutInt stores a value in the fewest bytes that hold it, so each
+		// width is read back as signed
 		switch (data.length) {
 			case 1:
 				return dv.getInt8(0)

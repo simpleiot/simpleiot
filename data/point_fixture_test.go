@@ -10,11 +10,12 @@ import (
 	"time"
 )
 
-// The JavaScript codec in js/simpleiot-js/codec.js mirrors the point and
-// node encodings here. These fixtures are what ties the two together: this
-// test writes them when UPDATE_FIXTURES is set and otherwise checks that the
-// Go encoder still produces the checked-in bytes, and the JavaScript tests
-// decode the same bytes and compare against the JSON.
+// The JavaScript codec in js/simpleiot-js/codec.js and the Python codec in
+// python/src/simpleiot/codec.py mirror the point and node encodings here.
+// These fixtures are what ties them together: this test writes them when
+// UPDATE_FIXTURES is set and otherwise checks that the Go encoder still
+// produces the checked-in bytes, and the JavaScript and Python tests decode
+// the same bytes and compare against the JSON.
 
 const fixtureDir = "../js/simpleiot-js/testdata"
 

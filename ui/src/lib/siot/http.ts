@@ -57,7 +57,8 @@ async function op(method: string, url: string, token: string, body?: unknown): P
 const nodeUrl = (id: string, rest = "") => `/v1/nodes/${encodeURIComponent(id)}${rest}`
 
 // signIn exchanges an email and password for a token. An invalid login is
-// returned as null.
+// returned as null; a login the server refuses for a reason it gives is
+// thrown as an HttpError carrying that reason.
 export async function signIn(email: string, password: string): Promise<User | null> {
 	const form = new FormData()
 	form.append("email", email)
@@ -69,6 +70,10 @@ export async function signIn(email: string, password: string): Promise<User | nu
 		throw new HttpError("Network error", 0)
 	}
 	if (res.status === 403) {
+		const reason = (await res.text()).trim()
+		if (reason !== "" && reason !== "invalid login") {
+			throw new HttpError(reason, 403)
+		}
 		return null
 	}
 	if (!res.ok) {
@@ -78,7 +83,12 @@ export async function signIn(email: string, password: string): Promise<User | nu
 	if (typeof user.token !== "string" || user.token === "") {
 		return null
 	}
-	return { token: user.token, email: typeof user.email === "string" ? user.email : email }
+	return {
+		token: user.token,
+		email: typeof user.email === "string" ? user.email : email,
+		defaultPassword: user.defaultPassword === true,
+		noAuthToken: user.noAuthToken === true,
+	}
 }
 
 // insertNode adds a node under node.parent.

@@ -435,7 +435,9 @@ There are two places files come from:
   `20-` prefixes express which file goes first.
 - **Files uploaded through the UI**, which are `file` nodes under the
   `provisioning` node. This is how a unit whose filesystem you cannot reach gets
-  configured.
+  configured. A program can upload one the same way; the
+  [Python client](../../python/)'s `provision()` writes the file node and waits
+  for the result.
 
 Files on disk are applied first and uploads layer on top, so an uploaded file
 can attach to a group a shipped file created. Uploads are applied oldest first,
@@ -449,6 +451,11 @@ alone.
 A file is applied when its contents change, which is what leaves a value edited
 in the UI alone until the file describing it changes. A file that fails to parse
 or apply records its error and leaves the other files alone.
+
+An instance applies only the files under the `provisioning` node directly below
+its own root. A device synced from below keeps its `provisioning` node under its
+device node, so the upstream instance shows that device's files but does not
+apply them.
 
 ### Checking files
 

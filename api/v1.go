@@ -38,7 +38,7 @@ func NewV1Handler(args ServerArgs) http.Handler {
 	return &V1{
 		NodesHandler: NewNodesHandler(args.Users,
 			args.AuthToken, args.Nc, args.DeviceAuth, args.DeviceAuthRequired),
-		AuthHandler: NewAuthHandler(args.Nc),
+		AuthHandler: NewAuthHandler(args.Nc, args.AuthToken != ""),
 		Version:     args.AppVersion,
 	}
 }

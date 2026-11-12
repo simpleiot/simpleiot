@@ -34,8 +34,41 @@ For more details or to discuss releases, please visit the
 
 - **A status pill with a long word stays inside its widget on a canvas.** The
   edit outline, a background card, and the ports now go around all of it.
-- **Negative whole numbers show correctly in the web UI.** A value such as -1
-  written by `siot import`, a rule, or a client no longer reads as 255.
+
+## [0.35.0] - 2026-11-12
+
+- **A Python client, `simpleiot`, for scripts and services.** It reads and
+  writes nodes and points and subscribes to changes over NATS, using the shared
+  token. See the [Python client](python/README.md) page and the examples in
+  `python/examples`.
+- **Custom drawings can move an element with a value.** `data-siot-translate`
+  moves an element across the drawing as its value crosses the range, so a map
+  can show where something is: nest a group following x inside one following y.
+  See [custom drawings](docs/user/dashboards.md#custom-drawings).
+- **Custom drawings can change color at thresholds.** `data-siot-bands="25,50"`
+  marks an element with the band its value falls in, so a drawing's CSS can turn
+  a battery yellow below half and red below a quarter.
+- **Negative integer points show the right value in the web UI.** A small
+  negative integer such as `-1` was read as a large positive number (`255`).
+
+## [0.34.1] - 2026-11-12
+
+### Changed
+
+- **The server and the UI say when the default password or an empty auth token
+  remains, and a token turns the default password off.** A warning is logged at
+  start-up and a notice is shown after sign-in while `admin`/`admin` is
+  unchanged or `SIOT_AUTH_TOKEN` is not set; its X hides it until the page is
+  reloaded. With a token set, sign-in with the default password is refused, so
+  change the password before setting a token. See
+  [installation](docs/user/installation.md).
+
+### Removed
+
+- **The `siot store` command is removed.** Its `-check` and `-fix` options
+  verified and repaired the hash tree of the former store, and have done nothing
+  since the move to JetStream. The `admin.storeVerify` and `admin.storeMaint`
+  NATS subjects are removed with it.
 
 ## [0.34.0] - 2026-11-11
 
@@ -511,8 +544,8 @@ For more details or to discuss releases, please visit the
   any account can create a device credential, an auto-approve enrollment token,
   or a `sync` node. Until the fix lands, give accounts only to people you trust
   with the whole instance. `SIOT_DEVICE_AUTH=required` also does not limit the
-  shared token through the WebSocket proxy. See
-  [Known limitations](docs/ref/security.md#known-limitations).
+  shared token through the WebSocket proxy. See the
+  [security reference](docs/ref/security.md).
 - **The upstream creates each device's replica stream, and a device can no
   longer configure it.** A device could create its stream with extra subjects
   and a republish, and so read sign-in requests and every point write. An

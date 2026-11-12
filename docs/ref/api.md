@@ -9,6 +9,13 @@ to keep the two APIs a similar as possible so it is easy to switch from one to
 the other. The Http API currently accepts JSON, and the NATS API uses a binary
 encoding for points and nodes.
 
+The [Python client](../../python/) and the
+[JavaScript client](../../js/simpleiot-js/) wrap the NATS API.
+
+To animate your own SVG drawings from point values, see
+[Custom drawings](../user/dashboards.md#custom-drawings). Drawings use
+`data-siot-*` attributes in the SVG markup, not this API.
+
 **NOTE, the Simple IoT API is not final and will continue to be refined in the
 coming months.**
 
@@ -24,6 +31,13 @@ deployment model.
 
 The `siot` binary embeds the NATS server, so there is no need to deploy and run
 a separate NATS server.
+
+The store persists the points published on the subjects below in
+[JetStream](https://docs.nats.io/nats-concepts/jetstream) streams, one per
+boundary and origin. The streams and their `inst.<boundary>.<origin>.…` storage
+subjects are internal and may change; clients write on `p` and `ep` subjects and
+read with `nodes` requests. See the [store reference](./store.md) for the stream
+layout, retention, and history.
 
 Point data uses a compact binary encoding (see `data/point.go`), and a node
 reply is a frame built from it (see `EncodeNodes` in `data/node.go`): a version
@@ -42,6 +56,9 @@ cannot be published, logging the offending type and key and setting an `error`
 point on the node so the sender can be found. A client that generates keys from
 names it does not control -- sysfs device names, mount points, network interface
 names -- should pass them through `data.SubjectSafeToken` first.
+
+To see how these subjects compare with typical NATS usage, see
+[the store reference](./store.md#how-these-differ-from-typical-nats-subjects).
 
 - Nodes
   - `nodes.<parentId>.<nodeId>.<type>.<key>`
@@ -150,11 +167,6 @@ names -- should pass them through `data.SubjectSafeToken` first.
 - Admin
   - `admin.error` (not implemented yet)
     - Any errors that occur are sent to this subject
-  - `admin.storeVerify`
-    - Used to initiate a database verification process. This currently verifies
-      hash values are correct and responds with an error string.
-  - `admin.storeMaint`
-    - Corrects errors in the store (current incorrect hash values)
 
 ## HTTP
 

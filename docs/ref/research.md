@@ -82,6 +82,53 @@ as NATS is core to this project.
 
 The Resgate system is primarily concerned with synchronizing browser contents.
 
+### Lovable Realtime
+
+[How Lovable Moved Its Frontend off Firestore and Built Lovable Realtime on NATS](https://www.synadia.com/blog/lovable-realtime-nats)
+(Synadia blog, November 2026) describes a Go WebSocket service between the
+browser and the data stores, with NATS as the message bus. The browser holds one
+WebSocket per tab and subscribes by name. A subscription is a server function
+that checks permission, queries the stores, and returns a payload. Change data
+capture events on NATS subjects run the function again, the output is hashed,
+and only deltas go to the browser. Authorization is itself a subscription, so a
+revoked user's stream closes mid-session. The service runs at about two million
+concurrent subscriptions.
+
+Simple IoT already shares much of this design: NATS with hierarchical wildcard
+subjects, permissions computed by the server and connections closed when a
+user's groups change (see
+[how the authorizer works](security.md#how-the-authorizer-works)), best-effort
+live updates with a full fetch after any gap (see
+[live updates](frontend.md#live-updates)), and an authorizer that reacts only to
+the points that feed an access decision (`handleUp` in `server/auth.go`), which
+is the saving the article reports from comparing fields before recomputing.
+
+The difference is where the payload is shaped. Lovable's browser never sees a
+raw subject; the service computes what each user may see. Simple IoT's browser
+speaks NATS end to end and subscribes to `up.<anchor>.>`, so a live point
+reaches it as written. That is simpler, with no service in the middle. It also
+means that anything shaped per user on the live path, such as the planned roles
+in [auth](auth.md#status), needs a filter on the server side: a per-connection
+filter in the authorizer, or a separate subject the store republishes to. That
+is the step toward Lovable's design.
+
+Ideas worth borrowing:
+
+- **Spread reconnects.** The SDK spreads post-deploy reconnects over 20 seconds.
+  The UI retries at a fixed five seconds (`retryDelay` in
+  `ui/src/lib/siot/connection.ts`), so after a server restart every open tab
+  reconnects at once. Jitter is cheap.
+- **Reconnect fingerprint.** The client sends a hash of its cached state and the
+  server confirms it is unchanged instead of resending. The UI refetches
+  everything on screen after a reconnect or when a hidden tab is shown; a hash
+  per fetched subtree would let the store answer "unchanged".
+- **Shadow traffic.** Run the new path alongside the old and discard its
+  output before switching users over. Relevant to any future change of the
+  browser path.
+- **Snapshots everywhere, deltas only at the wire.** Points are deltas by
+  nature and the fetch-after-gap rule is the snapshot, so the principle is
+  already in place.
+
 ### Couch/pouchdb
 
 Has some interesting ideas.

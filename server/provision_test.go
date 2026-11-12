@@ -359,6 +359,77 @@ func TestProvisionFromTree(t *testing.T) {
 	}
 }
 
+// A device synced from below brings its provisioning node along, under its
+// device node. Those files are the device's to apply, so the upstream applies
+// only the provisioning node directly under its own root.
+func TestProvisionStopsAtDevices(t *testing.T) {
+	nc, root, stop := testServerNoProvisioning(t)
+
+	defer stop()
+
+	p := &provisioner{nc: nc}
+
+	sendNode := func(parent, typ string, points ...data.Point) string {
+		t.Helper()
+
+		id := data.NewID()
+
+		err := client.SendNode(nc, data.NodeEdge{
+			ID:     id,
+			Type:   typ,
+			Parent: parent,
+			Points: points,
+		}, "test")
+		if err != nil {
+			t.Fatalf("Error sending %v node: %v", typ, err)
+		}
+
+		return id
+	}
+
+	file := func(parent, name, contents string) string {
+		t.Helper()
+
+		return sendNode(parent, data.NodeTypeFile,
+			data.NewPointString(data.PointTypeDescription, "", name),
+			data.NewPointString(data.PointTypeData, "", contents),
+			data.NewPointFloat(data.PointTypeCreated, "", float64(time.Now().Unix())))
+	}
+
+	device := sendNode(root.ID, data.NodeTypeDevice,
+		data.NewPointString(data.PointTypeDescription, "", "Synced device"))
+	deviceProvisioning := sendNode(device, data.NodeTypeProvisioning,
+		data.NewPointString(data.PointTypeDescription, "", "Provisioning"))
+	deviceFile := file(deviceProvisioning, "sensors.yaml", string(readFixture(t)))
+
+	// a file of the instance's own, so the pass is known to have run
+	ownProvisioning, err := p.provisioningNode(true)
+	if err != nil {
+		t.Fatal("Error creating provisioning node: ", err)
+	}
+
+	file(ownProvisioning, "own.yaml", "nodes:\n  - group:\n      description: Own group\n")
+
+	if err := p.run(); err != nil {
+		t.Fatal("Error provisioning: ", err)
+	}
+
+	findByDesc(t, nc, root.ID, "Own group")
+
+	if got := findAllByDesc(t, nc, root.ID, "Sensors"); len(got) != 0 {
+		t.Errorf("a device's provisioning file was applied upstream, found %v Sensors nodes", len(got))
+	}
+
+	nodes, err := client.GetNodes(nc, "all", deviceFile, "", false)
+	if err != nil {
+		t.Fatal("Error getting the device's file node: ", err)
+	}
+
+	if hash, _ := nodes[0].Points.Text(data.PointTypeProvisionHash, ""); hash != "" {
+		t.Error("the upstream recorded a pass on the device's file")
+	}
+}
+
 // A file node is added first and its contents arrive when someone uploads
 // them, so provisioning waits for the upload rather than recording a pass
 // against an empty file.
