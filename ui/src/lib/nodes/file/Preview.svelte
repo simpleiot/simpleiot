@@ -57,9 +57,11 @@
 					id="{id}-{i}"
 					type="text"
 					value={tests[b.name] ?? ""}
-					placeholder={b.use}
 					oninput={(e) => (tests[b.name] = e.currentTarget.value)}
 				/>
+				<!-- what the drawing does with the binding, as the widget editor
+				     lists it -->
+				<span class="use">{b.use}</span>
 			</Label>
 		{/each}
 	{/if}
@@ -82,6 +84,11 @@
 		display: block;
 		max-width: 100%;
 		max-height: 480px;
+	}
+
+	.use {
+		color: var(--muted);
+		font-size: 13px;
 	}
 
 	.hint {
