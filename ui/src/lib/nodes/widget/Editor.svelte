@@ -134,7 +134,7 @@
 			{name}
 			{props}
 			{via}
-			source={name === source}
+			source={name === source || descriptor?.bindingPoints?.[name] === PointType.Data}
 			pointType={descriptor?.bindingPoints?.[name] ?? PointType.Value}
 		/>
 		{#if name === source && sourceHint !== ""}
@@ -162,11 +162,15 @@
 		<NumberInput type={PointType.Y} label="Y" />
 		<NumberInput type={PointType.W} label="Width" />
 		<NumberInput type={PointType.H} label="Height" />
+		<NumberInput type={PointType.Z} label="Z" />
 	</div>
-	<div class="hint">Columns and rows on a grid; canvas units on a canvas.</div>
+	<div class="hint">
+		Columns and rows on a grid; canvas units on a canvas. On a canvas a higher Z draws on top.
+	</div>
 	<KeyValueInput type={PointType.Prop} label="Options" buttonLabel="Add option" />
 	<div class="hint">
-		Every widget takes <code>scale</code> (1 is normal size){optionNames.length > 0
+		Every widget takes <code>scale</code> (1 is normal size) and <code>background</code>
+		(<code>on</code> or a color, for a card behind it){optionNames.length > 0
 			? `; this component also takes ${optionNames.join(", ")}`
 			: ""}.
 	</div>

@@ -238,6 +238,7 @@ export const PointType = {
 	Weekday: "weekday",
 	X: "x",
 	Y: "y",
+	Z: "z",
 } as const
 
 // PointValue holds text values that some point types take.

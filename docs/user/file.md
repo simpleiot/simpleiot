@@ -21,6 +21,11 @@ a JSON file can be changed in place. The changes are saved with the node, and
 the size and hash follow. A file can also be written from scratch: add a file
 node, give it a name with the right extension, and type the contents.
 
+A file that holds an image (a PNG, JPEG, GIF, or WebP uploaded as binary, or an
+SVG) is shown in the node's settings. An SVG with
+[bindings](dashboards.md#custom-drawings) also gets a test value for each one,
+so the drawing can be tried before it goes on a dashboard.
+
 ![a file node](images/file.png)
 
 ## Schema

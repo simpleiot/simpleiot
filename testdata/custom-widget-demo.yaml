@@ -69,7 +69,7 @@ nodes:
             sampleRate: 1
             roundTo: 0.1
         - signalGenerator:
-            description: Pump speed
+            description: Drawn pump speed
             signalType: random walk
             units: "%"
             minValue: 60
@@ -90,23 +90,23 @@ nodes:
                   valueType: onOff
                   value: 1
               - action:
-                  description: Run the pump speed signal
+                  description: Run the drawn pump speed signal
                   action: setValue
-                  nodeID: Pump speed
+                  nodeID: Drawn pump speed
                   pointType: disabled
                   valueType: onOff
                   value: 0
               - actionInactive:
-                  description: Stop the pump speed signal
+                  description: Stop the drawn pump speed signal
                   action: setValue
-                  nodeID: Pump speed
+                  nodeID: Drawn pump speed
                   pointType: disabled
                   valueType: onOff
                   value: 1
               - actionInactive:
-                  description: Pump speed to zero
+                  description: Drawn pump speed to zero
                   action: setValue
-                  nodeID: Pump speed
+                  nodeID: Drawn pump speed
                   pointType: value
                   valueType: number
                   value: 0
@@ -260,7 +260,7 @@ nodes:
                     svg: Dial drawing
                     pressure: Dial pressure
               - widget:
-                  description: Pump
+                  description: Drawn pump
                   component: svg
                   x: 320
                   y: 300
@@ -268,7 +268,7 @@ nodes:
                   bindNode:
                     svg: Pump drawing
                     running: Pump command
-                    speed: Pump speed
+                    speed: Drawn pump speed
               - widget:
                   description: Vessel
                   component: svg
@@ -284,7 +284,7 @@ nodes:
                     outlet: "1,0.9,right"
               - link:
                   description: Pump to vessel
-                  from: Pump.discharge
+                  from: Drawn pump.discharge
                   to: Vessel.inlet
                   routing: orthogonal
                   bindNode:
@@ -297,7 +297,7 @@ nodes:
             cols: 12
             children:
               - widget:
-                  description: Lamp switch
+                  description: Lamp switch tile
                   component: svg
                   x: 0
                   y: 0
@@ -319,7 +319,7 @@ nodes:
                   prop:
                     control: "off"
               - widget:
-                  description: Pressure dial
+                  description: Pressure dial tile
                   component: svg
                   x: 4
                   y: 0

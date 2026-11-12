@@ -1,12 +1,13 @@
 import { describe, expect, test } from "vitest"
 import { widgets } from "./index.ts"
-import { multiplier, num, withDefaults } from "./registry.ts"
+import { background, multiplier, num, withDefaults } from "./registry.ts"
 
 describe("widgets", () => {
 	test("every widget declares a host, its bindings, and defaults", () => {
 		expect(widgets.all.map((w) => w.name).sort()).toEqual([
 			"dashboard",
 			"gauge",
+			"image",
 			"pump",
 			"status",
 			"svg",
@@ -42,5 +43,16 @@ describe("widgets", () => {
 		for (const name of ["value", "gauge", "trend"]) {
 			expect(widgets.get(name)?.options.multiplier).toBe("1")
 		}
+	})
+
+	test("background is off, the card color, or a CSS color", () => {
+		expect(background({})).toBeUndefined()
+		expect(background({ background: "off" })).toBeUndefined()
+		expect(background({ background: "on" })).toBe("var(--bg)")
+		expect(background({ background: "#123" })).toBe("#123")
+		expect(background({ background: "rgb(0 0 0 / 50%)" })).toBe("rgb(0 0 0 / 50%)")
+		expect(background({ background: "white" })).toBe("white")
+		expect(background({ background: "url(https://example.com/t.png)" })).toBeUndefined()
+		expect(background({ background: "red; color: blue" })).toBeUndefined()
 	})
 })

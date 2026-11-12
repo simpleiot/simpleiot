@@ -146,3 +146,23 @@ export function multiplier(options: Readonly<Record<string, string>>): number {
 	const m = num(options, "multiplier", 1)
 	return m === 0 ? 1 : m
 }
+
+// a color the background option may name: a hex value, a name, or an
+// rgb() or hsl() function, and nothing that could load a resource
+const color = /^(#[0-9a-f]{3,8}|[a-z]+|(rgba?|hsla?)\([\d\s.,%/]+\))$/i
+
+// background reads the background option every widget takes, which draws
+// a card behind the widget so it reads cleanly over another: on, yes,
+// true, or 1 for the page's card color, or a CSS color. It is undefined
+// when the option is off or is not a color.
+export function background(options: Readonly<Record<string, string>>): string | undefined {
+	const v = (options.background ?? "").trim()
+	const lower = v.toLowerCase()
+	if (["", "off", "no", "false", "0", "none"].includes(lower)) {
+		return undefined
+	}
+	if (["on", "yes", "true", "1"].includes(lower)) {
+		return "var(--bg)"
+	}
+	return color.test(v) ? v : undefined
+}

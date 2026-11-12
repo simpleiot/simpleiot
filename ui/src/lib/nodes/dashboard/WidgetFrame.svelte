@@ -5,7 +5,7 @@
 	// still shows its shape. A widget whose bound node accepts writes gets
 	// an onWrite, and acts as a control.
 	import { newText, newValue, type Point } from "#lib/siot/point.ts"
-	import type { Write } from "#lib/widgets/registry.ts"
+	import { background, type Write } from "#lib/widgets/registry.ts"
 	import type { Placed } from "./bindings.ts"
 	import NestedDashboard from "./NestedDashboard.svelte"
 
@@ -35,6 +35,9 @@
 		return Number.isFinite(s) && s > 0 ? s : 1
 	})
 	const byWidth = $derived(p.descriptor?.fit === "width")
+	// fill is the card drawn behind the widget, so a value placed over a
+	// tank or a drawing reads cleanly
+	const fill = $derived(background(p.options))
 	const scale = $derived(
 		bare && !byWidth ? (p.layout.w / (p.descriptor?.width ?? 160)) * option : option
 	)
@@ -64,6 +67,8 @@
 	class:bare
 	class:dead
 	class:editing
+	class:filled={fill !== undefined}
+	style:background={fill}
 	title={dead ? "a bound node was not found" : undefined}
 >
 	{#if p.nested}
@@ -131,6 +136,12 @@
 		border: none;
 		background: none;
 		overflow: visible;
+	}
+
+	/* a card behind a canvas widget leaves room around its content */
+	.bare.filled {
+		padding: 4px 8px;
+		border-radius: 6px;
 	}
 
 	.bare.dead {

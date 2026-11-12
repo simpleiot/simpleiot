@@ -31,6 +31,9 @@ func fixturePoints() Points {
 	pts[3].Origin = "user-1"
 	pts[3].Tombstone = 1
 	pts = append(pts, Point{Type: "json", Key: "0", DataType: PointDataTypeJSON, Data: []byte(`{"a":1}`)})
+	// negative ints in each width short of 8 bytes, which are read back as
+	// signed
+	pts = append(pts, NewPointInt("z", "0", -1), NewPointInt("z", "1", -300), NewPointInt("z", "2", -70000))
 	for i := range pts {
 		pts[i].Time = t0.Add(time.Duration(i) * time.Second)
 	}

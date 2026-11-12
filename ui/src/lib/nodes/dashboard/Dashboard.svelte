@@ -23,6 +23,7 @@
 	} from "./bindings.ts"
 	import Canvas from "./Canvas.svelte"
 	import Grid from "./Grid.svelte"
+	import { widgetZ } from "./zorder.ts"
 
 	let {
 		dashboard,
@@ -115,6 +116,7 @@
 					options,
 					writes: writeTargets(bindings, lookup, (t) => registry.get(t)?.writeType, options),
 					layout: widgetLayout(w, defaults),
+					z: widgetZ(w),
 					ports: parsePorts(w, ports),
 					...(component === nestedWidget && first ? { nested: first.nodeId } : {}),
 					ancestors,

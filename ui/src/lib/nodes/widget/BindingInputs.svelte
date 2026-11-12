@@ -26,8 +26,8 @@
 		props: EditorProps
 		// via is the dashboard's parent, which a relative path starts from
 		via?: { id: string; description: string }
-		// source says the binding holds a document the widget draws, which
-		// a file node carries
+		// source says the binding holds a document or an image the widget
+		// draws, which a file node carries
 		source?: boolean
 		// pointType is the point the binding reads when none is chosen
 		pointType?: string

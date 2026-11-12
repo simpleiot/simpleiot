@@ -58,5 +58,35 @@
     "text": "{\"a\":1}",
     "tombstone": 0,
     "origin": ""
+  },
+  {
+    "type": "z",
+    "key": "0",
+    "time": "2026-09-01T12:30:51.123Z",
+    "dataType": 2,
+    "value": -1,
+    "text": "",
+    "tombstone": 0,
+    "origin": ""
+  },
+  {
+    "type": "z",
+    "key": "1",
+    "time": "2026-09-01T12:30:52.123Z",
+    "dataType": 2,
+    "value": -300,
+    "text": "",
+    "tombstone": 0,
+    "origin": ""
+  },
+  {
+    "type": "z",
+    "key": "2",
+    "time": "2026-09-01T12:30:53.123Z",
+    "dataType": 2,
+    "value": -70000,
+    "text": "",
+    "tombstone": 0,
+    "origin": ""
   }
 ]
