@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.36.1] - 2026-11-13
+
 ### Added
 
 - **Any widget can open another dashboard.** Bind a widget's `navigate` to a
