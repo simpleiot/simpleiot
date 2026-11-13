@@ -11,6 +11,36 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.36.1] - 2026-11-13
+
+### Added
+
+- **Any widget can open another dashboard.** Bind a widget's `navigate` to a
+  dashboard and a click on it opens that dashboard, so an overview can lead to
+  each area and back. A **button** component labels the link, and
+  `data-siot-open` does the same for a region of a custom drawing. See
+  [opening another dashboard](docs/user/dashboards.md#opening-another-dashboard).
+- **A widget can open a web page, such as a Grafana dashboard.** Set the
+  widget's `url` option; `:3000/d/abc` opens port 3000 on the host the dashboard
+  was loaded from, so a Grafana on the same machine needs no address. See
+  [opening another page](docs/user/dashboards.md#opening-another-page).
+- **Dashboard controls for MCU settings.** A widget's `write` option names the
+  point type it sends, so a value tile can set a point such as an MCU's
+  `fanSet`, on a node type that takes no writes by default. See
+  [controls](docs/user/dashboards.md#controls).
+- **A slider widget.** A slider sets a value over a range and sends it when it
+  is let go.
+
+### Fixed
+
+- **A drawing's styles stay in the drawing.** A `<style>` in one custom drawing
+  no longer restyles other drawings and widgets on the same dashboard, so two
+  drawings can share class names such as `.label`.
+- **Controls keep a point's integer type.** A setting written to a point that
+  holds an integer is sent as one, as is any setting from a widget with the
+  `integer` option on, so an MCU that reads it as an integer gets the value
+  typed, where before it could read a float's bits as a very large number.
+
 ## [0.36.0] - 2026-11-12
 
 ### Added

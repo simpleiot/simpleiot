@@ -7,6 +7,7 @@ import type { MimicPort, PortDir } from "#lib/vendor/nautilus/mimic.ts"
 import type { DeclaredBinding } from "../registry.ts"
 import type { Bound, Write } from "../registry.ts"
 import { sanitizeSvg } from "./sanitize.ts"
+import { scopeId, scopeStyles } from "./scope.ts"
 
 export interface Drawing {
 	// svg is the sanitized markup to inject, "" when there is none
@@ -18,9 +19,18 @@ export interface Drawing {
 	ports: MimicPort[]
 	// error says why there is nothing to draw
 	error: string
+	// scope is the id the drawing's stylesheet is kept to; the element
+	// that holds the drawing carries it in scopeAttr
+	scope: string
 }
 
-const empty = (error: string): Drawing => ({ svg: "", bindings: [], ports: [], error })
+const empty = (error: string): Drawing => ({
+	svg: "",
+	bindings: [],
+	ports: [],
+	error,
+	scope: "",
+})
 
 interface ViewBox {
 	x: number
@@ -118,16 +128,25 @@ function parse(text: string): Drawing {
 	}
 	svg.removeAttribute("width")
 	svg.removeAttribute("height")
+	// the drawing's stylesheet is kept to the drawing, since a <style> in
+	// an inline SVG otherwise applies to the whole page. The scope is rooted
+	// at the element holding the drawing rather than at the <svg>, since
+	// @scope reads each selector as a descendant of its root, and a rule
+	// such as "svg { }" or ".drawing .part" names the <svg> itself.
+	const id = scopeId(text)
+	for (const style of svg.querySelectorAll("style")) {
+		style.textContent = scopeStyles(style.textContent, id)
+	}
 	const bindings = declaredBindings(svg)
 	const ports = [...svg.querySelectorAll("[data-siot-port]")]
 		.map((el) => portOf(el, box))
 		.filter((p): p is MimicPort => p !== undefined)
-	return { svg: svg.outerHTML, bindings, ports, error: "" }
+	return { svg: svg.outerHTML, bindings, ports, error: "", scope: id }
 }
 
 // the attributes that make an element do something with its binding; an
 // element with none follows the value through its state alone
-const effects = ["text", "translate", "rotate", "level", "bands", "toggle", "set"]
+const effects = ["text", "translate", "rotate", "level", "bands", "toggle", "set", "open"]
 
 // declaredBindings lists the bindings the drawing names, in document
 // order, each with the effects of the elements that follow it
@@ -231,15 +250,20 @@ const clickable = "[data-siot-toggle], [data-siot-set]"
 
 // applyBindings sets the state attribute, text, and transforms on every
 // bound element under root from the values, and marks the elements a
-// click would act on. It touches attributes only, so the drawing's own
+// click would act on: one that writes a binding in writes, or opens a
+// dashboard in opens. It touches attributes only, so the drawing's own
 // styles and animations carry on.
 export function applyBindings(
 	root: ParentNode,
 	values: Readonly<Record<string, Bound>>,
-	writes: ReadonlySet<string>
+	writes: ReadonlySet<string>,
+	opens: Readonly<Record<string, string>> = {}
 ): void {
 	for (const el of root.querySelectorAll<SVGElement | HTMLElement>(clickable)) {
 		el.style.cursor = writes.has(bindNameOf(el)) ? "pointer" : ""
+	}
+	for (const el of root.querySelectorAll<SVGElement | HTMLElement>("[data-siot-open]")) {
+		el.style.cursor = opens[bindNameOf(el)] !== undefined ? "pointer" : ""
 	}
 	for (const el of root.querySelectorAll<SVGElement | HTMLElement>("[data-siot-bind]")) {
 		const name = (el.getAttribute("data-siot-bind") ?? "").trim()
@@ -322,6 +346,22 @@ export function clickTarget(
 		const n = Number(set)
 		const numeric = set !== null && set.trim() !== "" && Number.isFinite(n)
 		return { prop, write: numeric ? { value: n, text: "" } : { value: 0, text: set ?? "" } }
+	}
+	return undefined
+}
+
+// openTarget says what a click on target opens: the address of the
+// dashboard bound to the nearest element up to root with data-siot-open,
+// when there is one.
+export function openTarget(
+	root: Node,
+	target: Element | null,
+	opens: Readonly<Record<string, string>>
+): string | undefined {
+	for (let el = target; el && el !== root; el = el.parentElement) {
+		if (el.hasAttribute("data-siot-open")) {
+			return opens[bindNameOf(el)]
+		}
 	}
 	return undefined
 }

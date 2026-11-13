@@ -1,15 +1,17 @@
 import { describe, expect, test } from "vitest"
 import type { Node } from "#lib/siot/node.ts"
-import { newText, newValue } from "#lib/siot/point.ts"
+import { DataType, newText, newValue } from "#lib/siot/point.ts"
 import {
 	bindingPaths,
 	boundNodeIds,
+	openTargets,
 	parseBindings,
 	parseLink,
 	parsePorts,
 	resolveBindings,
 	widgetLayout,
 	widgetOptions,
+	writePoint,
 	writeTargets,
 } from "./bindings.ts"
 
@@ -75,6 +77,7 @@ describe("bindings", () => {
 			value: 21.5,
 			text: "",
 			time: "2026-11-03T00:00:00.000Z",
+			dataType: DataType.Float,
 		})
 		expect(r.setpoint?.state).toBe("stale")
 		expect(resolveBindings(parseBindings(widget), () => undefined).value?.state).toBe("dead")
@@ -99,6 +102,47 @@ describe("bindings", () => {
 				{}
 			)
 		).toEqual({})
+	})
+
+	test("a write option names the point a binding writes, on any node type", () => {
+		const nodes: Record<string, Node> = {
+			ec: { id: "ec", type: "serialDev", parent: "d", points: [], edgePoints: [] },
+		}
+		const bindings = {
+			value: { nodeId: "ec", type: "fanSet", key: "0" },
+			gone: { nodeId: "x", type: "fanSet", key: "0" },
+		}
+		const none = () => undefined
+		expect(writeTargets(bindings, (id) => nodes[id], none, {})).toEqual({})
+		expect(writeTargets(bindings, (id) => nodes[id], none, { write: "fanSet" })).toEqual({
+			value: { nodeId: "ec", type: "fanSet", key: "0" },
+		})
+		expect(
+			writeTargets(bindings, (id) => nodes[id], none, { write: "fanSet", control: "off" })
+		).toEqual({})
+	})
+
+	test("a control writes an integer to a point that is one", () => {
+		const target = { nodeId: "ec", type: "fanSet", key: "0" }
+		const t = "2026-11-13T00:00:00Z"
+		const int = { state: "live" as const, value: 50, text: "", time: t, dataType: DataType.Int }
+		expect(writePoint(target, int, { value: 99.6, text: "" }, t)).toMatchObject({
+			type: "fanSet",
+			dataType: DataType.Int,
+			value: 100,
+		})
+		const float = { ...int, dataType: DataType.Float }
+		expect(writePoint(target, float, { value: 99.6, text: "" }, t)).toMatchObject({
+			dataType: DataType.Float,
+			value: 99.6,
+		})
+		expect(
+			writePoint(target, float, { value: 99.6, text: "" }, t, { integer: "on" })
+		).toMatchObject({ dataType: DataType.Int, value: 100 })
+		expect(writePoint(target, undefined, { value: 0, text: "on" }, t)).toMatchObject({
+			dataType: DataType.String,
+			text: "on",
+		})
 	})
 
 	test("options skip deleted points and layout fills defaults", () => {
@@ -162,5 +206,25 @@ describe("canvas", () => {
 		expect(l.rate).toBe(1)
 		expect(l.dead).toBe(false)
 		expect(parseLink(link, () => undefined).dead).toBe(true)
+	})
+
+	test("a binding that names a dashboard opens it", () => {
+		const nodes: Record<string, Node> = {
+			d2: { id: "d2", type: "dashboard", parent: "g", points: [], edgePoints: [] },
+			n1: { id: "n1", type: "variable", parent: "g", points: [], edgePoints: [] },
+		}
+		const bindings = {
+			dashboard: { nodeId: "d2", type: "value", key: "0" },
+			value: { nodeId: "n1", type: "value", key: "0" },
+			gone: { nodeId: "x", type: "value", key: "0" },
+		}
+		expect(
+			openTargets(
+				bindings,
+				(id) => nodes[id],
+				(t) => t === "dashboard",
+				(id) => `/dash/${id}`
+			)
+		).toEqual({ dashboard: "/dash/d2" })
 	})
 })

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, test } from "vitest"
 import type { Bound } from "../registry.ts"
-import { applyBindings, bandOf, clickTarget, parseDrawing } from "./drawing.ts"
+import { applyBindings, bandOf, clickTarget, openTarget, parseDrawing } from "./drawing.ts"
 
 const lamp = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 160">
   <style>[data-siot-state="on"] { fill: #0a0; }</style>
@@ -226,5 +226,36 @@ describe("bandOf", () => {
 		expect(bandOf(10, "10,0")).toBe(2)
 		expect(bandOf(5, " 0 , x, 10")).toBe(1)
 		expect(bandOf(5, "")).toBe(0)
+	})
+})
+
+describe("openTarget", () => {
+	const plan = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 50">
+  <g data-siot-bind="north" data-siot-open><rect class="north" x="0" y="0" width="40" height="40" /></g>
+  <rect class="south" x="50" y="0" width="40" height="40" data-siot-bind="south" data-siot-open />
+  <rect class="plain" x="0" y="45" width="5" height="5" data-siot-bind="north" />
+</svg>`
+	const host = mount(parseDrawing(plan).svg)
+	const opens = { north: "/dash/n" }
+
+	test("a click inside an element marked open opens its binding's dashboard", () => {
+		expect(openTarget(host, host.querySelector(".north"), opens)).toBe("/dash/n")
+	})
+
+	test("nothing opens without a bound dashboard or the attribute", () => {
+		expect(openTarget(host, host.querySelector(".south"), opens)).toBeUndefined()
+		expect(openTarget(host, host.querySelector(".plain"), opens)).toBeUndefined()
+	})
+
+	test("the binding is listed with its use, and the cursor marks what opens", () => {
+		expect(parseDrawing(plan).bindings).toEqual([
+			{ name: "north", use: "open" },
+			{ name: "south", use: "open" },
+		])
+		applyBindings(host, {}, new Set(), opens)
+		const cursor = (sel: string) =>
+			(host.querySelector(sel)?.closest("[data-siot-open]") as SVGElement | null)?.style.cursor
+		expect(cursor(".north")).toBe("pointer")
+		expect(cursor(".south")).toBe("")
 	})
 })

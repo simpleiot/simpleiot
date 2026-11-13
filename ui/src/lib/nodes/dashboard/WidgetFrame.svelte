@@ -3,10 +3,15 @@
 	// registry has it, a placeholder naming it when not, and a mark when a
 	// binding is dead so a dashboard synced to a device missing the node
 	// still shows its shape. A widget whose bound node accepts writes gets
-	// an onWrite, and acts as a control.
-	import { newText, newValue, type Point } from "#lib/siot/point.ts"
-	import { background, type Write } from "#lib/widgets/registry.ts"
-	import type { Placed } from "./bindings.ts"
+	// an onWrite, and acts as a control. A widget with a navigate binding
+	// opens that dashboard when clicked, where the widget does not act on
+	// the click itself; one with a url option opens that address in a new
+	// tab instead.
+	import { goto } from "$app/navigation"
+	import type { Point } from "#lib/siot/point.ts"
+	import { background, navigateBinding, type Write } from "#lib/widgets/registry.ts"
+	import { writePoint, type Placed } from "./bindings.ts"
+	import { linkUrl } from "./link.ts"
 	import NestedDashboard from "./NestedDashboard.svelte"
 
 	let {
@@ -51,17 +56,48 @@
 						return
 					}
 					const t = new Date().toISOString()
-					onWrite(
-						target.nodeId,
-						w.text !== ""
-							? newText(target.type, target.key, w.text, t)
-							: newValue(target.type, target.key, w.value, t)
-					)
+					onWrite(target.nodeId, writePoint(target, p.values[prop], w, t, p.options))
 				}
 			: undefined
 	)
+
+	// the dashboard a click opens, else the address the url option names;
+	// none in edit mode, where a click selects
+	const dash = $derived(editing ? undefined : p.opens[navigateBinding])
+	const url = $derived(
+		editing || dash !== undefined ? undefined : linkUrl(p.options.url ?? "", location)
+	)
+	const href = $derived(dash ?? url)
+
+	function go() {
+		if (dash !== undefined) {
+			// the path is resolved in dashHref; only the query is appended
+			// eslint-disable-next-line svelte/no-navigation-without-resolve
+			void goto(dash)
+		} else if (url !== undefined) {
+			window.open(url, "_blank", "noopener")
+		}
+	}
+
+	// a widget that acts on a click stops it, and a link inside the widget,
+	// such as a nested dashboard's title, goes where it points
+	function open(e: MouseEvent) {
+		if (href === undefined || (e.target as Element | null)?.closest("a")) {
+			return
+		}
+		go()
+	}
+
+	function onkeydown(e: KeyboardEvent) {
+		if (href !== undefined && e.key === "Enter" && e.target === e.currentTarget) {
+			go()
+		}
+	}
 </script>
 
+<!-- the frame takes focus only when it is a link, which the check cannot
+     tell from the conditional role -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
 	class="frame"
 	class:bare
@@ -69,7 +105,12 @@
 	class:editing
 	class:filled={fill !== undefined}
 	style:background={fill}
-	title={dead ? "a bound node was not found" : undefined}
+	class:opens={href !== undefined}
+	title={dead ? "a bound node was not found" : url}
+	role={href !== undefined ? "link" : undefined}
+	tabindex={href !== undefined ? 0 : undefined}
+	onclick={open}
+	{onkeydown}
 >
 	{#if p.nested}
 		<NestedDashboard id={p.nested} ancestors={p.ancestors} via={p.via} />
@@ -82,6 +123,7 @@
 				width={bare && byWidth ? p.layout.w / scale : undefined}
 				onWrite={write}
 				writable={Object.keys(p.writes)}
+				opens={editing ? undefined : p.opens}
 				control={Object.keys(p.writes).length > 0}
 				{editing}
 			/>
@@ -111,6 +153,14 @@
 	.frame.editing {
 		border-color: var(--border);
 		background: var(--detail-bg);
+	}
+
+	.opens {
+		cursor: pointer;
+	}
+
+	.opens:focus-visible {
+		outline: 2px solid var(--blue);
 	}
 
 	.dead {

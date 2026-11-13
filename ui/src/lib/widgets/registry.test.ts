@@ -5,10 +5,12 @@ import { background, multiplier, num, withDefaults } from "./registry.ts"
 describe("widgets", () => {
 	test("every widget declares a host, its bindings, and defaults", () => {
 		expect(widgets.all.map((w) => w.name).sort()).toEqual([
+			"button",
 			"dashboard",
 			"gauge",
 			"image",
 			"pump",
+			"slider",
 			"status",
 			"svg",
 			"tank",

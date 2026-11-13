@@ -20,6 +20,7 @@
 		props,
 		via,
 		source = false,
+		dashboard = false,
 		pointType = PointType.Value,
 	}: {
 		name: string
@@ -29,6 +30,9 @@
 		// source says the binding holds a document or an image the widget
 		// draws, which a file node carries
 		source?: boolean
+		// dashboard says the binding names a dashboard, to show in place or
+		// to open
+		dashboard?: boolean
 		// pointType is the point the binding reads when none is chosen
 		pointType?: string
 	} = $props()
@@ -36,11 +40,11 @@
 	const ctx = inputContext()
 
 	// a binding reads a node's points, which a dashboard, widget, or link
-	// has none of; the nested dashboard's binding wants dashboards alone,
+	// has none of; a binding that names a dashboard wants dashboards alone,
 	// and a source binding file nodes alone
 	const layoutTypes: readonly string[] = [NodeType.Dashboard, NodeType.Widget, NodeType.Link]
 	const search = (query: string) =>
-		name === "dashboard"
+		dashboard
 			? props.searchNodes(query, NodeType.Dashboard)
 			: source
 				? props.searchNodes(query, NodeType.File)

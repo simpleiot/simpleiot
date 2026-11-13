@@ -37,6 +37,7 @@ on a narrow one.
    | gauge     | a radial gauge over a range | `min`, `max`, `unit`, `decimals`, `multiplier` |
    | status    | on or off                   | `on`, `off`, `confirm`                         |
    | trend     | the last values as a line   | `window`, `min`, `max`, `unit`, `multiplier`   |
+   | slider    | a setting over a range      | `min`, `max`, `step`, `unit`, `decimals`       |
 
 4. A dashboard has 12 columns unless its **Columns** setting says otherwise. The
    column, row, width, and height fields in the widget's settings set its place
@@ -78,11 +79,10 @@ which is the size the equipment draws at.
 
 Widgets on a canvas can overlap. **Z** sets which one is on top: a higher Z
 draws over a lower one, and widgets with the same Z draw in ID order. A new
-widget goes on top. In edit mode, **bring to front**, **forward**,
-**backward**, and **send to back** above the selected widget's settings change
-its place in the stack, and a click selects the topmost widget under the
-pointer. Links draw over widgets with a negative Z, such as a background image,
-and under the rest.
+widget goes on top. In edit mode, **bring to front**, **forward**, **backward**,
+and **send to back** above the selected widget's settings change its place in
+the stack, and a click selects the topmost widget under the pointer. Links draw
+over widgets with a negative Z, such as a background image, and under the rest.
 
 Links join two widgets at their **ports**, the named points on a widget's edge
 that show as dots in edit mode. Drag from one port to another to draw a link. A
@@ -105,14 +105,26 @@ its shape.
 A widget bound to a node that accepts a new value is a control. A status pill on
 an on/off variable is a switch: click it to flip the state. A value tile on a
 number or text variable is a setting: click the value for an edit box, and Enter
-sends it. A click anywhere else on a dashboard does nothing; the node behind a
-widget is reached through edit mode, where the widget's settings link to it.
+sends it. A slider sends its value when it is let go. A click anywhere else on a
+dashboard does nothing; the node behind a widget is reached through edit mode,
+where the widget's settings link to it.
 
 Which nodes accept writes, and on which point, is part of each node type: a
 variable takes the value itself, and an output such as a Modbus IO or a GPIO
 takes a set request. Set the `control` option to `off` on a widget that should
 only show, and `confirm` to `on` for one whose change must be confirmed before
 it is sent.
+
+A node with many settings under their own point types, such as an MCU on a
+serial link, takes none of them by default. Set the `write` option to the point
+type a widget should send, and the widget writes that type under its binding's
+key, whatever the node. A slider bound to an MCU's `fanSet` point with `write`
+set to `fanSet` is a fan speed setting. A number goes out as an integer when the
+point already holds one, or when the widget's `integer` option is `on`. Set
+`integer` for an MCU setting the firmware reads as an integer, since a point the
+MCU only receives holds whatever type was last written to it. `write` applies to
+every binding the widget has, so give it to a widget that binds only what it
+should set.
 
 ## Custom drawings
 
@@ -149,6 +161,7 @@ else in the file changes.
 | `data-siot-port="name,dir"`   | makes the element's center a port for links; `dir` is `left`, `right`, `up`, or `down`                                    |
 | `data-siot-toggle`            | a click sends the opposite of the bound value                                                                             |
 | `data-siot-set="1"`           | a click sends that value, as text when it is not a number                                                                 |
+| `data-siot-open`              | a click opens the dashboard the binding names; see [opening another dashboard](#opening-another-dashboard)                |
 
 Every bound element also gets a `data-siot-state` attribute of `on`, `off`,
 `stale`, or `dead`: `on` when the value is not zero, `stale` while the point has
@@ -189,6 +202,10 @@ links, embedded documents, and references outside the file are removed, and
 local styles, gradients, and inline images are kept. A file that is not an SVG,
 or has neither a `viewBox` nor a size, draws as a placeholder saying so.
 
+A drawing's `<style>` applies to that drawing alone, so two drawings on one
+dashboard may use the same class names, and neither restyles the other widgets.
+Each `@keyframes` name is made the drawing's own as well.
+
 `testdata/custom-widget-demo.yaml` shows every feature on two dashboards, with
 the drawings written inline; see [A demo](#a-demo).
 
@@ -197,11 +214,12 @@ the drawings written inline; see [A demo](#a-demo).
 The **image** component shows a picture from a file node: a site photo, a panel,
 a logo. Upload a PNG, JPEG, GIF, or WebP to a **File** node with the **Binary**
 option on, or an SVG either way, then bind the widget's `image` to the file
-node. On a canvas the image takes the widget's width at its own proportions; give
-it a negative Z to use it as a background under the links and the equipment. In a grid tile `fit` says
-how it fills the tile: `contain` (the default), `cover`, or `stretch`. `opacity`
-from `0` to `1` fades it. An SVG is sanitized as a [drawing](#custom-drawings)
-is, and its bindings are not followed; use the **svg** component for that.
+node. On a canvas the image takes the widget's width at its own proportions;
+give it a negative Z to use it as a background under the links and the
+equipment. In a grid tile `fit` says how it fills the tile: `contain` (the
+default), `cover`, or `stretch`. `opacity` from `0` to `1` fades it. An SVG is
+sanitized as a [drawing](#custom-drawings) is, and its bindings are not
+followed; use the **svg** component for that.
 
 ## Relative bindings
 
@@ -230,6 +248,52 @@ depth, stops there with a note. Relative bindings in the nested dashboard start
 from the parent the outer dashboard was opened under, so an overview mirrored
 under several devices shows each device's nodes in every tile, and the
 dashboards it shows need no mirroring of their own.
+
+## Opening another dashboard
+
+Any widget can open another dashboard when clicked, for moving between the
+screens of an HMI: an overview with a reading or a tank per area, and each area
+with a way back. Bind the widget's `navigate` to the dashboard node. A click
+where the widget acts on its own, such as editing a value or a `toggle` in a
+drawing, still does that; a click anywhere else opens the dashboard. The
+dashboard opens under the same parent as the one it was opened from, so its
+relative bindings follow the same device.
+
+The **button** component is a label for this: it shows the `text` option, else
+the widget's description, else the dashboard's.
+
+In a [custom drawing](#custom-drawings), `data-siot-open` on an element opens
+the dashboard its binding names, so each region of a site plan can open the
+dashboard for that area:
+
+```xml
+<g data-siot-bind="north" data-siot-open>
+  <rect x="0" y="0" width="200" height="120" />
+</g>
+```
+
+Bind `north` to a dashboard in the widget's settings. In edit mode a click
+selects the widget rather than opening a dashboard. `testdata/links-demo.yaml`
+shows each of these, and a button that keeps the station it was opened under.
+
+### Opening another page
+
+A widget's `url` option opens an address in a new tab, such as a Grafana
+dashboard with the history behind a reading. It takes a full `http` or `https`
+URL, a path on the SIOT server, or a port and path on the host the dashboard was
+loaded from:
+
+| `url`                              | opens                                                          |
+| ---------------------------------- | -------------------------------------------------------------- |
+| `https://grafana.example.com/d/ab` | that address                                                   |
+| `:3000/d/ab/pumps`                 | port 3000 on this host, e.g. `http://10.0.0.5:3000/d/ab/pumps` |
+| `/grafana/d/ab`                    | that path on the SIOT server, behind a proxy                   |
+
+The port form suits a Grafana on the same machine as SIOT, since the dashboard
+works whatever address it is reached at. The scheme follows the page's, so
+Grafana must be served over HTTPS when SIOT is. A widget with a `navigate`
+binding opens the dashboard rather than the URL. `testdata/links-demo.yaml`
+shows a button and a reading that open URLs.
 
 ## Home dashboard
 
