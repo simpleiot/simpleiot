@@ -10,6 +10,7 @@ describe("widgets", () => {
 			"gauge",
 			"image",
 			"pump",
+			"slider",
 			"status",
 			"svg",
 			"tank",

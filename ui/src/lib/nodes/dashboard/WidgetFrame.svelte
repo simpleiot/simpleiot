@@ -7,9 +7,9 @@
 	// opens that dashboard when clicked, where the widget does not act on
 	// the click itself.
 	import { goto } from "$app/navigation"
-	import { newText, newValue, type Point } from "#lib/siot/point.ts"
+	import type { Point } from "#lib/siot/point.ts"
 	import { background, navigateBinding, type Write } from "#lib/widgets/registry.ts"
-	import type { Placed } from "./bindings.ts"
+	import { writePoint, type Placed } from "./bindings.ts"
 	import NestedDashboard from "./NestedDashboard.svelte"
 
 	let {
@@ -54,12 +54,7 @@
 						return
 					}
 					const t = new Date().toISOString()
-					onWrite(
-						target.nodeId,
-						w.text !== ""
-							? newText(target.type, target.key, w.text, t)
-							: newValue(target.type, target.key, w.value, t)
-					)
+					onWrite(target.nodeId, writePoint(target, p.values[prop], w, t, p.options))
 				}
 			: undefined
 	)

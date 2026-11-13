@@ -18,6 +18,19 @@ For more details or to discuss releases, please visit the
   each area and back. A **button** component labels the link, and
   `data-siot-open` does the same for a region of a custom drawing. See
   [opening another dashboard](docs/user/dashboards.md#opening-another-dashboard).
+- **Dashboard controls for MCU settings.** A widget's `write` option names the
+  point type it sends, so a value tile can set a point such as an MCU's
+  `fanSet`, on a node type that takes no writes by default. See
+  [controls](docs/user/dashboards.md#controls).
+- **A slider widget.** A slider sets a value over a range and sends it when it
+  is let go.
+
+### Fixed
+
+- **Controls keep a point's integer type.** A setting written to a point that
+  holds an integer is sent as one, as is any setting from a widget with the
+  `integer` option on, so an MCU that reads it as an integer gets the value
+  typed, where before it could read a float's bits as a very large number.
 
 ## [0.36.0] - 2026-11-12
 

@@ -37,6 +37,7 @@ on a narrow one.
    | gauge     | a radial gauge over a range | `min`, `max`, `unit`, `decimals`, `multiplier` |
    | status    | on or off                   | `on`, `off`, `confirm`                         |
    | trend     | the last values as a line   | `window`, `min`, `max`, `unit`, `multiplier`   |
+   | slider    | a setting over a range      | `min`, `max`, `step`, `unit`, `decimals`       |
 
 4. A dashboard has 12 columns unless its **Columns** setting says otherwise. The
    column, row, width, and height fields in the widget's settings set its place
@@ -105,14 +106,26 @@ its shape.
 A widget bound to a node that accepts a new value is a control. A status pill on
 an on/off variable is a switch: click it to flip the state. A value tile on a
 number or text variable is a setting: click the value for an edit box, and Enter
-sends it. A click anywhere else on a dashboard does nothing; the node behind a
-widget is reached through edit mode, where the widget's settings link to it.
+sends it. A slider sends its value when it is let go. A click anywhere else on a
+dashboard does nothing; the node behind a widget is reached through edit mode,
+where the widget's settings link to it.
 
 Which nodes accept writes, and on which point, is part of each node type: a
 variable takes the value itself, and an output such as a Modbus IO or a GPIO
 takes a set request. Set the `control` option to `off` on a widget that should
 only show, and `confirm` to `on` for one whose change must be confirmed before
 it is sent.
+
+A node with many settings under their own point types, such as an MCU on a
+serial link, takes none of them by default. Set the `write` option to the point
+type a widget should send, and the widget writes that type under its binding's
+key, whatever the node. A slider bound to an MCU's `fanSet` point with `write`
+set to `fanSet` is a fan speed setting. A number goes out as an integer when the
+point already holds one, or when the widget's `integer` option is `on`. Set
+`integer` for an MCU setting the firmware reads as an integer, since a point the
+MCU only receives holds whatever type was last written to it. `write` applies to
+every binding the widget has, so give it to a widget that binds only what it
+should set.
 
 ## Custom drawings
 

@@ -19,6 +19,8 @@ export interface Bound {
 	text: string
 	// time is the point's time as ISO 8601, "" when there is no point
 	time: string
+	// dataType is the point's wire data type, when there is a point
+	dataType?: number
 }
 
 // Write is what a control asks to send: a number, or text when text is

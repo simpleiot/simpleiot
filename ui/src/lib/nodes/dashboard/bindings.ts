@@ -4,10 +4,10 @@
 // them and resolves them against the nodes a page keeps live.
 
 import type { Node } from "#lib/siot/node.ts"
-import { get, getAll, getText, type Point } from "#lib/siot/point.ts"
+import { DataType, get, getAll, getText, newText, newValue, type Point } from "#lib/siot/point.ts"
 import { PointType } from "#lib/siot/schema.ts"
 import type { MimicPort, PortDir } from "#lib/vendor/nautilus/mimic.ts"
-import type { Bound, WidgetDescriptor } from "#lib/widgets/registry.ts"
+import type { Bound, WidgetDescriptor, Write } from "#lib/widgets/registry.ts"
 import { parsePair } from "./canvasMath.ts"
 
 export interface Binding {
@@ -51,7 +51,10 @@ export function bindingPaths(widget: Node): string[] {
 // writeTargets picks the bindings a widget may write through: those that
 // read the value of a node whose type accepts writes, unless the widget's
 // control option is off. The target is the node's write point under the
-// binding's key.
+// binding's key. A write option names the point type to write instead,
+// for a node such as an MCU that takes many settings under their own
+// types: every binding to a node that is there then writes that type
+// under its key, whatever the node's type.
 export function writeTargets(
 	bindings: Readonly<Record<string, Binding>>,
 	lookup: (id: string) => Node | undefined,
@@ -62,14 +65,46 @@ export function writeTargets(
 	if (options.control === "off") {
 		return out
 	}
+	const explicit = (options.write ?? "").trim()
 	for (const [prop, b] of Object.entries(bindings)) {
 		const n = lookup(b.nodeId)
+		if (n && explicit !== "") {
+			out[prop] = { nodeId: b.nodeId, type: explicit, key: b.key }
+			continue
+		}
 		const type = n ? writeTypeOf(n.type) : undefined
 		if (n && type !== undefined && b.type === PointType.Value) {
 			out[prop] = { nodeId: b.nodeId, type, key: b.key }
 		}
 	}
 	return out
+}
+
+// writePoint builds the point a control sends to a write target. A number
+// goes out as an integer when the integer option is on, or when the bound
+// point is one, so a device that reads the point as an integer, as an MCU
+// setting often is, gets the value it expects rather than the bits of a
+// float. The option is what to rely on for a point the device only
+// receives, whose stored type is whatever was last written to it.
+export function writePoint(
+	target: Binding,
+	bound: Bound | undefined,
+	w: Write,
+	time: string,
+	options: Readonly<Record<string, string>> = {}
+): Point {
+	if (w.text !== "") {
+		return newText(target.type, target.key, w.text, time)
+	}
+	const integer =
+		options.integer === "on" || (bound?.state === "live" && bound.dataType === DataType.Int)
+	if (integer) {
+		return {
+			...newValue(target.type, target.key, Math.round(w.value), time),
+			dataType: DataType.Int,
+		}
+	}
+	return newValue(target.type, target.key, w.value, time)
 }
 
 // openTargets picks the bindings that name a dashboard, as isDashboard
@@ -114,7 +149,13 @@ export function resolveBindings(
 			out[prop] = { state: "stale", value: 0, text: "", time: "" }
 			continue
 		}
-		out[prop] = { state: "live", value: p.value, text: p.text, time: p.time }
+		out[prop] = {
+			state: "live",
+			value: p.value,
+			text: p.text,
+			time: p.time,
+			dataType: p.dataType,
+		}
 	}
 	return out
 }
