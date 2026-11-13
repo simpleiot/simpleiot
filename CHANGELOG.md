@@ -31,6 +31,9 @@ For more details or to discuss releases, please visit the
 
 ### Fixed
 
+- **A drawing's styles stay in the drawing.** A `<style>` in one custom drawing
+  no longer restyles other drawings and widgets on the same dashboard, so two
+  drawings can share class names such as `.label`.
 - **Controls keep a point's integer type.** A setting written to a point that
   holds an integer is sent as one, as is any setting from a widget with the
   `integer` option on, so an MCU that reads it as an integer gets the value

@@ -80,7 +80,7 @@
 		     offered yet -->
 		<!-- eslint-disable svelte/no-at-html-tags -- sanitized by parseDrawing -->
 		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-		<div class="svg" bind:this={host} {onclick}>
+		<div class="svg" data-siot-drawing={drawing.scope} bind:this={host} {onclick}>
 			{@html drawing.svg}
 		</div>
 		<!-- eslint-enable svelte/no-at-html-tags -->

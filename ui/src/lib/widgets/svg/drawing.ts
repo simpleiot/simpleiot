@@ -7,6 +7,7 @@ import type { MimicPort, PortDir } from "#lib/vendor/nautilus/mimic.ts"
 import type { DeclaredBinding } from "../registry.ts"
 import type { Bound, Write } from "../registry.ts"
 import { sanitizeSvg } from "./sanitize.ts"
+import { scopeId, scopeStyles } from "./scope.ts"
 
 export interface Drawing {
 	// svg is the sanitized markup to inject, "" when there is none
@@ -18,9 +19,18 @@ export interface Drawing {
 	ports: MimicPort[]
 	// error says why there is nothing to draw
 	error: string
+	// scope is the id the drawing's stylesheet is kept to; the element
+	// that holds the drawing carries it in scopeAttr
+	scope: string
 }
 
-const empty = (error: string): Drawing => ({ svg: "", bindings: [], ports: [], error })
+const empty = (error: string): Drawing => ({
+	svg: "",
+	bindings: [],
+	ports: [],
+	error,
+	scope: "",
+})
 
 interface ViewBox {
 	x: number
@@ -118,11 +128,20 @@ function parse(text: string): Drawing {
 	}
 	svg.removeAttribute("width")
 	svg.removeAttribute("height")
+	// the drawing's stylesheet is kept to the drawing, since a <style> in
+	// an inline SVG otherwise applies to the whole page. The scope is rooted
+	// at the element holding the drawing rather than at the <svg>, since
+	// @scope reads each selector as a descendant of its root, and a rule
+	// such as "svg { }" or ".drawing .part" names the <svg> itself.
+	const id = scopeId(text)
+	for (const style of svg.querySelectorAll("style")) {
+		style.textContent = scopeStyles(style.textContent, id)
+	}
 	const bindings = declaredBindings(svg)
 	const ports = [...svg.querySelectorAll("[data-siot-port]")]
 		.map((el) => portOf(el, box))
 		.filter((p): p is MimicPort => p !== undefined)
-	return { svg: svg.outerHTML, bindings, ports, error: "" }
+	return { svg: svg.outerHTML, bindings, ports, error: "", scope: id }
 }
 
 // the attributes that make an element do something with its binding; an

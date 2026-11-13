@@ -202,6 +202,10 @@ links, embedded documents, and references outside the file are removed, and
 local styles, gradients, and inline images are kept. A file that is not an SVG,
 or has neither a `viewBox` nor a size, draws as a placeholder saying so.
 
+A drawing's `<style>` applies to that drawing alone, so two drawings on one
+dashboard may use the same class names, and neither restyles the other widgets.
+Each `@keyframes` name is made the drawing's own as well.
+
 `testdata/custom-widget-demo.yaml` shows every feature on two dashboards, with
 the drawings written inline; see [A demo](#a-demo).
 
