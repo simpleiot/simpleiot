@@ -18,6 +18,10 @@ For more details or to discuss releases, please visit the
   each area and back. A **button** component labels the link, and
   `data-siot-open` does the same for a region of a custom drawing. See
   [opening another dashboard](docs/user/dashboards.md#opening-another-dashboard).
+- **A widget can open a web page, such as a Grafana dashboard.** Set the
+  widget's `url` option; `:3000/d/abc` opens port 3000 on the host the dashboard
+  was loaded from, so a Grafana on the same machine needs no address. See
+  [opening another page](docs/user/dashboards.md#opening-another-page).
 - **Dashboard controls for MCU settings.** A widget's `write` option names the
   point type it sends, so a value tile can set a point such as an MCU's
   `fanSet`, on a node type that takes no writes by default. See

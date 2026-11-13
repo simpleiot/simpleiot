@@ -24,13 +24,19 @@
 #   button on a grid         South area is a grid with a button tile
 #   edit mode                in edit mode a click selects a button or the
 #                            map rather than opening anything
+#   url option               Links overview: the Grafana button opens
+#                            :3000/, port 3000 on the host the page came
+#                            from; on South area, the Docs button opens the
+#                            SIOT documentation and a click on the South
+#                            level reading opens Grafana's Explore page
 #   via carried over         Station home is mirrored under Station A and
 #                            Station B; open it from the dashboard list
 #                            under either station, and its button opens
 #                            Station detail whose relative bindings show
 #                            that same station's flow (12.5 or 37.5)
 #
-# A widget's navigate binding names the dashboard a click on it opens.
+# A widget's navigate binding names the dashboard a click on it opens, and
+# its url option an address a click opens in a new tab.
 # Widget bindings name their node by description, so the file reads as the
 # dashboard looks.
 apiVersion: 1
@@ -133,6 +139,15 @@ nodes:
                   y: 180
                   w: 160
               - widget:
+                  description: Grafana
+                  component: button
+                  x: 690
+                  y: 40
+                  w: 110
+                  prop:
+                    text: Grafana ↗
+                    url: ":3000/"
+              - widget:
                   description: North level
                   component: value
                   x: 520
@@ -228,6 +243,17 @@ nodes:
                   prop:
                     unit: "%"
                     decimals: "1"
+                    url: ":3000/explore"
+              - widget:
+                  description: South docs
+                  component: button
+                  x: 7
+                  y: 0
+                  w: 3
+                  h: 1
+                  prop:
+                    text: Docs ↗
+                    url: https://docs.simpleiot.org/
               - widget:
                   description: South back
                   component: button

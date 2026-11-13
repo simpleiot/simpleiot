@@ -79,11 +79,10 @@ which is the size the equipment draws at.
 
 Widgets on a canvas can overlap. **Z** sets which one is on top: a higher Z
 draws over a lower one, and widgets with the same Z draw in ID order. A new
-widget goes on top. In edit mode, **bring to front**, **forward**,
-**backward**, and **send to back** above the selected widget's settings change
-its place in the stack, and a click selects the topmost widget under the
-pointer. Links draw over widgets with a negative Z, such as a background image,
-and under the rest.
+widget goes on top. In edit mode, **bring to front**, **forward**, **backward**,
+and **send to back** above the selected widget's settings change its place in
+the stack, and a click selects the topmost widget under the pointer. Links draw
+over widgets with a negative Z, such as a background image, and under the rest.
 
 Links join two widgets at their **ports**, the named points on a widget's edge
 that show as dots in edit mode. Drag from one port to another to draw a link. A
@@ -211,11 +210,12 @@ the drawings written inline; see [A demo](#a-demo).
 The **image** component shows a picture from a file node: a site photo, a panel,
 a logo. Upload a PNG, JPEG, GIF, or WebP to a **File** node with the **Binary**
 option on, or an SVG either way, then bind the widget's `image` to the file
-node. On a canvas the image takes the widget's width at its own proportions; give
-it a negative Z to use it as a background under the links and the equipment. In a grid tile `fit` says
-how it fills the tile: `contain` (the default), `cover`, or `stretch`. `opacity`
-from `0` to `1` fades it. An SVG is sanitized as a [drawing](#custom-drawings)
-is, and its bindings are not followed; use the **svg** component for that.
+node. On a canvas the image takes the widget's width at its own proportions;
+give it a negative Z to use it as a background under the links and the
+equipment. In a grid tile `fit` says how it fills the tile: `contain` (the
+default), `cover`, or `stretch`. `opacity` from `0` to `1` fades it. An SVG is
+sanitized as a [drawing](#custom-drawings) is, and its bindings are not
+followed; use the **svg** component for that.
 
 ## Relative bindings
 
@@ -271,6 +271,25 @@ dashboard for that area:
 Bind `north` to a dashboard in the widget's settings. In edit mode a click
 selects the widget rather than opening a dashboard. `testdata/links-demo.yaml`
 shows each of these, and a button that keeps the station it was opened under.
+
+### Opening another page
+
+A widget's `url` option opens an address in a new tab, such as a Grafana
+dashboard with the history behind a reading. It takes a full `http` or `https`
+URL, a path on the SIOT server, or a port and path on the host the dashboard was
+loaded from:
+
+| `url`                              | opens                                                          |
+| ---------------------------------- | -------------------------------------------------------------- |
+| `https://grafana.example.com/d/ab` | that address                                                   |
+| `:3000/d/ab/pumps`                 | port 3000 on this host, e.g. `http://10.0.0.5:3000/d/ab/pumps` |
+| `/grafana/d/ab`                    | that path on the SIOT server, behind a proxy                   |
+
+The port form suits a Grafana on the same machine as SIOT, since the dashboard
+works whatever address it is reached at. The scheme follows the page's, so
+Grafana must be served over HTTPS when SIOT is. A widget with a `navigate`
+binding opens the dashboard rather than the URL. `testdata/links-demo.yaml`
+shows a button and a reading that open URLs.
 
 ## Home dashboard
 

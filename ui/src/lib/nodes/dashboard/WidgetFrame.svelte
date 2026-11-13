@@ -5,11 +5,13 @@
 	// still shows its shape. A widget whose bound node accepts writes gets
 	// an onWrite, and acts as a control. A widget with a navigate binding
 	// opens that dashboard when clicked, where the widget does not act on
-	// the click itself.
+	// the click itself; one with a url option opens that address in a new
+	// tab instead.
 	import { goto } from "$app/navigation"
 	import type { Point } from "#lib/siot/point.ts"
 	import { background, navigateBinding, type Write } from "#lib/widgets/registry.ts"
 	import { writePoint, type Placed } from "./bindings.ts"
+	import { linkUrl } from "./link.ts"
 	import NestedDashboard from "./NestedDashboard.svelte"
 
 	let {
@@ -59,8 +61,23 @@
 			: undefined
 	)
 
-	// the dashboard a click opens; none in edit mode, where a click selects
-	const href = $derived(editing ? undefined : p.opens[navigateBinding])
+	// the dashboard a click opens, else the address the url option names;
+	// none in edit mode, where a click selects
+	const dash = $derived(editing ? undefined : p.opens[navigateBinding])
+	const url = $derived(
+		editing || dash !== undefined ? undefined : linkUrl(p.options.url ?? "", location)
+	)
+	const href = $derived(dash ?? url)
+
+	function go() {
+		if (dash !== undefined) {
+			// the path is resolved in dashHref; only the query is appended
+			// eslint-disable-next-line svelte/no-navigation-without-resolve
+			void goto(dash)
+		} else if (url !== undefined) {
+			window.open(url, "_blank", "noopener")
+		}
+	}
 
 	// a widget that acts on a click stops it, and a link inside the widget,
 	// such as a nested dashboard's title, goes where it points
@@ -68,15 +85,12 @@
 		if (href === undefined || (e.target as Element | null)?.closest("a")) {
 			return
 		}
-		// the path is resolved in dashHref; only the query is appended
-		// eslint-disable-next-line svelte/no-navigation-without-resolve
-		void goto(href)
+		go()
 	}
 
 	function onkeydown(e: KeyboardEvent) {
 		if (href !== undefined && e.key === "Enter" && e.target === e.currentTarget) {
-			// eslint-disable-next-line svelte/no-navigation-without-resolve
-			void goto(href)
+			go()
 		}
 	}
 </script>
@@ -92,7 +106,7 @@
 	class:filled={fill !== undefined}
 	style:background={fill}
 	class:opens={href !== undefined}
-	title={dead ? "a bound node was not found" : undefined}
+	title={dead ? "a bound node was not found" : url}
 	role={href !== undefined ? "link" : undefined}
 	tabindex={href !== undefined ? 0 : undefined}
 	onclick={open}

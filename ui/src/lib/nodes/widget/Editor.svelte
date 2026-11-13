@@ -187,7 +187,8 @@
 	<KeyValueInput type={PointType.Prop} label="Options" buttonLabel="Add option" />
 	<div class="hint">
 		Every widget takes <code>scale</code> (1 is normal size) and <code>background</code>
-		(<code>on</code> or a color, for a card behind it){optionNames.length > 0
+		(<code>on</code> or a color, for a card behind it), and <code>url</code> (an address a click
+		opens in a new tab; <code>:3000/path</code> means port 3000 on this host){optionNames.length > 0
 			? `; this component also takes ${optionNames.join(", ")}`
 			: ""}.
 	</div>

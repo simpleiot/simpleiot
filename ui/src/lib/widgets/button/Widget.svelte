@@ -1,6 +1,6 @@
 <script lang="ts">
-	// A button whose navigate binding names a dashboard; the frame around it
-	// opens the dashboard when it is clicked. It reads the text option, else
+	// A button whose navigate binding names a dashboard, or whose url option
+	// names an address; the frame around it opens either when it is clicked. It reads the text option, else
 	// the widget's label, which is the dashboard's description when the
 	// widget has none of its own.
 	import { navigateBinding, type WidgetProps } from "../registry.ts"
@@ -9,14 +9,14 @@
 
 	const text = $derived((options.text ?? "").trim() || label || "open")
 	const bound = $derived(values[navigateBinding])
-	const dead = $derived(!bound || bound.state === "dead")
+	const dead = $derived((options.url ?? "").trim() === "" && (!bound || bound.state === "dead"))
 </script>
 
 <div class="host">
 	<span
 		class="button"
 		class:dead={!editing && dead}
-		title={dead ? "bind a dashboard to navigate" : undefined}>{text}</span
+		title={dead ? "bind a dashboard or set a url to navigate" : undefined}>{text}</span
 	>
 </div>
 
