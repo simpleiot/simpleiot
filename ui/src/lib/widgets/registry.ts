@@ -43,6 +43,10 @@ export interface WidgetProps {
 	// writable names the bindings onWrite accepts, for a widget with more
 	// than one
 	writable?: readonly string[]
+	// opens holds, per binding that names a dashboard, the address of that
+	// dashboard, which a click on the widget opens. The host gives none in
+	// edit mode, where a click selects the widget.
+	opens?: Readonly<Record<string, string>>
 	// control says the widget would have an onWrite outside edit mode,
 	// and editing that the dashboard is being edited, so a control can
 	// show itself as one while it is inactive
@@ -103,6 +107,11 @@ export function createWidgetRegistry(descriptors: readonly WidgetDescriptor[]): 
 		.sort((a, b) => (a.label < b.label ? -1 : a.label > b.label ? 1 : 0))
 	return { all, get: (name) => byName.get(name) }
 }
+
+// navigateBinding is the binding any widget may take: the dashboard a
+// click on the widget opens, where the widget does not act on the click
+// itself.
+export const navigateBinding = "navigate"
 
 // autoWidget is the component name that means "pick by the bound node's
 // type", and fallbackWidget what is used when the type names none.

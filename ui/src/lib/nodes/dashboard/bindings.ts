@@ -72,6 +72,24 @@ export function writeTargets(
 	return out
 }
 
+// openTargets picks the bindings that name a dashboard, as isDashboard
+// says of the bound node's type, with the address each one opens.
+export function openTargets(
+	bindings: Readonly<Record<string, Binding>>,
+	lookup: (id: string) => Node | undefined,
+	isDashboard: (nodeType: string) => boolean,
+	href: (dashboardId: string) => string
+): Record<string, string> {
+	const out: Record<string, string> = {}
+	for (const [prop, b] of Object.entries(bindings)) {
+		const n = lookup(b.nodeId)
+		if (n && isDashboard(n.type)) {
+			out[prop] = href(b.nodeId)
+		}
+	}
+	return out
+}
+
 // boundNodeIds lists the nodes a set of bindings reads, once each.
 export function boundNodeIds(bindings: Readonly<Record<string, Binding>>): string[] {
 	return [...new Set(Object.values(bindings).map((b) => b.nodeId))]
@@ -149,6 +167,9 @@ export interface Placed {
 	ports: MimicPort[]
 	// writes are the bindings the widget may write through, as controls
 	writes: Record<string, Binding>
+	// opens are the addresses of the dashboards the widget's bindings name,
+	// which a click on the widget opens
+	opens: Record<string, string>
 	// nested is the dashboard a nested-dashboard widget shows
 	nested?: string
 	// ancestors are the dashboards this one is drawn inside, outermost first

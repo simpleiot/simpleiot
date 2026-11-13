@@ -4,6 +4,7 @@ import { newText, newValue } from "#lib/siot/point.ts"
 import {
 	bindingPaths,
 	boundNodeIds,
+	openTargets,
 	parseBindings,
 	parseLink,
 	parsePorts,
@@ -162,5 +163,25 @@ describe("canvas", () => {
 		expect(l.rate).toBe(1)
 		expect(l.dead).toBe(false)
 		expect(parseLink(link, () => undefined).dead).toBe(true)
+	})
+
+	test("a binding that names a dashboard opens it", () => {
+		const nodes: Record<string, Node> = {
+			d2: { id: "d2", type: "dashboard", parent: "g", points: [], edgePoints: [] },
+			n1: { id: "n1", type: "variable", parent: "g", points: [], edgePoints: [] },
+		}
+		const bindings = {
+			dashboard: { nodeId: "d2", type: "value", key: "0" },
+			value: { nodeId: "n1", type: "value", key: "0" },
+			gone: { nodeId: "x", type: "value", key: "0" },
+		}
+		expect(
+			openTargets(
+				bindings,
+				(id) => nodes[id],
+				(t) => t === "dashboard",
+				(id) => `/dash/${id}`
+			)
+		).toEqual({ dashboard: "/dash/d2" })
 	})
 })

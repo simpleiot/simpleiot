@@ -6,13 +6,19 @@
 	import { getBestDesc, getText, getValue } from "#lib/siot/point.ts"
 	import { NodeType, PointType, PointValue } from "#lib/siot/schema.ts"
 	import { widgets } from "#lib/widgets/index.ts"
-	import { autoWidget, fallbackWidget, withDefaults } from "#lib/widgets/registry.ts"
+	import {
+		autoWidget,
+		fallbackWidget,
+		navigateBinding,
+		withDefaults,
+	} from "#lib/widgets/registry.ts"
 	import { registry } from "../index.ts"
 	import type { Point as PointXY } from "#lib/vendor/nautilus/mimic.ts"
 	import type { Point } from "#lib/siot/point.ts"
 	import {
 		parseBindings,
 		parseLink,
+		openTargets,
 		parsePorts,
 		resolveBindings,
 		widgetLayout,
@@ -23,6 +29,7 @@
 	} from "./bindings.ts"
 	import Canvas from "./Canvas.svelte"
 	import Grid from "./Grid.svelte"
+	import { dashHref } from "./href.ts"
 	import { widgetZ } from "./zorder.ts"
 
 	let {
@@ -61,6 +68,13 @@
 		onWrite?: (nodeId: string, point: Point) => void
 	} = $props()
 
+	// primary is the binding that names what the widget shows: the first
+	// one, unless that is where a click goes and there is another
+	function primary(bindings: ReturnType<typeof parseBindings>) {
+		const shown = Object.entries(bindings).find(([k]) => k !== navigateBinding)
+		return shown ? shown[1] : bindings[navigateBinding]
+	}
+
 	// componentOf picks the widget for a node: its component, or for
 	// "auto" the one the bound node's type names.
 	function componentOf(w: Node, bindings: ReturnType<typeof parseBindings>): string {
@@ -68,7 +82,7 @@
 		if (named !== autoWidget) {
 			return named
 		}
-		const first = Object.values(bindings)[0]
+		const first = primary(bindings)
 		const bound = first ? lookup(first.nodeId) : undefined
 		return (bound && registry.get(bound.type)?.widget) || fallbackWidget
 	}
@@ -92,7 +106,7 @@
 				const component = componentOf(w, parseBindings(w, resolvePath))
 				const descriptor = widgets.get(component)
 				const bindings = parseBindings(w, resolvePath, descriptor?.bindingPoints)
-				const first = Object.values(bindings)[0]
+				const first = primary(bindings)
 				const bound = first ? lookup(first.nodeId) : undefined
 				const own = getText(w.points, PointType.Description)
 				// on a canvas the default size is the component's
@@ -115,6 +129,14 @@
 					values,
 					options,
 					writes: writeTargets(bindings, lookup, (t) => registry.get(t)?.writeType, options),
+					// a dashboard a binding names opens from the same parent, so
+					// its relative bindings follow the same device
+					opens: openTargets(
+						bindings,
+						lookup,
+						(t) => t === NodeType.Dashboard,
+						(id) => dashHref(id, via)
+					),
 					layout: widgetLayout(w, defaults),
 					z: widgetZ(w),
 					ports: parsePorts(w, ports),

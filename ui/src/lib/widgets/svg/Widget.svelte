@@ -3,12 +3,14 @@
 	// their bindings. The markup is sanitized and injected once per
 	// drawing; a value change touches attributes in place, so the
 	// drawing's own styles and animations carry on. A click on an element
-	// marked toggle or set makes the widget a control.
+	// marked toggle or set makes the widget a control, and one marked open
+	// opens the dashboard its binding names.
+	import { goto } from "$app/navigation"
 	import Confirm from "../Confirm.svelte"
 	import { wantsConfirm, type WidgetProps, type Write } from "../registry.ts"
-	import { applyBindings, clickTarget, parseDrawing } from "./drawing.ts"
+	import { applyBindings, clickTarget, openTarget, parseDrawing } from "./drawing.ts"
 
-	let { label, values, options, width, onWrite, writable = [] }: WidgetProps = $props()
+	let { label, values, options, width, onWrite, writable = [], opens = {} }: WidgetProps = $props()
 
 	const source = $derived(values.svg)
 	const drawing = $derived(source?.state === "live" ? parseDrawing(source.text) : parseDrawing(""))
@@ -30,7 +32,7 @@
 	// an effect runs; the effect re-runs when the drawing or a value changes
 	$effect(() => {
 		if (host && drawing.svg !== "") {
-			applyBindings(host, values, writes)
+			applyBindings(host, values, writes, opens)
 		}
 	})
 
@@ -38,7 +40,18 @@
 	let pending = $state<{ prop: string; write: Write } | null>(null)
 
 	function onclick(e: MouseEvent) {
-		if (!host || !onWrite) {
+		if (!host) {
+			return
+		}
+		const href = openTarget(host, e.target as Element | null, opens)
+		if (href !== undefined) {
+			e.stopPropagation()
+			// the path is resolved in dashHref; only the query is appended
+			// eslint-disable-next-line svelte/no-navigation-without-resolve
+			void goto(href)
+			return
+		}
+		if (!onWrite) {
 			return
 		}
 		const c = clickTarget(host, e.target as Element | null, values, writes)

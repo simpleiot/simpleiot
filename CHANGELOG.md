@@ -11,6 +11,14 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Added
+
+- **Any widget can open another dashboard.** Bind a widget's `navigate` to a
+  dashboard and a click on it opens that dashboard, so an overview can lead to
+  each area and back. A **button** component labels the link, and
+  `data-siot-open` does the same for a region of a custom drawing. See
+  [opening another dashboard](docs/user/dashboards.md#opening-another-dashboard).
+
 ## [0.36.0] - 2026-11-12
 
 ### Added

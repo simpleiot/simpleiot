@@ -127,7 +127,7 @@ function parse(text: string): Drawing {
 
 // the attributes that make an element do something with its binding; an
 // element with none follows the value through its state alone
-const effects = ["text", "translate", "rotate", "level", "bands", "toggle", "set"]
+const effects = ["text", "translate", "rotate", "level", "bands", "toggle", "set", "open"]
 
 // declaredBindings lists the bindings the drawing names, in document
 // order, each with the effects of the elements that follow it
@@ -231,15 +231,20 @@ const clickable = "[data-siot-toggle], [data-siot-set]"
 
 // applyBindings sets the state attribute, text, and transforms on every
 // bound element under root from the values, and marks the elements a
-// click would act on. It touches attributes only, so the drawing's own
+// click would act on: one that writes a binding in writes, or opens a
+// dashboard in opens. It touches attributes only, so the drawing's own
 // styles and animations carry on.
 export function applyBindings(
 	root: ParentNode,
 	values: Readonly<Record<string, Bound>>,
-	writes: ReadonlySet<string>
+	writes: ReadonlySet<string>,
+	opens: Readonly<Record<string, string>> = {}
 ): void {
 	for (const el of root.querySelectorAll<SVGElement | HTMLElement>(clickable)) {
 		el.style.cursor = writes.has(bindNameOf(el)) ? "pointer" : ""
+	}
+	for (const el of root.querySelectorAll<SVGElement | HTMLElement>("[data-siot-open]")) {
+		el.style.cursor = opens[bindNameOf(el)] !== undefined ? "pointer" : ""
 	}
 	for (const el of root.querySelectorAll<SVGElement | HTMLElement>("[data-siot-bind]")) {
 		const name = (el.getAttribute("data-siot-bind") ?? "").trim()
@@ -322,6 +327,22 @@ export function clickTarget(
 		const n = Number(set)
 		const numeric = set !== null && set.trim() !== "" && Number.isFinite(n)
 		return { prop, write: numeric ? { value: n, text: "" } : { value: 0, text: set ?? "" } }
+	}
+	return undefined
+}
+
+// openTarget says what a click on target opens: the address of the
+// dashboard bound to the nearest element up to root with data-siot-open,
+// when there is one.
+export function openTarget(
+	root: Node,
+	target: Element | null,
+	opens: Readonly<Record<string, string>>
+): string | undefined {
+	for (let el = target; el && el !== root; el = el.parentElement) {
+		if (el.hasAttribute("data-siot-open")) {
+			return opens[bindNameOf(el)]
+		}
 	}
 	return undefined
 }

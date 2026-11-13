@@ -1,0 +1,292 @@
+# A links demo: buttons and drawing regions that open other dashboards,
+# under one group. Load it into a running instance with:
+#
+#   siot import < testdata/links-demo.yaml
+#
+# Then open Dashboards in the web UI and start from Links overview. Where
+# each feature is:
+#
+#   button widget            Links overview: North area and South area
+#                            buttons on the canvas; each area has a Back to
+#                            overview button, and North area one to South
+#   any widget navigates     Links overview: the North level reading and
+#                            the South tank open their area when clicked;
+#                            on North area, a click on the North pump run
+#                            value edits it, since a control keeps its own
+#                            click, and a click beside it goes back
+#   text option              the South area button reads "South →" from its
+#                            text option rather than the dashboard's name
+#   unbound button           Links overview: Spare button has no dashboard
+#                            bound to navigate, so it draws dashed and
+#                            opens nothing
+#   data-siot-open           Links overview: a click on a region of the
+#                            site map opens that area's dashboard
+#   button on a grid         South area is a grid with a button tile
+#   edit mode                in edit mode a click selects a button or the
+#                            map rather than opening anything
+#   via carried over         Station home is mirrored under Station A and
+#                            Station B; open it from the dashboard list
+#                            under either station, and its button opens
+#                            Station detail whose relative bindings show
+#                            that same station's flow (12.5 or 37.5)
+#
+# A widget's navigate binding names the dashboard a click on it opens.
+# Widget bindings name their node by description, so the file reads as the
+# dashboard looks.
+apiVersion: 1
+nodes:
+  - group:
+      description: Links demo
+      children:
+        # ---- what the widgets show
+        - variable:
+            description: North pump run
+            variableType: onOff
+            value: 1
+        - signalGenerator:
+            description: North tank level
+            signalType: random walk
+            units: "%"
+            minValue: 20
+            maxValue: 90
+            initialValue: 55
+            minIncrement: -1
+            maxIncrement: 1
+            sampleRate: 1
+            roundTo: 0.1
+        - signalGenerator:
+            description: South tank level
+            signalType: random walk
+            units: "%"
+            minValue: 10
+            maxValue: 80
+            initialValue: 35
+            minIncrement: -1
+            maxIncrement: 1
+            sampleRate: 1
+            roundTo: 0.1
+
+        # ---- a site map whose regions open the area dashboards
+        - file:
+            description: Links site map
+            name: site-map.svg
+            data: |
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 220">
+                <style>
+                  .area { stroke: #555; stroke-width: 2; }
+                  .area:hover { stroke: #1d4ed8; stroke-width: 4; }
+                  .north { fill: #dae8fc; }
+                  .south { fill: #d5e8d4; }
+                  .name { font: 600 18px sans-serif; fill: #333; text-anchor: middle; pointer-events: none; }
+                </style>
+                <g data-siot-bind="north" data-siot-open>
+                  <rect class="area north" x="10" y="10" width="380" height="95" rx="8" />
+                  <text class="name" x="200" y="64">North area</text>
+                </g>
+                <g data-siot-bind="south" data-siot-open>
+                  <rect class="area south" x="10" y="115" width="380" height="95" rx="8" />
+                  <text class="name" x="200" y="169">South area</text>
+                </g>
+              </svg>
+
+        # ---- the overview
+        - dashboard:
+            description: Links overview
+            layout: canvas
+            canvasWidth: 820
+            canvasHeight: 340
+            children:
+              - widget:
+                  description: Site map
+                  component: svg
+                  x: 20
+                  y: 20
+                  w: 440
+                  bindNode:
+                    svg: Links site map
+                    north: North area
+                    south: South area
+              - widget:
+                  description: To north
+                  component: button
+                  x: 520
+                  y: 40
+                  w: 160
+                  bindNode:
+                    navigate: North area
+                  prop:
+                    text: North area →
+              - widget:
+                  description: To south
+                  component: button
+                  x: 520
+                  y: 110
+                  w: 160
+                  bindNode:
+                    navigate: South area
+                  prop:
+                    text: South →
+              - widget:
+                  description: Spare button
+                  component: button
+                  x: 520
+                  y: 180
+                  w: 160
+              - widget:
+                  description: North level
+                  component: value
+                  x: 520
+                  y: 250
+                  w: 120
+                  bindNode:
+                    value: North tank level
+                    navigate: North area
+                  prop:
+                    unit: "%"
+                    decimals: "1"
+              - widget:
+                  description: South tank
+                  component: tank
+                  x: 690
+                  y: 140
+                  w: 110
+                  bindNode:
+                    level: South tank level
+                    navigate: South area
+
+        # ---- the areas, each with a way back
+        - dashboard:
+            description: North area
+            layout: canvas
+            canvasWidth: 700
+            canvasHeight: 320
+            children:
+              - widget:
+                  description: North pump
+                  component: pump
+                  x: 40
+                  y: 140
+                  w: 110
+                  bindNode:
+                    running: North pump run
+              - widget:
+                  description: North tank
+                  component: tank
+                  x: 260
+                  y: 40
+                  w: 200
+                  bindNode:
+                    level: North tank level
+              - link:
+                  description: North pump to tank
+                  from: North pump.discharge
+                  to: North tank.left
+                  routing: orthogonal
+                  bindNode:
+                    flowing: North pump run
+              - widget:
+                  description: North pump switch
+                  component: value
+                  x: 40
+                  y: 40
+                  w: 120
+                  bindNode:
+                    value: North pump run
+                    navigate: Links overview
+              - widget:
+                  description: North back
+                  component: button
+                  x: 500
+                  y: 40
+                  w: 180
+                  bindNode:
+                    navigate: Links overview
+                  prop:
+                    text: ← Back to overview
+              - widget:
+                  description: North to south
+                  component: button
+                  x: 500
+                  y: 110
+                  w: 180
+                  bindNode:
+                    navigate: South area
+        - dashboard:
+            description: South area
+            layout: grid
+            cols: 12
+            children:
+              - widget:
+                  description: South level
+                  component: value
+                  x: 0
+                  y: 0
+                  w: 4
+                  h: 2
+                  bindNode:
+                    value: South tank level
+                  prop:
+                    unit: "%"
+                    decimals: "1"
+              - widget:
+                  description: South back
+                  component: button
+                  x: 4
+                  y: 0
+                  w: 3
+                  h: 1
+                  bindNode:
+                    navigate: Links overview
+                  prop:
+                    text: ← Back to overview
+
+        # ---- stations: a button keeps the station it was opened under
+        - device:
+            description: Links station A
+            children:
+              - variable:
+                  description: Station flow
+                  value: 12.5
+              - dashboard:
+                  description: Station detail
+                  layout: grid
+                  cols: 12
+                  children:
+                    - widget:
+                        description: Flow
+                        component: value
+                        x: 0
+                        y: 0
+                        w: 4
+                        h: 2
+                        bindPath:
+                          value: variable/Station flow
+                        prop:
+                          unit: L/min
+                          decimals: "1"
+              - dashboard:
+                  description: Station home
+                  layout: grid
+                  cols: 12
+                  children:
+                    - widget:
+                        description: Open detail
+                        component: button
+                        x: 0
+                        y: 0
+                        w: 3
+                        h: 1
+                        bindNode:
+                          navigate: Station detail
+                        prop:
+                          text: Station detail →
+        - device:
+            description: Links station B
+            children:
+              - variable:
+                  description: Station flow
+                  value: 37.5
+              - dashboard:
+                  mirror: Station detail
+              - dashboard:
+                  mirror: Station home

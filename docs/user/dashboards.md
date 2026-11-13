@@ -149,6 +149,7 @@ else in the file changes.
 | `data-siot-port="name,dir"`   | makes the element's center a port for links; `dir` is `left`, `right`, `up`, or `down`                                    |
 | `data-siot-toggle`            | a click sends the opposite of the bound value                                                                             |
 | `data-siot-set="1"`           | a click sends that value, as text when it is not a number                                                                 |
+| `data-siot-open`              | a click opens the dashboard the binding names; see [opening another dashboard](#opening-another-dashboard)                |
 
 Every bound element also gets a `data-siot-state` attribute of `on`, `off`,
 `stale`, or `dead`: `on` when the value is not zero, `stale` while the point has
@@ -230,6 +231,33 @@ depth, stops there with a note. Relative bindings in the nested dashboard start
 from the parent the outer dashboard was opened under, so an overview mirrored
 under several devices shows each device's nodes in every tile, and the
 dashboards it shows need no mirroring of their own.
+
+## Opening another dashboard
+
+Any widget can open another dashboard when clicked, for moving between the
+screens of an HMI: an overview with a reading or a tank per area, and each area
+with a way back. Bind the widget's `navigate` to the dashboard node. A click
+where the widget acts on its own, such as editing a value or a `toggle` in a
+drawing, still does that; a click anywhere else opens the dashboard. The
+dashboard opens under the same parent as the one it was opened from, so its
+relative bindings follow the same device.
+
+The **button** component is a label for this: it shows the `text` option, else
+the widget's description, else the dashboard's.
+
+In a [custom drawing](#custom-drawings), `data-siot-open` on an element opens
+the dashboard its binding names, so each region of a site plan can open the
+dashboard for that area:
+
+```xml
+<g data-siot-bind="north" data-siot-open>
+  <rect x="0" y="0" width="200" height="120" />
+</g>
+```
+
+Bind `north` to a dashboard in the widget's settings. In edit mode a click
+selects the widget rather than opening a dashboard. `testdata/links-demo.yaml`
+shows each of these, and a button that keeps the station it was opened under.
 
 ## Home dashboard
 

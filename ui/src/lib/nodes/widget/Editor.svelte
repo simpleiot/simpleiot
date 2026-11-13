@@ -11,7 +11,7 @@
 	import { getAll, getBestDesc, getText, newText } from "#lib/siot/point.ts"
 	import { PointType } from "#lib/siot/schema.ts"
 	import { widgets } from "#lib/widgets/index.ts"
-	import { autoWidget } from "#lib/widgets/registry.ts"
+	import { autoWidget, navigateBinding } from "#lib/widgets/registry.ts"
 	import type { EditorProps } from "../types.ts"
 	import BindingInputs from "./BindingInputs.svelte"
 	import BoxIcon from "@lucide/svelte/icons/box"
@@ -69,16 +69,24 @@
 
 	// an auto widget binds one value; a named one binds what it declares,
 	// what its document declares, and what the node already carries, so a
-	// binding the document no longer names is still there to change
+	// binding the document no longer names is still there to change. Every
+	// widget may also name a dashboard a click on it opens.
 	const bindings = $derived.by(() => {
 		if (!descriptor) {
-			return [PointType.Value]
+			return [PointType.Value, navigateBinding]
 		}
 		const carried = getAll(props.node.points, PointType.BindNode)
 			.concat(getAll(props.node.points, PointType.BindPath))
 			.filter((p) => p.tombstone === 0 && p.text !== "")
 			.map((p) => p.key)
-		return [...new Set([...descriptor.bindings, ...declared.map((b) => b.name), ...carried])]
+		return [
+			...new Set([
+				...descriptor.bindings,
+				...declared.map((b) => b.name),
+				...carried,
+				navigateBinding,
+			]),
+		]
 	})
 
 	// a binding added by name, for a drawing bound by a relative path,
@@ -135,10 +143,19 @@
 			{props}
 			{via}
 			source={name === source || descriptor?.bindingPoints?.[name] === PointType.Data}
+			dashboard={name === "dashboard" ||
+				name === navigateBinding ||
+				(use ?? "").split(", ").includes("open")}
 			pointType={descriptor?.bindingPoints?.[name] ?? PointType.Value}
 		/>
 		{#if name === source && sourceHint !== ""}
 			<div class="hint">{sourceHint}</div>
+		{/if}
+		{#if name === navigateBinding}
+			<div class="hint">
+				A click on the widget opens this dashboard, except where the widget acts on the click
+				itself.
+			</div>
 		{/if}
 	{/each}
 	{#if source}
