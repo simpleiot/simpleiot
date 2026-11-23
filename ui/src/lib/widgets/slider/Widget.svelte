@@ -7,14 +7,7 @@
 	import Confirm from "../Confirm.svelte"
 	import { multiplier, num, wantsConfirm, type WidgetProps, type Write } from "../registry.ts"
 
-	let {
-		label,
-		values,
-		options,
-		onWrite,
-		control = false,
-		editing = false,
-	}: WidgetProps = $props()
+	let { label, values, options, onWrite, control = false, editing = false }: WidgetProps = $props()
 
 	const v = $derived(values.value)
 	const dead = $derived(!v || v.state === "dead")
