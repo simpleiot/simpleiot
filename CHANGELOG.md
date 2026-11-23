@@ -11,6 +11,11 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Changed
+
+- **The web UI is built with SvelteKit 3.2.0 and adapter-static 4.0.1.** These
+  releases fix bugs upstream and change nothing visible in the UI. (#893, #895)
+
 ## [0.36.1] - 2026-11-13
 
 ### Added
