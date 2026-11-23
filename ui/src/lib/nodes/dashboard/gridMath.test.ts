@@ -1,5 +1,13 @@
 import { describe, expect, test } from "vitest"
-import { cellDelta, clampLayout, metrics, moved, nextRow, sameLayout } from "./gridMath.ts"
+import {
+	cellDelta,
+	clampLayout,
+	metrics,
+	moved,
+	nextRow,
+	sameLayout,
+	stackOrder,
+} from "./gridMath.ts"
 
 describe("grid math", () => {
 	test("metrics divide the width into columns less the gaps", () => {
@@ -18,6 +26,17 @@ describe("grid math", () => {
 	test("clamp keeps a layout on the grid", () => {
 		expect(clampLayout({ x: 11, y: -1, w: 3, h: 0 }, 12)).toEqual({ x: 9, y: 0, w: 3, h: 1 })
 		expect(clampLayout({ x: 0, y: 0, w: 20, h: 2 }, 12)).toEqual({ x: 0, y: 0, w: 12, h: 2 })
+	})
+
+	test("stack order reads by row, then by column", () => {
+		const header = { x: 0, y: 0, w: 12, h: 1 }
+		const left = { x: 0, y: 1, w: 6, h: 2 }
+		const right = { x: 6, y: 1, w: 6, h: 2 }
+		const below = { x: 0, y: 3, w: 3, h: 1 }
+		const order = [below, right, header, left].sort((a, b) => stackOrder(a, 12) - stackOrder(b, 12))
+		expect(order).toEqual([header, left, right, below])
+		// a place past the right edge keeps its row
+		expect(stackOrder({ x: 20, y: 1, w: 1, h: 1 }, 12)).toBeLessThan(stackOrder(below, 12))
 	})
 
 	test("moved shifts or grows, within the grid", () => {

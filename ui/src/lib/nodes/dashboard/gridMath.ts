@@ -50,6 +50,12 @@ export function moved(
 	)
 }
 
+// stackOrder places a widget in the single column a narrow screen shows:
+// by row, then by column, so the column reads like the grid does.
+export function stackOrder(l: Layout, cols: number): number {
+	return l.y * cols + Math.max(0, Math.min(l.x, cols - 1))
+}
+
 export function sameLayout(a: Layout, b: Layout): boolean {
 	return a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
 }

@@ -1,11 +1,11 @@
 <script lang="ts">
 	// Grid is the widget host for tiles: columns and rows, each widget
-	// spanning its place. Below the breakpoint it becomes one column in
-	// tree order. In edit mode a widget is dragged by its body and resized
+	// spanning its place. Below the breakpoint it becomes one column read
+	// by row, then by column. In edit mode a widget is dragged by its body and resized
 	// by its corner, and the new place is reported when the pointer lifts.
 	import type { Point } from "#lib/siot/point.ts"
 	import type { Layout, Placed } from "./bindings.ts"
-	import { cellDelta, metrics, moved, sameLayout } from "./gridMath.ts"
+	import { cellDelta, metrics, moved, sameLayout, stackOrder } from "./gridMath.ts"
 	import WidgetFrame from "./WidgetFrame.svelte"
 
 	let {
@@ -99,6 +99,7 @@
 			style:--w={Math.min(l.w, cols - Math.min(l.x, cols - 1))}
 			style:--y={l.y}
 			style:--h={l.h}
+			style:--order={stackOrder(l, cols)}
 		>
 			{#if edit}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -194,6 +195,7 @@
 		.cell {
 			grid-column: auto;
 			grid-row: auto;
+			order: var(--order);
 			min-height: calc(var(--h) * 72px);
 		}
 

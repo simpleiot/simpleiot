@@ -13,6 +13,10 @@ For more details or to discuss releases, please visit the
 
 ### Changed
 
+- **On a phone, dashboard widgets follow the grid layout.** The single column
+  lists widgets top to bottom and left to right, as they appear on the desktop,
+  instead of in the order they were added. (#894)
+
 - **The web UI is built with SvelteKit 3.2.0 and adapter-static 4.0.1.** These
   releases fix bugs upstream and change nothing visible in the UI. (#893, #895)
 
