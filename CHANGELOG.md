@@ -11,6 +11,8 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+## [0.36.2] - 2026-11-23
+
 ### Changed
 
 - **On a phone, dashboard widgets follow the grid layout.** The single column
