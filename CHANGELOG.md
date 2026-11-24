@@ -11,6 +11,15 @@ For more details or to discuss releases, please visit the
 
 ## [Unreleased]
 
+### Security
+
+## [0.36.3] - 2026-11-23
+
+- **WebSocket connections use a secure random mask key.** The gorilla/websocket
+  library is updated past GO-2026-6278, which generated mask keys with a weak
+  random number generator. This covers the Shelly client and the WebSocket
+  proxy.
+
 ## [0.36.2] - 2026-11-23
 
 ### Changed
